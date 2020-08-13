@@ -1,3 +1,5 @@
 click~=7.1.2
 pyxray~=1.6.1
 ConfigUpdater~=1.0.1
+gemmi~=0.3.8
+numpy~=1.18.4

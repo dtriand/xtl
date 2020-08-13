@@ -6,6 +6,8 @@ from xtl.exceptions import InvalidArgument, FileError
 from xtl import cfg
 
 import os
+import gemmi
+import numpy as np
 
 
 class Project(GI.G2sc.G2Project):
@@ -24,6 +26,36 @@ class Project(GI.G2sc.G2Project):
         shutil.copy2(src=self.filename, dst=backup_gpx)
         if self.debug:
             print(f'Backing up .gpx file at {backup_gpx}')
+
+    def _get_gpx_version(self):
+        """
+        Finds the last project.bakXX.gpx file in the folder and returns XX + 1. If no .bak.gpx file is found in the
+        directory, returns 0. Can find files up to .bak999.gpx
+
+        :return:
+        """
+        filename = os.path.splitext(self._name)[0]
+        from glob import glob
+        bak1 = glob(f'{self._directory}/{filename}.bak?.gpx')
+        bak2 = glob(f'{self._directory}/{filename}.bak??.gpx')
+        bak3 = glob(f'{self._directory}/{filename}.bak???.gpx')
+        if bak3:
+            bak3.sort()
+            last_file = bak3[-1]
+        else:
+            if bak2:
+                bak2.sort()
+                last_file = bak2[-1]
+            else:
+                if bak1:
+                    bak1.sort()
+                    last_file = bak1[-1]
+                else:
+                    # last_file = f'{self._directory}/{filename}.bak-1.gpx'
+                    return 0
+        file_version = os.path.splitext(last_file)[0].split('.bak')[1]  # Get the number after .bak
+        file_version = int(file_version) + 1
+        return file_version
 
     def add_comment(self, comment):
         from datetime import datetime
@@ -156,3 +188,61 @@ class MixtureSimulationProject(SimulationProject):
 
         return hist
 
+
+class ExportProject(Project):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._backup_gpx()
+
+    @staticmethod
+    def get_cell(phase):
+        if not isinstance(phase, GI.G2sc.G2Phase):
+            raise
+        return tuple(phase.get_cell().values())[:-1]
+
+    @staticmethod
+    def get_spacegroup(phase):
+        """
+        :param GI.G2sc.G2Phase phase:
+        :return:
+        :rtype: gemmi.SpaceGroup
+        """
+        if not isinstance(phase, GI.G2sc.G2Phase):
+            raise
+        return gemmi.find_spacegroup_by_name(hm=phase.data['General']['SGData']['SpGrp'])
+
+    @staticmethod
+    def get_wavelength(histogram):
+        if not isinstance(histogram, GI.G2sc.G2PwdrData):
+            raise
+        iparams = histogram.InstrumentParameters
+        if 'Lam' in iparams:
+            return iparams['Lam'][1]
+        elif 'Lam1' in iparams:
+            return iparams['Lam1'][1]
+
+    @staticmethod
+    def get_histogram(histogram, subtract_background=False):
+        """
+        Returns histogram datapoints as numpy array. The following columns are included: [2theta, Io, sigma(Io), Ic,
+        background]. If ``subtract_background=True``, the returned array has the following 4 columns instead [2theta,
+        Io-background, sigma(Io), Ic-background].
+
+        :param histogram:
+        :param subtract_background:
+        :return:
+        """
+        if not isinstance(histogram, GI.G2sc.G2PwdrData):
+            raise
+        ttheta = histogram.getdata('x').reshape(-1, 1)
+        Io = histogram.getdata('yobs').reshape(-1, 1)
+        sigmaIo = histogram.getdata('yweight').reshape(-1, 1)
+        Ic = histogram.getdata('ycalc').reshape(-1, 1)
+        background = histogram.getdata('background').reshape(-1, 1)
+        # residual = histogram.getdata('residual').reshape(-1, 1)
+        if subtract_background:
+            datapoints = np.hstack((ttheta, Io - background, sigmaIo, Ic - background))
+        else:
+            datapoints = np.hstack((ttheta, Io, sigmaIo, Ic, background))
+        return datapoints
