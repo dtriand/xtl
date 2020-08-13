@@ -40,6 +40,7 @@ setup(
     description='',
     long_description=readme(),
     keywords='',
+    package_dir={"": "src"},
     packages=find_packages(exclude=['tests', 'tests.*']),  # Do not include tests in distribution
     python_requires='>=3.7',
     install_requires=requirements(),

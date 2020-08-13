@@ -3,14 +3,33 @@ import xtl.math as xm
 from xtl.GSAS2.components import PhaseMixture
 from xtl.GSAS2.parameters import InstrumentalParameters
 from xtl.exceptions import InvalidArgument, FileError
+from xtl import cfg
 
 import os
 
 
 class Project(GI.G2sc.G2Project):
 
-    def __init__(self, filename):
-        super().__init__(filename=GI._path_wrap(filename))
+    def __init__(self, filename, debug=False):
+        self.debug = debug
+        super().__init__(GI._path_wrap(filename))
+        self._directory, self._name = os.path.split(self.filename)
+
+    def _backup_gpx(self):
+        backup_dir = os.path.join(GI.working_directory, '.xtl')
+        backup_gpx = os.path.join(backup_dir, self._name)
+        if not os.path.exists(backup_dir):
+            os.mkdir(backup_dir)
+        import shutil
+        shutil.copy2(src=self.filename, dst=backup_gpx)
+        if self.debug:
+            print(f'Backing up .gpx file at {backup_gpx}')
+
+    def add_comment(self, comment):
+        from datetime import datetime
+        xtl_vers = cfg['xtl']['version'].value
+        now = datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+        self.data['Notebook']['data'].append(f"xtl {xtl_vers} @ {now}\n{comment}")
 
     def add_phase(self, file, name=None, histograms=[], type=''):
         if not name:
