@@ -14,7 +14,10 @@ class Project(GI.G2sc.G2Project):
 
     def __init__(self, filename, debug=False):
         self.debug = debug
-        super().__init__(GI._path_wrap(filename))
+        if os.path.exists(GI._path_wrap(filename)):
+            super().__init__(gpxfile=GI._path_wrap(filename))
+        else:
+            super().__init__(newgpx=GI._path_wrap(filename))
         self._directory, self._name = os.path.split(self.filename)
 
     def _backup_gpx(self):
