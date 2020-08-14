@@ -88,17 +88,17 @@ class Project(GI.G2sc.G2Project):
                     space_group_string = line[55:65]
                     break
             if not space_group_string:
-                raise FileError(file=file, message='No CRYST1 record found')
+                raise FileError(file=file, message='No CRYST1 record found.')
 
         # Space group validation
-        space_group_error = self.validate_space_group(space_group_string)
-        if space_group_error:
-            raise FileError(file=file, message=space_group_error)
+        valid, error = self.validate_space_group(space_group_string)
+        if not valid:
+            raise FileError(file=file, message=error)
 
         # PDB file validation (check for atoms)
-        pdb_file_error = self.validate_pdb_file(file)
-        if pdb_file_error:
-            raise FileError(file=file, message=pdb_file_error)
+        valid, error = self.validate_pdb_file(file)
+        if not valid:
+            raise FileError(file=file, message=error)
 
         # Add phase to project
         super().add_phase(phasefile=file, phasename=name, fmthint='PDB')
@@ -106,18 +106,58 @@ class Project(GI.G2sc.G2Project):
 
     @staticmethod
     def validate_space_group(space_group_string):
+        """
+        Checks whether a string is a valid space group.
+
+        :param str space_group_string: String to be parsed
+        :return: is_valid, error
+        :rtype: tuple[bool, str]
+        """
         SGError, SGData = GI.G2spc.SpcGroup(space_group_string)
         if SGError:  # If space group is valid, then SGError = 0
-            return f"Invalid space group {SGData['SpGrp']}"
-        return False
+            return False, f"Invalid space group {SGData['SpGrp']}."
+        return True, ''
 
     @staticmethod
     def validate_pdb_file(pdb_file):
+        """
+        Checks whether a .pdb file contains any ATOM records.
+
+        :param str pdb_file: File path
+        :return: is_valid, error
+        :rtype: tuple[bool, str]
+        """
         from imports.G2phase import PDB_ReaderClass
         reader = PDB_ReaderClass()
         if not reader.ContentsValidator(pdb_file):
-            return f'No ATOM records found'
-        return False
+            return False, f'No ATOM or HETATM records found.'
+        return True, ''
+
+    def get_spacegroup(self, phase):
+        """
+        Returns a Gemmi representation of a phase's spacegroup.
+
+        :param GI.G2sc.G2Phase phase:
+        :return: Gemmi spacegroup object
+        :rtype: gemmi.SpaceGroup
+        """
+        self.check_is_phase(phase)
+        return gemmi.find_spacegroup_by_name(hm=phase.data['General']['SGData']['SpGrp'])
+
+    def get_formula(self, phase):
+        """
+        Returns the phase's composition as a chemical formula (e.g. H12 C6 O6). The elements appear in order of
+        ascending atomic number.
+
+        :param phase:
+        :return: Composition formula
+        :rtype: str
+        """
+        self.check_is_phase(phase)
+        formula = ''
+        for element, count in phase.composition.items():
+            formula += f'{element}{int(count)} '
+        return formula
 
     @staticmethod
     def check_is_phase(phase):
@@ -223,17 +263,6 @@ class ExportProject(Project):
         if not isinstance(phase, GI.G2sc.G2Phase):
             raise
         return tuple(phase.get_cell().values())[:-1]
-
-    @staticmethod
-    def get_spacegroup(phase):
-        """
-        :param GI.G2sc.G2Phase phase:
-        :return:
-        :rtype: gemmi.SpaceGroup
-        """
-        if not isinstance(phase, GI.G2sc.G2Phase):
-            raise
-        return gemmi.find_spacegroup_by_name(hm=phase.data['General']['SGData']['SpGrp'])
 
     @staticmethod
     def get_wavelength(histogram):
