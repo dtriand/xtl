@@ -116,6 +116,26 @@ class Project(GI.G2sc.G2Project):
             return f'No ATOM records found'
         return False
 
+    @staticmethod
+    def check_is_phase(phase):
+        if not isinstance(phase, GI.G2sc.G2Phase):
+            raise InvalidArgument(message=f'{phase} is not a G2Phase object.')
+
+    @staticmethod
+    def check_is_histogram(histogram):
+        if not isinstance(histogram, GI.G2sc.G2PwdrData):
+            raise InvalidArgument(message=f'{histogram} is not a G2PwdrData object.')
+
+    def check_is_phase_in_project(self, phase):
+        self.check_is_phase(phase)
+        if phase not in self.phases():
+            raise InvalidArgument(message=f'Phase {phase} is not in project {self._name}.')
+
+    def check_is_histogram_in_project(self, histogram):
+        self.check_is_histogram(histogram)
+        if histogram not in self.histograms():
+            raise InvalidArgument(message=f'Histogram {histogram} is not in project {self._name}.')
+
 
 class SimulationProject(Project):
 
