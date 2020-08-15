@@ -37,6 +37,7 @@ import GSASIIpwd as G2pd
 import GSASIIlattice as G2lat
 import GSASIIfiles as G2fil
 import GSASIIspc as G2spc
+import GSASIImath as G2m
 
 working_directory = os.getcwd()
 

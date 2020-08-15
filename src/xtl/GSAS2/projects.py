@@ -199,8 +199,8 @@ class Project(GI.G2sc.G2Project):
         :rtype: bool
         """
         self.check_is_phase(phase)
-        # rho is a numpy array which does not evaluate to True/False
-        return False if phase['General']['Map']['rho'] == '' else True
+        # If a map is present then rho = np.ndarray, else rho = ''
+        return True if isinstance(phase['General']['Map']['rho'], np.ndarray) else False
 
     def get_wavelength(self, histogram):
         """
@@ -235,19 +235,25 @@ class InformationProject(Project):
 
     def get_filesize(self):
         """
-        Returns the filesize of a project in KB or MB.
+        Returns the filesize of a project in KB, MB etc.
 
-        :return: filesize, KB or MB
-        :rtype: tuple[float, str]
+        :return: filesize in appropriate unit
+        :rtype: str
         """
         import os
         size = os.stat(GI._path_wrap(self.filename)).st_size
-        if size > (1024 * 1024):
-            size /= (1024 * 1024)
-            return round(size, 2), 'MB'
-        elif size > 1024:
-            size /= 1024
-            return round(size, 2), 'KB'
+        return xm.si_units(value=size, suffix='B', base=1024, digits=2)
+
+    def get_no_of_residue_rigid_bodies(self, phase):
+        """
+        Returns the number of registered residue rigid bodies in a phase.
+
+        :param GI.G2sc.G2Phase phase:
+        :return: no. of residue rigid bodies
+        :rtype: int
+        """
+        self.check_is_phase(phase)
+        return len(phase.data['RBModels']['Residue']) if 'Residue' in phase.data['RBModels'] else 0
 
     def get_no_of_items(self):
         """

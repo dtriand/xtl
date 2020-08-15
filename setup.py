@@ -53,10 +53,11 @@ setup(
         # non-py files to include
         # specified in MANIFEST.in instead
     },
-    # entry_points={
-    #     'console_scripts': [
-    #         'xtl = xtl.scripts.cli:cli'
-    #     ]
-    # }
+    entry_points={
+        'console_scripts': [
+            'xtl = xtl.cli.cli:cli_main',
+            'gsas2 = xtl.cli.cli_gsas2:cli_gsas'
+        ]
+    }
 )
 
