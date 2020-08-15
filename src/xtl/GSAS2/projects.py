@@ -133,9 +133,29 @@ class Project(GI.G2sc.G2Project):
             return False, f'No ATOM or HETATM records found.'
         return True, ''
 
+    @staticmethod
+    def check_is_phase(phase):
+        if not isinstance(phase, GI.G2sc.G2Phase):
+            raise InvalidArgument(message=f'{phase} is not a G2Phase object.')
+
+    @staticmethod
+    def check_is_histogram(histogram):
+        if not isinstance(histogram, GI.G2sc.G2PwdrData):
+            raise InvalidArgument(message=f'{histogram} is not a G2PwdrData object.')
+
+    def check_is_phase_in_project(self, phase):
+        self.check_is_phase(phase)
+        if phase not in self.phases():
+            raise InvalidArgument(message=f'Phase {phase} is not in project {self._name}.')
+
+    def check_is_histogram_in_project(self, histogram):
+        self.check_is_histogram(histogram)
+        if histogram not in self.histograms():
+            raise InvalidArgument(message=f'Histogram {histogram} is not in project {self._name}.')
+
     def get_spacegroup(self, phase):
         """
-        Returns a Gemmi representation of a phase's spacegroup.
+        Returns a Gemmi representation of a phase's space group.
 
         :param GI.G2sc.G2Phase phase:
         :return: Gemmi spacegroup object
@@ -159,25 +179,107 @@ class Project(GI.G2sc.G2Project):
             formula += f'{element}{int(count)} '
         return formula
 
-    @staticmethod
-    def check_is_phase(phase):
-        if not isinstance(phase, GI.G2sc.G2Phase):
-            raise InvalidArgument(message=f'{phase} is not a G2Phase object.')
+    def get_phase_type(self, phase):
+        """
+        Returns the phase type i.e. nuclear, magnetic, macromolecular or faulted.
 
-    @staticmethod
-    def check_is_histogram(histogram):
-        if not isinstance(histogram, GI.G2sc.G2PwdrData):
-            raise InvalidArgument(message=f'{histogram} is not a G2PwdrData object.')
-
-    def check_is_phase_in_project(self, phase):
+        :param GI.G2sc.G2Phase phase:
+        :return: nuclear, magnetic, macromolecular or faulted
+        :rtype: str
+        """
         self.check_is_phase(phase)
-        if phase not in self.phases():
-            raise InvalidArgument(message=f'Phase {phase} is not in project {self._name}.')
+        return phase.data['General']['Type']
 
-    def check_is_histogram_in_project(self, histogram):
+    def has_map(self, phase):
+        """
+        Checks if a map is stored inside the phase dict.
+
+        :param GI.G2sc.G2Phase phase:
+        :return: True if has map else False
+        :rtype: bool
+        """
+        self.check_is_phase(phase)
+        # rho is a numpy array which does not evaluate to True/False
+        return False if phase['General']['Map']['rho'] == '' else True
+
+    def get_wavelength(self, histogram):
+        """
+        Returns the wavelength of a histogram and whether it is from a lab source. If it is a lab source, it returns
+        'Lam1' as the wavelength.
+
+        :param GI.G2sc.G2PwdrData histogram:
+        :return: (wavelength, is_lab)
+        :rtype: tuple[float, bool]
+        """
         self.check_is_histogram(histogram)
-        if histogram not in self.histograms():
-            raise InvalidArgument(message=f'Histogram {histogram} is not in project {self._name}.')
+        iparams = histogram.InstrumentParameters
+        if 'Lam' in iparams:
+            return iparams['Lam'][1], False
+        elif 'Lam1' in iparams:
+            return iparams['Lam1'][1], True
+
+    def get_data_range(self, histogram):
+        """
+        Returns the 2theta range of a raw histogram, not the refined range.
+
+        :param GI.G2sc.G2PwdrData histogram:
+        :return: (2theta_min, 2theta_max)
+        :rtype: tuple[float, float]
+        """
+        self.check_is_histogram(histogram)
+        ttheta = histogram.getdata('x')
+        return ttheta[0], ttheta[-1]
+
+
+class InformationProject(Project):
+
+    def get_filesize(self):
+        """
+        Returns the filesize of a project in KB or MB.
+
+        :return: filesize, KB or MB
+        :rtype: tuple[float, str]
+        """
+        import os
+        size = os.stat(GI._path_wrap(self.filename)).st_size
+        if size > (1024 * 1024):
+            size /= (1024 * 1024)
+            return round(size, 2), 'MB'
+        elif size > 1024:
+            size /= 1024
+            return round(size, 2), 'KB'
+
+    def get_no_of_items(self):
+        """
+        Returns the number of phases, histograms, constraints, restraints and unregistered (unique) rigid bodies in a
+        project.
+
+        :return: no_phases, no_histograms, no_constraints, no_restraints, no_rigidbodies
+        :rtype: tuple[int, int, int, int, int]
+        """
+        no_phases = len(self.phases())
+        no_histograms = len(self.histograms())
+
+        no_constraints = 0
+        for ct in ['Hist', 'HAP', 'Phase', 'Global']:
+            constraint_data = self.data['Constraints']['data']
+            if ct in constraint_data:
+                no_constraints += len(constraint_data[ct])
+
+        no_restraints = 0
+        for ph in self.phases():
+            restraint_data = self.data['Restraints']['data']
+            if ph in restraint_data:
+                for rt, r in [('Bond', 'Bonds'), ('Angle', 'Angles'), ('Plane', 'Planes'), ('Chiral', 'Volumes'),
+                              ('Torsion', 'Torsions'), ('Rama', 'Ramas'), ('Texture', 'HKLs'), ('ChemComp', 'Sites'),
+                              ('General', 'General')]:
+                    no_restraints += len(restraint_data[ph.name][rt][r])
+
+        no_rigidbodies = 0
+        for rbt in ['Vector', 'Residue']:
+            no_rigidbodies += len(self.data['Rigid bodies']['data']['RBIds'][rbt])
+
+        return no_phases, no_histograms, no_constraints, no_restraints, no_rigidbodies
 
 
 class SimulationProject(Project):
@@ -263,16 +365,6 @@ class ExportProject(Project):
         if not isinstance(phase, GI.G2sc.G2Phase):
             raise
         return tuple(phase.get_cell().values())[:-1]
-
-    @staticmethod
-    def get_wavelength(histogram):
-        if not isinstance(histogram, GI.G2sc.G2PwdrData):
-            raise
-        iparams = histogram.InstrumentParameters
-        if 'Lam' in iparams:
-            return iparams['Lam'][1]
-        elif 'Lam1' in iparams:
-            return iparams['Lam1'][1]
 
     @staticmethod
     def get_histogram(histogram, subtract_background=False):
