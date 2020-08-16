@@ -13,9 +13,9 @@ from xtl.cli.utils import update_docstring
 
 # Note: If this cli does nothing but forward commands, then debug and verbose are not needed.
 @click.group(context_settings=dict(help_option_names=['-h', '--help']))
+@click.pass_context
 @click.option('-d', '--debug', is_flag=True, default=False, help='Run on debug mode.')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Display additional info.')
-@click.pass_context
 @update_docstring(field='{version}', value=cfg['xtl']['version'].value)
 def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
     """
@@ -45,8 +45,8 @@ def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
 
 @cli_main.command(short_help='Utilities for manipulating GSAS2 .gpx files.',
                   context_settings=dict(ignore_unknown_options=True, allow_interspersed_args=False))
-@click.argument('argopts', nargs=-1, type=click.UNPROCESSED)  # consumes all arguments and options
 @click.pass_context
+@click.argument('argopts', nargs=-1, type=click.UNPROCESSED)  # consumes all arguments and options
 def gsas2(ctx: click.core.Context, argopts):
     """
     \b

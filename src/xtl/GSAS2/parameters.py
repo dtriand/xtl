@@ -356,7 +356,7 @@ class InstrumentalParameters:
     def dictionary(self):
 
         # key = [original_value, modified_value, refinement_status]
-        output = dict()
+        output = {}
 
         output['Type'] = [self._initial_dict['Type'][0], self._type, False]
         output['Bank'] = [self._initial_dict['Bank'][0], self._bank, False]

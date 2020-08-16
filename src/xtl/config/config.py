@@ -18,6 +18,9 @@ _cfg = {
     },
     'dependencies': {
         'gsas': '# Path for GSAS2 installation'
+    },
+    'cli': {
+        'gsas_instprm_template_dir': '# Directories for holding template .instprm files'
     }
 }
 
