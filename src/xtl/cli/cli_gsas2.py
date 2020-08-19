@@ -256,11 +256,12 @@ def params(ctx: click.core.Context, file, wavelength, source, zero_shift, polari
             return
 
     # Source processing
-    try:
-        # Check if source is an atomic number
-        source = int(source)
-    except ValueError:
-        pass
+    if source:
+        try:
+            # Check if source is an atomic number
+            source = int(source)
+        except ValueError:
+            pass
 
     # Check if file exists and prompt
     import os
@@ -375,8 +376,10 @@ def params_create(ctx: click.core.Context, file, wavelength, source, zero_shift,
         # Create a file with the GSAS default parameters, using the user-provided wavelength/source
         if wavelength:
             ip = InstrumentalParameters.defaults_synchrotron(wavelength=wavelength)
+            click.secho(f'Initiating default synchrotron instrumental parameters.')
         elif source:
             ip = InstrumentalParameters.defaults_lab(tube=source)
+            click.secho(f'Initiating default laboratory instrumental parameters.')
         else:
             click.secho(f'Instrumental parameters file cannot be created without a wavelength or a radiation source.',
                         fg='red')

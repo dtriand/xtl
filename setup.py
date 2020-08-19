@@ -41,7 +41,7 @@ setup(
     long_description=readme(),
     keywords='',
     package_dir={"": "src"},
-    packages=find_packages(exclude=['tests', 'tests.*']),  # Do not include tests in distribution
+    packages=find_packages(where='src', exclude=['tests', 'tests.*']),  # Do not include tests in distribution
     python_requires='>=3.7',
     install_requires=requirements(),
     # extras_require={}  # Specified in setup.cfg
