@@ -40,6 +40,11 @@ import GSASIIspc as G2spc
 import GSASIImath as G2m
 
 working_directory = os.getcwd()
+xtl_directories = {
+    'maps': 'maps',
+    'models': 'models',
+    'reflections': 'reflections'
+}
 
 
 def _path_wrap(path):

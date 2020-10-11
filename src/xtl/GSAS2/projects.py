@@ -60,6 +60,38 @@ class Project(GI.G2sc.G2Project):
         file_version = int(file_version) + 1
         return file_version
 
+    @staticmethod
+    def _prepare_directory(directory):
+        path = os.path.join(GI.working_directory, directory)
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+    def _get_phases_and_histograms_iterator(self, phase, histogram):
+        """
+        Returns an iterable of phases and an iterable of histograms. If no phases/histograms are given, all
+        phases/histograms of the project are returned.
+
+        :param GI.G2sc.G2Phase phase:
+        :param GI.G2sc.G2PwdrData histogram:
+        :return: ([G2Phase], [G2PwdrData])
+        :rtype: Tuple[List[GI.G2sc.G2Phase], List[GI.G2sc.G2PwdrData]]
+        """
+
+        if phase:
+            self.check_is_phase(phase)
+            phases = [phase]
+        else:
+            phases = self.phases()
+
+        if histogram:
+            self.check_is_histogram(histogram)
+            histograms = [histogram]
+        else:
+            histograms = self.histograms()
+
+        return phases, histograms
+
+
     def add_comment(self, comment):
         from datetime import datetime
         xtl_vers = cfg['xtl']['version'].value
@@ -164,6 +196,17 @@ class Project(GI.G2sc.G2Project):
         self.check_is_phase(phase)
         return gemmi.find_spacegroup_by_name(hm=phase.data['General']['SGData']['SpGrp'])
 
+    def get_cell(self, phase):
+        """
+        Returns unit-cell parameters without the volume.
+
+        :param GI.G2sc.G2Phase phase:
+        :return: (a, b, c, alpha, beta, gamma)
+        :rtype: tuple
+        """
+        self.check_is_phase(phase)
+        return tuple(phase.get_cell().values())[:-1]
+
     def get_formula(self, phase):
         """
         Returns the phase's composition as a chemical formula (e.g. H12 C6 O6). The elements appear in order of
@@ -229,6 +272,333 @@ class Project(GI.G2sc.G2Project):
         self.check_is_histogram(histogram)
         ttheta = histogram.getdata('x')
         return ttheta[0], ttheta[-1]
+
+    def get_histogram(self, histogram, subtract_background=False):
+        """
+        Returns histogram datapoints as numpy array. The following columns are included: [2theta, Io, sigma(Io), Ic,
+        background]. If ``subtract_background=True``, the returned array has the following 4 columns instead [2theta,
+        Io-background, sigma(Io), Ic-background].
+
+        :param GI.G2sc.G2PwdrData histogram: Histogram to extract datapoints from
+        :param bool subtract_background: Subtract the background from intensities
+        :return: Datapoints array with columns: 2theta, Io, sigma(Io), Ic, background or 2theta, Io-background,
+                 sigma(Io), Ic-background.
+        :rtype: np.ndarray
+        """
+        self.check_is_histogram(histogram)
+        ttheta = histogram.getdata('x').reshape(-1, 1)
+        Io = histogram.getdata('yobs').reshape(-1, 1)
+        sigmaIo = histogram.getdata('yweight').reshape(-1, 1)
+        Ic = histogram.getdata('ycalc').reshape(-1, 1)
+        background = histogram.getdata('background').reshape(-1, 1)
+        # residual = histogram.getdata('residual').reshape(-1, 1)
+        if subtract_background:
+            datapoints = np.hstack((ttheta, Io - background, sigmaIo, Ic - background))
+        else:
+            datapoints = np.hstack((ttheta, Io, sigmaIo, Ic, background))
+        return datapoints
+
+    def get_reflections(self, phase, histogram, scale=False):
+        """
+        Returns a numpy array with the following columns: h, k, l, d-spacing, Fo^2, sigma(Fo^2), Fc^2, phase.
+        Observed structure factor errors are computed as sqrt(Fo^2).
+
+        :param GI.G2sc.G2Phase phase: Phase to extract reflections from
+        :param GI.G2sc.G2PwdrData histogram: Histogram to extract reflections from
+        :param bool scale: Scale structure factors larger than 1e7 (for .mtz files)
+        :return: Reflections array with columns: h, k, l, d-spacing, Fo^2, sigma(Fo^2), Fc^2, phase
+        :rtype: np.ndarray
+        """
+        self.check_is_phase(phase)
+        self.check_is_histogram(histogram)
+
+        gpx_reflections = histogram.reflections()[phase.name]['RefList']
+        # Available columns in gpx_reflections
+        # h, k, l, multiplicity, d-spacing, 2theta, sig, gam, Fosq, Fcsq, phase, Icorr, Prfo, Trans, ExtP
+        # 0, 1, 2, 3,            4,         5,      6,   7,   8,    9,    10,    11,    12,   13,    14
+        h = gpx_reflections[:, 0].reshape(-1, 1)  # .reshape(-1, 1) converts the 1D horizontal array to a 2D vertical
+        k = gpx_reflections[:, 1].reshape(-1, 1)
+        l = gpx_reflections[:, 2].reshape(-1, 1)
+        d = gpx_reflections[:, 4].reshape(-1, 1)
+        Fo2 = gpx_reflections[:, 8].reshape(-1, 1)
+        Fo2_sigma = np.sqrt(Fo2)
+        Fc2 = gpx_reflections[:, 9].reshape(-1, 1)
+        phase = gpx_reflections[:, 10].reshape(-1, 1)
+        reflections = np.hstack((h, k, l, d, Fo2, Fo2_sigma, Fc2, phase))
+
+        if scale:
+            # MTZ files can only save numbers < 1.e7
+            # Fo^2 and Fc^2 can occasionally be larger, so they must be first scaled down before saving
+            times_scaled = 0
+            scale_factor = 10
+            while True:
+                has_larger_than_allowed_in_mtz = False
+                column_max = np.amax(reflections[:, [4, 6]], axis=0)  # Fo^2, Fc^2
+                for value in column_max:
+                    if value > 1.e7:
+                        has_larger_than_allowed_in_mtz = True
+                if has_larger_than_allowed_in_mtz:
+                    reflections[:, [4, 6]] /= scale_factor  # Fo^2, Fc^2
+                    reflections[:, 5] /= np.sqrt(scale_factor)  # sigma(Fo^2)
+                    times_scaled += 1
+                    continue
+                else:
+                    break
+            if times_scaled:
+                hist_name = histogram.name.split('.')[0][5:]
+                print(f"Scaling down structure factors for histogram {hist_name} by a factor of "
+                      f"{round(scale_factor ** times_scaled, 3)}")
+        return reflections
+
+    def export_reflections(self, phase=None, histogram=None, filetype='cif', as_intensities=False, **kwargs):
+        """
+        Export structure factors for a specific phase and histogram to file. Supported filetypes are ``cif`` (mmCIF) and
+        ``mtz``. If phase and/or histogram are ``None``, then reflections from all phases and histograms are exported.
+
+        Keyword Arguments
+            * ``pretty: bool = False`` -- Space-align tabular data in .cif files. Might result in a slower export.
+            * ``include_histograms: bool = False`` -- Save histogram datapoints in .cif files.
+            * ``mini_mtz: bool = False`` -- Export separate .mtz files for each histogram
+
+        :param GI.G2sc.G2Phase or None phase: Phase to export reflections from
+        :param GI.G2sc.G2PwdrData or None histogram: Histogram to export reflections from
+        :param filetype: 'cif' or 'mtz'
+        :param as_intensities: Export intensities instead of structure factors.
+        :param kwargs: See below
+        :return:
+        """
+        phases, histograms = self._get_phases_and_histograms_iterator(phase, histogram)
+
+        if filetype == 'cif':
+            pretty = kwargs.get('pretty', False)
+            include_histograms = kwargs.get('include_histograms', False)
+            self._export_reflections_as_cif(phases, histograms, pretty=pretty, as_intensities=as_intensities,
+                                            include_histograms=include_histograms)
+        elif filetype == 'mtz':
+            mini_mtz = kwargs.get('mini_mtz', False)
+            if mini_mtz:
+                for histogram in histograms:
+                    self._export_reflections_as_mtz(phases, [histogram], as_intensities=as_intensities)
+            else:
+                self._export_reflections_as_mtz(phases, histograms, as_intensities=as_intensities)
+        else:
+            supported_formats = ['cif', 'mtz']
+            raise InvalidArgument(raiser='filetype', message=f"Unknown file type '{filetype}'\n"
+                                                             f"Choose one from: {', '.join(supported_formats)}")
+
+    def _export_reflections_as_cif(self, phases, histograms, as_intensities=False, pretty=False,
+                                   include_histograms=False):
+        for phase in phases:
+            doc = gemmi.cif.Document()
+            cell = self.get_cell(phase)
+            spacegroup = self.get_spacegroup(phase)
+
+            # Check if reflections from all histograms are included
+            all_histograms = phase.histograms()
+            includes_all_histograms = True
+            histogram_names = [h.name for h in histograms]
+            for histogram_name in all_histograms:
+                if histogram_name not in histogram_names:
+                    includes_all_histograms = False
+
+            histogram_names = []
+            for histogram in histograms:
+                histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+                histogram_names.append(histogram_name)
+
+                # Initialize new cif data block
+                block = doc.add_new_block(f'r_{histogram_name}_sf')
+                block.set_pair('_entry.id', phase.name)
+
+                # Unit-cell
+                block.set_pair('_cell.entry_id', phase.name)
+                for latt_param, item in zip(cell, ['length_a', 'length_b', 'length_c',
+                                                   'angle_alpha', 'angle_beta', 'angle_gamma']):
+                    block.set_pair(f'_cell.{item}', str(round(latt_param, 4)))
+
+                # Spacegroup symmetry
+                block.set_pair('_symmetry.entry_id', phase.name)
+                block.set_pair('_symmetry.space_group_name_H-M', gemmi.cif.quote(spacegroup.hm))
+                block.set_pair('_symmetry.Int_Tables_number', str(spacegroup.number))
+
+                # Reflections
+                reflections = self.get_reflections(phase, histogram, scale=False)
+                if as_intensities:
+                    refln_loop = block.init_mmcif_loop('_refln.', ['index_h', 'index_k', 'index_l', 'intensity_meas',
+                                                                   'intensity_sigma', 'intensity_calc', 'phase_calc',
+                                                                   'd_spacing'])
+                else:
+                    refln_loop = block.init_mmcif_loop('_refln.', ['index_h', 'index_k', 'index_l', 'F_meas',
+                                                                   'F_meas_sigma', 'F_calc', 'phase_calc', 'd_spacing'])
+
+                    # Convert Fo^2, sigma(Fo^2), Fc^2 to Fo, sigma(Fo), Fc
+                    reflections[:, [4, 5, 6]] = np.sqrt(reflections[:, [4, 5, 6]])
+
+                hkl = reflections[:, [0, 1, 2]].astype('int')
+                sf = reflections[:, [4, 5, 6, 7, 3]].astype('str')
+                reflections = np.hstack((hkl, sf)).astype('str').swapaxes(0, 1)
+                refln_loop.set_all_values(reflections.tolist())
+
+                # Histogram
+                if include_histograms:
+                    pdbx_powder_data_loop = block.init_mmcif_loop('_pdbx_powder_data.', ['pd_meas_2theta_scan',
+                                                                                         'pd_meas_intensity_total',
+                                                                                         'pd_proc_ls_weight',
+                                                                                         'pd_calc_intensity_total',
+                                                                                         'pd_proc_intensity_bkg_calc'])
+                    datapoints = self.get_histogram(histogram).astype('str').swapaxes(0, 1)
+                    pdbx_powder_data_loop.set_all_values(datapoints.tolist())
+
+            export_directory = GI.xtl_directories['reflections']
+            self._prepare_directory(export_directory)
+
+            # File name: project_phase_bakXX_histograms_I/F_sf.cif
+            output_file = os.path.join(GI.working_directory, export_directory,
+                                       f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
+                                       f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                                       f'{"I" if as_intensities else "F"}_sf.cif')
+
+            if pretty:
+                from xtl.io import mmCIF
+                mmCIF(doc).pretty_export(output_file)
+            else:
+                doc.write_file(output_file, gemmi.cif.Style.Pdbx)
+            print(f"Saved reflections for phase '{phase.name}' to {output_file}")
+        return
+
+    def _export_reflections_as_mtz(self, phases, histograms, as_intensities=False):
+
+        for phase in phases:
+            mtz = gemmi.Mtz()
+            mtz.spacegroup = self.get_spacegroup(phase)
+            mtz.cell.set(*self.get_cell(phase))
+
+            # Check if reflections from all histograms are included
+            all_histograms = phase.histograms()
+            includes_all_histograms = True
+            histogram_names = [h.name for h in histograms]
+            for histogram_name in all_histograms:
+                if histogram_name not in histogram_names:
+                    includes_all_histograms = False
+
+            raw_reflections = []
+            histogram_names = []
+            for i, histogram in enumerate(histograms):
+                histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+                histogram_names.append(histogram_name)
+
+                # Grab reflections
+                new_reflections = self.get_reflections(phase, histogram, scale=True)
+                if not as_intensities:
+                    # Convert Fo^2, sigma(Fo^2), Fc^2 to Fo, sigma(Fo), Fc
+                    new_reflections[:, [4, 5, 6]] = np.sqrt(new_reflections[:, [4, 5, 6]])
+                raw_reflections.append(new_reflections)
+
+                dataset = histogram.name.split('.')[0][5:]  # PWDR xxx.gsa
+                mtz.add_dataset(dataset)
+
+                # Set dataset metadata
+                mtz.datasets[i].project_name = f'{self._name[:-4]}_bak{self._get_gpx_version()}'
+                mtz.datasets[i].crystal_name = phase.name
+                mtz.datasets[i].wavelength = self.get_wavelength(histogram)[0]
+
+                # Add columns
+                if i == 0:
+                    mtz.add_column('H', 'H', dataset_id=0)
+                    mtz.add_column('K', 'H', dataset_id=0)
+                    mtz.add_column('L', 'H', dataset_id=0)
+                    if as_intensities:
+                        mtz.add_column('I', 'J', dataset_id=0)
+                        mtz.add_column('SIGI', 'Q', dataset_id=0)
+                        mtz.add_column('IC', 'J', dataset_id=0)
+                    else:
+                        mtz.add_column('FP', 'F', dataset_id=0)
+                        mtz.add_column('SIGFP', 'Q', dataset_id=0)
+                        mtz.add_column('FC', 'F', dataset_id=0)
+                    mtz.add_column('PHIC', 'P', dataset_id=0)
+                else:
+                    if as_intensities:
+                        mtz.add_column(f'I_{dataset}', 'J', dataset_id=i)  # Fo^2 or Io
+                        mtz.add_column(f'SIGI_{dataset}', 'Q', dataset_id=i)  # sigma(Fo^2) or sigma(Io)
+                        mtz.add_column(f'IC_{dataset}', 'J', dataset_id=i)  # Fc^2 or Ic
+                    else:
+                        mtz.add_column(f'FP_{dataset}', 'F', dataset_id=i)  # Fo
+                        mtz.add_column(f'SIGFP_{dataset}', 'Q', dataset_id=i)  # sigma(Fo)
+                        mtz.add_column(f'FC_{dataset}', 'F', dataset_id=i)  # Fc
+                    mtz.add_column(f'PHIC_{dataset}', 'P', dataset_id=i)  # phase
+
+            reflections = self._hstack_reflections(raw_reflections)
+
+            if self.debug:
+                columns = mtz.columns
+                column_labels = ','.join([c.label for c in columns])
+                column_types = ','.join([c.type for c in columns])
+
+                export_directory = GI.xtl_directories['reflections']
+                self._prepare_directory(export_directory)
+                debug_csv = os.path.join(GI.working_directory, export_directory,
+                                         f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
+                                         f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                                         f'{"I" if as_intensities else "F"}_debug.csv')
+                np.savetxt(debug_csv, reflections, header=f'{column_labels}\n{column_types}', comments='',
+                           delimiter=',', fmt='%1.6e')
+                print(f'Saved merged reflections to {debug_csv}')
+
+            # Add data to mtz
+            mtz.set_data(reflections)
+
+            # Set additional metadata
+            from datetime import datetime
+            mtz.title = phase.name
+            mtz.history = [f"Created with xtl {cfg['xtl']['version'].value} on "
+                           f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"]
+
+            export_directory = GI.xtl_directories['reflections']
+            self._prepare_directory(export_directory)
+            # File name: project_phase_bakXX_histograms_I/F_sf.cif
+            output_file = os.path.join(GI.working_directory, export_directory,
+                                       f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
+                                       f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                                       f'{"I" if as_intensities else "F"}.mtz')
+
+            mtz.write_to_file(output_file)
+            print(f"Saved reflections for phase '{phase.name}' to {output_file}")
+
+    @staticmethod
+    def _hstack_reflections(reflist):
+        """
+        Takes a list of reflection arrays (of unequal length) and stacks the structure factors horizontally for each
+        array. Used for preparing data before .mtz file export.
+
+        :param list[np.ndarray] or tuple[np.ndarray] reflist: iterable of numpy arrays with the following columns:
+            [h, k, l, d, Fo^2, sigma(Fo^2), Fc^2, phase]. Can be prepared by :meth:`.Project.get_reflections`.
+        :return: Array with the following columns: [h, k, l, Fo^2_1, sigma(Fo^2)_1, Fc^2_1, phase_1, Fo^2_2, ...]
+        :rtype: np.ndarray
+        """
+        # Get the hkl list from the largest array in the reflist
+        largest_array_length, largest_array_index = max((len(array), i) for i, array in enumerate(reflist))
+        hkl = reflist[largest_array_index][:, 0:3]
+
+        merged_reflections = hkl
+        for array in reflist:
+            new_reflections = np.hstack((hkl, np.empty((len(hkl), 4)) * np.nan))
+            # new_reflections: h, k, l, NaN, NaN, NaN, NaN
+            for i, h in enumerate(hkl):
+                try:
+                    # assuming that the reflections are in the same order in both arrays
+                    if np.array_equal(h, array[i, 0:3]):
+                        # new_reflections : h, k, l,    Fo^2, sigma(Fo^2), Fc^2, phase
+                        #                   0, 1, 2,    3,    4,           5,    6
+                        #
+                        # array           : h, k, l, d, Fo^2, sigma(Fo^2), Fc^2, phase
+                        #                   0, 1, 2, 3, 4,    5,           6,    7
+                        new_reflections[i, 3:7] = array[i, 4:8]
+                except IndexError:
+                    # Array has less reflections than largest array
+                    pass
+            # Add the Fo^2, sigma(Fo^2), Fc^2 and phase columns to the merged_reflections array
+            merged_reflections = np.hstack((merged_reflections, new_reflections[:, 3:7]))
+        return merged_reflections
 
 
 class InformationProject(Project):
@@ -297,7 +667,7 @@ class SimulationProject(Project):
         self.data['Controls']['data']['max cyc'] = max_cycles
 
     def simulate_patterns_sequentially(self):
-        pass
+        raise NotImplemented
 
 
 class MixtureSimulationProject(SimulationProject):
@@ -358,41 +728,3 @@ class MixtureSimulationProject(SimulationProject):
             # Phase ratios sum is normalized to 1
 
         return hist
-
-
-class ExportProject(Project):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._backup_gpx()
-
-    @staticmethod
-    def get_cell(phase):
-        if not isinstance(phase, GI.G2sc.G2Phase):
-            raise
-        return tuple(phase.get_cell().values())[:-1]
-
-    @staticmethod
-    def get_histogram(histogram, subtract_background=False):
-        """
-        Returns histogram datapoints as numpy array. The following columns are included: [2theta, Io, sigma(Io), Ic,
-        background]. If ``subtract_background=True``, the returned array has the following 4 columns instead [2theta,
-        Io-background, sigma(Io), Ic-background].
-
-        :param histogram:
-        :param subtract_background:
-        :return:
-        """
-        if not isinstance(histogram, GI.G2sc.G2PwdrData):
-            raise
-        ttheta = histogram.getdata('x').reshape(-1, 1)
-        Io = histogram.getdata('yobs').reshape(-1, 1)
-        sigmaIo = histogram.getdata('yweight').reshape(-1, 1)
-        Ic = histogram.getdata('ycalc').reshape(-1, 1)
-        background = histogram.getdata('background').reshape(-1, 1)
-        # residual = histogram.getdata('residual').reshape(-1, 1)
-        if subtract_background:
-            datapoints = np.hstack((ttheta, Io - background, sigmaIo, Ic - background))
-        else:
-            datapoints = np.hstack((ttheta, Io, sigmaIo, Ic, background))
-        return datapoints
