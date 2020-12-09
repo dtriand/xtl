@@ -11,7 +11,7 @@ def readme():
 def requirements():
     """
     Create a list of packages from requirements.txt.
-    Pop `setuptools` which is annoyingly added by PyCharm.
+    Pop `setuptools` which is added by PyCharm.
     :return:
     """
     with open('requirements.txt') as f:

@@ -1,4 +1,5 @@
 import xtl.GSAS2.GSAS2Interface as GI
+import xtl.GSAS2.objects as GO
 import xtl.math as xm
 from xtl.GSAS2.components import PhaseMixture
 from xtl.GSAS2.parameters import InstrumentalParameters
@@ -90,7 +91,6 @@ class Project(GI.G2sc.G2Project):
             histograms = self.histograms()
 
         return phases, histograms
-
 
     def add_comment(self, comment):
         from datetime import datetime
@@ -600,6 +600,145 @@ class Project(GI.G2sc.G2Project):
             merged_reflections = np.hstack((merged_reflections, new_reflections[:, 3:7]))
         return merged_reflections
 
+    def export_map(self, phase, histogram, map_type, grid_step=0.5, omit_map=False, ignore_existing_map=False):
+        """
+        Export an electron density (Fourier) map for a phase. If a map is already saved in the project, this one will
+        exported instead.
+
+        :param GI.G2sc.G2Phase phase:
+        :param GI.G2sc.G2PwdrData histogram:
+        :param str map_type: One of ``Fo``, ``Fc``, ``Fo-Fc``, ``2Fo-Fc``, ``Fo2``
+        :param float grid_step:
+        :param bool omit_map: Recalculate phases with OMIT procedure
+        :param bool ignore_existing_map: Force map recalculation. Will delete an existing map.
+        :return:
+        """
+
+        export_directory = GI.xtl_directories['maps']
+        self._prepare_directory(export_directory)
+
+        # Check if map is available in .gpx file, else calculate new map
+        has_saved_map = False
+        if self.has_map(phase) and ignore_existing_map is True:
+            print(f"Map already calculated for phase '{phase.name}'. Exporting this instead...")
+            output_file = os.path.join(GI.working_directory, export_directory, f'{self._name[:-4]}_{phase.name}'
+                                                                               f'_bak{self._get_gpx_version()}'
+                                                                               f'_userCalculated.ccp4')
+            has_saved_map = True
+        else:
+            self.calculate_map(phase, histogram, map_type, grid_step, omit_map)
+            histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+            map_type_pretty = GO.get_map_type(map_type).name_pretty
+            output_file = os.path.join(GI.working_directory, export_directory,
+                                       f'{self._name[:-4]}_{phase.name}_{histogram_name}_{map_type_pretty}'
+                                       f'{"_omit" if omit_map else ""}_bak{self._get_gpx_version()}.ccp4')
+
+        # Save map to file
+        rho = phase['General']['Map']['rho']
+        grid = gemmi.FloatGrid(*rho.shape)
+        grid.set_unit_cell(gemmi.UnitCell(*self.get_cell(phase)))
+        grid.spacegroup = self.get_spacegroup(phase)
+        for (x, y, z), r in np.ndenumerate(rho):
+            grid.set_value(x, y, z, r)
+
+        map = gemmi.Ccp4Map()
+        map.grid = grid
+        map.update_ccp4_header(mode=2, update_stats=True)
+        map.write_ccp4_map(output_file)
+
+        if has_saved_map:
+            print(f"Saved existing map for phase '{phase.name}' to {output_file}")
+        else:
+            print(f"Saved {map_type_pretty}{' omit' if omit_map else ''} map for phase '{phase.name}' and histogram "
+                  f"'{histogram_name}' to {output_file}")
+            self.clear_map(phase)
+        return
+
+    def calculate_map(self, phase, histogram, map_type, grid_step=0.5, omit_map=False):
+        """
+        Calculate an electron density (Fourier) map for a phase. Map data is saved at ``phase['General']['Map']``.
+
+        :param GI.G2sc.G2Phase phase:
+        :param GI.G2sc.G2PwdrData histogram:
+        :param str map_type: One of ``Fo``, ``Fc``, ``Fo-Fc``, ``2Fo-Fc``, ``Fo2``
+        :param float grid_step:
+        :param bool omit_map: Recalculate phases with OMIT procedure
+        :return:
+        """
+        self.check_is_phase(phase)
+        self.check_is_histogram(histogram)
+
+        map = GO.get_map_type(map_type)
+        if omit_map and map.gsas_map_type in ('Fc', 'Fo-Fc', 'Patterson'):
+            raise InvalidArgument(raiser='map_type', message=f'{map_type}. {map.gsas_map_type} maps cannot be generated'
+                                                             f' with the OMIT procedure. Choose a different map_type '
+                                                             f'or set omit_map=False.')
+
+        # Set phase data
+        phase['General']['Map']['MapType'] = map.gsas_map_type
+        phase['General']['Map']['GridStep'] = grid_step
+        reflections = histogram['Reflection Lists'][phase.name]
+
+        # Calculate map
+        if omit_map:
+            self._calculate_map_omit(phase=phase, reflections=reflections)
+        else:
+            self._calculate_map_fourier(phase=phase, reflections=reflections)
+        return
+
+    @staticmethod
+    def _calculate_map_fourier(phase, reflections):
+        """
+        Calculates a Fourier map for a given reflections list. Space group and map details are extracted from phase
+        dict.
+
+        :param GI.G2sc.G2Phase phase:
+        :param dict reflections: {'RefList': np.array[h, k, l, multiplicity, d-spacing, 2theta, sig, gam, Fo2, Fc2, ...]
+        See: https://gsas-ii.readthedocs.io/en/latest/GSASIIobj.html#powder-reflection-data-structure
+        """
+        GI.G2sc.SetPrintLevel('none')
+        GI.G2m.FourierMap(data=phase, reflDict=reflections)
+        GI.G2sc.SetPrintLevel('all')
+        return
+
+    @staticmethod
+    def _calculate_map_omit(phase, reflections):
+        """
+        Calculates an omit map for a given reflections list. Space group and map details are extracted from phase
+        dict.
+
+        :param GI.G2sc.G2Phase phase:
+        :param dict reflections: {'RefList': np.array[h, k, l, multiplicity, d-spacing, 2theta, sig, gam, Fo2, Fc2, ...]
+        See: https://gsas-ii.readthedocs.io/en/latest/GSASIIobj.html#powder-reflection-data-structure
+        """
+
+        class _DummyProgressBar:
+            """
+            Used for omit map calculation. Does nothing.
+            """
+
+            def Raise(self):
+                pass
+
+            def Update(self, nBlk):
+                pass
+
+        GI.G2sc.SetPrintLevel('none')
+        phase['General']['Map'] = GI.G2m.OmitMap(data=phase, reflDict=reflections, pgbar=_DummyProgressBar())
+        GI.G2sc.SetPrintLevel('all')
+        return
+
+    def clear_map(self, phase):
+        """
+        Resets the map dictionary of the phase (i.e. ``phase['General']['Map']``).
+
+        :param GI.G2sc.G2Phase phase:
+        :return:
+        """
+        self.check_is_phase(phase)
+        phase['General']['Map'] = GO.MapData().dictionary
+        return
+
 
 class InformationProject(Project):
 
@@ -700,7 +839,7 @@ class MixtureSimulationProject(SimulationProject):
             weight_ratios += [weight_ratio]
             phase_ratios += [phase_ratio]
 
-            # Check ttheta range for each phase. At least one peak should be inluded in the range. If not modify range.
+            # Check ttheta range for each phase. At least one peak should be included in the range. If not modify range.
             unit_cell = phase.data['General']['Cell'][1:7]
             largest_axis = max(unit_cell[0:3])
             if largest_axis < xm.ttheta_to_d_spacing(ttheta_max, wavelength):
@@ -711,7 +850,7 @@ class MixtureSimulationProject(SimulationProject):
                 new_dmin = hkld[0][3]
                 # Add an additional 10% to the required range, to allow part of the first peak to appear
                 new_ttheta_max = xm.d_spacing_to_ttheta(dmin, wavelength) * 1.1
-                print(f'Adjuxting 2theta range to include at least one peak per phase. '
+                print(f'Adjusting 2theta range to include at least one peak per phase. '
                       f'Was {ttheta_max}, now is {new_ttheta_max}')
                 ttheta_max = new_ttheta_max
 
