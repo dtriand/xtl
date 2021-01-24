@@ -1,11 +1,13 @@
+import os
+import random
+
+import pytest
+from pyxray import NotFound
+
 from xtl.GSAS2.parameters import InstrumentalParameters
 from xtl.exceptions import InvalidArgument, FileError
 # from ..conftest import CACHE_DIR
 
-import os
-import random
-import pytest
-from pyxray import NotFound
 
 class TestInstrumentalParameters:
 

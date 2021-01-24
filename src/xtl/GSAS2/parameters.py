@@ -1,11 +1,10 @@
-from xtl.GSAS2 import GSAS2Interface as GI
-
-from xtl.exceptions import InvalidArgument, FileError
+import os
+import uuid
 
 import pyxray
 
-import os
-import uuid
+from ..GSAS2 import GSAS2Interface as GI
+from xtl.exceptions import InvalidArgument, FileError
 
 # Template dictionaries, without wavelength
 default_parameters = {

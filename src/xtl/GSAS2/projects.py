@@ -1,14 +1,15 @@
-import xtl.GSAS2.GSAS2Interface as GI
-import xtl.GSAS2.objects as GO
-import xtl.math as xm
-from xtl.GSAS2.components import PhaseMixture
-from xtl.GSAS2.parameters import InstrumentalParameters
-from xtl.exceptions import InvalidArgument, FileError
-from xtl import cfg
-
 import os
+
 import gemmi
 import numpy as np
+
+from xtl import cfg
+from xtl.exceptions import InvalidArgument, FileError
+from xtl import math as xm
+from .components import PhaseMixture
+from .parameters import InstrumentalParameters
+from ..GSAS2 import GSAS2Interface as GI
+from ..GSAS2 import objects as GO
 
 
 class Project(GI.G2sc.G2Project):

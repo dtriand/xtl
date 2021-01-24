@@ -1,8 +1,8 @@
-import pytest
-
 import os
 import shutil
 import random
+
+import pytest
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
 
@@ -11,6 +11,7 @@ if not os.path.exists(CACHE_DIR):
 else:
     shutil.rmtree(CACHE_DIR)
     os.mkdir(CACHE_DIR)
+
 
 @pytest.fixture(scope='session', params=[f'{random.randint(0, 9999):04d}' for _ in range(0, 3)])
 def seed(request):

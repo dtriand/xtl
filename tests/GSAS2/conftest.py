@@ -1,11 +1,11 @@
-from ..conftest import CACHE_DIR
-
 import os
-import pytest
 import random
 
+import pytest
 
-iparam_synchrotron =  """#GSAS-II instrument parameter file
+from ..conftest import CACHE_DIR
+
+iparam_synchrotron = """#GSAS-II instrument parameter file
 Type:PXC
 Bank:1.0
 Lam:{}
@@ -64,6 +64,7 @@ class Iparam:
                 if i != l:
                     fp.write(f'{line}\n')
 
+
 @pytest.fixture(scope='package')
 def gsas2_iparam_lab(seed):
     iparam_file = os.path.join(CACHE_DIR, f'lab_{seed}.instprm')
@@ -72,6 +73,7 @@ def gsas2_iparam_lab(seed):
         iparam.save(iparam_file)
     return iparam_file
 
+
 @pytest.fixture(scope='package')
 def gsas2_iparam_synchrotron(seed):
     iparam_file = os.path.join(CACHE_DIR, f'syn_{seed}.instprm')
@@ -79,6 +81,7 @@ def gsas2_iparam_synchrotron(seed):
         iparam = Iparam('synchrotron', seed)
         iparam.save(iparam_file)
     return iparam_file
+
 
 @pytest.fixture(scope='package')
 def gsas2_iparam_invalid(seed):
