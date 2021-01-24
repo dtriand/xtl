@@ -1,29 +1,7 @@
 import math
 import decimal
 
-
-def d_spacing_to_ttheta(d, wavelength):
-    """
-    Convert a d-spacing value to the corresponding 2theta.
-
-    :param int or float d: d-spacing
-    :param int or float wavelength: wavelength
-    :return: 2theta
-    :rtype: float
-    """
-    return 2 * math.degrees(math.asin(wavelength/(2*d)))
-
-
-def ttheta_to_d_spacing(ttheta, wavelength):
-    """
-    Convert a 2theta value to the corresponding d-spacing.
-
-    :param int or float ttheta: 2theta
-    :param int or float wavelength: wavelength
-    :return: d-spacing
-    :rtype: float
-    """
-    return wavelength / (2 * math.sin(math.radians(ttheta/2)))
+from .crystallography import d_spacing_to_ttheta, ttheta_to_d_spacing
 
 
 def round_value_and_esd(value, esd):
