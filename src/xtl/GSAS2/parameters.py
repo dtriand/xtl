@@ -1,5 +1,5 @@
-import os
 import uuid
+from pathlib import Path
 
 import pyxray
 
@@ -500,7 +500,7 @@ class InstrumentalParameters:
         temporary_file = GI._path_wrap(uuid.uuid4().hex)
         cls._dict_to_instprm(dictionary, f'{temporary_file}')
         child = cls(file=f'{temporary_file}.instprm')
-        os.remove(f'{temporary_file}.instprm')
+        Path(f'{temporary_file}.instprm').unlink()
         return child
 
     @classmethod

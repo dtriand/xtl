@@ -1,8 +1,10 @@
-from xtl import cfg
-
-import os
 import sys
+from pathlib import Path
+from typing import Union
+
 import click
+
+from xtl import cfg
 
 try:
     gsas_path = cfg['dependencies']['gsas'].value
@@ -28,7 +30,7 @@ except ModuleNotFoundError:
         except ModuleNotFoundError:
             attempt += 1
             if attempt <= 3:
-                print(f'Invalid folder: {os.path.abspath(gsas_path)}')
+                print(f'Invalid folder: {Path(gsas_path).absolute()}')
             else:
                 print('Failed to locate GSAS-II installation. Exiting...')
                 raise FileNotFoundError
@@ -39,14 +41,36 @@ import GSASIIfiles as G2fil
 import GSASIIspc as G2spc
 import GSASIImath as G2m
 
-working_directory = os.getcwd()
-xtl_directories = {
-    'maps': 'maps',
-    'models': 'models',
-    'reflections': 'reflections'
-}
+
+class Settings:
+    def __init__(self):
+        self._working_directory = Path.cwd()
+        self._xtl_directories = {
+            'maps': 'maps',
+            'models': 'models',
+            'reflections': 'reflections'
+        }
+
+    @property
+    def working_directory(self):
+        return self._working_directory
+
+    @working_directory.setter
+    def working_directory(self, new_directory):
+        wd = Path(new_directory)
+        if wd.is_dir():
+            self._working_directory = Path(new_directory)
+        else:
+            raise NotADirectoryError
+
+    @property
+    def xtl_directories(self):
+        return self._xtl_directories
 
 
-def _path_wrap(path):
-    return os.path.join(working_directory, path)
+settings = Settings()
+
+
+def _path_wrap(path: Union[str, Path]) -> Path:
+    return settings.working_directory / path
 

@@ -1,7 +1,7 @@
-from xtl.exceptions import InvalidArgument
-
 from typing import NamedTuple
 from dataclasses import dataclass, field
+
+from xtl.exceptions import InvalidArgument
 
 
 def _make_empty_list():

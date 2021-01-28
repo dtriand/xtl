@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import gemmi
 import numpy as np
@@ -16,17 +16,18 @@ class Project(GI.G2sc.G2Project):
 
     def __init__(self, filename, debug=False):
         self.debug = debug
-        if os.path.exists(GI._path_wrap(filename)):
+        if GI._path_wrap(filename).exists():
             super().__init__(gpxfile=GI._path_wrap(filename))
         else:
             super().__init__(newgpx=GI._path_wrap(filename))
-        self._directory, self._name = os.path.split(self.filename)
+        self.filename = Path(self.filename)
+        self._directory, self._name = self.filename.parent, self.filename.name
 
     def _backup_gpx(self):
-        backup_dir = os.path.join(GI.working_directory, '.xtl')
-        backup_gpx = os.path.join(backup_dir, self._name)
-        if not os.path.exists(backup_dir):
-            os.mkdir(backup_dir)
+        backup_dir = GI.settings.working_directory / '.xtl'
+        backup_gpx = backup_dir / self._name
+        if not backup_dir.exists():
+            backup_dir.mkdir()
         import shutil
         shutil.copy2(src=self.filename, dst=backup_gpx)
         if self.debug:
@@ -35,38 +36,30 @@ class Project(GI.G2sc.G2Project):
     def _get_gpx_version(self):
         """
         Finds the last project.bakXX.gpx file in the folder and returns XX + 1. If no .bak.gpx file is found in the
-        directory, returns 0. Can find files up to .bak999.gpx
+        directory, returns 0. Can find files up to .bak9999.gpx
 
         :return:
         """
-        filename = os.path.splitext(self._name)[0]
-        from glob import glob
-        bak1 = glob(f'{self._directory}/{filename}.bak?.gpx')
-        bak2 = glob(f'{self._directory}/{filename}.bak??.gpx')
-        bak3 = glob(f'{self._directory}/{filename}.bak???.gpx')
-        if bak3:
-            bak3.sort()
-            last_file = bak3[-1]
-        else:
-            if bak2:
-                bak2.sort()
-                last_file = bak2[-1]
-            else:
-                if bak1:
-                    bak1.sort()
-                    last_file = bak1[-1]
-                else:
-                    # last_file = f'{self._directory}/{filename}.bak-1.gpx'
-                    return 0
-        file_version = os.path.splitext(last_file)[0].split('.bak')[1]  # Get the number after .bak
+        filename = self.filename.stem
+        bak = []
+        for i in range(1, 4):
+            bak += [f for f in self._directory.glob(f'{filename}.bak{"?" * i}.gpx')]  # bak?, bak??, bak???, bak????
+
+        if not bak:  # No bak files found
+            return 0
+
+        last_file = sorted(bak)[-1]
+
+        # Get the number after .bak
+        file_version = last_file.stem.split('.bak')[1]
         file_version = int(file_version) + 1
         return file_version
 
     @staticmethod
     def _prepare_directory(directory):
-        path = os.path.join(GI.working_directory, directory)
-        if not os.path.exists(path):
-            os.mkdir(path)
+        path = GI.settings.working_directory / directory
+        if not path.exists():
+            path.mkdir()
 
     def _get_phases_and_histograms_iterator(self, phase, histogram):
         """
@@ -101,7 +94,7 @@ class Project(GI.G2sc.G2Project):
 
     def add_phase(self, file, name=None, histograms=[], type=''):
         if not name:
-            name = os.path.splitext(os.path.split(file)[1])[0]  # grab filename from a full path
+            name = Path(file).stem  # grab filename from a full path
         allowed_types = ['macromolecular', 'small_molecule']
         if type not in allowed_types:
             raise InvalidArgument(raiser='phase_type', message=f"Unknown phase type '{type}'\n"
@@ -450,14 +443,14 @@ class Project(GI.G2sc.G2Project):
                     datapoints = self.get_histogram(histogram).astype('str').swapaxes(0, 1)
                     pdbx_powder_data_loop.set_all_values(datapoints.tolist())
 
-            export_directory = GI.xtl_directories['reflections']
+            export_directory = GI.settings.xtl_directories['reflections']
             self._prepare_directory(export_directory)
 
             # File name: project_phase_bakXX_histograms_I/F_sf.cif
-            output_file = os.path.join(GI.working_directory, export_directory,
-                                       f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
-                                       f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
-                                       f'{"I" if as_intensities else "F"}_sf.cif')
+            output_file = GI.settings.working_directory / export_directory / \
+                          f'{self._name[:-4]}_{phase.name}_{self._get_gpx_version()}_' \
+                          f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
+                          f'{"I" if as_intensities else "F"}_sf.cif'
 
             if pretty:
                 from xtl.io import mmCIF
@@ -535,12 +528,12 @@ class Project(GI.G2sc.G2Project):
                 column_labels = ','.join([c.label for c in columns])
                 column_types = ','.join([c.type for c in columns])
 
-                export_directory = GI.xtl_directories['reflections']
+                export_directory = GI.settings.xtl_directories['reflections']
                 self._prepare_directory(export_directory)
-                debug_csv = os.path.join(GI.working_directory, export_directory,
-                                         f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
-                                         f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
-                                         f'{"I" if as_intensities else "F"}_debug.csv')
+                debug_csv = GI.settings.working_directory / export_directory / \
+                            f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_' \
+                            f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
+                            f'{"I" if as_intensities else "F"}_debug.csv'
                 np.savetxt(debug_csv, reflections, header=f'{column_labels}\n{column_types}', comments='',
                            delimiter=',', fmt='%1.6e')
                 print(f'Saved merged reflections to {debug_csv}')
@@ -554,13 +547,13 @@ class Project(GI.G2sc.G2Project):
             mtz.history = [f"Created with xtl {cfg['xtl']['version'].value} on "
                            f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"]
 
-            export_directory = GI.xtl_directories['reflections']
+            export_directory = GI.settings.xtl_directories['reflections']
             self._prepare_directory(export_directory)
             # File name: project_phase_bakXX_histograms_I/F_sf.cif
-            output_file = os.path.join(GI.working_directory, export_directory,
-                                       f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
-                                       f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
-                                       f'{"I" if as_intensities else "F"}.mtz')
+            output_file = GI.settings.working_directory / export_directory / \
+                          f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_' \
+                          f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
+                          f'{"I" if as_intensities else "F"}.mtz'
 
             mtz.write_to_file(output_file)
             print(f"Saved reflections for phase '{phase.name}' to {output_file}")
@@ -615,24 +608,23 @@ class Project(GI.G2sc.G2Project):
         :return:
         """
 
-        export_directory = GI.xtl_directories['maps']
+        export_directory = GI.settings.xtl_directories['maps']
         self._prepare_directory(export_directory)
 
         # Check if map is available in .gpx file, else calculate new map
         has_saved_map = False
         if self.has_map(phase) and ignore_existing_map is True:
             print(f"Map already calculated for phase '{phase.name}'. Exporting this instead...")
-            output_file = os.path.join(GI.working_directory, export_directory, f'{self._name[:-4]}_{phase.name}'
-                                                                               f'_bak{self._get_gpx_version()}'
-                                                                               f'_userCalculated.ccp4')
+            output_file = GI.settings.working_directory / export_directory / \
+                          f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_userCalculated.ccp4'
             has_saved_map = True
         else:
             self.calculate_map(phase, histogram, map_type, grid_step, omit_map)
             histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
             map_type_pretty = GO.get_map_type(map_type).name_pretty
-            output_file = os.path.join(GI.working_directory, export_directory,
-                                       f'{self._name[:-4]}_{phase.name}_{histogram_name}_{map_type_pretty}'
-                                       f'{"_omit" if omit_map else ""}_bak{self._get_gpx_version()}.ccp4')
+            output_file = GI.settings.working_directory / export_directory / \
+                          f'{self._name[:-4]}_{phase.name}_{histogram_name}_{map_type_pretty}' \
+                          f'{"_omit" if omit_map else ""}_bak{self._get_gpx_version()}.ccp4'
 
         # Save map to file
         rho = phase['General']['Map']['rho']
@@ -750,8 +742,7 @@ class InformationProject(Project):
         :return: filesize in appropriate unit
         :rtype: str
         """
-        import os
-        size = os.stat(GI._path_wrap(self.filename)).st_size
+        size = GI._path_wrap(self.filename).stat().st_size
         return xm.si_units(value=size, suffix='B', base=1024, digits=2)
 
     def get_no_of_residue_rigid_bodies(self, phase):
@@ -859,7 +850,7 @@ class MixtureSimulationProject(SimulationProject):
         iparams_file = iparams.save_to_file(name)
         hist = self.add_simulated_powder_histogram(histname=name, phases=phases, Tmin=ttheta_min, Tmax=ttheta_max,
                                                    Tstep=ttheta_step, scale=scale, iparams=iparams_file)
-        os.remove(iparams_file)
+        Path.unlink(iparams_file)
 
         # Set HAP values (scale factors)
         phase_ratios_sum = sum(phase_ratios)
