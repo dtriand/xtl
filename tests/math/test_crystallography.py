@@ -17,69 +17,113 @@ class TestConversions:
 
 class TestDhkl:
 
-    def test_dhkl(self):
-        hkl = (1, 0, 0)
-        assert d_hkl(hkl, (1, 1, 1, 90, 90, 90)) == approx(d_hkl_cubic(hkl, a=1))
+    @pytest.mark.parametrize('hkl', [(1, 0, 0), (2, -3, 4)])
+    class TestDhklCrystalSystemDetermination:
 
-        assert d_hkl(hkl, (1, 1, 2, 90, 90, 90)) == approx(d_hkl_tetragonal(hkl, a=1, c=2))
-        assert d_hkl(hkl, (1, 2, 1, 90, 90, 90)) == approx(d_hkl_tetragonal(hkl, a=1, c=2))
-        assert d_hkl(hkl, (2, 1, 1, 90, 90, 90)) == approx(d_hkl_tetragonal(hkl, a=1, c=2))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 1, 1, 90, 90, 90)])
+        def test_dhkl_as_cubic(self, hkl, a, b, c, alpha, beta, gamma):
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_cubic(hkl, a))
 
-        assert d_hkl(hkl, (1, 2, 3, 90, 90, 90)) == approx(d_hkl_orthorhombic(hkl, a=1, b=2, c=3))
-        assert d_hkl(hkl, (1, 3, 2, 90, 90, 90)) == approx(d_hkl_orthorhombic(hkl, a=1, b=2, c=3))
-        assert d_hkl(hkl, (3, 2, 1, 90, 90, 90)) == approx(d_hkl_orthorhombic(hkl, a=1, b=2, c=3))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 1, 2, 90, 90, 90),
+                                                                 (1, 2, 1, 90, 90, 90),
+                                                                 (2, 1, 1, 90, 90, 90)])
+        def test_dhkl_as_tetragonal(self, hkl, a, b, c, alpha, beta, gamma):
+            a_, b_, c_ = sorted((a, b, c))
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_tetragonal(hkl, a=a_, c=c_))
 
-        assert d_hkl(hkl, (1, 1, 1, 60, 60, 60)) == approx(d_hkl_rhombohedral(hkl, a=1, alpha=60))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 2, 3, 90, 90, 90),
+                                                                 (1, 3, 2, 90, 90, 90),
+                                                                 (3, 2, 1, 90, 90, 90)])
+        def test_dhkl_as_orthorhombic(self, hkl, a, b, c, alpha, beta, gamma):
+            a_, b_, c_ = sorted((a, b, c))
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_orthorhombic(hkl, a=a_, b=b_, c=c_))
 
-        assert d_hkl(hkl, (1, 1, 2, 90, 90, 120)) == approx(d_hkl_hexagonal(hkl, a=1, c=2))
-        assert d_hkl(hkl, (1, 2, 1, 90, 120, 90)) == approx(d_hkl_hexagonal(hkl, a=1, c=2))
-        assert d_hkl(hkl, (2, 1, 1, 120, 90, 90)) == approx(d_hkl_hexagonal(hkl, a=1, c=2))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 1, 1, 60, 60, 60)])
+        def test_dhkl_as_rhombohedral(self, hkl, a, b, c, alpha, beta, gamma):
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_rhombohedral(hkl, a, alpha))
 
-        assert d_hkl(hkl, (1, 2, 3, 90, 110, 90)) == approx(d_hkl_monoclinic(hkl, a=1, b=2, c=3, beta=110))
-        assert d_hkl(hkl, (1, 2, 3, 110, 90, 90)) == approx(d_hkl_monoclinic(hkl, a=2, b=1, c=3, beta=110))
-        assert d_hkl(hkl, (1, 2, 3, 90, 90, 110)) == approx(d_hkl_monoclinic(hkl, a=1, b=3, c=2, beta=110))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 1, 2, 90, 90, 120),
+                                                                 (1, 2, 1, 90, 120, 90),
+                                                                 (2, 1, 1, 120, 90, 90)])
+        def test_dhkl_as_hexagonal(self, hkl, a, b, c, alpha, beta, gamma):
+            a_, b_, c_ = sorted((a, b, c))
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_hexagonal(hkl, a_, c_))
 
-        assert d_hkl(hkl, (1, 2, 3, 80, 100, 120)) == \
-               approx(d_hkl_triclinic(hkl, a=1, b=2, c=3, alpha=80, beta=100, gamma=120))  # 80+100+120=300
-        assert d_hkl(hkl, (1, 2, 3, 75, 85, 95)) == \
-               approx(d_hkl_triclinic(hkl, a=1, b=2, c=3, alpha=75, beta=85, gamma=95))
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 2, 3, 90, 110, 90),
+                                                                 (1, 2, 3, 110, 90, 90),
+                                                                 (1, 2, 3, 90, 90, 110)])
+        def test_dhkl_as_monoclinic(self, hkl, a, b, c, alpha, beta, gamma):
+            angles = [alpha, beta, gamma]
+            beta_index = [angles.index(angle) for angle in angles if angle != 90][0]
 
-    def test_cubic(self):
-        assert d_hkl_cubic((1, 0, 0), a=1) == approx(1)
-        assert d_hkl_cubic((2, 2, 1), a=3) == approx(1)
+            a_, b_, c_ = a, b, c
+            beta_ = angles[beta_index]
+            if beta_index == 0:
+                a_, b_, c_ = b_, a_, c_
+            elif beta_index == 2:
+                a_, b_, c_ = a_, c_, b_
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == approx(d_hkl_monoclinic(hkl, a_, b_, c_, beta_))
 
-    def test_tetragonal(self):
-        assert d_hkl_tetragonal((1, 0, 0), a=1, c=2) == approx(1)
-        assert d_hkl_tetragonal((0, 0, 1), a=1, c=2) == approx(0.5)
+        @pytest.mark.parametrize('a, b, c, alpha, beta, gamma', [(1, 2, 3, 80, 100, 120),  # 80+100+120=300
+                                                                 (1, 2, 3, 75, 85, 95)])
+        def test_dhkl_as_triclinic(self, hkl, a, b, c, alpha, beta, gamma):
+            assert d_hkl(hkl, (a, b, c, alpha, beta, gamma)) == \
+                   approx(d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma))
 
-        assert d_hkl_tetragonal((2, 2, 1), a=3, c=3) == approx(d_hkl_cubic((2, 2, 1), a=3))
+    class TestDhklPerCrystalSystem:
+        @pytest.mark.parametrize('hkl, a, d', [((1, 0, 0), 1, 1),
+                                               ((2, 2, 1), 3, 1)])
+        def test_cubic(self, hkl, a, d):
+            assert d_hkl_cubic(hkl, a) == approx(d)
 
-    def test_orthorhombic(self):
-        assert d_hkl_orthorhombic((1, 0, 0), a=1, b=2, c=3) == approx(1)
-        assert d_hkl_orthorhombic((1, 2, 3), a=1, b=2, c=3) == approx(sqrt(3))
+        @pytest.mark.parametrize('hkl, a, c, d', [((1, 0, 0), 1, 2, 1),
+                                                  ((0, 0, 1), 1, 2, 0.5)])
+        def test_tetragonal(self, hkl, a, c, d):
+            assert d_hkl_tetragonal(hkl, a, c) == approx(d)
 
-        assert d_hkl_orthorhombic((2, 2, 1), a=3, b=3, c=3) == approx(d_hkl_cubic((2, 2, 1), a=3))
+        @pytest.mark.parametrize('hkl, a, b, c, d', [((1, 0, 0), 1, 2, 3, 1),
+                                                     ((1, 2, 3), 1, 2, 3, sqrt(3))])
+        def test_orthorhombic(self, hkl, a, b, c, d):
+            assert d_hkl_orthorhombic(hkl, a, b, c) == approx(d)
 
-    def test_rhombohedral(self):
-        assert d_hkl_rhombohedral((1, 0, 0), a=1, alpha=60) == approx(sqrt(3 / 2))
-        assert d_hkl_rhombohedral((1, 1, 0), a=1, alpha=60) == approx(sqrt(2))
+        @pytest.mark.parametrize('hkl, a, alpha, d', [((1, 0, 0), 1, 60, sqrt(3/2)),
+                                                      ((1, 1, 0), 1, 60, sqrt(2))])
+        def test_rhombohedral(self, hkl, a, alpha, d):
+            assert d_hkl_rhombohedral(hkl, a, alpha) == approx(d)
 
-    def test_hexagonal(self):
-        assert d_hkl_hexagonal((1, 0, 0), a=1, c=2) == approx(2 / sqrt(3))
-        assert d_hkl_hexagonal((1, 1, 0), a=1, c=2) == approx(2)
+        @pytest.mark.parametrize('hkl, a, c, d', [((1, 0, 0), 1, 2, 2/sqrt(3)),
+                                                  ((1, 1, 0), 1, 2, 2)])
+        def test_hexagonal(self, hkl, a, c, d):
+            assert d_hkl_hexagonal(hkl, a, c) == approx(d)
 
-    def test_monoclinic(self):
-        assert d_hkl_monoclinic((1, 0, 0), a=1, b=2, c=3, beta=120) == approx(2 / sqrt(3))
-        assert d_hkl_monoclinic((0, 1, 0), a=1, b=2, c=3, beta=120) == approx(0.5)
+        @pytest.mark.parametrize('hkl, a, b, c, beta, d', [((1, 0, 0), 1, 2, 3, 120, 2/sqrt(3)),
+                                                           ((0, 1, 0), 1, 2, 3, 120, 0.5)])
+        def test_monoclinic(self, hkl, a, b, c, beta, d):
+            assert d_hkl_monoclinic(hkl, a, b, c, beta) == approx(d)
 
-        assert d_hkl_monoclinic((2, 3, 4), a=1, b=2, c=3, beta=90) == \
-               approx(d_hkl_orthorhombic((2, 3, 4), a=1, b=2, c=3))
+        @pytest.mark.parametrize('hkl, a, b, c, alpha, beta, gamma, d', [((1, 0, 0), 1, 2, 3, 80, 100, 120, 1.16073095),
+                                                                         ((2, 1, 1), 1, 2, 3, 75, 85, 95, 2.11156385)])
+        def test_triclinic(self, hkl, a, b, c, alpha, beta, gamma, d):
+            assert d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma) == approx(d, abs=1.e-8)
 
-    def test_triclinic(self):
-        assert d_hkl_triclinic((1, 0, 0), a=1, b=2, c=3, alpha=80, beta=100, gamma=120) == approx(1.16073095, abs=1.e-8)
-        assert d_hkl_triclinic((2, 1, 1), a=1, b=2, c=3, alpha=75, beta=85, gamma=95) == approx(2.11156385, abs=1.e-8)
+    # @pytest.mark.parametrize('hkl', [(1, 0, 0), (2, -3, 4)])
+    class TestDhklCellReduction:
+        @pytest.mark.parametrize('hkl, a, c', [((2, 2, 1), 3, 3)])
+        def test_tetragonal_reduction_to_cubic(self, hkl, a, c):
+            assert d_hkl_tetragonal(hkl, a, c) == approx(d_hkl_cubic(hkl, a))
 
-        assert d_hkl_triclinic((2, 2, 1), a=1, b=2, c=3, alpha=90, beta=110, gamma=90) == \
-               approx(d_hkl_monoclinic((2, 2, 1), a=1, b=2, c=3, beta=110))
-        assert d_hkl_triclinic((2, 2, 1), a=3, b=3, c=3, alpha=90, beta=90, gamma=90) == \
-               approx(d_hkl_cubic((2, 2, 1), 3))
+        @pytest.mark.parametrize('hkl, a, b, c', [((2, 2, 1), 3, 3, 3)])
+        def test_orthorhombic_reduction_to_cubic(self, hkl, a, b, c):
+            assert d_hkl_orthorhombic(hkl, a, b, c) == approx(d_hkl_cubic(hkl, a))
+
+        @pytest.mark.parametrize('hkl, a, b, c, beta', [((2, 3, 4), 1, 2, 3, 90)])
+        def test_monoclinic_reduction_to_orthorhombic(self, hkl, a, b, c, beta):
+            assert d_hkl_monoclinic(hkl, a, b, c, beta) == d_hkl_orthorhombic(hkl, a, b, c)
+
+        @pytest.mark.parametrize('hkl, a, b, c, alpha, beta, gamma', [((2, 2, 1), 1, 2, 3, 90, 110, 90)])
+        def test_triclinic_reduction_to_monoclinic(self, hkl, a, b, c, alpha, beta, gamma):
+            assert d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma) == approx(d_hkl_monoclinic(hkl, a, b, c, beta))
+
+        @pytest.mark.parametrize('hkl, a, b, c, alpha, beta, gamma', [((2, 2, 1), 3, 3, 3, 90, 90, 90)])
+        def test_triclinic_reduction_to_cubic(self, hkl, a, b, c, alpha, beta, gamma):
+            assert d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma) == approx(d_hkl_cubic(hkl, a))

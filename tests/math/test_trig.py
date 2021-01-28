@@ -11,86 +11,86 @@ from xtl.math.trig import tan, tan_d, tan_r, atan, atan_d, atan_r
 class TestSinAll:
 
     class TestSin:
-        def test_sin(self):
-            assert sin(90, 'd') == 1
-            assert sin(pi/2) == 1
+        @pytest.mark.parametrize('angle, value, mode', [(90, 1, 'd'), (pi / 2, 1, 'r')])
+        def test_sin(self, angle, value, mode):
+            assert sin(angle, mode) == approx(value)
 
-        def test_sin_d(self):
-            assert sin_d(0) == 0
-            assert sin_d(90) == 1
+        @pytest.mark.parametrize('angle, value', [(0, 0), (90, 1)])
+        def test_sin_d(self, angle, value):
+            assert sin_d(angle) == approx(value)
 
-        def test_sin_r(self):
-            assert sin_r(0) == 0
-            assert sin_r(pi/2) == 1
+        @pytest.mark.parametrize('angle, value', [(0, 0), (pi / 2, 1)])
+        def test_sin_r(self, angle, value):
+            assert sin_r(angle) == approx(value)
 
     class TestASin:
-        def test_asin(self):
-            assert asin(1, 'd') == 90
-            assert asin(1) == pi/2
+        @pytest.mark.parametrize('angle, value, mode', [(1, 90, 'd'), (1, pi / 2, 'r')])
+        def test_asin(self, angle, value, mode):
+            assert asin(angle, mode) == approx(value)
 
-        def test_asin_d(self):
-            assert asin_d(0) == 0
-            assert asin_d(1) == 90
+        @pytest.mark.parametrize('angle, value', [(0, 0), (1, 90)])
+        def test_asin_d(self, angle, value):
+            assert asin_d(angle) == approx(value)
 
-        def test_asin_r(self):
-            assert asin_r(0) == 0
-            assert asin_r(1) == pi/2
+        @pytest.mark.parametrize('angle, value', [(0, 0), (1, pi / 2)])
+        def test_asin_r(self, angle, value):
+            assert asin_r(angle) == approx(value)
 
 
 class TestCosAll:
 
     class TestCos:
-        def test_cos(self):
-            assert cos(90, 'd') == approx(0)
-            assert cos(pi / 2) == approx(0)
+        @pytest.mark.parametrize('angle, value, mode', [(90, 0, 'd'), (pi / 2, 0, 'r')])
+        def test_cos(self, angle, value, mode):
+            assert cos(angle, mode) == approx(value)
 
-        def test_cos_d(self):
-            assert cos_d(0) == 1
-            assert cos_d(90) == approx(0)
+        @pytest.mark.parametrize('angle, value', [(0, 1), (90, 0)])
+        def test_cos_d(self, angle, value):
+            assert cos_d(angle) == approx(value)
 
-        def test_cos_r(self):
-            assert cos_r(0) == 1
-            assert cos_r(pi / 2) == approx(0)
+        @pytest.mark.parametrize('angle, value', [(0, 1), (pi / 2, 0)])
+        def test_cos_r(self, angle, value):
+            assert cos_r(angle) == approx(value)
 
     class TestACos:
-        def test_acos(self):
-            assert acos(1, 'd') == approx(0)
-            assert acos(0) == pi / 2
+        @pytest.mark.parametrize('angle, value, mode', [(1, 0, 'd'), (0, pi / 2, 'r')])
+        def test_acos(self, angle, value, mode):
+            assert acos(angle, mode) == approx(value)
 
-        def test_acos_d(self):
-            assert acos_d(0) == 90
-            assert acos_d(1) == approx(0)
+        @pytest.mark.parametrize('angle, value', [(0, 90), (1, 0)])
+        def test_acos_d(self, angle, value):
+            assert acos_d(angle) == approx(value)
 
-        def test_acos_r(self):
-            assert acos_r(0) == pi / 2
-            assert acos_r(1) == approx(0)
+        @pytest.mark.parametrize('angle, value', [(0, pi / 2), (1, 0)])
+        def test_acos_r(self, angle, value):
+            assert acos_r(angle) == approx(value)
 
 
 class TestTanAll:
 
     class TestTan:
-        def test_tan(self):
-            assert tan(45, 'd') == approx(1)
-            assert tan(pi / 4) == approx(1)
+        @pytest.mark.parametrize('angle, value, mode', [(45, 1, 'd'), (pi / 4, 1, 'r')])
+        def test_tan(self, angle, value, mode):
+            assert tan(angle, mode) == approx(value)
 
-        def test_tan_d(self):
-            assert tan_d(0) == 0
-            assert tan_d(45) == approx(1)
+        @pytest.mark.parametrize('angle, value', [(0, 0), (45, 1)])
+        def test_tan_d(self, angle, value):
+            assert tan_d(angle) == approx(value)
 
-        def test_tan_r(self):
-            assert tan_r(0) == 0
-            assert tan_r(pi / 4) == approx(1)
+        @pytest.mark.parametrize('angle, value', [(0, 0), (pi / 4, 1)])
+        def test_tan_r(self, angle, value):
+            assert tan_r(angle) == approx(value)
 
     class TestATan:
-        def test_acos(self):
-            assert atan(1, 'd') == approx(45)
-            assert atan(sqrt(3)) == pi / 3
+        @pytest.mark.parametrize('angle, value, mode', [(1, 45, 'd'), (sqrt(3), pi / 3, 'r')])
+        def test_atan(self, angle, value, mode):
+            assert atan(angle, mode) == approx(value)
 
-        def test_atan_d(self):
-            assert atan_d(0) == 0
-            assert atan_d(1) == approx(45)
+        @pytest.mark.parametrize('angle, value', [(0, 0), (1, 45)])
+        def test_atan_d(self, angle, value):
+            assert atan_d(angle) == approx(value)
 
-        def test_atan_r(self):
-            assert atan_r(0) == 0
-            assert atan_r(1) == approx(pi / 4)
+        @pytest.mark.parametrize('angle, value', [(0, 0), (1, pi / 4)])
+        def test_atan_r(self, angle, value):
+            assert atan_r(angle) == approx(value)
 
