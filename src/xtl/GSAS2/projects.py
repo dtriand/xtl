@@ -42,17 +42,17 @@ class Project(GI.G2sc.G2Project):
         """
         filename = self.filename.stem
         bak = []
-        for i in range(1, 4):
-            bak += [f for f in self._directory.glob(f'{filename}.bak{"?" * i}.gpx')]  # bak?, bak??, bak???, bak????
+        for i in range(0, 4):
+            # Get all .bak files: bak?, bak??, bak???, bak????
+            baks = [f.stem for f in self._directory.glob(f'{filename}.bak{"?" * (i + 1)}.gpx')]
+            # Grab the number after bak. Use int instead of str for correct sorting
+            bak += [int(Path(f).suffix.split('.bak')[-1]) for f in baks]
 
         if not bak:  # No bak files found
             return 0
 
-        last_file = sorted(bak)[-1]
-
-        # Get the number after .bak
-        file_version = last_file.stem.split('.bak')[1]
-        file_version = int(file_version) + 1
+        # Get the number after last .bak
+        file_version = sorted(bak)[-1] + 1
         return file_version
 
     @staticmethod
@@ -637,7 +637,7 @@ class Project(GI.G2sc.G2Project):
         map = gemmi.Ccp4Map()
         map.grid = grid
         map.update_ccp4_header(mode=2, update_stats=True)
-        map.write_ccp4_map(output_file)
+        map.write_ccp4_map(str(output_file))
 
         if has_saved_map:
             print(f"Saved existing map for phase '{phase.name}' to {output_file}")
@@ -847,7 +847,7 @@ class MixtureSimulationProject(SimulationProject):
                 ttheta_max = new_ttheta_max
 
         # Create simulated histogram
-        iparams_file = iparams.save_to_file(name)
+        iparams_file = Path(iparams.save_to_file(name))
         hist = self.add_simulated_powder_histogram(histname=name, phases=phases, Tmin=ttheta_min, Tmax=ttheta_max,
                                                    Tstep=ttheta_step, scale=scale, iparams=iparams_file)
         Path.unlink(iparams_file)

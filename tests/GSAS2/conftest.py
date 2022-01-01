@@ -1,8 +1,9 @@
-import os
 import random
+from pathlib import Path
 
 import pytest
 
+from xtl.GSAS2.GSAS2Interface import settings
 from ..conftest import CACHE_DIR
 
 iparam_synchrotron = """#GSAS-II instrument parameter file
@@ -67,8 +68,8 @@ class Iparam:
 
 @pytest.fixture(scope='package')
 def gsas2_iparam_lab(seed):
-    iparam_file = os.path.join(CACHE_DIR, f'lab_{seed}.instprm')
-    if not os.path.exists(iparam_file):
+    iparam_file = CACHE_DIR / f'lab_{seed}.instprm'
+    if not iparam_file.exists():
         iparam = Iparam('laboratory', seed)
         iparam.save(iparam_file)
     return iparam_file
@@ -76,8 +77,8 @@ def gsas2_iparam_lab(seed):
 
 @pytest.fixture(scope='package')
 def gsas2_iparam_synchrotron(seed):
-    iparam_file = os.path.join(CACHE_DIR, f'syn_{seed}.instprm')
-    if not os.path.exists(iparam_file):
+    iparam_file = CACHE_DIR / f'syn_{seed}.instprm'
+    if not iparam_file.exists():
         iparam = Iparam('synchrotron', seed)
         iparam.save(iparam_file)
     return iparam_file
@@ -85,10 +86,14 @@ def gsas2_iparam_synchrotron(seed):
 
 @pytest.fixture(scope='package')
 def gsas2_iparam_invalid(seed):
-    iparam_file = os.path.join(CACHE_DIR, f'err_{seed}.instprm')
-    if not os.path.exists(iparam_file):
+    iparam_file = CACHE_DIR / f'err_{seed}.instprm'
+    if not iparam_file.exists():
         random.seed(seed)
         iparam = Iparam(random.choice(['laboratory', 'synchrotron']), seed)
         iparam.save_with_error(iparam_file)
     return iparam_file
 
+
+@pytest.fixture(scope='package')
+def setup_working_dir():
+    settings.working_directory = CACHE_DIR

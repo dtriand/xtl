@@ -1,16 +1,16 @@
-import os
-import shutil
 import random
+from pathlib import Path
+from shutil import rmtree
 
 import pytest
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
+CACHE_DIR = Path(__file__).parent / 'cache'
 
-if not os.path.exists(CACHE_DIR):
-    os.mkdir(CACHE_DIR)
+if not CACHE_DIR.exists():
+    CACHE_DIR.mkdir()
 else:
-    shutil.rmtree(CACHE_DIR)
-    os.mkdir(CACHE_DIR)
+    rmtree(CACHE_DIR)
+    CACHE_DIR.mkdir()
 
 
 @pytest.fixture(scope='session', params=[f'{random.randint(0, 9999):04d}' for _ in range(0, 3)])

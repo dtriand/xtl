@@ -31,6 +31,8 @@ def ttheta_to_d_spacing(ttheta, wavelength, mode: Literal['d', 'r'] = 'd'):
     return wavelength / (2 * sin(ttheta / 2, mode))
 
 
+# Reference
+# Ladd, M., Palmer, R., 2012. Structure determination by x-ray crystallography: analysis by x-rays and neutrons.
 def d_hkl(hkl, cell):
     assert len(hkl) == 3
     a, b, c, alpha, beta, gamma = cell

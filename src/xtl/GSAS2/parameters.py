@@ -479,9 +479,13 @@ class InstrumentalParameters:
         :param str name: filename
         :return: filename
         """
-        if name.endswith('.instprm'):
-            # Remove extension if it's already provided in filename
-            name = name[:-8]
+        if isinstance(name, str):
+            if name.endswith('.instprm'):
+                # Remove extension if it's already provided in filename
+                name = name[:-8]
+        elif isinstance(name, Path):
+            if name.suffix == '.instprm':
+                name = name.name
         with open(f'{name}.instprm', 'w') as fp:
             fp.write('#GSAS-II instrument parameter file\n')  # ensures readability by GSAS2 readers
             for key, value in dictionary.items():
@@ -535,7 +539,7 @@ class InstrumentalParameters:
             raise InvalidArgument(raiser='tube', message=f'{tube}. Tube must be str or int.')
         try:
             if isinstance(tube, str):
-                # Correct possible typos e.g. 'ag' -> 'Ag
+                # Correct possible typos e.g. 'ag' -> 'Ag'
                 # and also enable element names to be parsed
                 # (pyxray understands 'Copper', but not 'copper')
                 tube = tube.capitalize()
