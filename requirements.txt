@@ -4,3 +4,4 @@ ConfigUpdater~=1.0.1
 gemmi~=0.3.8
 numpy~=1.18.4
 tabulate~=0.8.7
+pint~=0.11

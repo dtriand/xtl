@@ -7,7 +7,6 @@ src/xtl/chemistry2
 src/xtl/crystallization2
 src/xtl/pdbapi
 src/xtl/plots
-src/xtl/units
 
 ### Temporary
 docs/
