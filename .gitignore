@@ -1,0 +1,70 @@
+### Development
+utils/
+tests/cache
+src/xtl/scripts
+src/xtl/chemistry
+src/xtl/chemistry2
+src/xtl/crystallization2
+src/xtl/pdbapi
+src/xtl/plots
+src/xtl/units
+
+### Temporary
+docs/
+assets/
+src/xtl/xtl.cfg
+
+
+### IDE
+## PyCharm project files
+.idea/
+*.iml
+out
+gen
+
+### Python
+## Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+## Distribution & packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+MANIFEST.in
+
+## Sphinx documentation
+docs/_build/
+
+## Tox
+.tox
+.pytest_cache
+
+## PyPI
+.pypirc
+
+## Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
