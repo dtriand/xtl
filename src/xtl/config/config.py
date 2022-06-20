@@ -16,6 +16,9 @@ _cfg = {
     'xtl': {
         'version': __version__
     },
+    'units': {
+        'temperature': 'C $ x in "CKF" # C for Celsius, K for Kelvin, F for Fahrenheit'
+    },
     'dependencies': {
         'gsas': '# Path for GSAS2 installation'
     },
