@@ -306,11 +306,14 @@ class Spectrum:
         '''
         Add spectrum to existing plot. Must call ``matplotlib.pyplot.show()`` afterwards.
 
+        Additional keyword arguments:
+        - ax: matplotlib.axes.Axes / axes instance to plot data on
+
         :param kwargs: additional arguments for matplotlib.pyplot.plot()
         :return:
         '''
         label = kwargs.pop('label', self.dataset)
-        ax = plt.gca()
+        ax = kwargs.pop('ax', plt.gca())
         ax.plot(self.data.x, self.data.y, label=label, **kwargs)
         ax.set_xlabel(self.data.x_label)
         ax.set_ylabel(self.data.y_label)
@@ -544,6 +547,14 @@ class SpectrumCollection:
         if not self.spectra:
             raise StopIteration
         return self.spectra[next(self.__iter)]
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return tuple(self.spectra.values())[item]
+        elif isinstance(item, str):
+            return self.spectra[item]
+        else:
+            raise NotImplementedError
 
     @property
     def labels(self):

@@ -1,7 +1,10 @@
+from copy import deepcopy
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from xtl.spectroscopy.base import Spectrum
+from xtl.math.filtering import moving_average
 from xtl.exceptions import InvalidArgument
 
 
@@ -33,7 +36,7 @@ class AbsorptionSpectrum(Spectrum):
 
     def _post_init(self):
         self.data.x_label = 'Wavelength (nm)'
-        self.data.y_label = 'Absorption'
+        self.data.y_label = 'Absorbance'
 
     def find_baseline(self, search_region: list or tuple):
         '''
@@ -88,15 +91,37 @@ class AbsorptionSpectrum(Spectrum):
         self.data.y /= self.data.y.max()
         self.data.y_label = 'Normalized absorbance'
 
-    def plot(self, baseline=False):
+    def smooth_data(self, func: callable = moving_average, inplace=False, **func_kwargs):
+        '''
+        Apply smoothing function to data.
+
+        :param func: function to apply. Must have signature func(x: np.ndarray, **kwargs)
+        :param inplace: replace original data with smoothed data
+        :param func_kwargs: additional arguments to pass to smoothing function
+        :return: new AbsorptionSpectrum instance with smoothed data if inplace=True
+        '''
+        if not callable(func):
+            raise InvalidArgument(raiser='func', message='Must be a function or callable')
+
+        if inplace:
+            obj = self
+        else:
+            obj = deepcopy(self)
+
+        obj.data.y = func(obj.data.y, **func_kwargs)
+        if not inplace:
+            return obj
+
+    def plot(self, baseline=False, **kwargs):
         '''
         Plot spectrum
 
         :param baseline: plot baseline
+        :param kwargs: additional arguments for matplotlib.pyplot.plot()
         :return:
         '''
         plt.figure()
-        plt.plot(self.data.x, self.data.y, label=self.dataset)
+        plt.plot(self.data.x, self.data.y, label=self.dataset, **kwargs)
 
         if baseline and hasattr(self.data, 'baseline'):
             plt.plot(self.data.baseline.x, self.data.baseline.y, ':k')
