@@ -18,8 +18,8 @@ class ReturnType(Enum):
     POLYMER_INSTANCE = 'polymer_instance'
         # Returns a list of PDB IDs appended with asym IDs in the format of a [pdb_id].[asym_id], corresponding to
         # instances of certain polymeric molecular entities, also known as chains. Note, that asym_id in the instance
-        #  identifier corresponds to the _label_asym_id from the mmCIF schema (assigned by the PDB). It can differ from
-        #  _auth_asym_id (selected by the author at the time of deposition).
+        # identifier corresponds to the _label_asym_id from the mmCIF schema (assigned by the PDB). It can differ from
+        # _auth_asym_id (selected by the author at the time of deposition).
     MOL_DEFINITION = 'mol_definition'
         # Returns a list of molecular definition identifiers that include:
         # - Chemical component entries identified by the alphanumeric code, COMP ID: e.g. ATP, ZN
@@ -202,7 +202,7 @@ class RequestOptions:
         if self.sort_options:
             result['sort'] = [sort_option.to_dict() for sort_option in self.sort_options]
         if self.pager:
-            result['pager'] = self.pager.to_dict()
+            result['paginate'] = self.pager.to_dict()
         if self.facets:
             result['facets'] = [facet.to_dict() for facet in self.facets]
         return result
