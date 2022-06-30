@@ -64,6 +64,8 @@ docs/_build/
 .venv
 env/
 venv/
+venv_/
+py2/
 ENV/
 env.bak/
 venv.bak/
