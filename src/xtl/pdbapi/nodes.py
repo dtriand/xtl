@@ -1,0 +1,82 @@
+from dataclasses import dataclass
+
+from .options import NodeType, SearchService, LogicalOperator
+from .operators import _Operator
+
+
+@dataclass
+class QueryNode:
+    '''
+    Base class for a query node
+    '''
+
+    def __init__(self, type_: NodeType):
+        self.type = type_
+
+
+@dataclass
+class QueryField(QueryNode):
+    '''
+    A single field query
+    '''
+
+    def __init__(self, parameters, service=SearchService.TEXT):
+        if not issubclass(parameters.__class__, _Operator):
+            raise
+        super().__init__(type_=NodeType.TERMINAL)
+        self.parameters = parameters
+        if service != SearchService.TEXT:
+            raise NotImplementedError
+        self.service = service
+
+    def to_dict(self):
+        return {
+            'type': self.type.value,
+            'service': self.service.value,
+            'parameters': self.parameters.to_dict()
+        }
+
+    def __and__(self, other):
+        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
+
+    def __or__(self, other):
+        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
+
+    def __invert__(self):
+        if hasattr(self.parameters, 'negation'):
+            self.parameters.negation = not self.parameters.negation
+        return self
+
+
+@dataclass
+class QueryGroup(QueryNode):
+    '''
+    A multi-field query
+    '''
+
+    def __init__(self, nodes: list, logical_operator=LogicalOperator.AND):
+        for node in nodes:
+            if not issubclass(node.__class__, QueryNode):
+                raise
+        super().__init__(type_=NodeType.GROUP)
+        self.logical_operator = logical_operator
+        self.nodes = nodes
+
+    def to_dict(self):
+        return {
+            'type': self.type.value,
+            'logical_operator': self.logical_operator.value,
+            'nodes': [node.to_dict() for node in self.nodes]
+        }
+
+    def __and__(self, other):
+        if isinstance(other, QueryField):
+            self.nodes.append(other)
+            return self
+        elif isinstance(other, QueryGroup):
+            return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
+
+    def __or__(self, other):
+        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
+
+

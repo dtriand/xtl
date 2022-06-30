@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Union, List
+from datetime import date
 
 from .options import ComparisonType
 
