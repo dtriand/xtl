@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import overload, Union, List
+from typing import overload, Union
 from datetime import date
 
 from .nodes import QueryField
@@ -7,7 +7,7 @@ from .operators import *
 from .options import ComparisonType
 
 TNumber = Union[int, float, date]
-TIterable = Union[List[str], List[int], List[float], List[date]]
+TIterable = Union[list[str], list[int], list[float], list[date]]
 TValue = Union[str, TNumber]
 
 Number = (int, float, date)
@@ -128,13 +128,13 @@ class Attribute:
         else:
             raise TypeError("other must be one of: 'int', 'float' or 'date'")
 
-    def __contains__(self, item: Union[str, List[str]]) -> QueryField:
-        if isinstance(item, str):
-            return self.contains_phrase(item)
-        elif isinstance(item, list) and isinstance(item[0], str):
-            return self.contains_word(item)
-        else:
-            raise NotImplementedError
+    # def __contains__(self, item: Union[str, list[str]]) -> QueryField:
+    #     if isinstance(item, str):  # attr in 'xxx'
+    #         return self.contains_phrase(item)
+    #     elif isinstance(item, list) and isinstance(item[0], str):  # attr in ['xxx', 'yyy']
+    #         return self.contains_word(item)
+    #     else:
+    #         raise NotImplementedError
 
 
 class AttributeGroup:
