@@ -103,6 +103,12 @@ class ScoringStrategy(Enum):
     CHEMICAL = 'chemical'
 
 
+class ResultsContentType(Enum):
+    # https://search.rcsb.org/#results_content_type
+    EXPERIMENTAL = 'experimental'
+    COMPUTATIONAL = 'computational'
+
+
 @dataclass
 class SortOptions:
     # https://search.rcsb.org/#sorting
@@ -156,7 +162,7 @@ class RequestOptions:
 
     def __init__(self, scoring_strategy: ScoringStrategy = None, sort_options: list[SortOptions] = [],
                  pager: PagerOptions = None, return_all_hits=False, return_counts=False,
-                 facets: list[FacetsOptions] = []):
+                 facets: list[FacetsOptions] = [], results_content_type: list[ResultsContentType] = []):
         '''
         Controls various aspects of the search request including pagination, sorting, scoring and faceting. If omitted,
         the default parameters for sorting, scoring and pagination will be applied.
@@ -168,6 +174,7 @@ class RequestOptions:
         :param return_all_hits:
         :param return_counts:
         :param facets:
+        :param results_content_type:
         '''
         self.scoring_strategy = scoring_strategy
 
@@ -180,6 +187,7 @@ class RequestOptions:
         self.pager = pager
         self.return_all_hits = return_all_hits
         self.return_counts = return_counts
+        self.results_content_types = results_content_type
 
         if facets:
             for facet in facets:
@@ -205,4 +213,8 @@ class RequestOptions:
             result['paginate'] = self.pager.to_dict()
         if self.facets:
             result['facets'] = [facet.to_dict() for facet in self.facets]
+        if self.results_content_types:
+            result['results_content_type'] = [content_type.value for content_type in self.results_content_types]
+        else:
+            result['results_content_type'] = [ResultsContentType.EXPERIMENTAL.value]
         return result
