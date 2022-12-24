@@ -1,17 +1,26 @@
 import requests
 
-from xtl.pdbapi.attributes import SearchAttribute, SearchAttributeGroup
+from xtl.pdbapi.attributes import SearchAttribute, SearchAttributeGroup, DataAttribute, DataAttributeGroup
+from xtl.pdbapi.data.options import DataService
+from xtl.exceptions import InvalidArgument
 
 
 class _RCSBSchema:
 
     def __init__(self, verbose=False):
+        self._AttributeCls: SearchAttribute or DataAttribute
+        self._AttributeGroupCls: SearchAttributeGroup or DataAttributeGroup
+        if (not hasattr(self, '_AttributeCls')) or (not hasattr(self, '_AttributeGroupCls')):
+            raise Exception('Uninitialized instance.')
+
         self._verbose = verbose
         self.schema_version: str
         self.unparsable_objects = []
+
         self._schema_url: str
         if not hasattr(self, '_schema_url'):
             raise Exception('No schema URL provided.')
+
         self._parse_schema()
 
     def _get_schema_json(self):
@@ -42,13 +51,13 @@ class _RCSBSchema:
 
         if obj['type'] in ('string', 'number', 'integer', 'float'):
             description = obj['description'].replace('\n', ' ') if 'description' in obj else ''
-            attr = SearchAttribute(name=attr_name, type=obj['type'], description=description)
+            attr = self._AttributeCls(name=attr_name, type=obj['type'], description=description)
             setattr(self, attr_name, attr)
             return attr
         elif obj['type'] == 'array':
             self._turn_object_to_attribute(attr_name=attr_name, obj=obj['items'])
         elif obj['type'] == 'object':
-            group = SearchAttributeGroup()
+            group = self._AttributeGroupCls()
             for child_attr_name, child_obj in obj['properties'].items():
                 child_attr_fullname = f'{attr_name}.{child_attr_name}' if attr_name else child_attr_name
                 child_group = self._turn_object_to_attribute(attr_name=child_attr_fullname, obj=child_obj)
@@ -72,12 +81,24 @@ class _RCSBSchema:
 class SearchSchema(_RCSBSchema):
 
     def __init__(self, verbose=False):
+        self._AttributeCls = SearchAttribute
+        self._AttributeGroupCls = SearchAttributeGroup
+
         self._schema_url = 'http://search.rcsb.org/rcsbsearch/v2/metadata/schema'
+
         super().__init__(verbose=verbose)
 
 
 class DataSchema(_RCSBSchema):
 
-    def __init__(self, verbose=False):
-        self._schema_url = 'https://data.rcsb.org/rest/v1/schema/'
+    def __init__(self, service: DataService = DataService.ENTRY, verbose=False):
+        self._AttributeCls = DataAttribute
+        self._AttributeGroupCls = DataAttributeGroup
+
+        self._data_service: DataService = service
+        if not isinstance(self._data_service, DataService):
+            raise InvalidArgument(raiser='service', message='Must be of type \'DataService\'')
+
+        self._schema_url = f'https://data.rcsb.org/rest/v1/schema/{self._data_service.value}'
+
         super().__init__(verbose=verbose)

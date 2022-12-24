@@ -139,8 +139,23 @@ class SearchAttribute(_Attribute):
     #         raise NotImplementedError
 
 
-class SearchAttributeGroup:
+class DataAttribute(_Attribute):
+
+    ...
+
+
+class _AttributeGroup:
 
     @property
     def children(self):
         return [str(c) for c in self.__dict__]
+
+
+class SearchAttributeGroup(_AttributeGroup):
+
+    ...
+
+
+class DataAttributeGroup(_AttributeGroup):
+
+    ...
