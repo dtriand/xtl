@@ -1,5 +1,6 @@
 from .nodes import QueryField
 from .operators import *
+from .options import SearchService
 
 
 def has_uniprot_id(id_: str):
@@ -25,3 +26,19 @@ def has_uniprot_id(id_: str):
 
     return f1 & f2
 
+
+def free_text(text: str):
+    """
+
+    :param text:
+    :return:
+    """
+
+    q = QueryField(
+        UnstructuredTextOperator(
+            value=text
+        ),
+        service=SearchService.FULL_TEXT
+    )
+
+    return q

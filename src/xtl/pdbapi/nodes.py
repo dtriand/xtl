@@ -25,7 +25,7 @@ class QueryField(QueryNode):
             raise
         super().__init__(type_=NodeType.TERMINAL)
         self.parameters = parameters
-        if service != SearchService.TEXT:
+        if service not in (SearchService.TEXT, SearchService.FULL_TEXT):
             raise NotImplementedError
         self.service = service
 
