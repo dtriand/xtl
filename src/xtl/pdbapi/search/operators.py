@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Union, List
 from datetime import date
 
-from .options import ComparisonType
+from xtl.pdbapi.search.options import ComparisonType
 
 
 TNumber = Union[int, float, date]

@@ -1,10 +1,8 @@
-from dataclasses import dataclass
-from typing import overload, Union
-from datetime import date
+from typing import overload
 
-from .nodes import SearchQueryField
-from .operators import *
-from .options import ComparisonType
+from xtl.pdbapi.search.nodes import SearchQueryField
+from xtl.pdbapi.search.operators import *
+from xtl.pdbapi.search.options import ComparisonType
 
 TNumber = Union[int, float, date]
 TIterable = Union[list[str], list[int], list[float], list[date]]
@@ -14,7 +12,7 @@ Number = (int, float, date)
 
 
 @dataclass
-class Attribute:
+class _Attribute:
 
     name: str
     type: str
@@ -30,6 +28,10 @@ class Attribute:
         elif self.type == 'number':
             if not isinstance(value, Number):
                 raise TypeError
+
+
+@dataclass
+class SearchAttribute(_Attribute):
 
     def exact_match(self, value: str):
         return SearchQueryField(ExactMatchOperator(attribute=self.name, value=value))
@@ -67,7 +69,7 @@ class Attribute:
                                               inclusive_lower=inclusive_lower, inclusive_upper=inclusive_upper))
 
     @overload
-    def __eq__(self, other: 'Attribute') -> bool: ...
+    def __eq__(self, other: 'SearchAttribute') -> bool: ...
 
     @overload
     def __eq__(self, other: str) -> SearchQueryField: ...
@@ -75,18 +77,18 @@ class Attribute:
     @overload
     def __eq__(self, other: TNumber) -> SearchQueryField: ...
 
-    def __eq__(self, other: Union['Attribute', str, TNumber]) -> Union[SearchQueryField, bool]:
-        if isinstance(other, Attribute):
+    def __eq__(self, other: Union['SearchAttribute', str, TNumber]) -> Union[SearchQueryField, bool]:
+        if isinstance(other, SearchAttribute):
             return self.name == other.name
         elif isinstance(other, str):
             return self.exact_match(other)
         elif isinstance(other, Number):
             return self.equals(other)
         else:
-            raise TypeError("other must be one of: 'Attribute', 'str', 'int', 'float' or 'date'")
+            raise TypeError("other must be one of: 'SearchAttribute', 'str', 'int', 'float' or 'date'")
 
     @overload
-    def __ne__(self, other: 'Attribute') -> bool: ...
+    def __ne__(self, other: 'SearchAttribute') -> bool: ...
 
     @overload
     def __ne__(self, other: str) -> SearchQueryField: ...
@@ -94,15 +96,15 @@ class Attribute:
     @overload
     def __ne__(self, other: TNumber) -> SearchQueryField: ...
 
-    def __ne__(self, other: Union['Attribute', str, TNumber]) -> Union[SearchQueryField, bool]:
-        if isinstance(other, Attribute):
+    def __ne__(self, other: Union['SearchAttribute', str, TNumber]) -> Union[SearchQueryField, bool]:
+        if isinstance(other, SearchAttribute):
             return self.name != other.name
         elif isinstance(other, str):
             return ~(self.exact_match(other))
         elif isinstance(other, (int, float, date)):
             return ~(self.equals(other))
         else:
-            raise TypeError("other must be one of: 'Attribute', 'str', 'int', 'float' or 'date'")
+            raise TypeError("other must be one of: 'SearchAttribute', 'str', 'int', 'float' or 'date'")
 
     def __lt__(self, other: TNumber) -> SearchQueryField:
         if isinstance(other, Number):
@@ -137,7 +139,7 @@ class Attribute:
     #         raise NotImplementedError
 
 
-class AttributeGroup:
+class SearchAttributeGroup:
 
     @property
     def children(self):

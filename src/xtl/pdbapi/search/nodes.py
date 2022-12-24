@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .options import NodeType, SearchService, LogicalOperator
-from .operators import _Operator
+from xtl.pdbapi.search.options import NodeType, SearchService, LogicalOperator
+from xtl.pdbapi.search.operators import _Operator
 
 
 @dataclass

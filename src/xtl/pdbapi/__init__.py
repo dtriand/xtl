@@ -1,5 +1,4 @@
-from .client import Client
-from .nodes import SearchQueryField, SearchQueryGroup
-from .operators import *
-from .options import *
-from .schema import RCSBSchema
+from xtl.pdbapi.client import Client
+from xtl.pdbapi.search.nodes import SearchQueryField, SearchQueryGroup
+from xtl.pdbapi.search.operators import *
+from xtl.pdbapi.search.options import *

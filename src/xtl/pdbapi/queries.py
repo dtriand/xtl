@@ -1,7 +1,6 @@
-from .nodes import SearchQueryField
-from .operators import *
-from .options import SearchService
-
+from xtl.pdbapi.search.nodes import SearchQueryField
+from xtl.pdbapi.search.operators import *
+from xtl.pdbapi.search.options import SearchService
 
 def has_uniprot_id(id_: str):
     '''

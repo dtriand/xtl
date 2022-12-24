@@ -1,15 +1,17 @@
 import requests
 
-from .attributes import Attribute, AttributeGroup
+from xtl.pdbapi.attributes import SearchAttribute, SearchAttributeGroup
 
 
-class RCSBSchema:
+class _RCSBSchema:
 
     def __init__(self, verbose=False):
         self._verbose = verbose
         self.schema_version: str
         self.unparsable_objects = []
-        self._schema_url = 'http://search.rcsb.org/rcsbsearch/v2/metadata/schema'
+        self._schema_url: str
+        if not hasattr(self, '_schema_url'):
+            raise Exception('No schema URL provided.')
         self._parse_schema()
 
     def _get_schema_json(self):
@@ -40,13 +42,13 @@ class RCSBSchema:
 
         if obj['type'] in ('string', 'number', 'integer', 'float'):
             description = obj['description'].replace('\n', ' ') if 'description' in obj else ''
-            attr = Attribute(name=attr_name, type=obj['type'], description=description)
+            attr = SearchAttribute(name=attr_name, type=obj['type'], description=description)
             setattr(self, attr_name, attr)
             return attr
         elif obj['type'] == 'array':
             self._turn_object_to_attribute(attr_name=attr_name, obj=obj['items'])
         elif obj['type'] == 'object':
-            group = AttributeGroup()
+            group = SearchAttributeGroup()
             for child_attr_name, child_obj in obj['properties'].items():
                 child_attr_fullname = f'{attr_name}.{child_attr_name}' if attr_name else child_attr_name
                 child_group = self._turn_object_to_attribute(attr_name=child_attr_fullname, obj=child_obj)
@@ -66,3 +68,16 @@ class RCSBSchema:
         self.schema_version = json.get('$comment', 'Schema version: ').replace('Schema version: ', '')
         return self._turn_object_to_attribute('', json)
 
+
+class SearchSchema(_RCSBSchema):
+
+    def __init__(self, verbose=False):
+        self._schema_url = 'http://search.rcsb.org/rcsbsearch/v2/metadata/schema'
+        super().__init__(verbose=verbose)
+
+
+class DataSchema(_RCSBSchema):
+
+    def __init__(self, verbose=False):
+        self._schema_url = 'https://data.rcsb.org/rest/v1/schema/'
+        super().__init__(verbose=verbose)

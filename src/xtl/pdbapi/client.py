@@ -2,8 +2,8 @@ import json
 import requests
 import warnings
 
-from .options import ReturnType, RequestOptions
-from .nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
+from xtl.pdbapi.search.options import ReturnType, RequestOptions
+from xtl.pdbapi.search.nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
 from xtl.exceptions import InvalidArgument
 
 
