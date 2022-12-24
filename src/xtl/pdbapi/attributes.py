@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import overload, Union
 from datetime import date
 
-from .nodes import QueryField
+from .nodes import SearchQueryField
 from .operators import *
 from .options import ComparisonType
 
@@ -32,50 +32,50 @@ class Attribute:
                 raise TypeError
 
     def exact_match(self, value: str):
-        return QueryField(ExactMatchOperator(attribute=self.name, value=value))
+        return SearchQueryField(ExactMatchOperator(attribute=self.name, value=value))
 
     def exists(self):
-        return QueryField(ExistsOperator(attribute=self.name))
+        return SearchQueryField(ExistsOperator(attribute=self.name))
 
     def in_(self, value: Union[str, TNumber]):
-        return QueryField(InOperator(attribute=self.name, value=value))
+        return SearchQueryField(InOperator(attribute=self.name, value=value))
 
     def contains_word(self, value: List[str]):
-        return QueryField(ContainsWordsOperator(attribute=self.name, value=value))
+        return SearchQueryField(ContainsWordsOperator(attribute=self.name, value=value))
 
     def contains_phrase(self, value: str):
-        return QueryField(ContainsPhraseOperator(attribute=self.name, value=value))
+        return SearchQueryField(ContainsPhraseOperator(attribute=self.name, value=value))
 
     def equals(self, value: TNumber):
-        return QueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.EQUAL, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.EQUAL, value=value))
 
     def greater(self, value: TNumber):
-        return QueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER, value=value))
 
     def greater_or_equal(self, value: TNumber):
-        return QueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER_OR_EQUAL,
-                                             value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER_OR_EQUAL,
+                                                   value=value))
 
     def less(self, value: TNumber):
-        return QueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS, value=value))
 
     def less_or_equal(self, value: TNumber):
-        return QueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS_OR_EQUAL, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS_OR_EQUAL, value=value))
 
     def range(self, value_from: TNumber, value_to: TNumber, inclusive_lower=False, inclusive_upper=False):
-        return QueryField(RangeOperator(attribute=self.name, value_from=value_from, value_to=value_to,
-                                        inclusive_lower=inclusive_lower, inclusive_upper=inclusive_upper))
+        return SearchQueryField(RangeOperator(attribute=self.name, value_from=value_from, value_to=value_to,
+                                              inclusive_lower=inclusive_lower, inclusive_upper=inclusive_upper))
 
     @overload
     def __eq__(self, other: 'Attribute') -> bool: ...
 
     @overload
-    def __eq__(self, other: str) -> QueryField: ...
+    def __eq__(self, other: str) -> SearchQueryField: ...
 
     @overload
-    def __eq__(self, other: TNumber) -> QueryField: ...
+    def __eq__(self, other: TNumber) -> SearchQueryField: ...
 
-    def __eq__(self, other: Union['Attribute', str, TNumber]) -> Union[QueryField, bool]:
+    def __eq__(self, other: Union['Attribute', str, TNumber]) -> Union[SearchQueryField, bool]:
         if isinstance(other, Attribute):
             return self.name == other.name
         elif isinstance(other, str):
@@ -89,12 +89,12 @@ class Attribute:
     def __ne__(self, other: 'Attribute') -> bool: ...
 
     @overload
-    def __ne__(self, other: str) -> QueryField: ...
+    def __ne__(self, other: str) -> SearchQueryField: ...
 
     @overload
-    def __ne__(self, other: TNumber) -> QueryField: ...
+    def __ne__(self, other: TNumber) -> SearchQueryField: ...
 
-    def __ne__(self, other: Union['Attribute', str, TNumber]) -> Union[QueryField, bool]:
+    def __ne__(self, other: Union['Attribute', str, TNumber]) -> Union[SearchQueryField, bool]:
         if isinstance(other, Attribute):
             return self.name != other.name
         elif isinstance(other, str):
@@ -104,25 +104,25 @@ class Attribute:
         else:
             raise TypeError("other must be one of: 'Attribute', 'str', 'int', 'float' or 'date'")
 
-    def __lt__(self, other: TNumber) -> QueryField:
+    def __lt__(self, other: TNumber) -> SearchQueryField:
         if isinstance(other, Number):
             return self.less(other)
         else:
             raise TypeError("other must be one of: 'int', 'float' or 'date'")
 
-    def __le__(self, other: TNumber) -> QueryField:
+    def __le__(self, other: TNumber) -> SearchQueryField:
         if isinstance(other, Number):
             return self.less_or_equal(other)
         else:
             raise TypeError("other must be one of: 'int', 'float' or 'date'")
 
-    def __gt__(self, other: TNumber) -> QueryField:
+    def __gt__(self, other: TNumber) -> SearchQueryField:
         if isinstance(other, Number):
             return self.greater(other)
         else:
             raise TypeError("other must be one of: 'int', 'float' or 'date'")
 
-    def __ge__(self, other: TNumber) -> QueryField:
+    def __ge__(self, other: TNumber) -> SearchQueryField:
         if isinstance(other, Number):
             return self.greater_or_equal(other)
         else:

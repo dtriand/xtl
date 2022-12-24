@@ -1,4 +1,4 @@
-from .nodes import QueryField
+from .nodes import SearchQueryField
 from .operators import *
 from .options import SearchService
 
@@ -10,14 +10,14 @@ def has_uniprot_id(id_: str):
     :param id_: UniProt ID to search for
     :return:
     '''
-    f1 = QueryField(
+    f1 = SearchQueryField(
         ExactMatchOperator(
             attribute='rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_name',
             value='UniProt'
         )
     )
 
-    f2 = QueryField(
+    f2 = SearchQueryField(
         ExactMatchOperator(
             attribute='rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers.database_accession',
             value=id_
@@ -34,7 +34,7 @@ def free_text(text: str):
     :return:
     """
 
-    q = QueryField(
+    q = SearchQueryField(
         UnstructuredTextOperator(
             value=text
         ),

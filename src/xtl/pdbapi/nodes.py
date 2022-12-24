@@ -5,7 +5,7 @@ from .operators import _Operator
 
 
 @dataclass
-class QueryNode:
+class SearchQueryNode:
     '''
     Base class for a query node
     '''
@@ -15,7 +15,7 @@ class QueryNode:
 
 
 @dataclass
-class QueryField(QueryNode):
+class SearchQueryField(SearchQueryNode):
     '''
     A single field query
     '''
@@ -37,10 +37,10 @@ class QueryField(QueryNode):
         }
 
     def __and__(self, other):
-        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
+        return SearchQueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
 
     def __or__(self, other):
-        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
+        return SearchQueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
 
     def __invert__(self):
         if hasattr(self.parameters, 'negation'):
@@ -49,14 +49,14 @@ class QueryField(QueryNode):
 
 
 @dataclass
-class QueryGroup(QueryNode):
+class SearchQueryGroup(SearchQueryNode):
     '''
     A multi-field query
     '''
 
     def __init__(self, nodes: list, logical_operator=LogicalOperator.AND):
         for node in nodes:
-            if not issubclass(node.__class__, QueryNode):
+            if not issubclass(node.__class__, SearchQueryNode):
                 raise
         super().__init__(type_=NodeType.GROUP)
         self.logical_operator = logical_operator
@@ -70,13 +70,13 @@ class QueryGroup(QueryNode):
         }
 
     def __and__(self, other):
-        if isinstance(other, QueryField):
+        if isinstance(other, SearchQueryField):
             self.nodes.append(other)
             return self
-        elif isinstance(other, QueryGroup):
-            return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
+        elif isinstance(other, SearchQueryGroup):
+            return SearchQueryGroup(nodes=[self, other], logical_operator=LogicalOperator.AND)
 
     def __or__(self, other):
-        return QueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
+        return SearchQueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
 
 

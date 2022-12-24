@@ -3,7 +3,7 @@ import requests
 import warnings
 
 from .options import ReturnType, RequestOptions
-from .nodes import QueryNode, QueryField, QueryGroup
+from .nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
 from xtl.exceptions import InvalidArgument
 
 
@@ -50,7 +50,7 @@ class Client:
         '''
         self.return_type = ReturnType.ENTRY
         self.request_options = request_options
-        self._query: QueryField or QueryGroup
+        self._query: SearchQueryField or SearchQueryGroup
 
     @property
     def request(self):
@@ -68,14 +68,14 @@ class Client:
             result['request_options'] = self.request_options.to_dict()
         return result
 
-    def search(self, query: QueryField or QueryGroup):
+    def search(self, query: SearchQueryField or SearchQueryGroup):
         '''
         Perform a query using the RCSB Search API
 
         :param query:
         :return:
         '''
-        if not issubclass(query.__class__, QueryNode):
+        if not issubclass(query.__class__, SearchQueryNode):
             raise InvalidArgument(raiser='query', message='Must be QueryField or QueryGroup')
         self._query = query
         response = requests.post(url=Client.SEARCH_URL, data=json.dumps(self.request))
