@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import overload
 
 from xtl.pdbapi.search.nodes import SearchQueryField
@@ -14,9 +15,11 @@ Number = (int, float, date)
 @dataclass
 class _Attribute:
 
-    name: str
+    fullname: str
     type: str
-    description: str
+    description: str = field(repr=False)
+    name: str = ''
+    parent: str = ''
 
     def _type_checking(self, value):
         if self.type == 'integer':
@@ -34,38 +37,40 @@ class _Attribute:
 class SearchAttribute(_Attribute):
 
     def exact_match(self, value: str):
-        return SearchQueryField(ExactMatchOperator(attribute=self.name, value=value))
+        return SearchQueryField(ExactMatchOperator(attribute=self.fullname, value=value))
 
     def exists(self):
-        return SearchQueryField(ExistsOperator(attribute=self.name))
+        return SearchQueryField(ExistsOperator(attribute=self.fullname))
 
     def in_(self, value: Union[str, TNumber]):
-        return SearchQueryField(InOperator(attribute=self.name, value=value))
+        return SearchQueryField(InOperator(attribute=self.fullname, value=value))
 
     def contains_word(self, value: List[str]):
-        return SearchQueryField(ContainsWordsOperator(attribute=self.name, value=value))
+        return SearchQueryField(ContainsWordsOperator(attribute=self.fullname, value=value))
 
     def contains_phrase(self, value: str):
-        return SearchQueryField(ContainsPhraseOperator(attribute=self.name, value=value))
+        return SearchQueryField(ContainsPhraseOperator(attribute=self.fullname, value=value))
 
     def equals(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.EQUAL, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.EQUAL,
+                                                   value=value))
 
     def greater(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER,
+                                                   value=value))
 
     def greater_or_equal(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.GREATER_OR_EQUAL,
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER_OR_EQUAL,
                                                    value=value))
 
     def less(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS, value=value))
 
     def less_or_equal(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.name, operation=ComparisonType.LESS_OR_EQUAL, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS_OR_EQUAL, value=value))
 
     def range(self, value_from: TNumber, value_to: TNumber, inclusive_lower=False, inclusive_upper=False):
-        return SearchQueryField(RangeOperator(attribute=self.name, value_from=value_from, value_to=value_to,
+        return SearchQueryField(RangeOperator(attribute=self.fullname, value_from=value_from, value_to=value_to,
                                               inclusive_lower=inclusive_lower, inclusive_upper=inclusive_upper))
 
     @overload
@@ -79,7 +84,7 @@ class SearchAttribute(_Attribute):
 
     def __eq__(self, other: Union['SearchAttribute', str, TNumber]) -> Union[SearchQueryField, bool]:
         if isinstance(other, SearchAttribute):
-            return self.name == other.name
+            return self.fullname == other.fullname
         elif isinstance(other, str):
             return self.exact_match(other)
         elif isinstance(other, Number):
@@ -98,7 +103,7 @@ class SearchAttribute(_Attribute):
 
     def __ne__(self, other: Union['SearchAttribute', str, TNumber]) -> Union[SearchQueryField, bool]:
         if isinstance(other, SearchAttribute):
-            return self.name != other.name
+            return self.fullname != other.fullname
         elif isinstance(other, str):
             return ~(self.exact_match(other))
         elif isinstance(other, (int, float, date)):
@@ -143,12 +148,28 @@ class DataAttribute(_Attribute):
 
     ...
 
+def _make_empty_list():
+    return []
 
+
+@dataclass
 class _AttributeGroup:
+    name_: str
+    parent_name: str = ''
+    _children: list[str] = field(init=False, default_factory=_make_empty_list)
+    parent: '_AttributeGroup' = None
+
+    def update_children(self):
+        self._children = [str(c) for c in self.__dict__]
+        self._children.remove('name_')
+        self._children.remove('parent_name')
+        self._children.remove('_children')
+        self._children.remove('parent')
 
     @property
     def children(self):
-        return [str(c) for c in self.__dict__]
+        self.update_children()
+        return self._children
 
 
 class SearchAttributeGroup(_AttributeGroup):
