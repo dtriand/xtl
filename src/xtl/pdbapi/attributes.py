@@ -146,7 +146,12 @@ class SearchAttribute(_Attribute):
 
 class DataAttribute(_Attribute):
 
-    ...
+    def __eq__(self, other: 'DataAttribute') -> bool:
+        if isinstance(other, DataAttribute):
+            return self.fullname == other.fullname
+        else:
+            raise TypeError("other must be of type 'DataAttribute'")
+
 
 def _make_empty_list():
     return []
@@ -170,6 +175,10 @@ class _AttributeGroup:
     def children(self):
         self.update_children()
         return self._children
+
+    @property
+    def attributes(self) -> list[_Attribute]:
+        return [getattr(self, a) for a in self.children]
 
 
 class SearchAttributeGroup(_AttributeGroup):

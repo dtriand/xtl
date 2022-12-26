@@ -150,6 +150,7 @@ class TestSearchSchema:
     attr = SearchSchema()
 
     def test_schema_version(self):
+        assert self.attr.schema_version != 'UNK'
         assert tuple(int(i) for i in self.attr.schema_version.split('.')) >= (1, 36, 0)
 
 
@@ -167,4 +168,5 @@ class TestDataSchema:
 
     def test_schema_version(self, service, schema_version):
         attr = DataSchema(service=service)
+        assert attr.schema_version != 'UNK'
         assert tuple(int(i) for i in attr.schema_version.split('.')) >= schema_version
