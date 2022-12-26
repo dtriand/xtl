@@ -127,17 +127,19 @@ class _RCSBSchema:
 
 
 class SearchSchema(_RCSBSchema):
+    _base_url = 'http://search.rcsb.org/rcsbsearch/v2/metadata/schema'
 
     def __init__(self, verbose=False):
         self._AttributeCls = SearchAttribute
         self._AttributeGroupCls = SearchAttributeGroup
 
-        self._schema_url = 'http://search.rcsb.org/rcsbsearch/v2/metadata/schema'
+        self._schema_url = self._base_url
 
         super().__init__(verbose=verbose)
 
 
 class DataSchema(_RCSBSchema):
+    _base_url = 'https://data.rcsb.org/rest/v1/schema'
 
     def __init__(self, service: DataService = DataService.ENTRY, verbose=False):
         self._AttributeCls = DataAttribute
@@ -147,7 +149,7 @@ class DataSchema(_RCSBSchema):
         if not isinstance(self._data_service, DataService):
             raise InvalidArgument(raiser='service', message='Must be of type \'DataService\'')
 
-        self._schema_url = f'https://data.rcsb.org/rest/v1/schema/{self.data_service}'
+        self._schema_url = f'{self._base_url}/{self.data_service}'
 
         super().__init__(verbose=verbose)
 
