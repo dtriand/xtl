@@ -68,6 +68,49 @@ def mock_get_schema_json(self):
                     'additionalProperties': False,
                     'required': []
                 }
+            },
+            'category3': {  # Example of Search Schema: rcsb_branched_instance_feature.additional_properties.values
+                'type': 'array',
+                'items': {
+                    'type': 'object',
+                    'properties': {
+                        'subcategory1': {
+                            'type': 'array',
+                            'items': {
+                                'type': 'object',
+                                'properties': {
+                                    'subsubitem1': {
+                                        'type': 'array',
+                                        'items': {
+                                            'anyOf': [
+                                                {'type': 'string'},
+                                                {'type': 'integer'},
+                                                {'type': 'float'}
+                                            ]
+                                        },
+                                        'description': ''
+                                    }
+                                },
+                                'additionalProperties': False
+                            },
+                            'description': ''
+                        }
+                    },
+                    'additionalProperties': False
+                }
+            },
+            'category4': {  # Example of CHEM_COMP Data Schema: chem_comp.mon_nstd_parent_comp_id
+                'type': 'object',
+                'properties': {
+                    'subcategory1': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'string',
+                            'description': ''
+                        }
+                    }
+                },
+                'additionalProperties': False
             }
         },
         'additionalProperties': False,
@@ -127,6 +170,31 @@ class TestRCSBSchema:
         assert c2sc1ssc1ssi1
         assert c2sc1ssc1ssi1.name == 'subsubitem1'
         assert c2sc1ssc1ssi1.parent == 'category2.subcategory1.subsubcategory1'
+
+        c3 = getattr(attr, 'category3', None)
+        assert c3
+        assert c3.name_ == 'category3'
+        assert c3._children == ['subcategory1']
+
+        c3sc1 = getattr(attr, 'category3.subcategory1', None)
+        assert c3sc1
+        assert c3sc1.parent_name == 'category3'
+
+        c3sc1ssi1 = getattr(attr, 'category3.subcategory1.subsubitem1', None)
+        assert c3sc1ssi1
+        # assert c3sc1.type == 'array'
+        # assert c3sc1.contains == ['string', 'integer', 'float']
+
+        c4 = getattr(attr, 'category4', None)
+        assert c4
+        assert c4.name_ == 'category4'
+        assert c4._children == ['subcategory1']
+
+        c4sc1 = getattr(attr, 'category4.subcategory1', None)
+        assert c4sc1
+        assert c4sc1.name == 'subcategory1'
+        assert c4sc1.type == 'array'
+        assert c4sc1.contains == ['string']
 
         assert attr.schema_version == '0.0.0'
 

@@ -18,6 +18,7 @@ class _Attribute:
     fullname: str
     type: str
     description: str = field(repr=False)
+    contains: list[str] = ''  # nested datatype for arrays
     name: str = ''
     parent: str = ''
 
@@ -67,7 +68,8 @@ class SearchAttribute(_Attribute):
         return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS, value=value))
 
     def less_or_equal(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS_OR_EQUAL, value=value))
+        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS_OR_EQUAL,
+                                                   value=value))
 
     def range(self, value_from: TNumber, value_to: TNumber, inclusive_lower=False, inclusive_upper=False):
         return SearchQueryField(RangeOperator(attribute=self.fullname, value_from=value_from, value_to=value_to,
@@ -170,6 +172,10 @@ class _AttributeGroup:
         self._children.remove('parent_name')
         self._children.remove('_children')
         self._children.remove('parent')
+        try:
+            self._children.remove('_schema')
+        except ValueError:
+            pass
 
     @property
     def children(self):
