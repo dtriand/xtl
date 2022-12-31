@@ -2,12 +2,15 @@ import json
 import requests
 import warnings
 
+from xtl.pdbapi.attributes import DataAttribute, DataAttributeGroup
 from xtl.pdbapi.search.options import ReturnType, RequestOptions
 from xtl.pdbapi.search.nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
+from xtl.pdbapi.data.options import GQLField
+from xtl.pdbapi.data.nodes import DataQueryField, DataQueryGroup
 from xtl.exceptions import InvalidArgument
 
 
-class QueryResponse:
+class SearchQueryResponse:
 
     def __init__(self, response: requests.Response):
         """
@@ -37,10 +40,44 @@ class QueryResponse:
         return [item['identifier'] for item in self.result_set]
 
 
+class DataQueryResponse:
+
+    def __init__(self, query_tree: dict, response: requests.Response):
+        try:
+            self.json = response.json()
+        except:
+            self.json = {}
+        self.query_tree = query_tree
+        self._errors = self.json.get('errors', {})
+        self.data = self.json.get('data', {})
+        self.entries = self.data.get('entries', [])
+        self.polymer_entities = self.data.get('polymer_entities', [])
+        self.branched_entities = self.data.get('branched_entities', [])
+        self.nonpolymer_entities = self.data.get('nonpolymer_entities', [])
+        self.polymer_instances = self.data.get('polymer_instances', [])
+        self.branched_instances = self.data.get('branched_instances', [])
+        self.nonpolymer_instances = self.data.get('nonpolymer_instances', [])
+        self.assemblies = self.data.get('assemblies', [])
+        self.chem_comps = self.data.get('chem_comps', [])
+
+    @property
+    def ok(self):
+        if self._errors:
+            return False
+        return True
+
+    @property
+    def error(self, msg_only=True):
+        if msg_only:
+            return self._errors[0]['message']
+        else:
+            return self._errors
+
 class Client:
 
     SEARCH_URL: str = 'https://search.rcsb.org/rcsbsearch/v2/query'
-    DATA_URL: str = 'https://data.rcsb.org/rest/v1/core'
+    # DATA_URL: str = 'https://data.rcsb.org/rest/v1/core'
+    DATA_GRAPHQL_URL: str = 'https://data.rcsb.org/graphql'
 
     def __init__(self, request_options=RequestOptions()):
         '''
@@ -86,23 +123,47 @@ class Client:
         if response.status_code == 204:
             warnings.warn('Request processed successfully, but no hits were found (status: 204).')
 
-        return QueryResponse(response)
+        return SearchQueryResponse(response)
 
-    def data(self, query: list, schema: str = 'entry'):
-        '''
-        Perform a query using the RCSB Data REST API. Experimental implementation!
+    # def data(self, query: list, schema: str = 'entry'):
+    #     '''
+    #     Perform a query using the RCSB Data REST API. Experimental implementation!
+    #
+    #     :param query:
+    #     :param schema:
+    #     :return:
+    #     '''
+    #     warnings.warn('Experimental implementation of Client.data()')
+    #     response = requests.get(url=f'{Client.DATA_URL}/{schema}/{"/".join(query)}')
+    #
+    #     if not response.ok:
+    #         warnings.warn(f'It appears request failed with status {response.status_code}:\n{response.text}')
+    #         response.raise_for_status()
+    #     if response.status_code == 204:
+    #         warnings.warn('Request processed successfully, but no hits were found (status: 204).')
+    #
+    #     return json.loads(response.text)
 
-        :param query:
-        :param schema:
-        :return:
-        '''
-        warnings.warn('Experimental implementation of Client.data()')
-        response = requests.get(url=f'{Client.DATA_URL}/{schema}/{"/".join(query)}')
+    def data(self, ids: list[str], attributes: DataQueryGroup or list[DataQueryField] or list[DataAttribute]):
+        if isinstance(attributes, DataQueryGroup):
+            attrs = attributes
+        elif isinstance(attributes, list) or isinstance(attributes, tuple):
+            attrs = DataQueryGroup.from_list(attributes)
+        else:
+            raise
+
+        field = getattr(GQLField, attrs._data_service.name, GQLField.ENTRY).value
+        entries = []
+        for entry in ids:
+            if field.separator not in entry:
+                raise
+            entries.append(f'"{entry}"')
+        request = f'{self.DATA_GRAPHQL_URL}?query={{{field.name}({field.identifiers}:[{",".join(entries)}])' \
+                  f'{{{attrs.to_gql()}}}}}'
+
+        response = DataQueryResponse(query_tree=attrs.tree, response=requests.get(request))
 
         if not response.ok:
-            warnings.warn(f'It appears request failed with status {response.status_code}:\n{response.text}')
-            response.raise_for_status()
-        if response.status_code == 204:
-            warnings.warn('Request processed successfully, but no hits were found (status: 204).')
+            warnings.warn(f'It appears request failed with message:\n{response.error()}')
 
-        return json.loads(response.text)
+        return response
