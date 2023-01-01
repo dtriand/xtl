@@ -14,7 +14,7 @@ class SearchQueryResponse:
 
     def __init__(self, response: requests.Response):
         """
-        Representation of an RCSB API response.
+        Representation of a RCSB Search API response.
 
         :param response: requests.Response object to process
         """
@@ -24,11 +24,12 @@ class SearchQueryResponse:
             self.json = {}
         self.query_id = self.json.get('query_id', '')
         self.result_type = self.json.get('result_type', '')
-        self.total_count = self.json.get('total_count', '')
-        self.explain_meta_data = self.json.get('explain_meta_data', '')
-        self.result_set = self.json.get('result_set', '')
-        self.group_set = self.json.get('group_set', '')
-        self.facets = self.json.get('facets', '')
+        self.total_count = self.json.get('total_count', 0)
+        self.explain_metadata = self.json.get('explain_metadata', {})
+        self.result_set = self.json.get('result_set', [])
+        self.group_by = self.json.get('group_by', {})
+        self.group_set = self.json.get('group_set', [])
+        self.facets = self.json.get('facets', [])
 
     @property
     def pdbs(self) -> list[str]:
@@ -43,6 +44,12 @@ class SearchQueryResponse:
 class DataQueryResponse:
 
     def __init__(self, query_tree: dict, response: requests.Response):
+        """
+        Representation of a RCSB Data API response
+
+        :param query_tree:
+        :param response:
+        """
         try:
             self.json = response.json()
         except:
@@ -80,22 +87,22 @@ class Client:
     DATA_GRAPHQL_URL: str = 'https://data.rcsb.org/graphql'
 
     def __init__(self, request_options=RequestOptions()):
-        '''
+        """
         A client for quering the RCSB Search API
 
         :param request_options:
-        '''
+        """
         self.return_type = ReturnType.ENTRY
         self.request_options = request_options
         self._query: SearchQueryField or SearchQueryGroup
 
     @property
     def request(self):
-        '''
+        """
         Request to send to the API
 
         :return:
-        '''
+        """
         result = {
             'return_type': self.return_type.value,
         }
@@ -106,12 +113,12 @@ class Client:
         return result
 
     def search(self, query: SearchQueryField or SearchQueryGroup):
-        '''
+        """
         Perform a query using the RCSB Search API
 
         :param query:
         :return:
-        '''
+        """
         if not issubclass(query.__class__, SearchQueryNode):
             raise InvalidArgument(raiser='query', message='Must be QueryField or QueryGroup')
         self._query = query

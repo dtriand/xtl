@@ -161,9 +161,9 @@ class FacetsOptions:
 class RequestOptions:
 
     def __init__(self, scoring_strategy: ScoringStrategy = None, sort_options: list[SortOptions] = [],
-                 pager: PagerOptions = None, return_all_hits=False, return_counts=False,
+                 pager: PagerOptions = None, return_all_hits=False, return_counts=False, return_explain_metadata=False,
                  facets: list[FacetsOptions] = [], results_content_type: list[ResultsContentType] = []):
-        '''
+        """
         Controls various aspects of the search request including pagination, sorting, scoring and faceting. If omitted,
         the default parameters for sorting, scoring and pagination will be applied.
         https://search.rcsb.org/index.html#building-search-request
@@ -173,9 +173,10 @@ class RequestOptions:
         :param pager:
         :param return_all_hits:
         :param return_counts:
+        :param return_explain_metadata:
         :param facets:
         :param results_content_type:
-        '''
+        """
         self.scoring_strategy = scoring_strategy
 
         if sort_options:
@@ -187,6 +188,7 @@ class RequestOptions:
         self.pager = pager
         self.return_all_hits = return_all_hits
         self.return_counts = return_counts
+        self.return_explain_metadata = return_explain_metadata
         self.results_content_types = results_content_type
 
         if facets:
@@ -207,6 +209,8 @@ class RequestOptions:
             result['scoring_strategy'] = self.scoring_strategy.value
         if self.return_all_hits:
             result['return_all_hits'] = True
+        if self.return_explain_metadata:
+            result['return_explain_metadata'] = True
         if self.sort_options:
             result['sort'] = [sort_option.to_dict() for sort_option in self.sort_options]
         if self.pager:
