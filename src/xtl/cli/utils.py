@@ -43,6 +43,20 @@ def dict_to_table(dict):
     return table
 
 
+def flatten_dict(dict_):
+    new_dict = {}
+    for key, value in dict_.items():
+        if isinstance(value, dict):
+            for k, v in value.items():
+                if isinstance(v, dict):
+                    new_dict[f"{key}.{k}"] = flatten_dict(v)
+                else:
+                    new_dict[f"{key}.{k}"] = v
+        else:
+            new_dict[key] = value
+    return new_dict
+
+
 class OutputQueue:
 
     def __init__(self, debug=False):
@@ -54,16 +68,20 @@ class OutputQueue:
         if self.debug:
             self.print()
 
-    def append_table(self, title, table, *tabulate_args, **tabulate_kwargs):
+    def pop_from_queue(self):
+        return self._echo_queue.pop(-1)
+
+    def append_table(self, table, title: str = "", *tabulate_args, **tabulate_kwargs):
         """
 
-        :param str title:
         :param table: Iterable to be passed to tabulate
+        :param str title:
         :param tabulate_args: Extra tabulate args
         :param tabulate_kwargs: Extra tabulate kwargs
         :return:
         """
-        self.append_to_queue((f'{title.upper()}\n{"="*len(title)}', {'bold': True}))
+        if title:
+            self.append_to_queue((f'{title.upper()}\n{"="*len(title)}', {'bold': True}))
         self.append_to_queue((tabulate.tabulate(table, *tabulate_args, **tabulate_kwargs), {}))
         self.append_to_queue(('\n', {}))
 

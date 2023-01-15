@@ -66,6 +66,8 @@ class DataQueryResponse:
         self.nonpolymer_instances = self.data.get('nonpolymer_instances', [])
         self.assemblies = self.data.get('assemblies', [])
         self.chem_comps = self.data.get('chem_comps', [])
+        self._valid_id_types = ('entries', 'polymer_entities', 'nonpolymer_entities', 'polymer_instances',
+                                'branched_instances', 'nonpolymer_instances', 'assemblies', 'chem_comps')
 
     @property
     def ok(self):
@@ -79,6 +81,39 @@ class DataQueryResponse:
             return self._errors[0]['message']
         else:
             return self._errors
+
+    def _flatten_dict(self, dict_):
+        new_dict = {}
+        for key, value in dict_.items():
+            if isinstance(value, dict):
+                for k, v in value.items():
+                    if isinstance(v, dict):
+                        new_dict[f"{key}.{k}"] = self._flatten_dict(v)
+                    else:
+                        new_dict[f"{key}.{k}"] = v
+            else:
+                new_dict[key] = value
+        return new_dict
+
+    def _flatten_tree(self):
+        titles = []
+        for key, value in self.query_tree.items():
+            if key == '':
+                titles += [f'{v}' for v in value]
+            elif isinstance(value, list):
+                titles += [f'{key}.{v}' for v in value]
+            else:
+                raise Exception(f'Unsupported case: {key=} {value=}')
+        return titles
+
+    def tabulate(self, attr: str = 'entries'):
+        if attr not in self._valid_id_types:
+            raise InvalidArgument(raiser='attr', message=f'Must be one of: {", ".join(self._valid_id_types)}')
+        titles = self._flatten_tree()
+        flattened = [self._flatten_dict(i) for i in getattr(self, attr, [])]
+        table = [[entry[prop] for prop in titles] for entry in flattened]
+        return table, titles
+
 
 class Client:
 

@@ -182,8 +182,6 @@ class TestRCSBSchema:
 
         c3sc1ssi1 = getattr(attr, 'category3.subcategory1.subsubitem1', None)
         assert c3sc1ssi1
-        # assert c3sc1.type == 'array'
-        # assert c3sc1.contains == ['string', 'integer', 'float']
 
         c4 = getattr(attr, 'category4', None)
         assert c4
