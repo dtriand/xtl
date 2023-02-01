@@ -70,5 +70,32 @@ def gsas2(ctx: click.core.Context, argopts):
     call(cmd)
 
 
+@cli_main.command(short_help='Access to RCSB PDB Search API.',
+                  context_settings=dict(ignore_unknown_options=True, allow_interspersed_args=False))
+@click.pass_context
+@click.argument('argopts', nargs=-1, type=click.UNPROCESSED)  # consumes all arguments and options
+def pdbapi(ctx: click.core.Context, argopts):
+    """
+    \b
+    Alias for command: pdbapi.
+    For help try: pdbapi -h
+    \f
+    :param ctx:
+    :param argopts:
+    :return:
+    """
+
+    if not argopts:
+        # from xtl.cli.gsas2_commands import cli_gsas
+        # print(cli_gsas.get_help(ctx))
+        print(ctx.get_help())
+        return
+
+    # Call the relevant command with all arguments and options
+    from subprocess import call
+    cmd = ['pdbapi'] + list(argopts)
+    call(cmd)
+
+
 if __name__ == '__main__':
     cli_main(obj={})
