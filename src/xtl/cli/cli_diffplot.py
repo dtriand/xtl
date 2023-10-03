@@ -24,6 +24,7 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
                                                                                          'than this will be masked'),
                         low_counts: bool = typer.Option(False, '-lc', '--low_counts', help='High-contrast mode for '
                                                                                            '<5 counts'),
+                        save: bool = typer.Option(False, '-s', '--save', help='Export image to file'),
                         cmap: str = typer.Option('magma', '--cmap', hidden=True, help='Intensity colormap'),
                         cbad: str = typer.Option('white', '--cbad', hidden=True, help='Color for bad pixels'),
                         vmin: float = typer.Option(None, '--vmin', hidden=True, help='Colorscale minimum value'),
@@ -81,7 +82,12 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
 
     fig.suptitle(img.file.name)
     ax.cax.colorbar(m)
-    plt.show()
+    if save:
+        export_file = (Path.cwd() / fname.name).with_suffix('.png')
+        print(f'Saving to file {export_file}')
+        plt.savefig(export_file, dpi=200)
+    else:
+        plt.show()
 
 
 @app.command('powder', help='Plot several 1D patterns')
