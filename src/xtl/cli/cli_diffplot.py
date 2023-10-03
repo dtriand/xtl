@@ -6,11 +6,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 import numpy as np
+from rich import print
 from rich.progress import track
+from tabulate import tabulate
 import typer
 
 from xtl.cli.cliio import CliIO
 from xtl.diffraction.images.images import Image
+from xtl.math import si_units
 
 
 app = typer.Typer(name='diffplot', help='Plot diffraction data')
@@ -34,9 +37,9 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     if not fname.exists():
         cli.echo(f'File {fname} does not exist', level='error')
         raise typer.Abort()
-    if fname.suffix != '.h5':
-        cli.echo('Only .h5 images are supported!', level='error')
-        raise typer.Abort()
+    if fname.suffix != '.h5' and frames > 1:
+        cli.echo('Multiple frames are supported in .h5 images only. Ignoring option...', level='warning')
+        frames = 1
 
     # Initialize figure
     fig = plt.figure(figsize=(6.4, 6.8))
@@ -84,7 +87,7 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     ax.cax.colorbar(m)
     if save:
         export_file = (Path.cwd() / fname.name).with_suffix('.png')
-        print(f'Saving to file {export_file}')
+        cli.echo(f'Saving plot to file {export_file}', level='info')
         plt.savefig(export_file, dpi=200)
     else:
         plt.show()
@@ -93,6 +96,63 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
 @app.command('powder', help='Plot several 1D patterns')
 def cli_diffplot_powder():
     raise NotImplementedError
+
+
+@app.command('stats', help='Statistics about diffraction images')
+def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
+                       frame: int = typer.Argument(0, help='No of frame to probe'),
+                       hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel', help='Pixels with value greater '
+                                                                                        'than this will be ignored'),
+                       vmin: float = typer.Option(None, '--vmin', hidden=True, help='Colorscale minimum value'),
+                       vmax: float = typer.Option(None, '--vmax', hidden=True, help='Colorscale maximum value')):
+    # Check image file and format
+    cli = CliIO()
+    if not fname.exists():
+        cli.echo(f'File {fname} does not exist', level='error')
+        raise typer.Abort()
+
+    # Read image
+    img = Image()
+    img.open(fname, frame=frame)
+    data = img.data.astype('float')
+
+    # Ignore criteria
+    if hot_pixel:
+        data[data >= hot_pixel] = np.nan
+    if vmin:
+        data[data < vmin] = np.nan
+    if vmax:
+        data[data > vmax] = np.nan
+
+    # Report statistics
+    cli.echo('I/O stats')
+    stats = list()
+    stats.append(['Filename', img.file])
+    stats.append(['Format', img.fmt])
+    stats.append(['File size', si_units(fname.stat().st_size, base=1024, digits=3, suffix='B')])
+    stats.append(['Frames', img.no_frames])
+    stats.append(['Current frame', img._fabio.currentframe])
+    cli.echo(tabulate(stats, tablefmt='simple') + '\n')
+
+    cli.echo('Image dimensions')
+    dims = list()
+    dims.append(['Dimension 1', img._fabio.shape[-1]])
+    dims.append(['Dimension 2', img._fabio.shape[-2]])
+    pixels_total = img._fabio.shape[-1] * img._fabio.shape[-2]
+    dims.append(['Total pixels', pixels_total])
+    cli.echo(tabulate(dims, tablefmt='simple') + '\n')
+
+    cli.echo('Intensity statistics')
+    ints = list()
+    ints.append(['Maximum', np.nanmax(data)])
+    ints.append(['Minimum', np.nanmin(data)])
+    ints.append(['Mean', round(np.nanmean(data), 5)])
+    ints.append(['Median', np.nanmedian(data)])
+    ints.append(['Std', round(np.nanstd(data), 5)])
+    ints.append(['Sum', np.nansum(data)])
+    pixels_ignored = np.count_nonzero(np.isnan(data))
+    ints.append(['Ignored pixels', f'{pixels_ignored} / {round(pixels_ignored/pixels_total * 100, 2)}%'])
+    cli.echo(tabulate(ints, tablefmt='simple') + '\n')
 
 
 if __name__ == '__main__':
