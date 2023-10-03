@@ -13,11 +13,10 @@ import pyFAI
 
 class Image:
 
-
     def __init__(self):
         self.file: Path = None
         self.fmt: str = None
-        self.frame: int = None
+        self.frame: int = 0
         self.header_only: bool = False
         self.mask: ImageMask = None
         self._fabio: fabio.fabioimage.FabioImage = None
@@ -29,8 +28,7 @@ class Image:
         self.mask_alpha = 0.5
         self.detector_image_origin = 'upper'
 
-
-    def open(self, file: str or Path, frame: int = None):
+    def open(self, file: str or Path, frame: int = 0):
         self.file = Path(file)
         if not self.file.exists():
             raise FileNotFoundError(self.file)
@@ -38,7 +36,6 @@ class Image:
         self._fabio = fabio.open(self.file, self.frame)
         self.fmt = self._fabio.classname
         self.mask = self.make_mask()
-
 
     def openheader(self, file: str or Path):
         self.file = Path(file)
@@ -48,20 +45,28 @@ class Image:
         self.fmt = self._fabio.classname
         self.header_only = True
 
-
     def save(self):
         ...
-
 
     @property
     def data(self):
         return self._fabio.data
 
+    @property
+    def no_frames(self):
+        return self._fabio.nframes
+
+    def next_frame(self):
+        self._fabio = self._fabio.next()
+        self.frame += 1
+
+    def previous_frame(self):
+        self._fabio = self._fabio.previous()
+        self.frame -= 1
 
     def load_geometry(self, file: str or Path):
         file = Path(file)
         self._pyfai = pyFAI.load(str(file))
-
 
     @property
     def beam_center(self):
@@ -70,7 +75,6 @@ class Image:
     def make_mask(self):
         self.mask = ImageMask(nx=self._fabio.shape[-2], ny=self._fabio.shape[-1], parent=self)
         return self.mask
-
 
     def azimuthal_integration_cake(self, **kwargs):
         if not self._pyfai:
@@ -99,7 +103,6 @@ class Image:
         # cake = intensities, 2theta (radial angle), chi (azimuthal angle), optional intensities sigma if error_model
         #   was supplied (3 or 4-length tuple)
         return cake
-
 
     def azimuthal_integration_1d(self, **kwargs):
         if not self._pyfai:
@@ -130,7 +133,6 @@ class Image:
         #   (2 or 3-length tuple)
         return hist
 
-
     def plot(self, **kwargs):
         ax = kwargs.pop('ax', plt.gca())
         fig = kwargs.pop('fig', plt.gcf())
@@ -147,7 +149,7 @@ class Image:
         cmap = matplotlib.cm.get_cmap(self.cmap)
         cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
 
-        pos = ax.imshow(self.data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
+        m = ax.imshow(self.data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
         if self._pyfai:
             # why is this in reverse?
             center_in_pixels = self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
@@ -159,8 +161,9 @@ class Image:
                       vmin=0, vmax=1)
 
         # fig.colorbar(pos, label='Intensity')
-        ax.set_title(self.file.name)
-
+        title = kwargs.pop('title', self.file.name)
+        ax.set_title(title)
+        return m
 
     def plot_cake(self, **kwargs):
         ax = kwargs.pop('ax', plt.gca())
@@ -183,8 +186,8 @@ class Image:
 
         integrator = partial(self.azimuthal_integration_cake, error_model=None, **kwargs)
         intensities, ttheta, chi = integrator(_data=self.data, mask=~mask)
-        pos = ax.imshow(intensities, origin='lower', extent=(ttheta.min(), ttheta.max(), chi.min(), chi.max()),
-                        cmap=cmap, aspect='auto', interpolation='nearest', norm=norm(vmin=vmin, vmax=vmax))
+        m = ax.imshow(intensities, origin='lower', extent=(ttheta.min(), ttheta.max(), chi.min(), chi.max()),
+                      cmap=cmap, aspect='auto', interpolation='nearest', norm=norm(vmin=vmin, vmax=vmax))
 
         if overlay_mask:
             intensities_masked, ttheta, chi = integrator(_data=mask, mask=None)   # mask: True = keep, False = discard
@@ -195,7 +198,7 @@ class Image:
                       cmap=mask_cmap, aspect='auto', interpolation='nearest', alpha=self.mask_alpha)
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Azimuthal angle / \u03c7 (\u00b0)')
-
+        return m
 
     def plot_1d(self, **kwargs):
         ax = kwargs.pop('ax', plt.gca())
@@ -231,15 +234,12 @@ class ImageMask:
         self._initialize_empty_mask()
         self.parent: Image = parent
 
-
     def _initialize_empty_mask(self):
         self._data = np.ones((self.nx, self.ny), dtype=bool)  # array of True's
-
 
     @property
     def data(self):
         return self._data
-
 
     @property
     def shape(self):
@@ -280,7 +280,6 @@ class ImageMask:
         mask = masked_points.reshape(self.nx, self.ny)
         self._data &= mask
 
-
     def mask_intensity_greater_than(self, value: float):
         if not self.parent:
             raise Exception
@@ -290,7 +289,6 @@ class ImageMask:
         if not self.parent:
             raise Exception
         self._data[self.parent.data < value] = False
-
 
     def __invert__(self):
         new_mask = copy.deepcopy(self)

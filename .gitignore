@@ -5,7 +5,6 @@ src/xtl/scripts
 src/xtl/chemistry
 src/xtl/chemistry2
 src/xtl/crystallization2
-src/xtl/pdbapi
 src/xtl/plots
 
 ### Temporary
@@ -64,6 +63,7 @@ docs/_build/
 .venv
 env/
 venv/
+venv_lin/
 venv_/
 py2/
 ENV/
