@@ -15,16 +15,17 @@ class CliIO:
             'error': {'fg': typer.colors.BRIGHT_RED}
         }
 
-    def echo(self, message: str, level='info', verbose=0):
+    def echo(self, message: str, level='info', verbose=0, **kwargs):
+        nl = kwargs.get('nl', True)
         style = self.echo_style.get(level, {})
         if self.debug:
-            typer.secho(message, **style)
+            typer.secho(message, nl=nl, **style)
         else:
             if level == 'warning' and not self.silent:
-                typer.secho(message, **style)
+                typer.secho(message, nl=nl, **style)
             elif level == 'error':
-                typer.secho(message, **style)
+                typer.secho(message, nl=nl, **style)
             elif level == 'debug':
                 pass
             elif self.verbose >= verbose and not self.silent:
-                typer.secho(message, **style)
+                typer.secho(message, nl=nl, **style)
