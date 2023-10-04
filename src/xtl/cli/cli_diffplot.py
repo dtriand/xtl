@@ -1,4 +1,3 @@
-import copy
 import math
 from pathlib import Path
 
@@ -6,13 +5,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 import numpy as np
-from rich import print
 from rich.progress import track
 from tabulate import tabulate
 import typer
 
 from xtl.cli.cliio import CliIO
 from xtl.diffraction.images.images import Image
+from xtl.diffraction.images.masks import detector_masks
 from xtl.math import si_units
 
 
@@ -27,11 +26,15 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
                                                                                          'than this will be masked'),
                         low_counts: bool = typer.Option(False, '-lc', '--low_counts', help='High-contrast mode for '
                                                                                            '<5 counts'),
+                        mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
                         save: bool = typer.Option(False, '-s', '--save', help='Export image to file'),
-                        cmap: str = typer.Option('magma', '--cmap', hidden=True, help='Intensity colormap'),
-                        cbad: str = typer.Option('white', '--cbad', hidden=True, help='Color for bad pixels'),
-                        vmin: float = typer.Option(None, '--vmin', hidden=True, help='Colorscale minimum value'),
-                        vmax: float = typer.Option(None, '--vmax', hidden=True, help='Colorscale maximum value')):
+                        cmap: str = typer.Option('magma', '--cmap', help='Intensity colormap'),
+                        cbad: str = typer.Option('white', '--cbad', help='Color for bad pixels'),
+                        vmin: float = typer.Option(None, '--vmin', help='Colorscale minimum value'),
+                        vmax: float = typer.Option(None, '--vmax', help='Colorscale maximum value'),
+                        mask_gaps: bool = typer.Option(False, '-mg', help='Mask detector gaps'),
+                        mask_frame: bool = typer.Option(False, '-mf', help='Mask detector frame'),
+                        mask_double_pixels: bool = typer.Option(False, '-md', help='Mask double pixels')):
     # Check image file and format
     cli = CliIO()
     if not fname.exists():
@@ -40,6 +43,11 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     if fname.suffix != '.h5' and frames > 1:
         cli.echo('Multiple frames are supported in .h5 images only. Ignoring option...', level='warning')
         frames = 1
+
+    # Check detector mask
+    if mask and mask not in detector_masks.keys():
+        cli.echo(f'No mask available for detector {mask}. Choose one from: f{", ".join(detector_masks.keys())}')
+        raise typer.Abort()
 
     # Initialize figure
     fig = plt.figure(figsize=(6.4, 6.8))
@@ -62,9 +70,16 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     for i, frame in enumerate(track(range(0, frames), description='Processing frames...')):
         if i != 0:
             img.next_frame()
-
         ax = grid[i]
-        data = img.data.astype('float')
+
+        # Grab data and apply detector mask
+        if mask:
+            if mask_gaps is False and mask_frame is False and mask_double_pixels is False:
+                mask_gaps, mask_frame, mask_double_pixels = True, True, True
+            img.mask.mask_detector(mask, gaps=mask_gaps, frame=mask_frame, double_pixels=mask_double_pixels)
+            data = img.data_masked
+        else:
+            data = img.data.astype('float')
 
         # Plotting options
         if low_counts:
@@ -77,7 +92,8 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
             m = ax.imshow(data, cmap=cmap, norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=True),
                           origin=img.detector_image_origin)
         else:
-            m = ax.imshow(data, cmap=cmap, origin=img.detector_image_origin)
+            m = ax.imshow(data, cmap=cmap, norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True),
+                          origin=img.detector_image_origin)
 
         # Frame numbering
         ax.text(0.95, 0.95, f'#{img.frame}', va='top', ha='right', transform=ax.transAxes,

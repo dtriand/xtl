@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyFAI
 
+from xtl.diffraction.images.masks import detector_masks
+
 
 class Image:
 
@@ -51,6 +53,14 @@ class Image:
     @property
     def data(self):
         return self._fabio.data
+
+    @property
+    def data_masked(self):
+        m = np.ma.masked_where(~self.mask.data, self._fabio.data)
+        if m.dtype != 'float64':
+            m = m.astype('float')
+        m.fill_value = np.nan
+        return m
 
     @property
     def no_frames(self):
@@ -297,4 +307,20 @@ class ImageMask:
 
     def invert(self):
         self._data = ~self._data
+
+    def mask_detector(self, detector: str, gaps=True, frame=True, double_pixels=True):
+        if detector not in detector_masks.keys():
+            raise Exception(f'No mask available for detector {detector}. Choose one from: '
+                            f'{", ".join(detector_masks.keys())}')
+
+        gaps_mask = detector_masks[detector].get('gaps', None)
+        frame_mask = detector_masks[detector].get('frame', None)
+        double_pixels_mask = detector_masks[detector].get('double_pixels', None)
+        for apply_mask, mask in zip((gaps, frame, double_pixels), (gaps_mask, frame_mask, double_pixels_mask)):
+            if not apply_mask or not mask:
+                continue
+            for row in mask.get('rows', {}):
+                self.mask_rows(*row)
+            for col in mask.get('cols', {}):
+                self.mask_cols(*col)
 
