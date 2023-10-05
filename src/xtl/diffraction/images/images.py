@@ -325,3 +325,22 @@ class ImageMask:
             for col in mask.get('cols', {}):
                 self.mask_cols(*col)
 
+    def mask_blemishes(self, fname: Path = None, text: str = '', blist: list = None, zero_indexed=True):
+        blemishes = []
+        if fname:
+            text += Path(fname).read_text()
+        if text:
+            for line in text.split('\n'):
+                if line.startswith('#'):
+                    continue
+                x, y = line.split(',')
+                x, y = int(x), int(y)
+                blemishes.append([x, y])
+        if blist:
+            blemishes += [[x, y] for x, y in blist]
+
+        for x, y in blemishes:
+            if not zero_indexed:  # For non-zero indexed pixel coordinates (i.e. from Matlab)
+                x -= 1
+                y -= 1
+            self.mask_pixel(x, y)

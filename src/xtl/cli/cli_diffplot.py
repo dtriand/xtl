@@ -27,6 +27,9 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
                         low_counts: bool = typer.Option(False, '-lc', '--low_counts', help='High-contrast mode for '
                                                                                            '<5 counts'),
                         mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
+                        blemishes: Path = typer.Option(None, '-b', '--blemishes',
+                                                       help='Detector blemishes file (list of x,y coordinates, '
+                                                            'new-line separated)'),
                         save: bool = typer.Option(False, '-s', '--save', help='Export image to file'),
                         cmap: str = typer.Option('magma', '--cmap', help='Intensity colormap'),
                         cbad: str = typer.Option('white', '--cbad', help='Color for bad pixels'),
@@ -47,6 +50,11 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     # Check detector mask
     if mask and mask not in detector_masks.keys():
         cli.echo(f'No mask available for detector {mask}. Choose one from: f{", ".join(detector_masks.keys())}')
+        raise typer.Abort()
+
+    # Check blemishes file
+    if blemishes and not blemishes.exists():
+        cli.echo(f'File {blemishes} does not exist', level='error')
         raise typer.Abort()
 
     # Initialize figure
@@ -73,6 +81,8 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
         ax = grid[i]
 
         # Grab data and apply detector mask
+        if blemishes:
+            img.mask.mask_blemishes(fname=blemishes)
         if mask:
             if mask_gaps is False and mask_frame is False and mask_double_pixels is False:
                 mask_gaps, mask_frame, mask_double_pixels = True, True, True
@@ -119,8 +129,8 @@ def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
                        frame: int = typer.Argument(0, help='No of frame to probe'),
                        hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel', help='Pixels with value greater '
                                                                                         'than this will be ignored'),
-                       vmin: float = typer.Option(None, '--vmin', hidden=True, help='Colorscale minimum value'),
-                       vmax: float = typer.Option(None, '--vmax', hidden=True, help='Colorscale maximum value')):
+                       vmin: float = typer.Option(None, '--vmin', hidden=True, help='Intensity minimum value'),
+                       vmax: float = typer.Option(None, '--vmax', hidden=True, help='Intensity maximum value')):
     # Check image file and format
     cli = CliIO()
     if not fname.exists():
