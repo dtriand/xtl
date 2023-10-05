@@ -21,6 +21,7 @@ class Image:
         self.frame: int = 0
         self.header_only: bool = False
         self.mask: ImageMask = None
+        self.masked_pixels_value = np.nan
         self._fabio: fabio.fabioimage.FabioImage = None
         self._pyfai: pyFAI.AzimuthalIntegrator = None
 
@@ -59,7 +60,7 @@ class Image:
         m = np.ma.masked_where(~self.mask.data, self._fabio.data)
         if m.dtype != 'float64':
             m = m.astype('float')
-        m.fill_value = np.nan
+        m.fill_value = self.masked_pixels_value
         return m
 
     @property

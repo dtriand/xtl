@@ -18,7 +18,7 @@ from xtl.math import si_units
 app = typer.Typer(name='diffplot', help='Plot diffraction data')
 
 
-@app.command('frames', help='Plot several 2D frames')
+@app.command('frames', help='Plot multiple 2D images')
 def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
                         frames: int = typer.Argument(1, help='No of frames to plot'),
                         log_intensities: bool = typer.Option(False, '-l', '--log', help='Logarithmic intensity scale'),
@@ -109,12 +109,12 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
         plt.show()
 
 
-@app.command('powder', help='Plot several 1D patterns')
+@app.command('powder', help='Plot multiple 1D patterns')
 def cli_diffplot_powder():
     raise NotImplementedError
 
 
-@app.command('stats', help='Statistics about diffraction images')
+@app.command('stats', help='Statistics about 2D images')
 def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
                        frame: int = typer.Argument(0, help='No of frame to probe'),
                        hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel', help='Pixels with value greater '
@@ -169,6 +169,66 @@ def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
     pixels_ignored = np.count_nonzero(np.isnan(data))
     ints.append(['Ignored pixels', f'{pixels_ignored} / {round(pixels_ignored/pixels_total * 100, 2)}%'])
     cli.echo(tabulate(ints, tablefmt='simple') + '\n')
+
+
+@app.command('blemishes', help='Create a list of 2D detector blemishes')
+def cli_diffplot_blemishes(fname: Path = typer.Argument(metavar='FILE'),
+                           frame: int = typer.Argument(0, help='No of frame to probe'),
+                           hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel',
+                                                           help='Pixels with value greater than this will be '
+                                                                'considered as a blemish'),
+                           cold_pixel: float = typer.Option(None, '-cp', '--cold_pixel',
+                                                            help='Pixels with value less than this will be '
+                                                                 'considered as a blemish'),
+                           mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
+                           include_detector: bool = typer.Option(False, '-d', '--include_detector',
+                                                                 help='Include detector masked pixels as blemishes')):
+    # Check image file and format
+    cli = CliIO()
+    if not fname.exists():
+        cli.echo(f'File {fname} does not exist', level='error')
+        raise typer.Abort()
+
+    # Check detector mask
+    if mask and mask not in detector_masks.keys():
+        cli.echo(f'No mask available for detector {mask}. Choose one from: {", ".join(detector_masks.keys())}',
+                 level='error')
+        raise typer.Abort()
+
+    # Check no of frames
+    img = Image()
+    img.open(fname, frame=frame)
+
+    # Grab data and apply detector mask
+    if mask:
+        img.mask.mask_detector(mask, gaps=True, frame=True, double_pixels=True)
+        if include_detector:
+            data = img.data_masked.filled(np.nan)
+        else:
+            data = img.data_masked.filled(0.)
+    else:
+        data = img.data.astype('float')
+
+    # Mark blemishes as NaN's
+    if hot_pixel:
+        data[data >= hot_pixel] = np.nan
+    if cold_pixel:
+        data[data <= cold_pixel] = np.nan
+
+    blemishes = np.argwhere(np.isnan(data))  # returns list of [y, x] pairs
+    blemishes = np.fliplr(blemishes)  # reverse list to [x, y]
+    no_blemishes = len(blemishes)
+
+    bfile = Path.cwd() / 'blemishes.txt'
+    with open(bfile, 'w') as fp:
+        fp.write(f'# Image file: {fname}\n')
+        fp.write(f'# Frame: {frame}\n')
+        fp.write(f'# Blemish criteria: {mask=}, {hot_pixel=}, {cold_pixel=}, {include_detector=}\n')
+        fp.write(f'# No. of blemishes: {no_blemishes}\n')
+        fp.write(f'# Pixel (x, y) coordinates list\n')
+        fp.write('\n'.join([f'{x},{y}' for x, y in blemishes]))
+    cli.echo(f'{no_blemishes} blemishes found!')
+    cli.echo(f'Blemish list written to: {bfile}')
 
 
 if __name__ == '__main__':
