@@ -7,7 +7,7 @@ import typer
 from xtl.cli.cliio import CliIO
 
 
-app = typer.Typer()
+app = typer.Typer(add_completion=False)
 
 
 def make_slice(expr: str):
@@ -23,10 +23,19 @@ def make_slice(expr: str):
     return slice(*[int(p) if p else None for p in parts])
 
 
+def get_formatted_dtype(obj):
+    dtype = str(obj.dtype)
+    if dtype.startswith('|S'):  # convert string dtypes
+        string_length = dtype.split('|S')[-1]
+        dtype = f'string{string_length}'
+    return dtype
+
+
 @app.command('h5peek', help='Explore the data structure of HDF5 files')
-def cli_h5peek(fname: Path = typer.Argument(metavar='FILE'),
-               fpath: str = typer.Argument(metavar='PATH', default='/'),
-               dslice: str = typer.Argument(metavar='SLICE', default=None)):
+def cli_h5peek(fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to inspect'),
+               fpath: str = typer.Argument(metavar='PATH', default='/', help='Path directive'),
+               dslice: str = typer.Argument(metavar='SLICE', default=None, help='[EXPERIMENTAL!] Slice operator for '
+                                                                                'retrieving data')):
     # Check file and file format
     cli = CliIO()
     if not fname.exists():
@@ -63,11 +72,7 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE'),
                 cli.echo(f'No attribute \'{attr}\' under path \'{path}\'', level='error')
                 raise typer.Abort()
 
-            dtype = str(a.dtype)
-            if dtype.startswith('|S'):  # convert string dtypes
-                string_length = dtype.split('|S')[-1]
-                dtype = f'string{string_length}'
-
+            dtype = get_formatted_dtype(a)
             cli.echo(f'ATTRIBUTE')
             cli.echo(f'  dtype: {dtype}')
             cli.echo(f'  shape: {a.shape}')
@@ -109,10 +114,7 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE'),
                 elif isinstance(obj, h5py._hl.dataset.Dataset):
                     shape = '×'.join([f'{dim}' for dim in obj.shape])
                     ndim = obj.ndim
-                    dtype = str(obj.dtype)
-                    if dtype.startswith('|S'):  # convert string dtypes
-                        string_length = dtype.split('|S')[-1]
-                        dtype = f'string{string_length}'
+                    dtype = get_formatted_dtype(obj)
                     if ndim >= 1:  # value is an array
                         entry_type = f'{dtype}: {shape}'
                     else:  # value is a scalar
@@ -125,10 +127,7 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE'),
             attrs = f[path].attrs
             for i, attr_name in enumerate(attrs.keys()):
                 a = attrs.get(attr_name)
-                dtype = str(a.dtype)
-                if dtype.startswith('|S'):  # convert string dtypes
-                    string_length = dtype.split('|S')[-1]
-                    dtype = f'string{string_length}'
+                dtype = get_formatted_dtype(a)
                 tree.append([f'.{attr_name}', f'[{dtype}]'])
             cli.echo(tabulate(tree, tablefmt='plain'))
     except KeyError:
