@@ -8,7 +8,7 @@ import matplotlib.cm
 import matplotlib.path
 import matplotlib.pyplot as plt
 import numpy as np
-import pyFAI
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 
 from xtl.diffraction.images.masks import detector_masks
 
@@ -23,7 +23,7 @@ class Image:
         self.mask: ImageMask = None
         self.masked_pixels_value = np.nan
         self._fabio: fabio.fabioimage.FabioImage = None
-        self._pyfai: pyFAI.AzimuthalIntegrator = None
+        self._pyfai: AzimuthalIntegrator = None
 
         self.cmap = 'inferno'
         self.cmap_bad_values = 'white'
@@ -75,9 +75,18 @@ class Image:
         self._fabio = self._fabio.previous()
         self.frame -= 1
 
-    def load_geometry(self, file: str or Path):
-        file = Path(file)
-        self._pyfai = pyFAI.load(str(file))
+    def load_geometry(self, data: str or Path or dict):
+        self._pyfai = AzimuthalIntegrator()
+        if isinstance(data, str) or isinstance(data, Path):
+            file = Path(data)
+            self._pyfai.load(str(file))
+        elif isinstance(data, dict):
+            self._pyfai.set_config(data)
+
+    def save_geometry(self, filename):
+        f = Path(filename)
+        f.unlink(missing_ok=True)
+        self._pyfai.save(f)
 
     @property
     def beam_center(self):
@@ -156,11 +165,17 @@ class Image:
         if isinstance(mask, ImageMask):
             mask = mask.data
         overlay_mask = kwargs.pop('overlay_mask', None)
+        masked = kwargs.pop('masked', False)
+
+        if masked:
+            data = self.data_masked
+        else:
+            data = self.data
 
         cmap = matplotlib.cm.get_cmap(self.cmap)
         cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
 
-        m = ax.imshow(self.data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
+        m = ax.imshow(data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
         if self._pyfai:
             # why is this in reverse?
             center_in_pixels = self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
@@ -309,14 +324,18 @@ class ImageMask:
     def invert(self):
         self._data = ~self._data
 
-    def mask_detector(self, detector: str, gaps=True, frame=True, double_pixels=True):
-        if detector not in detector_masks.keys():
+    def mask_detector(self, detector: str or dict, gaps=True, frame=True, double_pixels=True):
+        if isinstance(detector, str) and detector not in detector_masks.keys():
             raise Exception(f'No mask available for detector {detector}. Choose one from: '
                             f'{", ".join(detector_masks.keys())}')
+        if isinstance(detector, dict):
+            mask = detector
+        else:
+            mask = detector_masks[detector]
 
-        gaps_mask = detector_masks[detector].get('gaps', None)
-        frame_mask = detector_masks[detector].get('frame', None)
-        double_pixels_mask = detector_masks[detector].get('double_pixels', None)
+        gaps_mask = mask.get('gaps', None)
+        frame_mask = mask.get('frame', None)
+        double_pixels_mask = mask.get('double_pixels', None)
         for apply_mask, mask in zip((gaps, frame, double_pixels), (gaps_mask, frame_mask, double_pixels_mask)):
             if not apply_mask or not mask:
                 continue
