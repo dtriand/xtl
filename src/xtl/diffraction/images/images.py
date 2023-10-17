@@ -1,4 +1,5 @@
 import copy
+from difflib import SequenceMatcher
 from functools import partial
 from math import floor
 from pathlib import Path
@@ -9,6 +10,7 @@ import matplotlib.path
 import matplotlib.pyplot as plt
 import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.geometry import Geometry
 
 from xtl.diffraction.images.masks import detector_masks
 
@@ -16,28 +18,64 @@ from xtl.diffraction.images.masks import detector_masks
 class Image:
 
     def __init__(self):
+        # I/O options
         self.file: Path = None
         self.fmt: str = None
         self.frame: int = 0
         self.header_only: bool = False
+
+        # Masking options
         self.mask: ImageMask = None
         self.masked_pixels_value = np.nan
+
+        # Readers and integrators
         self._fabio: fabio.fabioimage.FabioImage = None
         self._pyfai: AzimuthalIntegrator = None
+        self.geometry: Geometry = None
 
+        # Intensity data
+        self._data: np.array = None  # Is not None when the raw data has been modified
+        self.is_summed: bool = False
+        self.summed_frames: list = []
+        self.no_summed_frames: int = 0
+
+        # Reading of i.e. CBF images, where the individual frames are separate files
+        self._is_multifile: bool = None  # True when frames are saved as separate files, False for i.e. H5 files
+        self._filename_template: str = ''  # The common substring of a file
+        self._file_ext: str = ''  # File extension, useful when working with compressed images (eg .cbf.gz)
+        self._frames_digits: int = None  # Number of digits after self._filename_template
+        self._no_frames: int = None  # Number of frames as determined by a glob search
+        self._current_frame: int = 0  # The frame number as determined by the filename
+
+        # Plotting options
         self.cmap = 'inferno'
         self.cmap_bad_values = 'white'
         self.mask_color = (0, 1, 0)
         self.mask_alpha = 0.5
         self.detector_image_origin = 'upper'
 
-    def open(self, file: str or Path, frame: int = 0):
+    def open(self, file: str or Path, frame: int = 0, is_eager: bool = True):
         self.file = Path(file)
         if not self.file.exists():
             raise FileNotFoundError(self.file)
         self.frame = frame
         self._fabio = fabio.open(self.file, self.frame)
         self.fmt = self._fabio.classname
+        if self.fmt == 'EigerImage':
+            self._is_multifile = False
+        else:
+            self._is_multifile = True
+
+        if self._is_multifile and is_eager:
+            self._determine_multifile_frames()
+            print(f'Found {self.no_frames} frames.')
+            if self.frame != self._current_frame and self.frame <= self.no_frames:
+                # self._current_frame is read from the filename, while self.frame is provided upon the function call
+                print(f'Eagerly loading frame {self.frame} instead of frame {self._current_frame} which was provided '
+                      f'as an input file.')
+                self._current_frame = self.frame
+                self.file = self.file.parent / self._get_frame_name(self._current_frame)
+                self._fabio = fabio.open(self.file, self.frame)
         self.mask = self.make_mask()
 
     def openheader(self, file: str or Path):
@@ -53,43 +91,149 @@ class Image:
 
     @property
     def data(self):
-        return self._fabio.data
+        if self._data is None:  # if raw data has not been modified
+            return self._fabio.data
+        return self._data  # for modified raw data
 
     @property
     def data_masked(self):
-        m = np.ma.masked_where(~self.mask.data, self._fabio.data)
+        m = np.ma.masked_where(~self.mask.data, self.data)
         if m.dtype != 'float64':
             m = m.astype('float')
         m.fill_value = self.masked_pixels_value
         return m
 
+    def _determine_multifile_frames(self):
+        """
+        Determines the number of frames for multi-filed image formats (e.g. CBF).
+        """
+        self._file_ext = self.file.suffix
+        if self._file_ext == '.gz':  # deal with compressed images
+            self._file_ext = Path(self.file.name.split('.gz')[0]).suffix + '.gz'
+        # Glob all files with the same starting character in the filename and same extension
+        tree = list(self.file.parent.glob(f'{self.file.name[0]}*{self._file_ext}'))
+        tree.sort()
+
+        # Find the longest match between the first and last filenames
+        fname0 = tree[0].name.split(self._file_ext)[0]
+        fname1 = tree[-1].name.split(self._file_ext)[0]
+        match = SequenceMatcher(None, fname0, fname1).find_longest_match()
+
+        # Save list of frames
+        if match.a == match.b == 0:
+            self._filename_template = fname0[match.a:match.a+match.size]
+            self._frames_digits = len(fname0[match.a+match.size:])
+            # Assuming frames are 1-indexed
+            self._no_frames = int(fname1[match.b+match.size:])
+            self._current_frame = int(self.file.name.split(self._file_ext)[0].replace(self._filename_template, '')) - 1
+
+    def _get_frame_name(self, frame_no):
+        """
+        Returns the filename for a given frame number. If the image is a multi-file format (e.g. CBF images), the new
+        filename is constructed. Otherwise (e.g. H5 images), the original filename is returned.
+        """
+        if self._is_multifile:
+            return self._filename_template + str(frame_no + 1).zfill(self._frames_digits) + self._file_ext
+        return self.file.name
+
     @property
     def no_frames(self):
+        """
+        The number of frames available in the stack.
+        """
+        if self._is_multifile:
+            return self._no_frames
         return self._fabio.nframes
 
     def next_frame(self):
-        self._fabio = self._fabio.next()
+        """
+        Loads the next frame in the image stack.
+        """
         self.frame += 1
+        if self.frame >= self.no_frames:
+            raise Exception('Run out of frames!')
+        if self._is_multifile:
+            self.file = self.file.parent / self._get_frame_name(self.frame)
+            self._fabio = fabio.open(self.file, self.frame)
+        else:
+            self._fabio = self._fabio.next()
 
     def previous_frame(self):
-        self._fabio = self._fabio.previous()
+        """
+        Loads the previous frame in the image stack.
+        """
         self.frame -= 1
+        if self.frame == 0:
+            raise Exception('Already at the first frame!')
+        if self._is_multifile:
+            self.file = self.file.parent / self._get_frame_name(self.frame)
+            self._fabio = fabio.open(self.file, self.frame)
+        else:
+            self._fabio = self._fabio.previous()
+
+    def get_frame(self, frame_no: int):
+        """
+        Loads the requested frame from the stack.
+        """
+        self.frame = frame_no
+        if self.frame >= self.no_frames:
+            raise Exception(f'Image contains only {self.no_frames} frames.')
+        if self._is_multifile:
+            self.file = self.file.parent / self._get_frame_name(self.frame)
+            self._fabio = fabio.open(self.file, self.frame)
+        else:
+            self._fabio.get_frame(frame_no)
+
+    def sum_frames(self, no_frames: int):
+        """
+        Sum the intensities of a given number of frames. If no_frames='all', then the summation is performed on all
+        remaining frames in the stack.
+        """
+        if no_frames == 'all':
+            no_frames = self.no_frames - self.frame
+        elif no_frames > (self.no_frames - self.frame):
+            raise Exception(f'Image contains only {self.no_frames} frames. Current frame: {self.frame}')
+        data = self.data
+        self.summed_frames.append(self.frame)
+        for _ in range(no_frames - 1):
+            self.next_frame()
+            self.summed_frames.append(self.frame)
+            data += self.data
+        self._data = data
+        self.is_summed = True
+        self.no_summed_frames = len(self.summed_frames)
 
     def load_geometry(self, data: str or Path or dict):
         self._pyfai = AzimuthalIntegrator()
+        self.geometry = Geometry()
         if isinstance(data, str) or isinstance(data, Path):
             file = Path(data)
             self._pyfai.load(str(file))
+            self.geometry.load(str(file))
         elif isinstance(data, dict):
             self._pyfai.set_config(data)
+            self.geometry.set_config(data)
 
     def save_geometry(self, filename):
+        self.check_geometry()
         f = Path(filename)
         f.unlink(missing_ok=True)
         self._pyfai.save(f)
 
     @property
+    def has_geometry(self):
+        if not self._pyfai:
+            return False
+        return True
+
+    def check_geometry(self):
+        if not self.geometry:
+            raise Exception('No geometry information available. Run load_geometry() method first.')
+        return True
+
+    @property
     def beam_center(self):
+        self.check_geometry()
         return self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
 
     def make_mask(self):
