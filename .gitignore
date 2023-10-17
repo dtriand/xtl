@@ -63,8 +63,10 @@ docs/_build/
 .venv
 env/
 venv/
+venv_win/
 venv_lin/
 venv_/
+venv__/
 py2/
 ENV/
 env.bak/
