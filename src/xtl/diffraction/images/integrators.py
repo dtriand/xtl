@@ -1,8 +1,8 @@
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
+from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
-from images import Image
+from .images import Image
 
 
 class _Integrator:
@@ -30,7 +30,7 @@ class _Integrator:
         self.units_radial_repr: str = '2\u03b8 (\u00b0)'
         self.masked_pixels_value: float = np.nan
         self.error_model: str = None
-        self._integrator: AzimuthalIntegrator = None
+        self._integrator: _AzimuthalIntegrator = None
         self._is_initialized: bool = False
 
     @property
@@ -107,7 +107,8 @@ class AzimuthalIntegrator1D(_Integrator):
             raise ValueError(f'Unknown error model. Must be one of: None, \'poisson\', \'azimuthal\'')
         self.error_model = error_model
 
-        self._integrator = AzimuthalIntegrator(self.image.geometry.get_config())
+        self._integrator = _AzimuthalIntegrator()
+        self._integrator.set_config(self.image.geometry.get_config())
         self._is_initialized = True
 
     def integrate(self, check=True, **kwargs) -> None:
@@ -143,11 +144,12 @@ class AzimuthalIntegrator1D(_Integrator):
         self._results = self._integrator.integrate1d_ng(data=self.image.data, npt=self.points_radial, filename=None,
                                                         correctSolidAngle=correctSolidAngle, variance=variance,
                                                         error_model=self.error_model, radial_range=radial_range,
-                                                        azimuth_range=azimuth_range, mask=self.image.mask.data,
+                                                        azimuth_range=azimuth_range, mask=~self.image.mask.data,
                                                         dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
                                                         polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                         method=method, unit=self.units_radial, safe=safe,
                                                         normalization_factor=normalization_factor, metadata=metadata)
+        # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
 
     @property
     def results(self):
@@ -209,7 +211,8 @@ class AzimuthalIntegrator2D(_Integrator):
             raise ValueError(f'Unknown error model. Must be one of: None, \'poisson\', \'azimuthal\'')
         self.error_model = error_model
 
-        self._integrator = AzimuthalIntegrator(self.image.geometry.get_config())
+        self._integrator = _AzimuthalIntegrator()
+        self._integrator.set_config(self.image.geometry.get_config())
         self._is_initialized = True
 
     def integrate(self, check=True, **kwargs) -> None:
@@ -246,11 +249,12 @@ class AzimuthalIntegrator2D(_Integrator):
                                                         npt_azim=self.points_azimuthal, filename=None,
                                                         correctSolidAngle=correctSolidAngle, variance=variance,
                                                         error_model=self.error_model, radial_range=radial_range,
-                                                        azimuth_range=azimuth_range, mask=self.image.mask.data,
+                                                        azimuth_range=azimuth_range, mask=~self.image.mask.data,
                                                         dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
                                                         polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                         method=method, unit=self.units_radial, safe=safe,
                                                         normalization_factor=normalization_factor, metadata=metadata)
+        # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
 
     @property
     def results(self):

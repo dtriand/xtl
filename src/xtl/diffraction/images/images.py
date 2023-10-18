@@ -250,7 +250,7 @@ class Image:
         """
         The total number of pixels along x and y in the image.
         """
-        return self._data.shape[::-1]
+        return self.data.shape[::-1]
 
     def make_mask(self):
         self.mask = ImageMask(nx=self._fabio.shape[-2], ny=self._fabio.shape[-1], parent=self)
