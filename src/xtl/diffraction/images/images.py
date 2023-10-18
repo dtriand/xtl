@@ -204,6 +204,9 @@ class Image:
         self.no_summed_frames = len(self.summed_frames)
 
     def load_geometry(self, data: str or Path or dict):
+        """
+        Load pyFAI geometry from a .poni file or a PONI-like dictionary.
+        """
         self._pyfai = AzimuthalIntegrator()
         self.geometry = Geometry()
         if isinstance(data, str) or isinstance(data, Path):
@@ -215,6 +218,9 @@ class Image:
             self.geometry.set_config(data)
 
     def save_geometry(self, filename):
+        """
+        Save geometry to .poni file.
+        """
         self.check_geometry()
         f = Path(filename)
         f.unlink(missing_ok=True)
@@ -233,8 +239,18 @@ class Image:
 
     @property
     def beam_center(self):
+        """
+        The location of the beam center (x, y) in pixel coordinates.
+        """
         self.check_geometry()
         return self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
+
+    @property
+    def dimensions(self):
+        """
+        The total number of pixels along x and y in the image.
+        """
+        return self._data.shape[::-1]
 
     def make_mask(self):
         self.mask = ImageMask(nx=self._fabio.shape[-2], ny=self._fabio.shape[-1], parent=self)
