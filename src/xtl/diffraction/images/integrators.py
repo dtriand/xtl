@@ -1,3 +1,7 @@
+from datetime import datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
@@ -39,9 +43,7 @@ class _Integrator:
         The initialization status of the integrator.
         :return: ``True`` if initialized, ``False`` if not.
         """
-        if self._is_initialized:
-            return True
-        return False
+        return self._is_initialized
 
     def check_initialized(self) -> None:
         """
@@ -108,22 +110,24 @@ class AzimuthalIntegrator1D(_Integrator):
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
-        self._integrator.set_config(self.image.geometry.get_config())
+        self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
         self._is_initialized = True
 
-    def integrate(self, check=True, **kwargs) -> None:
+    def integrate(self, check: bool = True, keep: bool = True, **kwargs) -> Integrate1dResult:
         """
         Perform 1D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate1d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
-        pyFAI integration method is ``'csr'``.
+        pyFAI integration method is ``('bbox', 'csr', 'cython')`` (aka ``'csr'``).
 
         :param bool check: Check whether the integrator has already been initialized
+        :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
                        ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
                        ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
                        provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
+        :return: Integrate1dResult
         """
         if check:
             self.check_initialized()
@@ -141,19 +145,138 @@ class AzimuthalIntegrator1D(_Integrator):
         normalization_factor = kwargs.get('normalization_factor', 1.0)
         metadata = kwargs.get('metadata', None)
 
-        self._results = self._integrator.integrate1d_ng(data=self.image.data, npt=self.points_radial, filename=None,
-                                                        correctSolidAngle=correctSolidAngle, variance=variance,
-                                                        error_model=self.error_model, radial_range=radial_range,
-                                                        azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                        dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
-                                                        polarization_factor=polarization_factor, dark=dark, flat=flat,
-                                                        method=method, unit=self.units_radial, safe=safe,
-                                                        normalization_factor=normalization_factor, metadata=metadata)
+        result = self._integrator.integrate1d_ng(data=self.image.data, npt=self.points_radial, filename=None,
+                                                 correctSolidAngle=correctSolidAngle, variance=variance,
+                                                 error_model=self.error_model, radial_range=radial_range,
+                                                 azimuth_range=azimuth_range, mask=~self.image.mask.data,
+                                                 dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
+                                                 polarization_factor=polarization_factor, dark=dark, flat=flat,
+                                                 method=method, unit=self.units_radial, safe=safe,
+                                                 normalization_factor=normalization_factor, metadata=metadata)
         # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
+
+        if keep:
+            self._results = result
+        return result
 
     @property
     def results(self):
         return self._results
+
+    def _get_file_header(self):
+        header = f'1D azimuthal integration using {self.__class__.__module__}.{self.__class__.__name__}\n'
+        header += f'Integration performed on: {datetime.now()}\n'
+        header += f'Filename: {self.image.file.resolve()}\n'
+        header += f'Frame: {self.image.frame}\n\n'
+
+        header += 'Geometry options:\n'
+        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
+                            self.image.geometry.get_config().items()) + '\n\n'
+
+        header += 'Integration options:\n'
+        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
+                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
+                    'normalization_factor', 'metadata']:
+            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
+
+        if self.results.sigma is not None:
+            header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.), sigma (a.u.)'
+        else:
+            header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.)'
+        return header
+
+    def save(self, filename: str | Path, overwrite: bool = False, header: bool = True, delimiter: str = None,
+             newline: str = None, comments: str = None, fmt: str = None, encoding: str = None) -> None:
+        """
+        Save integration results in a three-column, space-delimited .xye file (radial angle, intensity, intensity
+        uncertainty). If no errors have been calculated during integration, the output file will contain only two
+        columns.
+
+        :param str | Path filename: Output filename. If the file extension is not .xye, it will be replaced.
+        :param bool overwrite: Whether to overwrite the output file if it already exists.
+        :param bool header: Whether to include metadata about the integration in the file header
+        :param str delimiter: Delimiter between columns (default: ``'    '``)
+        :param str newline: Newline character (default: ``'\n'``)
+        :param str comments: Comments character (default: ``'# '``)
+        :param str fmt: Formatting string (default: ``'%-15.15s'``)
+        :param str encoding: File encoding (default: ``'utf-8'``)
+        :return:
+        """
+        if self.results is None:
+            raise Exception('No results to save. Run integrate() first.')
+
+        file = Path(filename).with_suffix('.xye')
+        if file.exists() and not overwrite:
+            raise FileExistsError(f'File {file} already exists!')
+        file.unlink(missing_ok=True)
+
+        intensities, radial, sigma = self.results.intensity, self.results.radial, self.results.sigma
+        data = np.array([radial, intensities]).T if sigma is None else np.array([radial, intensities, sigma]).T
+
+        header = self._get_file_header() if header else ''
+        if delimiter is None:
+            delimiter = '    '
+        if newline is None:
+            newline = '\n'
+        if comments is None:
+            comments = '# '
+        if fmt is None:
+            fmt = '%-15.15s'
+        if encoding is None:
+            encoding = 'utf-8'
+        np.savetxt(file, data, header=header, delimiter=delimiter, newline=newline, comments=comments, fmt=fmt,
+                   encoding=encoding)
+
+    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+             title: str = None, label: str = None, xscale: str = None, yscale: str = None,
+             errors: bool = False) -> tuple[plt.Axes, plt.Figure]:
+        """
+        Prepare a plot of the 1D integration results. ``plt.show()`` must be called separately to display the plot.
+
+        :param matplotlib.axes.Axes ax: Axes instance to draw into
+        :param matplotlib.figure.Figure fig: Figure instance to draw into
+        :param str xlabel: x-axis label (default: integration radial units)
+        :param str ylabel: y-axis label (default: ``'Intensity (arbitrary units)'``)
+        :param str title: Plot title (default: ``'1D azimuthal integration'``)
+        :param str label: Line plot label for legend (default: ``None``)
+        :param str xscale: x-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param str yscale: y-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param bool errors: Display intensity uncertainties as an error band (only if calculated during integration)
+        :return:
+        """
+        if self.results is None:
+            raise Exception('No results to plot. Run integrate() first.')
+        if xlabel is None:
+            xlabel = self.units_radial_repr
+        if ylabel is None:
+            ylabel = 'Intensity (arbitrary units)'
+        if title is None:
+            title = '1D azimuthal integration'
+
+        axis_scales = ['linear', 'log', 'symlog', 'logit']
+        if xscale is None:
+            xscale = 'linear'
+        if xscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+        if yscale is None:
+            yscale = 'linear'
+        if yscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+
+        intensities, radial = self.results.intensity, self.results.radial
+        ax.plot(radial, intensities, label=label)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale(xscale)
+        ax.set_yscale(yscale)
+        ax.set_title(title)
+
+        if errors and self.results.sigma is not None:
+            sigma = self.results.sigma
+            ax.fill_between(radial, intensities - sigma, intensities + sigma, fc='gray', ec=None, alpha=0.5)
+        return ax, fig
 
 
 class AzimuthalIntegrator2D(_Integrator):
@@ -212,7 +335,7 @@ class AzimuthalIntegrator2D(_Integrator):
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
-        self._integrator.set_config(self.image.geometry.get_config())
+        self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
         self._is_initialized = True
 
     def integrate(self, check=True, **kwargs) -> None:
@@ -220,7 +343,7 @@ class AzimuthalIntegrator2D(_Integrator):
         Perform 2D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
-        pyFAI integration method is ``'bbox'``.
+        pyFAI integration method is ``('bbox', 'histogram', 'cython')`` (aka ``'bbox'``).
 
         :param bool check: Check whether the integrator has already been initialized
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
