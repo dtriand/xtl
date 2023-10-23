@@ -41,6 +41,16 @@ class NpxFile:
         return '\n'.join(self._header)
 
     @property
+    def has_header(self) -> bool:
+        """
+        Check if the file has an empty header.
+        :return:
+        """
+        if len(self._header) == 0:
+            return False
+        return True
+
+    @property
     def data(self) -> dict[str, np.ndarray]:
         """
         The Numpy arrays stored in the file.
@@ -78,8 +88,6 @@ class NpxFile:
         :param bool compressed: Compress the Numpy arrays
         :return:
         """
-        file = Path(filename).with_suffix('.npx')
-
         # Prepare header
         try:
             header = self._make_header().encode(encoding='latin1')
@@ -90,11 +98,18 @@ class NpxFile:
                   f'\'{e.encoding}\'')
             raise e
 
+        # Choose filetype to save
+        if self.has_header:
+            file = Path(filename).with_suffix('.npx')
+        else:
+            file = Path(filename).with_suffix('.npz')  # save plain .npz file if there's no header information
+
         # Save header and data to file
         with open(file, 'wb') as f:
-            f.write(header)
-            f.write(info)
-            f.write(f'{self._COMMENT_CHAR * (self._MULTIPLIER + 1)} {self._NPX_END}\n'.encode(encoding='latin1'))
+            if self.has_header:
+                f.write(header)
+                f.write(info)
+                f.write(f'{self._COMMENT_CHAR * (self._MULTIPLIER + 1)} {self._NPX_END}\n'.encode(encoding='latin1'))
             if compressed:
                 np.savez_compressed(f, **{name: array for name, array in self._data.items()})
             else:
@@ -111,18 +126,26 @@ class NpxFile:
         file = Path(filename)
         b = file.read_bytes()
 
-        # Parse header
         header_start = f'{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_HEADER_START}\n'.encode(encoding='latin1')
         header_end = f'\n{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_HEADER_END}\n'.encode(encoding='latin1')
-        header_block = b.split(header_start)[-1].split(header_end)[0].decode()
-        header = '\n'.join([l[2:] for l in header_block.split('\n')])  # Trim comment chars
+        if b.startswith(header_start):
+            # Parse a .npx file
+            # Parse header
+            header_block = b.split(header_start)[-1].split(header_end)[0].decode()
+            header = '\n'.join([l[2:] for l in header_block.split('\n')])  # Trim comment chars
 
-        # Parse data
-        npx_end = f'{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_END}\n'.encode(encoding='latin1')
-        npz_block = b.split(npx_end)[-1]
-        data: NpzFile = np.load(BytesIO(npz_block))
-        data_dict = {name: data[name] for name in data.files}
-
+            # Parse data
+            npx_end = f'{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_END}\n'.encode(encoding='latin1')
+            npz_block = b.split(npx_end)[-1]
+            data: NpzFile = np.load(BytesIO(npz_block))
+            data_dict = {name: data[name] for name in data.files}
+        elif b.startswith(b'\x93NUMPY') or b.startswith(b'PK\x03\x04') or b.startswith(b'PK\x05\x06'):
+            # Parse a .npy or .npz file
+            header = ''
+            data: NpzFile = np.load(BytesIO(b))
+            data_dict = {name: data[name] for name in data.files}
+        else:
+            raise Exception('Unknown file type.')
         return cls(header=header, **data_dict)
 
 
