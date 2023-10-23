@@ -7,6 +7,7 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrato
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 from .images import Image
+from xtl.io.npx import NpxFile
 
 
 class _Integrator:
@@ -163,7 +164,11 @@ class AzimuthalIntegrator1D(_Integrator):
     def results(self):
         return self._results
 
-    def _get_file_header(self):
+    def _get_file_header(self) -> str:
+        """
+        Prepare a header for exporting integration results to file
+        :return:
+        """
         header = f'1D azimuthal integration using {self.__class__.__module__}.{self.__class__.__name__}\n'
         header += f'Integration performed on: {datetime.now()}\n'
         header += f'Filename: {self.image.file.resolve()}\n'
@@ -178,6 +183,7 @@ class AzimuthalIntegrator1D(_Integrator):
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
             header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
+        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
 
         if self.results.sigma is not None:
             header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.), sigma (a.u.)'
@@ -338,7 +344,7 @@ class AzimuthalIntegrator2D(_Integrator):
         self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
         self._is_initialized = True
 
-    def integrate(self, check=True, **kwargs) -> None:
+    def integrate(self, check=True, keep: bool = True, **kwargs) -> Integrate2dResult:
         """
         Perform 2D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
@@ -346,11 +352,13 @@ class AzimuthalIntegrator2D(_Integrator):
         pyFAI integration method is ``('bbox', 'histogram', 'cython')`` (aka ``'bbox'``).
 
         :param bool check: Check whether the integrator has already been initialized
+        :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
                        ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
                        ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
                        provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
+        :return: Integrate2dResult
         """
         if check:
             self.check_initialized()
@@ -368,17 +376,82 @@ class AzimuthalIntegrator2D(_Integrator):
         normalization_factor = kwargs.get('normalization_factor', 1.0)
         metadata = kwargs.get('metadata', None)
 
-        self._results = self._integrator.integrate2d_ng(data=self.image.data, npt_rad=self.points_radial,
-                                                        npt_azim=self.points_azimuthal, filename=None,
-                                                        correctSolidAngle=correctSolidAngle, variance=variance,
-                                                        error_model=self.error_model, radial_range=radial_range,
-                                                        azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                        dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
-                                                        polarization_factor=polarization_factor, dark=dark, flat=flat,
-                                                        method=method, unit=self.units_radial, safe=safe,
-                                                        normalization_factor=normalization_factor, metadata=metadata)
+        result = self._integrator.integrate2d_ng(data=self.image.data, npt_rad=self.points_radial,
+                                                 npt_azim=self.points_azimuthal, filename=None,
+                                                 correctSolidAngle=correctSolidAngle, variance=variance,
+                                                 error_model=self.error_model, radial_range=radial_range,
+                                                 azimuth_range=azimuth_range, mask=~self.image.mask.data,
+                                                 dummy=self.masked_pixels_value,  delta_dummy=delta_dummy,
+                                                 polarization_factor=polarization_factor, dark=dark, flat=flat,
+                                                 method=method, unit=self.units_radial, safe=safe,
+                                                 normalization_factor=normalization_factor, metadata=metadata)
         # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
+
+        if keep:
+            self._results = result
+        return result
 
     @property
     def results(self):
         return self._results
+
+    def _get_file_header(self) -> str:
+        """
+        Prepare a header for exporting integration results to file
+        :return:
+        """
+        header = f'2D azimuthal integration using {self.__class__.__module__}.{self.__class__.__name__}\n'
+        header += f'Integration performed on: {datetime.now()}\n'
+        header += f'Filename: {self.image.file.resolve()}\n'
+        header += f'Frame: {self.image.frame}\n\n'
+
+        header += 'Geometry options:\n'
+        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
+                            self.image.geometry.get_config().items()) + '\n\n'
+
+        header += 'Integration options:\n'
+        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
+                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
+                    'normalization_factor', 'metadata']:
+            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
+        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
+        header += f'pyFAI.AzimuthalIntegrator.npt_azim: {self.points_azimuthal}\n'
+
+        if self.results.sigma is not None:
+            header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, intensity (a.u.), sigma (a.u.)'
+        else:
+            header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, intensity (a.u.)'
+        return header
+
+    def save(self, filename: str | Path, overwrite: bool = False, header: bool = True):
+        """
+        Save integration results to a NPX file (numpy .npz + header). The following arrays are contained within the file
+        radial angle, azimuthal angle, intensity, intensity uncertainty. The intensity and intensity uncertainty arrays
+        are 2D arrays, while the angle arrays are 1D. If no errors have been calculated during integration, the output
+        file will contain only three arrays.
+
+        :param str | Path filename: Output filename. If the file extension is not .xye, it will be replaced.
+        :param bool overwrite: Whether to overwrite the output file if it already exists.
+        :param bool header: Whether to include metadata about the integration in the file header
+        :return:
+        """
+        if self.results is None:
+            raise Exception('No results to save. Run integrate() first.')
+
+        file = Path(filename)
+        if file.exists() and not overwrite:
+            raise FileExistsError(f'File {file} already exists!')
+        file.unlink(missing_ok=True)
+
+        data = {
+            'radial': self.results.radial,
+            'azimuthal': self.results.azimuthal,
+            'intensities': self.results.intensity
+        }
+        sigma = self.results.sigma
+        if sigma is not None:
+            data['sigma'] = sigma
+
+        header = self._get_file_header() if header else None
+        npx = NpxFile(header=header, **data)
+        npx.save(file, compressed=True)
