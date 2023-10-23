@@ -1,6 +1,10 @@
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
+from matplotlib.cm import get_cmap
+from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColormap
+from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
 from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
@@ -455,3 +459,82 @@ class AzimuthalIntegrator2D(_Integrator):
         header = self._get_file_header() if header else None
         npx = NpxFile(header=header, **data)
         npx.save(file, compressed=True)
+
+    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+             title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
+             zmax: float = None, cmap: str = None, bad_value_color: str = None, overlay_mask: bool = False) \
+            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+        """
+         Prepare a plot of the 2D integration results. ``plt.show()`` must be called separately to display the plot.
+
+        :param matplotlib.axes.Axes ax: Axes instance to draw into
+        :param matplotlib.figure.Figure fig: Figure instance to draw into
+        :param str xlabel: x-axis label (default: integration radial units)
+        :param str ylabel: y-axis label (default: integration azimuthal units)
+        :param str title: Plot title (default: ``'2D azimuthal integration'``)
+        :param str xscale: x-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param str yscale: y-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param str zscale: z-axis scale, one from: ``'linear'``, ``'log'`` (default: ``'linear'``)
+        :param float zmin: z-axis minimum value
+        :param float zmax: z-axis maximum value
+        :param str cmap: A Matplotlib colormap name to be used as the intensity scale
+        :param str bad_value_color: The missing values color
+        :param bool overlay_mask: Whether to overlay the image mask on top of the integration results
+        :return:
+        """
+        if self.results is None:
+            raise Exception('No results to plot. Run integrate() first.')
+        if xlabel is None:
+            xlabel = self.units_radial_repr
+        if ylabel is None:
+            ylabel = self.units_azimuthal_repr
+        if title is None:
+            title = '2D azimuthal integration'
+
+        axis_scales = ['linear', 'log', 'symlog', 'logit']
+        if xscale is None:
+            xscale = 'linear'
+        if xscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+        if yscale is None:
+            yscale = 'linear'
+        if yscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+        if zscale in [None, 'linear']:
+            norm = partial(Normalize, clip=False)
+        elif zscale in ['log', 'log10']:
+            norm = partial(LogNorm, clip=False)
+        else:
+            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log')
+
+        if cmap is None:
+            cmap = get_cmap(self.image.cmap)
+        else:
+            cmap = get_cmap(cmap)
+        if bad_value_color is None:
+            cmap.set_bad(color=self.image.cmap_bad_values, alpha=1.0)
+        else:
+            cmap.set_bad(color=bad_value_color, alpha=1.0)
+
+        intensities, radial, azimuthal = self.results.intensity, self.results.radial, self.results.azimuthal
+        img = ax.imshow(intensities, origin='lower', aspect='auto', interpolation='nearest', cmap=cmap,
+                        norm=norm(vmin=zmin, vmax=zmax),
+                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+
+        if overlay_mask:
+            mask = ~np.isnan(intensities)
+            mask_cmap = LinearSegmentedColormap.from_list(name='mask', N=2,
+                                                          colors=[to_rgba(self.image.mask_color), (1, 1, 1, 0)])
+            mask_alpha = self.image.mask_alpha
+            ax.imshow(mask, origin='lower', aspect='auto', interpolation='nearest', cmap=mask_cmap, alpha=mask_alpha,
+                      extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale(xscale)
+        ax.set_yscale(yscale)
+        ax.set_title(title)
+
+        return ax, fig, img
