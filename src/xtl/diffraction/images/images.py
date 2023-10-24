@@ -9,9 +9,9 @@ import matplotlib.cm
 import matplotlib.path
 import matplotlib.pyplot as plt
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator
 from pyFAI.geometry import Geometry
 
+import xtl  # for type hinting
 from xtl.diffraction.images.masks import detector_masks
 
 
@@ -30,8 +30,9 @@ class Image:
 
         # Readers and integrators
         self._fabio: fabio.fabioimage.FabioImage = None
-        self._pyfai: AzimuthalIntegrator = None
         self.geometry: Geometry = None
+        self.ai1: 'xtl.diffraction.images.integrators.AzimuthalIntegrator1D' = None
+        self.ai2: 'xtl.diffraction.images.integrators.AzimuthalIntegrator2D' = None
 
         # Intensity data
         self._data: np.array = None  # Is not None when the raw data has been modified
@@ -207,14 +208,11 @@ class Image:
         """
         Load pyFAI geometry from a .poni file or a PONI-like dictionary.
         """
-        self._pyfai = AzimuthalIntegrator()
         self.geometry = Geometry()
         if isinstance(data, str) or isinstance(data, Path):
             file = Path(data)
-            self._pyfai.load(str(file))
             self.geometry.load(str(file))
         elif isinstance(data, dict):
-            self._pyfai.set_config(data)
             self.geometry.set_config(data)
 
     def save_geometry(self, filename):
@@ -224,11 +222,11 @@ class Image:
         self.check_geometry()
         f = Path(filename)
         f.unlink(missing_ok=True)
-        self._pyfai.save(f)
+        self.geometry.save(f)
 
     @property
     def has_geometry(self):
-        if not self._pyfai:
+        if not self.geometry:
             return False
         return True
 
@@ -243,7 +241,7 @@ class Image:
         The location of the beam center (x, y) in pixel coordinates.
         """
         self.check_geometry()
-        return self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
+        return self.geometry.poni2 / self.geometry.pixel2, self.geometry.poni1 / self.geometry.pixel1
 
     @property
     def dimensions(self):
@@ -256,62 +254,38 @@ class Image:
         self.mask = ImageMask(nx=self._fabio.shape[-2], ny=self._fabio.shape[-1], parent=self)
         return self.mask
 
-    def azimuthal_integration_cake(self, **kwargs):
-        if not self._pyfai:
-            raise Exception('No geometry information available. Run load_geometry() method first.')
-        _data = kwargs.get('_data', self.data)
-        center = self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1  # in pixels
-        x_size, y_size = self.data.shape
-        pixels_from_center = x_size - center[0], y_size - center[0]
-        npt_rad = kwargs.get('npt_rad', floor(max(pixels_from_center)))
-        npt_azim = kwargs.get('npt_azim', 360)
-        error_model = kwargs.get('error_model', 'poisson')
-        mask = kwargs.get('mask', self.mask)
-        if isinstance(mask, ImageMask):
-            mask = mask.data
-        dummy = kwargs.get('dummy', None)
-        unit = kwargs.get('unit', 'q_A^-1')
-        if unit in ['2theta', 'tth', '2th']:
-            unit = '2th_deg'
-        elif unit in ['q']:
-            unit = 'q_A^-1'
-        filename = kwargs.get('filename', None)
+    def initialize_azimuthal_integrator(self, dim: int = 1):
+        """
+        Initialize an azimuthal integrator with 1 or 2 dimensions.
 
-        print(pixels_from_center, npt_rad)
-        cake = self._pyfai.integrate2d(data=_data, npt_rad=npt_rad, npt_azim=npt_azim, filename=filename,
-                                       error_model=error_model, mask=mask, dummy=dummy, unit=unit)
-        # cake = intensities, 2theta (radial angle), chi (azimuthal angle), optional intensities sigma if error_model
-        #   was supplied (3 or 4-length tuple)
-        return cake
+        :param dim: No. of dimensions for integration
+        :return: AzimuthalIntegrator1D or AzimuthalIntegrator2D
+        :raises ValueError: When ``dim`` is not 1 or 2
+        """
+        if dim == 1:
+            from xtl.diffraction.images.integrators import AzimuthalIntegrator1D
+            self.ai1 = AzimuthalIntegrator1D(image=self)
+            return self.ai1
+        elif dim == 2:
+            from xtl.diffraction.images.integrators import AzimuthalIntegrator2D
+            self.ai2 = AzimuthalIntegrator2D(image=self)
+            return self.ai2
+        else:
+            raise ValueError('Invalid number of dimensions. Must be 1 or 2.')
+
+    def azimuthal_integration_2d(self, **kwargs):
+        if self.ai2 is None:
+            self.initialize_azimuthal_integrator(dim=2)
+        self.ai2.initialize(**kwargs)
+        self.ai2.integrate()
+        return self.ai2.results
 
     def azimuthal_integration_1d(self, **kwargs):
-        if not self._pyfai:
-            raise Exception('No geometry information available. Run load_geometry() method first.')
-        center = self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1  # in pixels
-        x_size, y_size = self.data.shape
-        pixels_from_center = x_size - center[0], y_size - center[0]
-        npt = kwargs.get('npt', floor(max(pixels_from_center)))
-        error_model = kwargs.get('error_model', 'poisson')
-        mask = kwargs.get('mask', self.mask)
-        if mask is None:
-            mask = self.make_mask().data
-        elif isinstance(mask, ImageMask):
-            mask = mask.data
-        dummy = kwargs.get('dummy', None)
-        unit = kwargs.get('unit', 'q_A^-1')
-        if unit in ['2theta', 'tth', '2th']:
-            unit = '2th_deg'
-        elif unit in ['q']:
-            unit = 'q_A^-1'
-        filename = kwargs.get('filename', None)
-
-        print(pixels_from_center, npt)
-
-        hist = self._pyfai.integrate1d(data=self.data, npt=npt, filename=filename, error_model=error_model, mask=mask,
-                                       dummy=dummy, unit=unit)
-        # hist = 2theta (radial angle), intensities, optional intensities sigma if error_model was supplied
-        #   (2 or 3-length tuple)
-        return hist
+        if self.ai1 is None:
+            self.initialize_azimuthal_integrator(dim=1)
+        self.ai1.initialize(**kwargs)
+        self.ai1.integrate()
+        return self.ai1.results
 
     def plot(self, **kwargs):
         ax = kwargs.pop('ax', plt.gca())
@@ -336,10 +310,9 @@ class Image:
         cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
 
         m = ax.imshow(data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
-        if self._pyfai:
-            # why is this in reverse?
-            center_in_pixels = self._pyfai.poni2 / self._pyfai.pixel2, self._pyfai.poni1 / self._pyfai.pixel1
-            ax.scatter(*center_in_pixels, marker='X', s=70, facecolors='red', edgecolors='white')
+        if self.geometry:
+            center = self.beam_center
+            ax.scatter(*center, marker='X', s=70, facecolors='red', edgecolors='white')
         if overlay_mask:
             mask_color = matplotlib.colors.to_rgba(self.mask_color)
             mask_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('mask', [mask_color, (1, 1, 1, 0)], N=2)
@@ -352,63 +325,16 @@ class Image:
         return m
 
     def plot_cake(self, **kwargs):
-        ax = kwargs.pop('ax', plt.gca())
-        fig = kwargs.pop('fig', plt.gcf())
-        norm = kwargs.pop('norm', partial(matplotlib.colors.Normalize, clip=False))
-        if norm in ['log', 'log10']:
-            norm = partial(matplotlib.colors.LogNorm, clip=False)
-        vmin = kwargs.pop('vmin', None)
-        vmax = kwargs.pop('vmax', None)
-        mask = kwargs.get('mask', self.mask)
-        if mask is None:
-            mask = self.make_mask().data
-        elif isinstance(mask, ImageMask):
-            mask = mask.data
-        overlay_mask = kwargs.pop('overlay_mask', None)
-        xlabel = kwargs.pop('xlabel', 'Radial angle / 2\u03b8 (\u00b0)')
-
-        cmap = matplotlib.cm.get_cmap(self.cmap)
-        cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
-
-        integrator = partial(self.azimuthal_integration_cake, error_model=None, **kwargs)
-        intensities, ttheta, chi = integrator(_data=self.data, mask=~mask)
-        m = ax.imshow(intensities, origin='lower', extent=(ttheta.min(), ttheta.max(), chi.min(), chi.max()),
-                      cmap=cmap, aspect='auto', interpolation='nearest', norm=norm(vmin=vmin, vmax=vmax))
-
-        if overlay_mask:
-            intensities_masked, ttheta, chi = integrator(_data=mask, mask=None)   # mask: True = keep, False = discard
-            intensities_masked = np.clip(intensities_masked, 0, 1/1e24)  # 0: discard, 1/1e24: keep
-            mask_color = matplotlib.colors.to_rgba(self.mask_color)
-            mask_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('mask', [mask_color, (1, 1, 1, 0)], N=2)
-            ax.imshow(intensities_masked, origin='lower', extent=(ttheta.min(), ttheta.max(), chi.min(), chi.max()),
-                      cmap=mask_cmap, aspect='auto', interpolation='nearest', alpha=self.mask_alpha)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel('Azimuthal angle / \u03c7 (\u00b0)')
-        return m
+        if self.ai2 is None:
+            raise Exception('Azimuthal integrator not initialized yet. '
+                            'Run initialize_azimuthal_integrator(dim=2) first.')
+        return self.ai2.plot(**kwargs)
 
     def plot_1d(self, **kwargs):
-        ax = kwargs.pop('ax', plt.gca())
-        fig = kwargs.pop('fig', plt.gcf())
-        norm = kwargs.pop('norm', partial(matplotlib.colors.Normalize, clip=False))
-        if norm in ['log', 'log10']:
-            norm = partial(matplotlib.colors.LogNorm, clip=False)
-        vmin = kwargs.pop('vmin', None)
-        vmax = kwargs.pop('vmax', None)
-        mask = kwargs.get('mask', self.mask)
-        if mask is None:
-            mask = self.make_mask().data
-        elif isinstance(mask, ImageMask):
-            mask = mask.data
-        xlabel = kwargs.pop('xlabel', 'Radial angle / 2\u03b8 (\u00b0)')
-        ylabel = kwargs.pop('ylabel', 'Intensity (arbitrary units)')
-
-        cmap = matplotlib.cm.get_cmap(self.cmap)
-        cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
-
-        ttheta, intensities = self.azimuthal_integration_1d(error_model=None, mask=~mask, **kwargs)
-        pos = ax.plot(ttheta, intensities)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        if self.ai1 is None:
+            raise Exception('Azimuthal integrator not initialized yet. '
+                            'Run initialize_azimuthal_integrator(dim=1) first.')
+        return self.ai1.plot(**kwargs)
 
 
 class ImageMask:
