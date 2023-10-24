@@ -465,7 +465,7 @@ class AzimuthalIntegrator2D(_Integrator):
              zmax: float = None, cmap: str = None, bad_value_color: str = None, overlay_mask: bool = False) \
             -> tuple[plt.Axes, plt.Figure, AxesImage]:
         """
-         Prepare a plot of the 2D integration results. ``plt.show()`` must be called separately to display the plot.
+        Prepare a plot of the 2D integration results. ``plt.show()`` must be called separately to display the plot.
 
         :param matplotlib.axes.Axes ax: Axes instance to draw into
         :param matplotlib.figure.Figure fig: Figure instance to draw into

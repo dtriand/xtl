@@ -1,15 +1,17 @@
 import copy
 from difflib import SequenceMatcher
 from functools import partial
-from math import floor
 from pathlib import Path
 
 import fabio
-import matplotlib.cm
+from matplotlib.cm import get_cmap
+from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColormap
+from matplotlib.image import AxesImage
 import matplotlib.path
 import matplotlib.pyplot as plt
 import numpy as np
 from pyFAI.geometry import Geometry
+from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 import xtl  # for type hinting
 from xtl.diffraction.images.masks import detector_masks
@@ -273,68 +275,113 @@ class Image:
         else:
             raise ValueError('Invalid number of dimensions. Must be 1 or 2.')
 
-    def azimuthal_integration_2d(self, **kwargs):
-        if self.ai2 is None:
-            self.initialize_azimuthal_integrator(dim=2)
-        self.ai2.initialize(**kwargs)
-        self.ai2.integrate()
-        return self.ai2.results
+    def azimuthal_integration_1d(self, **kwargs) -> Integrate1dResult:
+        """
+        Perform a 1D azimuthal integration.
 
-    def azimuthal_integration_1d(self, **kwargs):
+        :param dict kwargs: Options for ``xtl.diffraction.images.AzimuthalIntegrator1D.initialize()``
+        :return:
+        """
         if self.ai1 is None:
             self.initialize_azimuthal_integrator(dim=1)
         self.ai1.initialize(**kwargs)
         self.ai1.integrate()
         return self.ai1.results
 
-    def plot(self, **kwargs):
-        ax = kwargs.pop('ax', plt.gca())
-        fig = kwargs.pop('fig', plt.gcf())
-        norm = kwargs.pop('norm', partial(matplotlib.colors.Normalize, clip=False))
-        if norm in ['log', 'log10']:
-            norm = partial(matplotlib.colors.LogNorm, clip=False)
-        vmin = kwargs.pop('vmin', None)
-        vmax = kwargs.pop('vmax', None)
-        mask = kwargs.get('mask', self.mask)
-        if isinstance(mask, ImageMask):
-            mask = mask.data
-        overlay_mask = kwargs.pop('overlay_mask', None)
-        masked = kwargs.pop('masked', False)
+    def azimuthal_integration_2d(self, **kwargs) -> Integrate2dResult:
+        """
+        Perform a 2D azimuthal integration (aka cake projection).
 
-        if masked:
+        :param dict kwargs: Options for ``xtl.diffraction.images.AzimuthalIntegrator2D.initialize()``
+        :return:
+        """
+        if self.ai2 is None:
+            self.initialize_azimuthal_integrator(dim=2)
+        self.ai2.initialize(**kwargs)
+        self.ai2.integrate()
+        return self.ai2.results
+
+    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+             title: str = None, zscale: str = None, zmin: float = None, zmax: float = None, cmap: str = None,
+             bad_value_color: str = None, apply_mask: bool = True, overlay_mask: bool = False) \
+            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+        """
+        Prepare a plot of the recorded intensity data. ``plt.show()`` must be called separately to display the plot.
+
+        :param matplotlib.axes.Axes ax: Axes instance to draw into
+        :param matplotlib.figure.Figure fig: Figure instance to draw into
+        :param str xlabel: x-axis label (default: None)
+        :param str ylabel: y-axis label (default: None)
+        :param str title: Plot title (default: filename)
+        :param str zscale: z-axis scale, one from: ``'linear'``, ``'log'`` (default: ``'linear'``)
+        :param float zmin: z-axis minimum value
+        :param float zmax: z-axis maximum value
+        :param str cmap: A Matplotlib colormap name to be used as the intensity scale
+        :param str bad_value_color: The missing values color
+        :param bool apply_mask: Whether to apply the image mask prior to plotting
+        :param bool overlay_mask: Whether to overlay the image mask on top of the integration results
+        :return:
+        """
+        if title is None:
+            title = self.file.name
+        if zscale in [None, 'linear']:
+            norm = partial(Normalize, clip=False)
+        elif zscale in ['log', 'log10']:
+            norm = partial(LogNorm, clip=False)
+        else:
+            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log')
+
+        if cmap is None:
+            cmap = get_cmap(self.cmap)
+        else:
+            cmap = get_cmap(cmap)
+        if bad_value_color is None:
+            cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
+        else:
+            cmap.set_bad(color=bad_value_color, alpha=1.0)
+
+        if apply_mask:
             data = self.data_masked
         else:
             data = self.data
 
-        cmap = matplotlib.cm.get_cmap(self.cmap)
-        cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
+        img = ax.imshow(data, cmap=cmap, norm=norm(vmin=zmin, vmax=zmax), origin=self.detector_image_origin)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
 
-        m = ax.imshow(data, cmap=cmap, norm=norm(vmin=vmin, vmax=vmax), origin=self.detector_image_origin)
         if self.geometry:
-            center = self.beam_center
-            ax.scatter(*center, marker='X', s=70, facecolors='red', edgecolors='white')
+            ax.scatter(*self.beam_center, marker='X', s=70, facecolors='red', edgecolors='white')
         if overlay_mask:
-            mask_color = matplotlib.colors.to_rgba(self.mask_color)
-            mask_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('mask', [mask_color, (1, 1, 1, 0)], N=2)
+            mask_cmap = LinearSegmentedColormap.from_list(name='mask', N=2,
+                                                          colors=[to_rgba(self.mask_color), (1, 1, 1, 0)])
             ax.imshow(self.mask.data, cmap=mask_cmap, alpha=self.mask_alpha, origin=self.detector_image_origin,
                       vmin=0, vmax=1)
-
-        # fig.colorbar(pos, label='Intensity')
-        title = kwargs.pop('title', self.file.name)
-        ax.set_title(title)
-        return m
-
-    def plot_cake(self, **kwargs):
-        if self.ai2 is None:
-            raise Exception('Azimuthal integrator not initialized yet. '
-                            'Run initialize_azimuthal_integrator(dim=2) first.')
-        return self.ai2.plot(**kwargs)
+        return ax, fig, img
 
     def plot_1d(self, **kwargs):
+        """
+        Prepare a plot of the results of a 1D azimuthal integration.
+
+        :param dict kwargs: Options for ``xtl.diffraction.images.AzimuthalIntegrator1D.plot()``
+        :return:
+        """
         if self.ai1 is None:
             raise Exception('Azimuthal integrator not initialized yet. '
                             'Run initialize_azimuthal_integrator(dim=1) first.')
         return self.ai1.plot(**kwargs)
+
+    def plot_cake(self, **kwargs):
+        """
+        Prepare a plot of the results of a 2D azimuthal integration.
+
+        :param dict kwargs: Options for ``xtl.diffraction.images.AzimuthalIntegrator2D.plot()``
+        :return:
+        """
+        if self.ai2 is None:
+            raise Exception('Azimuthal integrator not initialized yet. '
+                            'Run initialize_azimuthal_integrator(dim=2) first.')
+        return self.ai2.plot(**kwargs)
 
 
 class ImageMask:
