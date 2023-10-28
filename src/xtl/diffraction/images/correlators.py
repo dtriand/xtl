@@ -1,5 +1,12 @@
+from functools import partial
+
+from matplotlib.cm import get_cmap
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+from matplotlib.image import AxesImage
+import matplotlib.pyplot as plt
 import numpy as np
 
+import xtl
 from xtl.diffraction.images import Image
 
 
@@ -9,19 +16,45 @@ class _Correlator:
 
 class AzimuthalCrossCorrelatorQQ(_Correlator):
 
-    def __init__(self, parent: Image):
+    def __init__(self, image: Image):
         """
         Calculates the intensity cross-correlation function along the azimuthal coordinate (``q_1`` = ``q_2`` = ``q``).
         This implementation relies on projecting the collected intensities from the cartesian coordinate space of the
         detector image to polar coordinates (*i.e.* azimuthal angle [``\u03c7``], radial distance [``2\u03b8`` or
         ``q``]) using ``pyFAI.integrate2d_ng()``.
 
-        :param parent:
+        :param image:
         """
 
-        self.image = parent
+        self.image = image
         self.image.check_geometry()
+        self._ai2: 'xtl.diffraction.images.AzimuthalIntegrator2D' = None
         self._ccf: np.ndarray = None  # dim = (delta=azimuthal, radial)
+
+        # Units representation
+        self.units_radial: str = '2theta_deg'
+        self.units_radial_repr: str = '2\u03b8 (\u00b0)'
+        self.units_azimuthal: str = 'delta_deg'
+        self.units_azimuthal_repr: str = '\u0394 (\u00b0)'
+
+        # Plotting options
+        self.cmap = 'viridis'
+        self.cmap_bad_values = 'white'
+        self.symlog_linthresh = 0.05
+
+    def _set_units_repr(self):
+        """
+        Grabs the radial and azimuthal units from the 2D integrator.
+
+        :return:
+        """
+        self.units_radial = self._ai2.units_radial
+        self.units_radial_repr = self._ai2.units_radial_repr
+        if self._ai2.units_azimuthal == 'chi_deg':
+            self.units_azimuthal = 'delta_deg'
+            self.units_azimuthal_repr = '\u0394 (\u00b0)'
+        else:
+            raise ValueError(f'Unknown azimuthal units: {self._ai2.units_azimuthal}')
 
     def _perform_azimuthal_integration(self, points_radial: int = 500, points_azimuthal: int = 500,
                                        units_radial: str = '2theta'):
@@ -35,10 +68,12 @@ class AzimuthalCrossCorrelatorQQ(_Correlator):
         """
         if self.image.ai2 is None:
             self.image.initialize_azimuthal_integrator(dim=2)
-        if not self.image.ai2.is_initialized:
-            self.image.ai2.initialize(points_radial=points_radial, points_azimuthal=points_azimuthal,
-                                      units_radial=units_radial)
-        return self.image.ai2.integrate()
+        self._ai2 = self.image.ai2
+        if not self._ai2.is_initialized:
+            self._ai2.initialize(points_radial=points_radial, points_azimuthal=points_azimuthal,
+                                 units_radial=units_radial)
+        self._set_units_repr()
+        return self._ai2.integrate()
 
     @staticmethod
     def _calculate_delta_indices_array(points_azimuthal: int) -> np.ndarray:
@@ -146,3 +181,75 @@ class AzimuthalCrossCorrelatorQQ(_Correlator):
     @property
     def ccf(self):
         return self._ccf
+
+    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+             title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
+             zmax: float = None, cmap: str = None, bad_value_color: str = None) \
+            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+        """
+        Prepare a plot of the intensity CCF. ``plt.show()`` must be called separately to display the plot.
+
+        :param matplotlib.axes.Axes ax: Axes instance to draw into
+        :param matplotlib.figure.Figure fig: Figure instance to draw into
+        :param str xlabel: x-axis label (default: integration radial units)
+        :param str ylabel: y-axis label (default: integration azimuthal units)
+        :param str title: Plot title (default: ``'Cross-correlation function'``)
+        :param str xscale: x-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param str yscale: y-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
+                           ``'linear'``)
+        :param str zscale: z-axis scale, one from: ``'linear'``, ``'log'`` or ``'symlog'`` (default: ``'linear'``)
+        :param float zmin: z-axis minimum value
+        :param float zmax: z-axis maximum value
+        :param str cmap: A Matplotlib colormap name to be used as the CCF scale
+        :param str bad_value_color: The missing values color
+        :return:
+        """
+        if self.ccf is None:
+            raise Exception('No results to plot. Run integrate() first.')
+        if xlabel is None:
+            xlabel = self.units_radial_repr
+        if ylabel is None:
+            ylabel = self.units_azimuthal_repr
+        if title is None:
+            title = 'Cross-correlation function'
+
+        axis_scales = ['linear', 'log', 'symlog', 'logit']
+        if xscale is None:
+            xscale = 'linear'
+        if xscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+        if yscale is None:
+            yscale = 'linear'
+        if yscale not in axis_scales:
+            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+        if zscale in [None, 'linear']:
+            norm = partial(Normalize, clip=False)
+        elif zscale in ['log', 'log10']:
+            norm = partial(LogNorm, clip=False)
+        elif zscale in ['symlog']:
+            norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
+        else:
+            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log, symlog')
+
+        if cmap is None:
+            cmap = get_cmap(self.cmap)
+        else:
+            cmap = get_cmap(cmap)
+        if bad_value_color is None:
+            cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
+        else:
+            cmap.set_bad(color=bad_value_color, alpha=1.0)
+
+        ccf, radial, azimuthal = self.ccf, self._ai2.results.radial, self._ai2.results.azimuthal
+        img = ax.imshow(ccf, origin='lower', aspect='auto', interpolation='nearest', cmap=cmap,
+                        norm=norm(vmin=zmin, vmax=zmax),
+                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale(xscale)
+        ax.set_yscale(yscale)
+        ax.set_title(title)
+
+        return ax, fig, img
