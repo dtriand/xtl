@@ -1,4 +1,6 @@
+from datetime import datetime
 from functools import partial
+from pathlib import Path
 
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
@@ -8,6 +10,7 @@ import numpy as np
 
 import xtl
 from xtl.diffraction.images import Image
+from xtl.io.npx import NpxFile
 
 
 class _Correlator:
@@ -182,6 +185,61 @@ class AzimuthalCrossCorrelatorQQ(_Correlator):
     def ccf(self):
         return self._ccf
 
+    def _get_file_header(self) -> str:
+        """
+        Prepare a header for exporting integration results to file
+        :return:
+        """
+        header = f'Azimuthal intensity cross-correlation function using ' + \
+                 f'{self.__class__.__module__}.{self.__class__.__name__}\n'
+        header += f'Calculation performed on: {datetime.now()}\n'
+        header += f'Filename: {self.image.file.resolve()}\n'
+        header += f'Frame: {self.image.frame}\n\n'
+
+        header += 'Geometry options:\n'
+        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
+                            self.image.geometry.get_config().items()) + '\n\n'
+
+        header += 'Integration options:\n'
+        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
+                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
+                    'normalization_factor', 'metadata']:
+            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self._ai2.results, key)}\n'
+        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self._ai2.points_radial}\n'
+        header += f'pyFAI.AzimuthalIntegrator.npt_azim: {self._ai2.points_azimuthal}\n'
+
+        header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, cross-correlation function'
+        return header
+
+    def save(self, filename: str | Path, overwrite: bool = False, header: bool = True):
+        """
+        Save integration results to a NPX file (numpy .npz + header). The following arrays are contained within the file
+        radial angle, azimuthal angle offset, CCF, intensity uncertainty. The CCF array is a 2D array, while the angle
+        arrays are 1D.
+
+        :param str | Path filename: Output filename. If the file extension is not .npx, it will be replaced.
+        :param bool overwrite: Whether to overwrite the output file if it already exists.
+        :param bool header: Whether to include metadata about the integration in the file header
+        :return:
+        """
+        if self.ccf is None:
+            raise Exception('No results to save. Run correlate() first.')
+
+        file = Path(filename)
+        if file.exists() and not overwrite:
+            raise FileExistsError(f'File {file} already exists!')
+        file.unlink(missing_ok=True)
+
+        data = {
+            'radial': self._ai2.results.radial,
+            'delta': self._ai2.results.azimuthal,
+            'ccf': self.ccf
+        }
+
+        header = self._get_file_header() if header else None
+        npx = NpxFile(header=header, **data)
+        npx.save(file, compressed=True)
+
     def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
              title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
              zmax: float = None, cmap: str = None, bad_value_color: str = None) \
@@ -206,7 +264,7 @@ class AzimuthalCrossCorrelatorQQ(_Correlator):
         :return:
         """
         if self.ccf is None:
-            raise Exception('No results to plot. Run integrate() first.')
+            raise Exception('No results to plot. Run correlate() first.')
         if xlabel is None:
             xlabel = self.units_radial_repr
         if ylabel is None:

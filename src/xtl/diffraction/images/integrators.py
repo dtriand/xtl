@@ -434,7 +434,7 @@ class AzimuthalIntegrator2D(_Integrator):
         are 2D arrays, while the angle arrays are 1D. If no errors have been calculated during integration, the output
         file will contain only three arrays.
 
-        :param str | Path filename: Output filename. If the file extension is not .xye, it will be replaced.
+        :param str | Path filename: Output filename. If the file extension is not .npx, it will be replaced.
         :param bool overwrite: Whether to overwrite the output file if it already exists.
         :param bool header: Whether to include metadata about the integration in the file header
         :return:
