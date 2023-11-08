@@ -251,7 +251,7 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         npx = NpxFile(header=header, **data)
         npx.save(file, compressed=True)
 
-    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
              title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
              zmax: float = None, cmap: str = None, bad_value_color: str = None) \
             -> tuple[plt.Axes, plt.Figure, AxesImage]:
@@ -276,6 +276,10 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         """
         if self.ccf is None:
             raise Exception('No results to plot. Run correlate() first.')
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         if xlabel is None:
             xlabel = self.units_radial_repr
         if ylabel is None:

@@ -301,7 +301,7 @@ class Image:
         self.ai2.integrate()
         return self.ai2.results
 
-    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
              title: str = None, zscale: str = None, zmin: float = None, zmax: float = None, cmap: str = None,
              bad_value_color: str = None, apply_mask: bool = True, overlay_mask: bool = False) \
             -> tuple[plt.Axes, plt.Figure, AxesImage]:
@@ -322,6 +322,10 @@ class Image:
         :param bool overlay_mask: Whether to overlay the image mask on top of the integration results
         :return:
         """
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         if title is None:
             title = self.file.name
         if zscale in [None, 'linear']:

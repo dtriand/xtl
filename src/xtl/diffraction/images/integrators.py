@@ -237,7 +237,7 @@ class AzimuthalIntegrator1D(_Integrator):
         np.savetxt(file, data, header=header, delimiter=delimiter, newline=newline, comments=comments, fmt=fmt,
                    encoding=encoding)
 
-    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
              title: str = None, label: str = None, xscale: str = None, yscale: str = None,
              errors: bool = False) -> tuple[plt.Axes, plt.Figure]:
         """
@@ -258,6 +258,10 @@ class AzimuthalIntegrator1D(_Integrator):
         """
         if self.results is None:
             raise Exception('No results to plot. Run integrate() first.')
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         if xlabel is None:
             xlabel = self.units_radial_repr
         if ylabel is None:
@@ -460,7 +464,7 @@ class AzimuthalIntegrator2D(_Integrator):
         npx = NpxFile(header=header, **data)
         npx.save(file, compressed=True)
 
-    def plot(self, ax: plt.Axes = plt.gca(), fig: plt.Figure = plt.gcf(), xlabel: str = None, ylabel: str = None,
+    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
              title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
              zmax: float = None, cmap: str = None, bad_value_color: str = None, overlay_mask: bool = False) \
             -> tuple[plt.Axes, plt.Figure, AxesImage]:
@@ -486,6 +490,10 @@ class AzimuthalIntegrator2D(_Integrator):
         """
         if self.results is None:
             raise Exception('No results to plot. Run integrate() first.')
+        if ax is None:
+            ax = plt.gca()
+        if fig is None:
+            fig = plt.gcf()
         if xlabel is None:
             xlabel = self.units_radial_repr
         if ylabel is None:
