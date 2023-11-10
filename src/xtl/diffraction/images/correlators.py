@@ -475,6 +475,43 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         print(f'Completed in {(t4 - t3).total_seconds():.3f} sec')
         self.ccf = ccf
 
+    def calculate_dcf(self, x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = None,
+                      e2: np.array = None, dx: float = 1.0):
+        if e1 is None:
+            e1 = np.zeros_like(x1)
+        if e2 is None:
+            e2 = np.zeros_like(x2)
+
+        # Calculate lag array
+        lag = np.subtract.outer(x1, x2)
+        # this is equivalent to the following:
+        #   lag = [[x1[i] - x2[j] for j, _ in enumerate(x2)] for i, _ in enumerate(x1)]
+
+        # Calculate no of steps and bins
+        n_steps = int(360 / dx)
+        x = np.linspace(-180, 180, n_steps)
+
+        # Calculate DCF
+        dcf = np.zeros_like(x)
+        dcf_errors = np.zeros_like(x)
+        m = np.zeros_like(x)
+        for k in range(x.shape[0]):
+            x_low = x[k] - dx / 2
+            x_high = x[k] + dx / 2
+            i1, i2 = np.where((lag < x_high) & (lag > x_low))
+
+            y1_mean = np.mean(y1[i1])
+            y2_mean = np.mean(y2[i2])
+            m[k] = i1.shape[0]
+
+            # var = std**2
+            w = np.sqrt((np.var(y1[i1]) - np.mean(e1[i1]) ** 2) * (np.var(y2[i2]) - np.mean(e2[i2]) ** 2))
+            dcfs = (y1[i1] - y1_mean) * (y2[i2] - y2_mean) / w
+            dcf[k] = np.sum(dcfs) / float(m[k])
+            dcf_errors[k] = np.sqrt(np.sum(np.square(dcfs - dcf[k]))) / float(m[k] - 1)
+
+        return x, dcf, dcf_errors
+
     def plot_shells(self):
         fig, ax = plt.subplots(1, 1)
         ax = plt.imshow(self.shells_img, cmap='prism')
