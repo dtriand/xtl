@@ -201,7 +201,8 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
 
             # Transpose array to match the axes of the intensity array
             self._ccf = ccf.T  # dim = (delta, radial)
-        return self.ccf
+        self._results = AzimuthalCrossCorrelationResult(radial=ai2.radial, azimuthal=ai2.azimuthal, ccf=self._ccf)
+        return self.results
 
     @property
     def ccf(self):
@@ -373,7 +374,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         pixel_geometry = self.image.geometry.corner_array(unit=self.units_radial, use_cython=True)
         # self.image.geometry.normalize_azimuth_range()
         # self.image.geometry.guess_npt_rad()
-        
+
         # We need to grab the corner 0 pixel in order to perfectly align with the beam center
         radial = pixel_geometry[:, :, 0, 0]
         chi = np.rad2deg(pixel_geometry[:, :, 0, 1])
@@ -418,15 +419,18 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         # radial_shells_in_pixels = self._q2r(radial_shells, in_pixels=True)
         # average_width = np.mean((radial_shells_in_pixels - np.roll(radial_shells_in_pixels, 1))[1:])
         # print(f'Average shell width: {average_width:.2f} px')
-        for i, radial_low in enumerate(radial_shells[:-1]):
-            radial_high = radial_shells[i + 1]
+        # dcf, x, _ = binned_statistic(x=lag.flatten(), values=udcf.flatten(), bins=x_bins, statistic='mean')
 
-            ring = (radial >= radial_low) & (radial < radial_high)
+        # Assign every pixel to a radial shell bin (first bin is 1, not 0)
+        pixel_bins = np.digitize(x=radial, bins=radial_shells)
+        for i, _ in enumerate(radial_shells[:-1]):
+            ring = np.where(pixel_bins == i + 1)
             self.shells_img[ring] = np.random.random()
 
-            intensities = np.extract(ring, self.image.data)
-            azimuthals = np.extract(ring, chi)
-            radials = np.extract(ring, radial)
+            intensities = self.image.data[ring]
+            azimuthals = chi[ring]
+            radials = radial[ring]
+
             sorter = np.argsort(azimuthals)
             pixels = np.vstack((azimuthals[sorter], radials[sorter], intensities[sorter]))
             self.pixels_per_shell.append(pixels)
@@ -493,14 +497,11 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         intensities as input for the calculations. The function being calculated is:
 
         .. math::
-            CCF(q,\\Delta) = \\frac{\\langle I(q,\\chi) \\times I(q, \\chi + \\Delta) \\rangle_\\chi -
-            \\langle I(q,\\chi) \\rangle_\\chi^2}{\\langle I(q,\\chi) \\rangle_\\chi^2}
+            CCF(q, \\Delta) = \\frac{\\langle I(q,\\chi) \\times I(q, \\chi + \\Delta) \\rangle_\\chi -
+            \\langle I(q,\\chi) \\rangle_\\chi^2}{Var(I(q,\\chi))}
 
-        .. math::
-            CCF(q, \\Delta) =
-
-        where ``q`` is the radial coordinate, ``\u03c7`` is the azimuthal coordinate and ``\u0394`` the offset in
-        azimuthal coordinates.
+        where ``q`` is the radial coordinate, ``\u03c7`` is the azimuthal coordinate, ``\u0394`` the offset in
+        azimuthal coordinates and ``Var`` is the variance.
 
         Since the intensities are unevenly distributed along the azimuthal axis (due to the projection from a finite
         size cartesian grid to azimuthal coordinates), the CCF is calculated using the Discrete Correlation Function.
