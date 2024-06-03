@@ -1,11 +1,16 @@
+from datetime import datetime
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 from pyFAI.detectors import ALL_DETECTORS, Detector
 from pyFAI.geometry import Geometry
 from tabulate import tabulate
 import typer
 
 from xtl.cli.cliio import CliIO
+from xtl.diffraction.images.images import Image
+from xtl.diffraction.images.integrators import AzimuthalIntegrator1D, AzimuthalIntegrator2D
+from xtl.math import si_units
 
 
 app = typer.Typer(name='difftegrate', help='Perform azimuthal integrations of x-ray data', add_completion=False)
@@ -132,7 +137,7 @@ def cli_difftegrate_geometry():
                 continue
             file.unlink(missing_ok=True)
         poni.save(file)
-        cli.echo(f'Saved file {file}')
+        cli.echo(f'Saved file {file.resolve()}')
     return
 
 
@@ -144,10 +149,87 @@ def cli_difftegrate_mask():
 
 
 @app.command('1d', help='Perform 1D integration')
-def cli_difftegrate_1d():
+def cli_difftegrate_1d(file: Path = typer.Option(None, '-i', '--input', prompt='Input image file',
+                                                 help='Image file to integrate'),
+                       poni: Path = typer.Option(None, '-g', '--geometry', prompt='Geometry .poni file',
+                                                 help='Geometry .poni file'),
+                       output: Path = typer.Option(None, '-o', '--output', prompt='Output file',
+                                                   help='Save integration results to file'),
+                       frame: int = typer.Option(0, '-f', '--frame', help='Starting image frame for integration'),
+                       no_frames: int = typer.Option(1, '-n', '--no_frames', help='Number of frames to integrate'),
+                       average: bool = typer.Option(False, '-a', '--average', help='Average integration results'),
+                       plot: bool = typer.Option(False, '-p', '--plot', help='Plot integration results')
+                       ):
+    # Check if files exist
     cli = CliIO()
-    cli.echo('NotImplementedError', level='error')
-    raise typer.Abort()
+    for f in (file, poni):
+        if not f.exists():
+            cli.echo(f'File {f} does not exist', level='error')
+            raise typer.Abort()
+
+    # Check frame numbers
+    if frame < 0:
+        cli.echo('Frame number must be a positive integer!', level='error')
+        raise typer.Abort()
+    if no_frames < 1:
+        cli.echo('Number of frames must be at least 1!', level='error')
+        raise typer.Abort()
+
+    # Load data
+    img = Image()
+    img.open(file=file, frame=frame, is_eager=True)
+    cli.echo(f'Loaded frame #{img.frame} from {img.file}')
+    img.load_geometry(poni)
+    cli.echo(f'Loaded geometry from {poni}')
+
+    img.mask.mask_detector('eiger_4m')
+    img.mask.mask_intensity_greater_than(1e9)
+
+    # Initialize integrator
+    ai1 = AzimuthalIntegrator1D(img)
+    ai1.initialize(error_model='poisson')
+    npt_rad = ai1.points_radial
+    cli.echo(f'Performing 1D azimuthal integration on {npt_rad} 2\u03b8 points... ')
+
+    results = []
+    for i in range(frame, frame + no_frames):
+        # Perform integration and store results
+        t1 = datetime.now()
+        results.append(ai1.integrate())
+        t2 = datetime.now()
+        t_delta = (t2 - t1).total_seconds()
+        cli.echo(f'Integration for frame #{i:05} completed in {t_delta:.3f} sec '
+                 f'({si_units(t_delta / npt_rad, suffix="sec/point", digits=3)})')
+
+        # Prepare plot
+        if plot:
+            errors = True if no_frames == 1 else False
+            ax, fig = ai1.plot(label=f'#{i:05}', errors=errors)
+
+        # Save integration results to .xye file
+        fname = output.parent / f'{output.stem}_f{i:05}.xye'
+        ai1.save(fname, overwrite=True, header=False)
+        cli.echo(f'Saved results to file {fname}')
+
+        # Load next frame
+        try:
+            if i == (no_frames - 1):
+                continue
+            img.next_frame()
+        except Exception:
+            cli.echo('Run out of frames. Stopping integration.')
+
+    if average:
+        intensities = results[0].intensity
+        for result in results[1:]:
+            intensities += result.intensity
+        intensities /= len(results)
+        if plot:
+            ax.plot(result.radial, intensities, '--', label='Average')
+
+    if plot:
+        ax.legend(title='Frame no.')
+        plt.show()
 
 
 @app.command('2d', help='Perform 2D integration')
