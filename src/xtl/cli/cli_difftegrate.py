@@ -233,9 +233,49 @@ def cli_difftegrate_1d(file: Path = typer.Option(None, '-i', '--input', prompt='
 
 
 @app.command('2d', help='Perform 2D integration')
-def cli_difftegrate_2d():
+def cli_difftegrate_2d(file: Path = typer.Option(None, '-i', '--input', prompt='Input image file',
+                                                 help='Image file to integrate'),
+                       poni: Path = typer.Option(None, '-g', '--geometry', prompt='Geometry .poni file',
+                                                 help='Geometry .poni file'),
+                       output: Path = typer.Option(None, '-o', '--output', prompt='Output file',
+                                                   help='Save integration results to file'),
+                       frame: int = typer.Option(0, '-f', '--frame', help='Starting image frame for integration')):
+    # Check if files exist
     cli = CliIO()
-    cli.echo('NotImplementedError', level='error')
-    raise typer.Abort()
+    for f in (file, poni):
+        if not f.exists():
+            cli.echo(f'File {f} does not exist', level='error')
+            raise typer.Abort()
+
+    img = Image()
+    img.open(file=file, frame=frame, is_eager=True)
+    cli.echo(f'Loaded frame {img.frame} from {img.file}')
+    img.load_geometry(poni)
+    cli.echo(f'Loaded geometry from {poni}')
+
+    img.mask.mask_detector('eiger_4m')
+    img.mask.mask_intensity_greater_than(1e9)
+
+    ai2 = AzimuthalIntegrator2D(img)
+    ai2.initialize(error_model='poisson')
+    npt_rad, npt_azim = ai2.points_radial, ai2.points_azimuthal
+    cli.echo(f'Performing 2D azimuthal integration on a {npt_azim}\u00d7{npt_rad} grid (\u03c7\u00d72\u03b8)')
+
+    t1 = datetime.now()
+    ai2.integrate()
+    t2 = datetime.now()
+    t_delta = (t2 - t1).total_seconds()
+    cli.echo(f'Integration complete! Time elapsed: {t_delta:.4f} sec '
+             f'({si_units(t_delta / (npt_rad * npt_azim), suffix="sec/point", digits=3)})')
+    results = ai2.results
+    # plt.imshow(results.intensity, origin='lower', aspect='auto', extent=(results.radial.min(), results.radial.max(),
+    #                                                                      results.azimuthal.min(), results.azimuthal.max()))
+    # plt.show()
+    f = (Path('D:/') / 'code' / 'xtl_scripts' / 'test.npx').resolve()
+    ai2.save(f, overwrite=True, header=True)
+    cli.echo(f'Saved results to file {f}')
+    ai2.plot(zscale='log', overlay_mask=True)
+    img.initialize_azimuthal_integrator(1)
+    plt.show()
 
 
