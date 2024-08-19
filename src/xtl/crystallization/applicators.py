@@ -33,9 +33,11 @@ class ConstantApplicator(_ReagentApplicator):
 
     def __init__(self, value: float):
         self.name = ReagentApplicatorType.CONSTANT
-        self.value = value
-
-    def __post_init__(self):
+        if not isinstance(value, (int, float)):
+            raise TypeError(f'Value must be an integer or float, not {type(value)}')
+        if value <= 0:
+            raise ValueError('Value must be positive')
+        self.value = float(value)
         self.min_value = self.value
         self.max_value = self.value
 
@@ -56,14 +58,17 @@ class GradientApplicator(_ReagentApplicator):
         self.name = ReagentApplicatorType.GRADIENT
         self.min_value = min_value
         self.max_value = max_value
+        for value, name in zip((min_value, max_value), ('min_value', 'max_value')):
+            if not isinstance(value, (int, float)):
+                raise TypeError(f'Value \'{name}\' must be an integer or float, not {type(value)}')
+            if value <= 0:
+                raise ValueError(f'Value \'{name}\'  must be positive')
+        if self.min_value > self.max_value:
+            self.min_value, self.max_value = self.max_value, self.min_value
 
         self.application = GradientApplicationMethod(application)
         self.scale = GradientScale(scale)
         self.reverse = reverse
-
-    def __post_init__(self):
-        if self.min_value > self.max_value:
-            self.min_value, self.max_value = self.max_value, self.min_value
 
     def apply(self, shape: tuple[int, int]):
         rows, cols = shape
