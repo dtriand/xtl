@@ -1,0 +1,75 @@
+from dataclasses import dataclass
+
+
+@dataclass
+class _Reagent:
+    name: str
+    concentration: float
+    unit: str
+    fmt_str: str
+    solubility: float
+
+    def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
+        self.name = name
+
+        if not isinstance(concentration, (int, float)):
+            raise TypeError(f'Concentration must be an integer or float, not {type(concentration)}')
+        if concentration <= 0:
+            raise ValueError('Concentration must be positive')
+        self.concentration = float(concentration)
+
+        if solubility is not None:
+            if not isinstance(solubility, (int, float)):
+                raise TypeError(f'Solubility must be an integer or float, not {type(solubility)}')
+            if solubility <= 0:
+                raise ValueError('Solubility must be positive')
+            self.solubility = float(solubility)
+        else:
+            self.solubility = None
+
+        if self.solubility is not None and self.concentration > self.solubility:
+            raise ValueError('Concentration must be less than or equal to solubility')
+
+        self.unit = 'M'
+        self.fmt_str = fmt_str
+
+
+@dataclass
+class Reagent(_Reagent):
+
+    def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
+        super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
+
+
+@dataclass
+class ReagentWV(_Reagent):
+
+    def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
+        super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
+        self.unit = '%(w/v)'
+
+
+@dataclass
+class ReagentVV(_Reagent):
+
+    def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
+        super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
+        self.unit = '%(v/v)'
+
+
+@dataclass
+class ReagentBuffer(_Reagent):
+
+    def __init__(self, name: str, concentration: float, pH: float, solubility: float = None, fmt_str: str = None):
+        super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
+
+        if not isinstance(pH, (int, float)):
+            raise TypeError(f'pH must be an integer or float, not {type(pH)}')
+        if (pH < 0) or (pH > 14):
+            raise ValueError('pH must be between 0 and 14')
+        self.pH = float(pH)
+
+        self.unit = 'buffer'
+
+
+Buffer = ReagentBuffer

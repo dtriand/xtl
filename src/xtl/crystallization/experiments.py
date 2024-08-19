@@ -1,43 +1,15 @@
-from dataclasses import dataclass
 import warnings
 
 import numpy as np
 
 from xtl.exceptions.warnings import ExistingReagentWarning
-
-
-@dataclass
-class _Reagent:
-    name: str
-    concentration: float
-    unit: str = 'M'
-    fmt_str: str = None
-    solubility: float = None
-
-
-@dataclass
-class Reagent(_Reagent):
-    ...
-
-
-@dataclass
-class ReagentWV(_Reagent):
-
-    def __post_init__(self):
-        self.unit = '%(w/v)'
-
-
-@dataclass
-class ReagentVV(_Reagent):
-
-    def __post_init__(self):
-        self.unit = '%(v/v)'
+from reagents import _Reagent, Reagent, ReagentWV, ReagentVV, Buffer
 
 
 class CrystallizationExperiment:
 
     def __init__(self, shape: int | tuple[int, int]):
-        self._data: np.array  # Concentrations array
+        self._data: np.array = None  # Concentrations array
         self._reagents = list()  # List of reagents
         self._shape: tuple[int, int]  # Shape of the crystallization experiment
         self._ndim: int  # Number of dimensions in shape
@@ -77,7 +49,7 @@ class CrystallizationExperiment:
     def no_wells(self):
         return self.size
 
-    def add_reagent(self, reagent: Reagent | ReagentWV | ReagentVV):
+    def add_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer):
         if not isinstance(reagent, _Reagent):
             raise TypeError('Invalid reagent type')
         if reagent not in self._reagents:
