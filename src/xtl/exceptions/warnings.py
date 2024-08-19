@@ -14,3 +14,12 @@ class ObjectInstantiationWarning(Warning_):
 
     def __str__(self):
         return f'{self.raiser}: {self.message}' if self.raiser else self.message
+
+
+class ExistingReagentWarning(Warning_):
+
+    def __init__(self, message='', raiser: 'xtl.crystallization.experiments.Reagent' = None):
+        self.raiser = raiser
+
+    def __str__(self):
+        return f'Reagent {self.raiser.name} already in the list of reagents'
