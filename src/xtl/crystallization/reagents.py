@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from .applicators import _ReagentApplicator
+
 
 @dataclass
 class _Reagent:
@@ -8,6 +10,7 @@ class _Reagent:
     unit: str
     fmt_str: str
     solubility: float
+    applicator: _ReagentApplicator
 
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         self.name = name

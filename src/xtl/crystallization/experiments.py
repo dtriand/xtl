@@ -3,13 +3,14 @@ import warnings
 import numpy as np
 
 from xtl.exceptions.warnings import ExistingReagentWarning
-from reagents import _Reagent, Reagent, ReagentWV, ReagentVV, Buffer
+from .reagents import _Reagent, Reagent, ReagentWV, ReagentVV, Buffer
+from .applicators import _ReagentApplicator, ConstantApplicator, GradientApplicator
 
 
 class CrystallizationExperiment:
 
     def __init__(self, shape: int | tuple[int, int]):
-        self._data: np.array = None  # Concentrations array
+        self._data: np.array = None  # Concentrations array (no_reagents, size)
         self._reagents = list()  # List of reagents
         self._shape: tuple[int, int]  # Shape of the crystallization experiment
         self._ndim: int  # Number of dimensions in shape
@@ -46,8 +47,12 @@ class CrystallizationExperiment:
         return self._shape[1]
 
     @property
-    def no_wells(self):
+    def no_wells(self) -> int:
         return self.size
+
+    @property
+    def data(self) -> np.array:
+        return self._data.reshape((len(self._reagents), *self.shape))
 
     def add_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer):
         if not isinstance(reagent, _Reagent):
@@ -57,5 +62,31 @@ class CrystallizationExperiment:
         else:
             warnings.warn(ExistingReagentWarning(raiser=reagent))
 
-    def apply_reagent(self):
-        ...
+    def apply_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
+                      applicator: ConstantApplicator | GradientApplicator,
+                      location: str = 'everywhere'):
+        if not isinstance(reagent, _Reagent):
+            raise TypeError('Invalid reagent type')
+        if not isinstance(applicator, _ReagentApplicator):
+            raise TypeError('Invalid applicator type')
+
+        # Determine shape from location
+        shape = self._shape
+
+        # Apply reagent to given shape
+        reagent.applicator = applicator
+        data = reagent.applicator.apply(shape)  # 1D array (size, )
+
+        # Reformat the input data to fit the experiment shape
+        pass
+
+        # Append data to the concentrations array
+        if self._data is None:
+            self._data = data
+        else:
+            self._data = np.vstack((self._data, data))
+
+        if reagent not in self._reagents:
+            self._reagents.append(reagent)
+        else:
+            warnings.warn(ExistingReagentWarning(raiser=reagent))
