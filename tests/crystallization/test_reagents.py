@@ -15,13 +15,20 @@ class TestReagent:
         assert r.fmt_str is None
 
     @pytest.mark.xfail(raises=TypeError)
-    @pytest.mark.parametrize('concentration, solubility', [[1.0, '2.0'], ['2', 3]])
+    @pytest.mark.parametrize(
+        'concentration, solubility', [
+        (1.0,           '2.0'),
+        ('2',           3)
+        ])
     def test_init_fail_type_error(self, concentration, solubility):
         with pytest.raises(TypeError):
             r = Reagent(name='test', concentration=concentration, solubility=solubility)
 
     @pytest.mark.xfail(raises=ValueError)
-    @pytest.mark.parametrize('concentration, solubility', [[-1.0, 2.0], [2, 0]])
+    @pytest.mark.parametrize(
+        'concentration, solubility', [
+        (-1.0,          2.0),
+        (2,             0)])
     def test_init_fail_value_error(self, concentration, solubility):
         with pytest.raises(ValueError):
             r = Reagent(name='test', concentration=concentration, solubility=solubility)

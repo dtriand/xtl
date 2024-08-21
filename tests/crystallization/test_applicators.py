@@ -37,7 +37,12 @@ class TestConstantApplicator:
 
 class TestGradientApplicator:
 
-    @pytest.mark.parametrize('min_value, max_value', [(1.0, 2.0), (2, 3), (3.0, 4)])
+    @pytest.mark.parametrize(
+        'min_value, max_value', [
+        (1.0,       2.0),
+        (2,         3),
+        (3.0,       4)
+        ])
     def test_init(self, min_value, max_value):
         ga = GradientApplicator(min_value=min_value, max_value=max_value)
         assert ga.name.value == 'gradient'
@@ -48,21 +53,32 @@ class TestGradientApplicator:
         assert not ga.reverse
 
     @pytest.mark.xfail(raises=TypeError)
-    @pytest.mark.parametrize('min_value, max_value', [(1.0, '2.0'), ('2', 3), (3.0, [])])
+    @pytest.mark.parametrize(
+        'min_value, max_value', [
+        (1.0,       '2.0'),
+        ('2',       3),
+        (3.0,       [])
+        ])
     def test_init_fail_type_error(self, min_value, max_value):
         with pytest.raises(TypeError):
             ga = GradientApplicator(min_value=min_value, max_value=max_value)
 
     @pytest.mark.xfail(raises=ValueError)
-    @pytest.mark.parametrize('min_value, max_value', [(-1.0, 2.0), (2, 0), (3.0, -4)])
+    @pytest.mark.parametrize(
+        'min_value, max_value', [
+        (-1.0,      2.0),
+        (2,         -1),
+        (3.0,       -4)
+        ])
     def test_init_fail_value_error(self, min_value, max_value):
         with pytest.raises(ValueError):
             ga = GradientApplicator(min_value=min_value, max_value=max_value)
 
-    @pytest.mark.parametrize('method, scale, reverse', [
-        ('horizontal', 'linear', False),
-        ('vertical', 'logarithmic', True),
-        ('continuous', 'linear', False),
+    @pytest.mark.parametrize(
+        'method,       scale,         reverse', [
+        ('horizontal', 'linear',      False),
+        ('vertical',   'logarithmic', True),
+        ('continuous', 'linear',      False),
     ])
     def test_init_params(self, method, scale, reverse):
         ga = GradientApplicator(min_value=1.0, max_value=2.0, method=method, scale=scale, reverse=reverse)
@@ -70,12 +86,13 @@ class TestGradientApplicator:
         assert ga.scale.value == scale
         assert ga.reverse == reverse
 
-    @pytest.mark.parametrize('shape, method, scale, reverse, expected', [
-        ((8, 12), 'continuous', 'linear', True, np.linspace(2.0, 1.0, 96)),
-        ((1, 5), 'horizontal', 'logarithmic', False, np.geomspace(1.0, 2.0, 5)),
-        ((3, 6), 'vertical', 'linear', True, np.tile(np.linspace(2.0, 1.0, 3), (6, 1)).T.ravel()),
-        ((2, 3), 'continuous', 'linear', False, np.array([1.0, 1.2, 1.4, 1.6, 1.8, 2.0])),
-        ((3, 2), 'vertical', 'linear', True, np.array([2.0, 2.0, 1.5, 1.5, 1.0, 1.0]))
+    @pytest.mark.parametrize(
+        'shape,   method,       scale,         reverse, expected', [
+        ((8, 12), 'continuous', 'linear',      True,    np.linspace(2.0, 1.0, 96)),
+        ((1, 5),  'horizontal', 'logarithmic', False,   np.geomspace(1.0, 2.0, 5)),
+        ((3, 6),  'vertical',   'linear',      True,    np.tile(np.linspace(2.0, 1.0, 3), (6, 1)).T.ravel()),
+        ((2, 3),  'continuous', 'linear',      False,   np.array([1.0, 1.2, 1.4, 1.6, 1.8, 2.0])),
+        ((3, 2),  'vertical',   'linear',      True,    np.array([2.0, 2.0, 1.5, 1.5, 1.0, 1.0]))
     ])
     def test_apply(self, shape, method, scale, reverse, expected):
         ga = GradientApplicator(min_value=1.0, max_value=2.0, method=method, scale=scale, reverse=reverse)
@@ -85,7 +102,12 @@ class TestGradientApplicator:
 
 class TestStepFixedApplicator:
 
-    @pytest.mark.parametrize('start_value, step', [(1.0, 2.0), (0, 3), (3.0, 4)])
+    @pytest.mark.parametrize(
+        'start_value, step', [
+        (1.0,         2.0),
+        (0,           3),
+        (3.0,         4)
+        ])
     def test_init(self, start_value, step):
         sfa = StepFixedApplicator(start_value=start_value, step=step)
         assert sfa.name.value == 'step_fixed'
@@ -96,13 +118,22 @@ class TestStepFixedApplicator:
         assert not sfa.reverse
 
     @pytest.mark.xfail(raises=TypeError)
-    @pytest.mark.parametrize('start_value, step', [(1.0, '2.0'), ('2', 3), (3.0, [])])
+    @pytest.mark.parametrize(
+        'start_value, step', [
+        (1.0,         '2.0'),
+        ('2',         3),
+        (3.0,         [])
+        ])
     def test_init_fail_type_error(self, start_value, step):
         with pytest.raises(TypeError):
             sfa = StepFixedApplicator(start_value=start_value, step=step)
 
     @pytest.mark.xfail(raises=ValueError)
-    @pytest.mark.parametrize('start_value, step', [(-1.0, 2.0), (2, 0)])
+    @pytest.mark.parametrize(
+        'start_value, step', [
+        (-1.0,        2.0),
+        (2,           0)
+        ])
     def test_init_fail_value_error(self, start_value, step):
         with pytest.raises(ValueError):
             sfa = StepFixedApplicator(start_value=start_value, step=step)
@@ -113,11 +144,12 @@ class TestStepFixedApplicator:
         assert sfa.step == 2.0
         assert sfa.reverse
 
-    @pytest.mark.parametrize('shape, method, reverse, expected', [
-        ((8, 12), 'continuous', False, np.arange(start=10.0, stop=10.0 + 0.5 * 96, step=0.5)),
-        ((1, 5), 'horizontal', False, np.array([10.0, 10.5, 11.0, 11.5, 12.0])),
-        ((3, 6), 'vertical', True, np.tile([10., 9.5, 9.0], (6, 1)).T.ravel()),
-        ((2, 3), 'continuous', True, np.array([10., 9.5, 9.0, 8.5, 8.0, 7.5]))
+    @pytest.mark.parametrize(
+        'shape,   method,       reverse, expected', [
+        ((8, 12), 'continuous', False,   np.arange(start=10.0, stop=10.0 + 0.5 * 96, step=0.5)),
+        ((1, 5),  'horizontal', False,   np.array([10.0, 10.5, 11.0, 11.5, 12.0])),
+        ((3, 6),  'vertical',   True,    np.tile([10., 9.5, 9.0], (6, 1)).T.ravel()),
+        ((2, 3),  'continuous', True,    np.array([10., 9.5, 9.0, 8.5, 8.0, 7.5]))
     ])
     def test_apply(self, shape, method, reverse, expected):
         sfa = StepFixedApplicator(start_value=10.0, step=0.5, method=method, reverse=reverse)
