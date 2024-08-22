@@ -25,6 +25,40 @@ class TestCrystallizationExperiment:
         assert ce._pH.shape == expected
 
     @pytest.mark.parametrize(
+        'index,             expected', [
+        (0,                 (0, 0)),
+        (1,                 (0, 1)),
+        (84,                (7, 0)),
+        (77,                (6, 5)),
+        (95,                (7, 11)),
+        (np.array([0, 84]), np.array([[0, 0], [7, 0]])),
+        (np.array([1, 77]), np.array([[0, 1], [6, 5]])),
+        ])
+    def test_index_1D_to_2D(self, index, expected):
+        ce = CrystallizationExperiment(shape=(8, 12))
+        if isinstance(index, int):
+            assert ce._index_1D_to_2D(index) == expected
+        elif isinstance(index, np.ndarray):
+            assert np.all(ce._index_1D_to_2D(index) == expected)
+
+    @pytest.mark.parametrize(
+        'index,                      expected', [
+        ((0, 0),                     0),
+        ((0, 1),                     1),
+        ((7, 0),                     84),
+        ((6, 5),                     77),
+        ((7, 11),                    95),
+        (np.array([[0, 0], [7, 0]]), np.array([0, 84])),
+        (np.array([[0, 1], [6, 5]]), np.array([1, 77])),
+        ])
+    def test_index_2D_to_1D(self, index, expected):
+        ce = CrystallizationExperiment(shape=(8, 12))
+        if isinstance(index, tuple):
+            assert ce._index_2D_to_1D(row=index[0], col=index[1]) == expected
+        elif isinstance(index, np.ndarray):
+            assert np.all(ce._index_2D_to_1D(row=index[:, 0], col=index[:, 1]) == expected)
+
+    @pytest.mark.parametrize(
         'shape,   location,     expected', [
         ((8, 12), 'everywhere', np.arange(0, 96)),
         ((8, 12), 'all',        np.arange(0, 96)),

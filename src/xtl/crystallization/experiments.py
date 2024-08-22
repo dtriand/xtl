@@ -1,3 +1,4 @@
+from math import ceil
 import warnings
 
 import numpy as np
@@ -64,6 +65,72 @@ class CrystallizationExperiment:
     @property
     def data(self) -> np.array:
         return self._data.reshape((len(self._reagents), *self.shape))
+
+    def _index_1D_to_2D(self, i: int | np.ndarray[int]) -> tuple[int, int] | np.ndarray[int, int]:
+        """
+        Convert a 1D index to 2D indices (both 0-based)
+        """
+        if isinstance(i, int):
+            # Check if index is within bounds
+            if i > self.size:
+                raise ValueError(f'Index {i} is out of bounds')
+            # Calculate row and column
+            col = i % self.no_columns
+            row = int((i - col) / self.no_columns)
+            # Double check if the results are within bounds
+            if row > self.no_rows:
+                raise ValueError(f'Index {i} is out of bounds: row index {row} is larger than the number of rows')
+            if col > self.no_columns:
+                raise ValueError(f'Index {i} is out of bounds: column index {col} is larger than the number of columns')
+            return row, col
+        elif isinstance(i, np.ndarray):
+            # Check if indices are within bounds
+            out_of_range = np.where(i > self.size)[0]
+            if out_of_range.size > 0:
+                raise ValueError(f'Indices {i[out_of_range]} are out of bounds')
+            # Calculate row and column
+            col = np.mod(i, self.no_columns)
+            row = np.divide(i - col, self.no_columns).astype(int)
+            # Double check if the results are within bounds
+            rows_out_of_range = np.where(row > self.no_rows)[0]
+            if rows_out_of_range.size > 0:
+                raise ValueError(f'Indices {i[rows_out_of_range]} are out of bounds: '
+                                 f'row index is larger than the number of rows')
+            cols_out_of_range = np.where(col > self.no_columns)[0]
+            if cols_out_of_range.size > 0:
+                raise ValueError(f'Indices {i[cols_out_of_range]} are out of bounds: '
+                                 f'column index is larger than the number of columns')
+            return np.vstack((row, col)).T
+        else:
+            raise TypeError(f'Incompatible type for \'i\': {type(i)}')
+
+    def _index_2D_to_1D(self, row: int | np.ndarray[int], col: int | np.ndarray[int]) -> int | np.ndarray[int, int]:
+        """
+        Convert 2D indices to a 1D index (both 0-based)
+        """
+        if isinstance(row, int) and isinstance(col, int):
+            # Check if indices are within bounds
+            if row > self.no_rows:
+                raise ValueError(f'Row index {row} is out of bounds')
+            if col > self.no_columns:
+                raise ValueError(f'Column index {col} is out of bounds')
+            # Calculate 1D index
+            return row * self.no_columns + col
+        elif isinstance(row, np.ndarray) and isinstance(col, np.ndarray):
+            # Check if row and col are broadcastable
+            if row.size != col.size:
+                raise ValueError('Row and column indices must have the same length')
+            # Check if indices are within bounds
+            rows_out_of_range = np.where(row > self.no_rows)[0]
+            if rows_out_of_range.size > 0:
+                raise ValueError(f'Row indices {row[rows_out_of_range]} are out of bounds')
+            cols_out_of_range = np.where(col > self.no_columns)[0]
+            if cols_out_of_range.size > 0:
+                raise ValueError(f'Column indices {col[cols_out_of_range]} are out of bounds')
+            # Calculate 1D indices
+            return row * self.no_columns + col
+        else:
+            raise TypeError(f'Incompatible types for \'row\' and \'col\': {type(row)} and {type(col)}')
 
     def _location_str_to_pos(self, location: str) -> list[int]:
         """
