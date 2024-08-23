@@ -39,7 +39,7 @@ class TestCrystallizationExperiment:
         if isinstance(index, int):
             assert ce._index_1D_to_2D(index) == expected
         elif isinstance(index, np.ndarray):
-            assert np.all(ce._index_1D_to_2D(index) == expected)
+            assert np.array_equal(ce._index_1D_to_2D(index), expected, equal_nan=True)
 
     @pytest.mark.parametrize(
         'index,                      expected', [
@@ -56,7 +56,7 @@ class TestCrystallizationExperiment:
         if isinstance(index, tuple):
             assert ce._index_2D_to_1D(row=index[0], col=index[1]) == expected
         elif isinstance(index, np.ndarray):
-            assert np.all(ce._index_2D_to_1D(row=index[:, 0], col=index[:, 1]) == expected)
+            assert np.array_equal(ce._index_2D_to_1D(row=index[:, 0], col=index[:, 1]), expected, equal_nan=True)
 
     @pytest.mark.parametrize(
         'shape,   location,     expected', [
@@ -84,7 +84,7 @@ class TestCrystallizationExperiment:
     def test_location_to_indices_str(self, shape, location, expected):
         ce = CrystallizationExperiment(shape=shape)
         indices = ce._location_to_indices(location)
-        assert np.all(indices == np.sort(expected))
+        assert np.array_equal(indices, np.sort(expected), equal_nan=True)
 
     @pytest.mark.parametrize(
         'shape,   location,             expected', [
@@ -96,5 +96,26 @@ class TestCrystallizationExperiment:
     def test_location_to_indices_list(self, shape, location, expected):
         ce = CrystallizationExperiment(shape=shape)
         indices = ce._location_to_indices(location)
-        assert np.all(indices == np.sort(expected))
+        assert np.array_equal(indices, np.sort(expected), equal_nan=True)
+
+    @pytest.mark.parametrize(
+        'shape,   location,    expected_map_i,        expected_mask', [
+        ((8, 12), 'cell1',     np.array([0]),         np.array([1.0]).reshape((1, 1))),
+        ((8, 12), 'row1',      np.arange(0, 12),      np.full(12, fill_value=1.0).reshape((1, 12))),
+        ((8, 12), 'col2',      np.arange(8) * 12 + 1, np.full(8, fill_value=1.0).reshape((8, 1))),
+        ((8, 12), 'cell1-96',  np.arange(96),         np.full(96, fill_value=1.0).reshape((8, 12))),
+        ((8, 12), 'cell14,81', np.vstack([np.arange(8) + 13 + 12 * a for a in range(0, 6)]),
+                                                      np.vstack([[1.0] + [np.nan] * 7,
+                                                                np.tile(np.full(8, np.nan), (4, 1)),
+                                                                [np.nan] * 7 + [1.0]]))
+    ])
+    def test_location_to_map(self, shape, location, expected_map_i, expected_mask):
+        ce = CrystallizationExperiment(shape=shape)
+        location_map, mask = ce._location_to_map(location)
+        expected_map = np.full(shape, fill_value=False).ravel()
+        expected_map[expected_map_i] = True
+        assert location_map.shape == ce.shape
+        assert np.array_equal(location_map, expected_map.reshape(shape), equal_nan=True)
+        assert np.array_equal(mask, expected_mask, equal_nan=True)
+
 

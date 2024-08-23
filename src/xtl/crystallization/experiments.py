@@ -226,10 +226,33 @@ class CrystallizationExperiment:
                     indices[i - 1] = True
             return np.where(indices == True)[0]
 
+    def _location_to_map(self, location: str | list) -> tuple[np.array, np.array]:
+        # Parse location and get the indices of the valid positions
+        indices = self._location_to_indices(location)
+
+        # Initialize the flattened mask array with nan
+        mask = np.full((self.size, ), np.nan)  # 1D array (size, )
+        # Set values of the valid positions to 1.0
+        mask[indices] = 1.0
+        # Get the 2D indices of all valid positions
+        mask_indices = self._index_1D_to_2D(np.where(mask == 1.0)[0])  # [[r1, c1], [r2, c2], ...]
+
+        # Calculate the bounding box of the mask
+        r_min, c_min = np.min(mask_indices, axis=0)  # [r_min, c_min]
+        r_max, c_max = np.max(mask_indices, axis=0)  # [r_max, c_max]
+
+        # Trim mask to the bounding box
+        mask = mask.reshape(self.shape)  # reshape to 2D array (rows, columns)
+        mask = mask[r_min:r_max+1, c_min:c_max+1]
+
+        # Calculate the mapping of the location to the original experiment shape
+        location_map = np.full(self.shape, False)
+        location_map[r_min:r_max+1, c_min:c_max+1] = True
+
+        return location_map, mask
+
     def apply_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
-                      applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
-                      pH_applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator = None,
-                      location: str = 'everywhere'):
+                      applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator):
         if not isinstance(reagent, _Reagent):
             raise TypeError('Invalid reagent type')
         if not isinstance(applicator, _ReagentApplicator):
@@ -255,6 +278,18 @@ class CrystallizationExperiment:
             self._reagents.append(reagent)
         else:
             warnings.warn(ExistingReagentWarning(raiser=reagent))
+
+    def apply_reagent_2(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
+                      applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
+                      location: str | list):
+        loc_map, mask = self._location_to_map(location)
+        shape = mask.shape
+        reagent.applicator = applicator
+        data = reagent.applicator.apply(shape)
+        # reshaped = self._reshape_array(data, loc_map)
+        # self._data = np.vstack([self._data, reshaped])
+        # self._reagents.append(reagent)
+        # self._reagents_map = np.vstack([self._reagents_map, map])
 
     def calculate_volumes(self, final_volume: float | int):
         # V1 = C2 * V2 / C1

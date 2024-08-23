@@ -32,7 +32,7 @@ class TestConstantApplicator:
     def test_apply(self, shape):
         ca = ConstantApplicator(value=1.0)
         data = ca.apply(shape=shape)
-        assert np.all(data == np.full(shape, 1.0).ravel())
+        assert np.array_equal(data, np.full(shape, 1.0).ravel(), equal_nan=True)
 
 
 class TestGradientApplicator:
@@ -97,7 +97,7 @@ class TestGradientApplicator:
     def test_apply(self, shape, method, scale, reverse, expected):
         ga = GradientApplicator(min_value=1.0, max_value=2.0, method=method, scale=scale, reverse=reverse)
         data = ga.apply(shape=shape)
-        assert np.all(data == expected)
+        assert np.array_equal(data, expected, equal_nan=True)
 
 
 class TestStepFixedApplicator:
@@ -154,7 +154,7 @@ class TestStepFixedApplicator:
     def test_apply(self, shape, method, reverse, expected):
         sfa = StepFixedApplicator(start_value=10.0, step=0.5, method=method, reverse=reverse)
         data = sfa.apply(shape=shape)
-        assert np.all(data == expected)
+        assert np.array_equal(data, expected, equal_nan=True)
 
     @pytest.mark.xfail(raises=ValueError)
     def test_apply_negative_min(self):
