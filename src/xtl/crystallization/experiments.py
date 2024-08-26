@@ -16,7 +16,6 @@ class CrystallizationExperiment:
         self._volumes: np.array = None  # Volumes array (no_reagents + 1, size)
         self._pH: np.array = None  # pH array (size, )
         self._reagents = list()  # List of reagents
-        self._reagents_map: np.array = None  # Reagents map (no_reagents, size)
         self._shape: tuple[int, int]  # Shape of the crystallization experiment
         self._ndim: int  # Number of dimensions in shape
 
@@ -311,21 +310,48 @@ class CrystallizationExperiment:
 
     def apply_reagent_2(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
                       applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
-                      location: str | list):
+                      location: str | list = 'everywhere'):
+        # Type checking for reagent and applicator
+        if not isinstance(reagent, _Reagent):
+            raise TypeError('Invalid \'reagent\' type')
+        if not isinstance(applicator, _ReagentApplicator):
+            raise TypeError('Invalid \'applicator\' type')
+
+        # Check if the reagent is already in the list
+        if reagent in self._reagents:
+            warnings.warn(ExistingReagentWarning(raiser=reagent))
+            return
+
+        # Map the locations to the experiment shape
+        #  loc_map: self.shape, mask.shape <= self.shape
         loc_map, mask = self._location_to_map(location)
         shape = mask.shape
+
+        # Calculate reagent concentrations
         reagent.applicator = applicator
         data = reagent.applicator.apply(shape)
+        data = data.reshape(shape)  # data.shape = mask.shape
+
+        # Transform concentration array to the experiment shape
+        #  data_reshaped: self.shape, mask_reshaped: self.shape
         data_reshaped, mask_reshaped = self._reshape_data(array=data, location_map=loc_map, mask=mask)
-        # self._data = np.vstack([self._data, reshaped])
-        # self._reagents.append(reagent)
-        # self._reagents_map = np.vstack([self._reagents_map, map])
+
+        # Flatten and mask array
+        #  data_flattened: (self.size, )
+        data_flattened = data_reshaped.ravel() * mask_reshaped.ravel()
+
+        # Append concentrations to the experiment
+        if isinstance(self._data, NoneType):
+            self._data = data_flattened.reshape((1, self.size))  # (1, size)
+        else:
+            self._data = np.vstack([self._data, data_flattened])  # (no_reagents, size)
+        self._reagents.append(reagent)
 
     def calculate_volumes(self, final_volume: float | int):
         # V1 = C2 * V2 / C1
         c_stocks = np.array([reagent.concentration for reagent in self._reagents])
         v_stocks = ((self._data * final_volume).T / c_stocks).T
-        v_water = final_volume - np.sum(v_stocks, axis=0)
+        v_water = final_volume - np.nansum(v_stocks, axis=0)
 
         impossibles = np.where(v_water < 0)[0]
         if impossibles.size > 0:

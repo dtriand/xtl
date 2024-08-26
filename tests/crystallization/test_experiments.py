@@ -20,7 +20,6 @@ class TestCrystallizationExperiment:
         assert ce._volumes is None
         assert ce._pH is not None
         assert ce._reagents == []
-        assert ce._reagents_map is None
         assert ce._shape == expected
         assert ce._ndim == len(shape) if isinstance(shape, tuple) else 1
         assert ce._pH.shape == expected
