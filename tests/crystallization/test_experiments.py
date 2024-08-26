@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 
 from xtl.crystallization.experiments import CrystallizationExperiment
+from xtl.io.npx import npx_load
 
 class TestCrystallizationExperiment:
 
@@ -118,4 +119,39 @@ class TestCrystallizationExperiment:
         assert np.array_equal(location_map, expected_map.reshape(shape), equal_nan=True)
         assert np.array_equal(mask, expected_mask, equal_nan=True)
 
+    @pytest.mark.parametrize('npx_file', ['data/reshape_data_ex1.npx',
+                                          'data/reshape_data_ex2.npx',
+                                          'data/reshape_data_ex3.npx'])
+    def test_reshape_data(self, npx_file):
+        npx = npx_load(npx_file)
+        shape = tuple(npx.data['shape'])
+        (r_min, c_min), (r_max, c_max) = npx.data['indices']
+        data = npx.data['data']
+        mask = npx.data['mask']
+        location_map = npx.data['location_map']
+        data_reshaped_expected = npx.data['data_reshaped']
+        mask_reshaped_expected = npx.data['mask_reshaped']
 
+        ce = CrystallizationExperiment(shape=shape)
+        data_reshaped, mask_reshaped = ce._reshape_data(array=data, location_map=location_map, mask=mask)
+        assert np.array_equal(data_reshaped, data_reshaped_expected, equal_nan=True)
+        assert np.array_equal(mask_reshaped, mask_reshaped_expected, equal_nan=True)
+
+
+    @pytest.mark.parametrize('npx_file', ['data/reshape_data_ex1.npx',
+                                          'data/reshape_data_ex2.npx',
+                                          'data/reshape_data_ex3.npx'])
+    def test_reshape_data_without_mask(self, npx_file):
+        npx = npx_load(npx_file)
+        shape = tuple(npx.data['shape'])
+        (r_min, c_min), (r_max, c_max) = npx.data['indices']
+        data = npx.data['data']
+        location_map = npx.data['location_map']
+        # data_reshaped_expected = npx.data['data_reshaped']
+        mask_reshaped_expected = location_map.astype(float)
+        mask_reshaped_expected[np.where(mask_reshaped_expected == 0.)] = np.nan
+
+        ce = CrystallizationExperiment(shape=shape)
+        data_reshaped, mask_reshaped = ce._reshape_data(array=data, location_map=location_map, mask=None)
+        # assert np.array_equal(data_reshaped, data_reshaped_expected, equal_nan=True)
+        assert np.array_equal(mask_reshaped, mask_reshaped_expected, equal_nan=True)

@@ -1,5 +1,6 @@
 from math import ceil
 import warnings
+from types import NoneType
 
 import numpy as np
 
@@ -251,6 +252,35 @@ class CrystallizationExperiment:
 
         return location_map, mask
 
+    def _reshape_data(self, array: np.array, location_map: np.array, mask: np.array = None) -> tuple[np.array, np.array]:
+        # Create dummy mask if not provided
+        if isinstance(mask, NoneType):
+            mask = np.ones_like(array)
+
+        # Check if arrays are compatible
+        if array.shape != mask.shape:
+            raise ValueError('\'array\' and \'mask\' must have the same shape')
+        if location_map.shape != self.shape:
+            raise ValueError('\'location_map\' must have the same shape as the experiment')
+
+        # Calculate the bounding box of the mask
+        mask_indices = np.where(location_map == True)
+        r_min, c_min = np.min(mask_indices, axis=1)  # [r_min, c_min]
+        r_max, c_max = np.max(mask_indices, axis=1)  # [r_max, c_max]
+
+        # Apply the mask to the input array
+        masked_array = array * mask
+
+        # Reshape the masked array to the experiment shape
+        data_reshaped = np.full(self.shape, np.nan)
+        data_reshaped[r_min:r_max+1, c_min:c_max+1] = masked_array
+
+        # Reshape the mask to the experiment shape
+        mask_reshaped = np.full(self.shape, np.nan)
+        mask_reshaped[r_min:r_max+1, c_min:c_max+1] = mask
+        return data_reshaped, mask_reshaped
+
+
     def apply_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
                       applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator):
         if not isinstance(reagent, _Reagent):
@@ -286,7 +316,7 @@ class CrystallizationExperiment:
         shape = mask.shape
         reagent.applicator = applicator
         data = reagent.applicator.apply(shape)
-        # reshaped = self._reshape_array(data, loc_map)
+        data_reshaped, mask_reshaped = self._reshape_data(array=data, location_map=loc_map, mask=mask)
         # self._data = np.vstack([self._data, reshaped])
         # self._reagents.append(reagent)
         # self._reagents_map = np.vstack([self._reagents_map, map])

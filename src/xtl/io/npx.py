@@ -126,9 +126,10 @@ class NpxFile:
         file = Path(filename)
         b = file.read_bytes()
 
+        title_start = f'{cls._COMMENT_CHAR * (cls._MULTIPLIER + 1)} {cls._NPX_TITLE}'.encode(encoding='latin1')
         header_start = f'{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_HEADER_START}\n'.encode(encoding='latin1')
         header_end = f'\n{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_HEADER_END}\n'.encode(encoding='latin1')
-        if b.startswith(header_start):
+        if b.startswith(title_start):
             # Parse a .npx file
             # Parse header
             header_block = b.split(header_start)[-1].split(header_end)[0].decode()
