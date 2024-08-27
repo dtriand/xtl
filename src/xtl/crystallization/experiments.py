@@ -17,6 +17,7 @@ class CrystallizationExperiment:
         self._reagents = list()  # List of reagents
         self._shape: tuple[int, int]  # Shape of the crystallization experiment
         self._ndim: int  # Number of dimensions in shape
+        self._total_volume: float = None  # Total volume of the experiment
 
         # Shape of the crystallization experiment
         if isinstance(shape, int):
@@ -64,6 +65,23 @@ class CrystallizationExperiment:
     @property
     def data(self) -> np.array:
         return self._data.reshape((len(self._reagents), *self.shape))
+
+    @property
+    def volumes(self) -> None or np.array:
+        if isinstance(self._volumes, NoneType):
+            return None
+        return self._volumes.reshape((len(self._reagents) + 1, *self.shape))
+
+    @property
+    def pH(self) -> np.array:
+        return self._pH.reshape(*self.shape)
+
+    @property
+    def reagents(self) -> list[_Reagent]:
+        if not isinstance(self._volumes, NoneType):
+            water = Reagent(name='H2O', concentration=55.5)  # ToDo: Convert this to a ValuesApplicator
+            return self._reagents + [water]
+        return self._reagents
 
     def _index_1D_to_2D(self, i: int | np.ndarray[int]) -> tuple[int, int] | np.ndarray[int, int]:
         """
@@ -282,6 +300,18 @@ class CrystallizationExperiment:
                       applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
                       location: str | list = 'everywhere', *,
                       pH_applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator = None):
+        """
+        Add a reagent to the experiment using a certain method for determining the concentration gradient. Each reagent
+        can only be applied once to the experiment. If the reagent is already in the list, a warning is raised. The
+        reagent is applied by default on the entire experiment, but it can be applied to a subset of conditions using
+        the 'location' parameter. Valid locations include 'everywhere' (default), 'row1', 'col1-4', 'cell1,3,4' or a
+        list of these. The cell, row and column indices in the location parameter are 1-based.
+        \f
+        :param reagent: reagent to add
+        :param applicator: method for determining the concentration gradient
+        :param location: location to apply the reagent (default: 'everywhere')
+        :param pH_applicator: method for determining the pH gradient (only for Buffer reagents)
+        """
         # Type checking for reagent and applicator
         if not isinstance(reagent, _Reagent):
             raise TypeError('Invalid \'reagent\' type')
@@ -369,9 +399,10 @@ class CrystallizationExperiment:
 
     def calculate_volumes(self, final_volume: float | int):
         # V1 = C2 * V2 / C1
+        self._total_volume = float(final_volume)
         c_stocks = np.array([reagent.concentration for reagent in self._reagents])
-        v_stocks = ((self._data * final_volume).T / c_stocks).T
-        v_water = final_volume - np.nansum(v_stocks, axis=0)
+        v_stocks = ((self._data * self._total_volume).T / c_stocks).T
+        v_water = self._total_volume - np.nansum(v_stocks, axis=0)
 
         impossibles = np.where(v_water < 0)[0]
         if impossibles.size > 0:

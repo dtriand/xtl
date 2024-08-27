@@ -10,7 +10,7 @@ class _Reagent:
     unit: str
     fmt_str: str
     solubility: float
-    applicator: _ReagentApplicator
+    applicator: _ReagentApplicator = None
 
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         self.name = name
@@ -35,6 +35,11 @@ class _Reagent:
 
         self.unit = 'M'
         self.fmt_str = fmt_str
+        self._repr_keywords = ['name', 'concentration', 'unit', 'solubility']
+
+    def __repr__(self):
+        keywords = [f'{key}={self.__getattribute__(key)}' for key in self._repr_keywords]
+        return f'{type(self).__name__}({", ".join(keywords)})'
 
 
 @dataclass
@@ -43,6 +48,8 @@ class Reagent(_Reagent):
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
 
+    def __repr__(self):
+        return super().__repr__()
 
 @dataclass
 class ReagentWV(_Reagent):
@@ -51,6 +58,9 @@ class ReagentWV(_Reagent):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
         self.unit = '%(w/v)'
 
+    def __repr__(self):
+        return super().__repr__()
+
 
 @dataclass
 class ReagentVV(_Reagent):
@@ -58,6 +68,9 @@ class ReagentVV(_Reagent):
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
         self.unit = '%(v/v)'
+
+    def __repr__(self):
+        return super().__repr__()
 
 
 @dataclass
@@ -74,6 +87,10 @@ class ReagentBuffer(_Reagent):
         self.pH_applicator: _ReagentApplicator = None
 
         self.unit = 'M'
+        self._repr_keywords += ['pH']
+
+    def __repr__(self):
+        return super().__repr__()
 
 
 Buffer = ReagentBuffer
