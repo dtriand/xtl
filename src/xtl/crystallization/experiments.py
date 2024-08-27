@@ -1,4 +1,3 @@
-from math import ceil
 import warnings
 from types import NoneType
 
@@ -32,7 +31,7 @@ class CrystallizationExperiment:
             raise TypeError('Invalid shape type, must be int or tuple')
 
         # Initialize arrays
-        self._pH = np.full(self.shape, np.nan)
+        self._pH = np.full(self.size, np.nan)
 
 
     @property
@@ -279,43 +278,24 @@ class CrystallizationExperiment:
         mask_reshaped[r_min:r_max+1, c_min:c_max+1] = mask
         return data_reshaped, mask_reshaped
 
-
     def apply_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
-                      applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator):
-        if not isinstance(reagent, _Reagent):
-            raise TypeError('Invalid reagent type')
-        if not isinstance(applicator, _ReagentApplicator):
-            raise TypeError('Invalid applicator type')
-
-        # Determine shape from location
-        shape = self._shape
-
-        # Apply reagent to given shape
-        reagent.applicator = applicator
-        data = reagent.applicator.apply(shape)  # 1D array (size, )
-
-        # Reformat the input data to fit the experiment shape
-        pass
-
-        # Append data to the concentrations array
-        if self._data is None:
-            self._data = data
-        else:
-            self._data = np.vstack((self._data, data))
-
-        if reagent not in self._reagents:
-            self._reagents.append(reagent)
-        else:
-            warnings.warn(ExistingReagentWarning(raiser=reagent))
-
-    def apply_reagent_2(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
                       applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
-                      location: str | list = 'everywhere'):
+                      location: str | list = 'everywhere', *,
+                      pH_applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator = None):
         # Type checking for reagent and applicator
         if not isinstance(reagent, _Reagent):
             raise TypeError('Invalid \'reagent\' type')
         if not isinstance(applicator, _ReagentApplicator):
             raise TypeError('Invalid \'applicator\' type')
+
+        # Type checking for pH applicator
+        do_pH_gradient = False
+        if not isinstance(pH_applicator, NoneType):
+            if not isinstance(pH_applicator, _ReagentApplicator):
+                raise TypeError('Invalid \'pH_applicator\' type')
+            if not isinstance(reagent, Buffer):
+                raise TypeError('\'pH_applicator\' can only be applied to a Buffer reagent')
+            do_pH_gradient = True
 
         # Check if the reagent is already in the list
         if reagent in self._reagents:
@@ -340,12 +320,52 @@ class CrystallizationExperiment:
         #  data_flattened: (self.size, )
         data_flattened = data_reshaped.ravel() * mask_reshaped.ravel()
 
-        # Append concentrations to the experiment
-        if isinstance(self._data, NoneType):
-            self._data = data_flattened.reshape((1, self.size))  # (1, size)
-        else:
-            self._data = np.vstack([self._data, data_flattened])  # (no_reagents, size)
-        self._reagents.append(reagent)
+        if not do_pH_gradient:  # for non-pH gradients
+            # Append concentration data to the experiment
+            if isinstance(self._data, NoneType):
+                self._data = data_flattened.reshape((1, self.size))  # (1, size)
+            else:
+                self._data = np.vstack([self._data, data_flattened])  # (no_reagents, size)
+
+            # Add reagent to the list
+            self._reagents.append(reagent)
+        else:  # for pH gradients
+            reagent.pH_applicator = pH_applicator
+            # Calculate pH values
+            #  pH_data.shape = mask.shape
+            pH_data = reagent.pH_applicator.apply(shape).reshape(shape)
+
+            # Transform pH array to the experiment shape
+            #  pH_reshaped: self.shape, pH_mask: self.shape
+            pH_reshaped, pH_mask = self._reshape_data(array=pH_data, location_map=loc_map, mask=mask)
+
+            # Flatten and mask pH array
+            pH_flattened = pH_reshaped.ravel() * pH_mask.ravel()  # (size, )
+
+            # Determine unique pH values
+            unique_pHs = np.sort(np.unique(pH_flattened))
+
+            # Create a new Buffer instance for each unique pH value
+            for pH in unique_pHs:
+                # Get indices for given pH
+                indices = np.where(pH_flattened == pH)[0]
+
+                # Set the concentration for this Buffer
+                conc_data = np.full_like(data_flattened, np.nan)  # (size, )
+                conc_data[indices] = data_flattened[indices]
+
+                # Append concentration and pH data to experiment
+                if isinstance(self._data, NoneType):
+                    self._data = conc_data.reshape((1, self.size))
+                else:
+                    self._data = np.vstack([self._data, conc_data])
+                self._pH[indices] = pH
+
+                # Create new Buffer and add to reagent list
+                buffer = Buffer(name=reagent.name, concentration=reagent.concentration, pH=pH)
+                buffer.applicator = reagent.applicator  # ToDo: Convert this to ValuesApplicator
+                buffer.pH_applicator = ConstantApplicator(value=pH)
+                self._reagents.append(buffer)
 
     def calculate_volumes(self, final_volume: float | int):
         # V1 = C2 * V2 / C1

@@ -71,6 +71,7 @@ class ReagentBuffer(_Reagent):
         if (pH < 0) or (pH > 14):
             raise ValueError('pH must be between 0 and 14')
         self.pH = float(pH)
+        self.pH_applicator: _ReagentApplicator = None
 
         self.unit = 'M'
 
