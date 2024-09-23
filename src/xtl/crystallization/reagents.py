@@ -35,11 +35,23 @@ class _Reagent:
 
         self.unit = 'M'
         self.fmt_str = fmt_str
+        self._location = list()
         self._repr_keywords = ['name', 'concentration', 'unit', 'solubility']
 
     def __repr__(self):
         keywords = [f'{key}={self.__getattribute__(key)}' for key in self._repr_keywords]
         return f'{type(self).__name__}({", ".join(keywords)})'
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'type': type(self).__name__,
+            'concentration': self.concentration,
+            'unit': self.unit,
+            'solubility': self.solubility,
+            'applicator': self.applicator.to_dict() if self.applicator is not None else None,
+            'location': self._location
+        }
 
 
 @dataclass
@@ -91,6 +103,12 @@ class ReagentBuffer(_Reagent):
 
     def __repr__(self):
         return super().__repr__()
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['pH'] = self.pH
+        d['pH_applicator'] = self.pH_applicator.to_dict() if self.pH_applicator is not None else None
+        return d
 
 
 Buffer = ReagentBuffer

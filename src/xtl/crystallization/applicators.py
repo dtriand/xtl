@@ -51,6 +51,12 @@ class ConstantApplicator(_ReagentApplicator):
         data = np.full(shape, self.value).ravel()
         return data
 
+    def to_dict(self):
+        return {
+            'name': self.name.value,
+            'value': self.value
+        }
+
 
 @dataclass
 class GradientApplicator(_ReagentApplicator):
@@ -112,6 +118,15 @@ class GradientApplicator(_ReagentApplicator):
 
         return data
 
+    def to_dict(self):
+        return {
+            'name': self.name.value,
+            'min_value': self.min_value,
+            'max_value': self.max_value,
+            'method': self.method.value,
+            'scale': self.scale.value,
+            'reverse': self.reverse
+        }
 
 @dataclass
 class StepFixedApplicator(_ReagentApplicator):
@@ -192,6 +207,15 @@ class StepFixedApplicator(_ReagentApplicator):
 
         return data
 
+    def to_dict(self):
+        return {
+            'name': self.name.value,
+            'min_value': self.min_value,
+            'max_value': self.max_value,
+            'step': self.step,
+            'method': self.method.value,
+            'reverse': self.reverse
+        }
 
 @dataclass
 class StepListApplicator(_ReagentApplicator):

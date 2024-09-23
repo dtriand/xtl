@@ -3,6 +3,7 @@ from types import NoneType
 
 import numpy as np
 
+from xtl import __version__
 from xtl.exceptions.warnings import ExistingReagentWarning
 from .reagents import _Reagent, Reagent, ReagentWV, ReagentVV, Buffer
 from .applicators import _ReagentApplicator, ConstantApplicator, GradientApplicator, StepFixedApplicator
@@ -357,6 +358,9 @@ class CrystallizationExperiment:
             else:
                 self._data = np.vstack([self._data, data_flattened])  # (no_reagents, size)
 
+            # Append location to reagent
+            reagent._location = self._index_1D_to_2D(np.where(mask_reshaped.ravel() == 1.0)[0]) + 1
+
             # Add reagent to the list
             self._reagents.append(reagent)
         else:  # for pH gradients
@@ -395,6 +399,10 @@ class CrystallizationExperiment:
                 buffer = Buffer(name=reagent.name, concentration=reagent.concentration, pH=pH)
                 buffer.applicator = reagent.applicator  # ToDo: Convert this to ValuesApplicator
                 buffer.pH_applicator = ConstantApplicator(value=pH)
+
+                # Append location to buffer
+                buffer._location = self._index_1D_to_2D(indices) + 1
+
                 self._reagents.append(buffer)
 
     def calculate_volumes(self, final_volume: float | int):
@@ -410,3 +418,17 @@ class CrystallizationExperiment:
 
         self._volumes = np.vstack((v_stocks, v_water))
         return self._volumes
+
+    def to_dict(self) -> dict:
+        """
+        Convert the experiment to a dictionary
+        """
+        return {
+            'xtl.version': __version__,
+            'shape': self.shape,
+            'total_volume': self._total_volume,
+            'reagents': [reagent.to_dict() for reagent in self.reagents],
+            'data': self.data.tolist() if not isinstance(self.data, NoneType) else None,
+            'volumes': self.volumes.tolist() if not isinstance(self.volumes, NoneType) else None,
+            'pH': self.pH.tolist() if not isinstance(self.pH, NoneType) else None
+        }
