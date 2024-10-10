@@ -2,8 +2,8 @@ import asyncio
 from functools import wraps
 from pathlib import Path
 
-from batchfile import BatchFile
-from sites import ComputeSite, LocalSite
+from xtl.automate.batchfile import BatchFile
+from xtl.automate.sites import ComputeSite, LocalSite
 
 
 def limited_concurrency(limit: int):
@@ -41,6 +41,11 @@ class Job:
 
         self._stdout = Path(stdout_log) if stdout_log is not None else Path(f'{self._name}.stdout.log')
         self._stderr = Path(stderr_log) if stderr_log is not None else Path(f'{self._name}.stderr.log')
+
+        self._echo = print
+
+    def echo(self, message: str):
+        self._echo(f'[{self._name}] {message}')
 
     def create_batch(self, filename: str, cmds: list[str], do_chmod: bool = True):
         b = BatchFile(name=f'{self._name}', filename=filename, compute_site=self._compute_site)

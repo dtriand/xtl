@@ -1,7 +1,7 @@
 from pathlib import Path
 import stat
 
-from sites import ComputeSite, LocalSite
+from xtl.automate.sites import ComputeSite, LocalSite
 
 class BatchFile:
     HEADER = '#!/bin/bash'

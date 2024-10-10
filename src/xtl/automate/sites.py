@@ -1,4 +1,4 @@
-from priority_system import _PrioritySystem, DefaultPrioritySystem, NicePrioritySystem
+from xtl.automate.priority_system import _PrioritySystem, DefaultPrioritySystem, NicePrioritySystem
 
 
 class ComputeSite:
