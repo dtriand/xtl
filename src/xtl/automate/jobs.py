@@ -30,6 +30,7 @@ class Job:
 
     def __init__(self, name: str, compute_site: ComputeSite = None, stdout_log: str | Path = None,
                  stderr_log: str | Path = None):
+        self._job_type = 'job'
         self._name = str(name)
 
         if compute_site is None:
