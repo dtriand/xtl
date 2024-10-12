@@ -233,7 +233,7 @@ def _make_cfg():
     if os.path.exists(local_config):
         print(f'Reading local config: {local_config}')
         _cfg = Config(local_config)
-        _check_config_version(cfg)
+        _check_config_version(_cfg)
     else:
         print(f'Reading global config: {global_config}')
         _cfg = Config(global_config, fix=True)

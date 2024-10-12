@@ -17,7 +17,7 @@ class CliIO:
 
     def echo(self, message: str, level='info', verbose=0, **kwargs):
         nl = kwargs.get('nl', True)
-        style = self.echo_style.get(level, {})
+        style = self.echo_style.get(level, {}) | kwargs.get('style', {})
         if self.debug:
             typer.secho(message, nl=nl, **style)
         else:
