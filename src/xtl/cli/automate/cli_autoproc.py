@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
@@ -39,7 +40,7 @@ def parse_csv(csv_file: Path):
         if header in datasets_dict:
             indices[header] = headers.index(header)
 
-    for line in csv_file.read_text().splitlines():
+    for line in csv_file.read_text().splitlines()[1:]:
         if line.startswith('#'):
             continue
         values = line.split(',')
@@ -387,15 +388,22 @@ async def cli_autoproc_run_many(
                            xds_nproc=xds_nproc, exclude_ice_rings=exclude_ice_rings, beamline=beamline,
                            cutoff=cutoff, extra_args=extra)
 
+    # Create a new datasets.csv file for the processed datasets
+    csv_new = out_dir / f'datasets_new_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    csv_dict = {key: [] for key in datasets.keys()}
+    csv_dict['job_dir'] = []
+    csv_dict['autoproc_id'] = []
+    csv_dict.pop('headers')
+
     # Create AutoPROCJob instances
     cli.echo('Preparing jobs... ', nl=False)
     apj = AutoPROCJob.update_concurrency_limit(no_concurrent_jobs)
     jobs = []
-    for subdir, dataset, first_image, subdir_rename, pname, xname, dname in zip(
+    for i, (subdir, dataset, first_image, subdir_rename, pname, xname, dname) in enumerate(zip(
             datasets['dataset_subdir'], datasets['dataset_name'], datasets['first_image'],
             datasets['rename_dataset_subdir'], datasets['mtz_project_name'], datasets['mtz_crystal_name'],
             datasets['mtz_dataset_name']
-    ):
+    )):
         if not subdir or not dataset or not first_image:
             cli.echo('Skipping dataset with missing information', level='warning')
             continue
@@ -419,20 +427,60 @@ async def cli_autoproc_run_many(
         jobs = jobs[:do_only]
 
     # Ask for user confirmation
-    cli.echo(f'\nReady to run {len(jobs)} jobs')
+    cli.echo(f'\nReady to run {len(jobs)} jobs '
+             f'{"in batches of " + str(no_concurrent_jobs) if no_concurrent_jobs > 1 else ""}')
     if not typer.confirm('Do you want to proceed?'):
         cli.echo('Aborted by user', level='warning')
         raise typer.Abort()
 
     # Run the jobs
-    do_run = not dry_run
     t0 = datetime.now()
     cli.echo(f'\nLaunching jobs at {t0}...')
-    await asyncio.gather(*[job.run(do_run=do_run) for job in jobs])
+    do_run = not dry_run
+    tasks = [asyncio.create_task(job.run(do_run=do_run)) for job in jobs]
+    try:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    except Exception as e:
+        cli.echo('Uh oh... An error occurred while running the jobs', level='error')
+        traceback.print_exception(type(e), e, e.__traceback__)
+    finally:
+        # Update the csv_dict with the completed jobs
+        for job, task in zip(jobs, tasks):
+            if task.done():
+                csv_dict['dataset_subdir'].append(job.config.dataset_subdir)
+                csv_dict['dataset_name'].append(job.config.dataset_name)
+                csv_dict['first_image'].append(job.config.first_image)
+                csv_dict['rename_dataset_subdir'].append(job.config.dataset_subdir_rename)
+                csv_dict['mtz_project_name'].append(job.config.mtz_project_name)
+                csv_dict['mtz_crystal_name'].append(job.config.mtz_crystal_name)
+                csv_dict['mtz_dataset_name'].append(job.config.mtz_dataset_name)
+                csv_dict['job_dir'].append(job.config._job_subdir)
+                csv_dict['autoproc_id'].append(job.config._idn)
+
     t1 = datetime.now()
     cli.echo(f'All jobs completed at {t1}')
-    cli.echo('xtl.automate finished graciously <3\n')
     cli.echo(f'Total elapsed time: {t1 - t0} [approx. {(t1 - t0) / len(jobs)} per job]')
+
+    # Write new csv file for downstream processing
+    cli.echo(f'Writing new .csv file: {csv_new}')
+    with csv_new.open('w') as f:
+        f.write('# ' + ','.join(csv_dict.keys()) + '\n')
+        for i in range(len(list(csv_dict.values())[0])):
+            values = []
+            for key in csv_dict.keys():
+                value = csv_dict[key][i]
+                if value is None:
+                    value = ''
+                values.append(value)
+            f.write(','.join(values) + '\n')
+        f.write(f'# Written by xtl.autoproc.run_many at {datetime.now()}')
+
+    cli.echo('xtl.autoproc finished graciously <3\n')
+
+
+@app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
+def cli_autoproc_check_wavelength():
+    pass
 
 
 if __name__ == '__main__':

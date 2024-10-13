@@ -371,6 +371,9 @@ class AutoPROCJob(Job):
         )
         self._job_type = 'autoPROC'
         self._module = module
+        self._success_file = 'staraniso_alldata-unique.mtz'
+        self._success = None
+        self._results = None
 
         # Load config parameters
         if not isinstance(config, AutoPROCJobConfig):
@@ -411,6 +414,14 @@ class AutoPROCJob(Job):
     def config(self):
         return self._config
 
+    def create_macro(self):
+        macro = self._config.get_params_macro()
+        # Don't create a macro file if there are no parameters provided
+        if not macro:
+            return None
+        macro_file = self.save_to_file(str(self._output_dir / self._macro_filename), macro)
+        return macro_file
+
     @limited_concurrency(_no_parallel_jobs)
     async def run(self, do_run: bool = True):
         # Check that the provided raw/processed data directories are valid and that images exist
@@ -445,6 +456,12 @@ class AutoPROCJob(Job):
             self.echo('Running batch script...')
             await self.run_batch(batchfile=s, stdout_log=log_stdout, stderr_log=log_stderr)
             self.echo('Batch script completed')
+            if (self.config.get_autoproc_output_path() / self._success_file).exists():
+                self._success = True
+                self.echo('autoPROC completed successfully!')
+            else:
+                self._success = False
+                self.echo('autoPROC did not complete successfully, look at summary.html')
         else:
             self.echo('Skipping batch script execution and sleeping for 5 seconds...')
             await asyncio.sleep(5)
