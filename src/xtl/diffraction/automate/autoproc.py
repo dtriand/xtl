@@ -2,12 +2,22 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
+import os
 from pathlib import Path
 from random import randint
+import shutil
+import warnings
 
-from xtl.automate.jobs import Job, limited_concurrency
-from xtl.automate.sites import ComputeSite
 from xtl import __version__
+from xtl.automate.sites import ComputeSite
+from xtl.automate.jobs import Job, limited_concurrency
+from xtl.diffraction.automate.autoproc_utils import ImgInfo
+
+
+def value_to_str(value):
+    if value is None:
+        return ''
+    return str(value)
 
 
 def default_xds_idxref_refine_params():
@@ -357,6 +367,195 @@ class AutoPROCJobConfig:
         return ' '.join(command)
 
 
+
+@dataclass
+class AutoPROCJobResults:
+    job_dir: Path
+    job_id: str
+
+    _json_fname = 'xtl_autoPROC.json'
+
+    # Files to process
+    _summary_fname = 'summary.html'  # fix links to relative paths
+    _imginfo_fname = 'imginfo.xml'
+
+    _report_iso_fname = 'report.pdf'
+    _mtz_iso_fname = 'truncate-unique.mtz'
+    _stats_iso_fname = 'truncate-unique.xml'  # or autoPROC.xml
+
+    _report_aniso_fname = 'report_staraniso.pdf'
+    _mtz_aniso_fname = 'staraniso_alldata-unique.mtz'
+    _stats_aniso_fname = 'staraniso_alldata-unique.xml'  # or autoPROC_staraniso.xml
+
+    _success_fname = _mtz_aniso_fname
+
+    def __post_init__(self):
+        # Create paths to the log files
+        self._summary_file = self.job_dir / self._summary_fname
+        self._imginfo_file = self.job_dir / self._imginfo_fname
+        self._dat_file = self.job_dir / f'{self.job_id}.dat'
+
+        self._report_iso_file = self.job_dir / self._report_iso_fname
+        self._mtz_iso_file = self.job_dir / self._mtz_iso_fname
+        self._stats_iso_file = self.job_dir / self._stats_iso_fname
+
+        self._report_aniso_file = self.job_dir / self._report_aniso_fname
+        self._mtz_aniso_file = self.job_dir / self._mtz_aniso_fname
+        self._stats_aniso_file = self.job_dir / self._stats_aniso_fname
+
+        # Determine the success of the job
+        self._success_file = self.job_dir / self._success_fname
+        self._success = self._success_file.exists()
+
+        # Keep track of the parsed log files
+        self._logs: list[Path] = []
+        self._logs_exists: list[bool] = []
+        self._logs_is_parsed: list[bool] = []
+        self._logs_is_processed: list[bool] = []
+        self._all_logs_processed: bool = False
+
+        # Parsed log files
+        self._imginfo: ImgInfo = None
+
+        # Results dictionary
+        self._data = {
+            'imginfo': {
+                '_file': None,
+                '_file_exists': False,
+                '_is_parsed': False,
+                '_is_processed': False,
+            }
+        }
+
+    @property
+    def success(self):
+        return self._success
+
+    def copy_files(self, dest_dir: Path = None, prefixes: list[str] = None):
+        if dest_dir is None:
+            dest_dir = self.job_dir.parent
+        self._copy_summary_html(dest_dir)
+
+        to_keep = [self._dat_file, self._report_iso_file, self._report_aniso_file]
+        to_rename = [self._mtz_iso_file, self._mtz_aniso_file]
+        if prefixes is None:
+            for file in to_keep + to_rename:
+                self._copy_rename(file, dest_dir)
+        else:
+            if not (isinstance(prefixes, list) or isinstance(prefixes, tuple)):
+                raise ValueError(f'prefixes must be a list or tuple, not {type(prefixes)}')
+            for prefix in prefixes:
+                for file in to_rename:
+                    self._copy_rename(file, dest_dir, prefix)
+            for file in to_keep:
+                self._copy_rename(file, dest_dir)
+
+    def _copy_summary_html(self, dest_dir):
+        summary_old = self._summary_file
+        summary_new = dest_dir / self._summary_fname
+        if self._summary_file.exists():
+            shutil.copy(summary_old, summary_new)
+
+        # Fix links to relative paths
+        if summary_new.exists():
+            content_updated = False
+            new_dir = dest_dir
+            old_dir = self.job_dir
+            relative_path = Path(os.path.relpath(path=old_dir, start=new_dir))
+
+            # Update all links to the plots
+            link_text_old = f'<a href="{old_dir}'
+            link_text_new = f'<a href="{relative_path}'
+            content_old = summary_old.read_text()
+            content_new = content_old.replace(link_text_old, link_text_new)
+            content_updated = content_old != content_new
+            if not content_updated:
+                warnings.warn(f'Failed to replace the links in {summary_new.name}\n'
+                              f'link_text_old: {link_text_old}\n'
+                              f'link_text_new: {link_text_new}')
+
+            # Update link to GPhL logo
+            gphl_logo_old = '<img src="gphl_logo.png"'
+            gphl_logo_new = f'<img src="{relative_path}/gphl_logo.png"'
+            content_old = content_new
+            content_new = content_old.replace(gphl_logo_old, gphl_logo_new)
+            content_updated = all([content_updated, content_old != content_new])
+            if not content_updated:
+                warnings.warn(f'Failed to replace the GPhL logo link in {summary_new.name}\n'
+                              f'gphl_logo_old: {gphl_logo_old}\n'
+                              f'gphl_logo_new: {gphl_logo_new}')
+
+            # Create new summary.html file with the updated content
+            if content_updated:
+                summary_updated = dest_dir / f'{summary_new.stem}_updated.html'
+                summary_updated.write_text(content_new)
+
+    def _copy_rename(self, src_file: Path, dest_dir: Path, prefix: str = None):
+        if src_file.exists():
+            if prefix:
+                dest_file = dest_dir / f'{prefix}_{src_file.name}'
+            else:
+                dest_file = dest_dir / src_file.name
+            shutil.copy(src_file, dest_file)
+        else:
+            warnings.warn(f'File not found: {src_file}')
+
+    def parse_logs(self):
+        self.parse_imginfo()
+        if len(self._logs_is_processed) == 0:
+            self._all_logs_processed = False
+        else:
+            self._all_logs_processed = all(self._logs_is_processed)
+
+    def _update_parsing_status(self, key: str, parser):
+        self._logs.append(parser.file)
+        self._logs_exists.append(parser._file_exists)
+        self._logs_is_parsed.append(parser._is_parsed)
+        self._logs_is_processed.append(parser._is_processed)
+
+        self._data[key]['_file'] = parser.file
+        self._data[key]['_file_exists'] = parser._file_exists
+        self._data[key]['_is_parsed'] = parser._is_parsed
+        self._data[key]['_is_processed'] = parser._is_processed
+
+    @property
+    def imginfo(self):
+        if self._imginfo is None:
+            self.parse_imginfo()
+        return self._imginfo
+
+    def parse_imginfo(self):
+        self._imginfo = ImgInfo(filename=self._imginfo_file, safe_parse=True)
+        self._update_parsing_status('imginfo', self._imginfo)
+        for key, value in self._imginfo.data.items():
+            self._data['imginfo'][key] = value
+
+    @property
+    def data(self):
+        return self._data
+
+    def get_csv_header(self):
+        header = []
+
+        # imginfo.xml header
+        header += ['_file', '_file_exists', '_is_parsed', '_is_processed']
+        for key in self.imginfo.data.keys():
+            header.append(key)
+
+        return '# ' + ','.join(map(value_to_str, header)) + '\n'
+
+    def get_csv_line(self):
+        line = []
+
+        # imginfo.xml line
+        imginfo = self.imginfo
+        line += [imginfo._file, imginfo._file_exists, imginfo._is_parsed, imginfo._is_processed]
+        for key, value in imginfo.data.items():
+            line.append(value)
+
+        return ','.join(map(value_to_str, line)) + '\n'
+
+
 class AutoPROCJob(Job):
     _no_parallel_jobs = 5
 
@@ -372,8 +571,8 @@ class AutoPROCJob(Job):
         self._job_type = 'autoPROC'
         self._module = module
         self._success_file = 'staraniso_alldata-unique.mtz'
-        self._success = None
-        self._results = None
+        self._success: bool = None
+        self._results: AutoPROCJobResults = None
 
         # Load config parameters
         if not isinstance(config, AutoPROCJobConfig):
@@ -443,7 +642,7 @@ class AutoPROCJob(Job):
         s = self.create_batch(str(self._output_dir / self._batch_filename), self._batch_commands)
         self.echo(f'Batch script created: {s}')
 
-        # Set the log files
+        # Set up the log files
         self.echo('Initializing log files...')
         log_stdout = self._output_dir / f'xtl_{self._job_type}.stdout.log'
         log_stderr = self._output_dir / f'xtl_{self._job_type}.stderr.log'
@@ -467,10 +666,25 @@ class AutoPROCJob(Job):
             await asyncio.sleep(5)
             self.echo('Done sleeping!')
 
-    def create_macro(self):
-        macro = self._config.get_params_macro()
-        # Don't create a macro file if there are no parameters provided
-        if not macro:
-            return None
-        macro_file = self.save_to_file(str(self._output_dir / self._macro_filename), macro)
-        return macro_file
+        self._results = AutoPROCJobResults(job_dir=self.config.get_autoproc_output_path(), job_id=self.config._idn)
+
+
+    def tidy_up(self):
+        if not self._success:
+            self.echo('autoPROC did not complete successfully, skipping tidy-up')
+            return
+        self.echo('Tidying up...')
+
+
+
+# class CheckWavelengthJob(Job):
+#
+#     def __init__(self):
+#         super().__init__(
+#             name=f'xtl_check_wavelength_{randint(0, 9999):04d}',
+#             compute_site=compute_site,
+#             stdout_log=stdout_log,
+#             stderr_log=stderr_log
+#         )
+#         self._job_type = 'check_wavelength'
+#         self._module = module
