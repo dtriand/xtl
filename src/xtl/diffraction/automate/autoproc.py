@@ -1,4 +1,5 @@
 import asyncio
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -419,7 +420,7 @@ class AutoPROCJobResults:
 
         # Results dictionary
         self._data = {
-            'imginfo': {
+            'autoproc.imginfo': {
                 '_file': None,
                 '_file_exists': False,
                 '_is_parsed': False,
@@ -526,13 +527,32 @@ class AutoPROCJobResults:
 
     def parse_imginfo(self):
         self._imginfo = ImgInfo(filename=self._imginfo_file, safe_parse=True)
-        self._update_parsing_status('imginfo', self._imginfo)
+        self._update_parsing_status('autoproc.imginfo', self._imginfo)
         for key, value in self._imginfo.data.items():
-            self._data['imginfo'][key] = value
+            self._data['autoproc.imginfo'][key] = value
 
     @property
     def data(self):
         return self._data
+
+    @staticmethod
+    def _json_serializer(obj):
+        try:
+            return obj.toJSON()
+        except AttributeError:
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            elif isinstance(obj, Path):
+                return str(obj)
+            else:
+                print('Unknown object type:', type(obj))
+                return obj.__dict__
+
+    def save_json(self, dest_dir: Path):
+        dest_dir = Path(dest_dir)
+        json_file = dest_dir / self._json_fname
+        json_file.write_text(json.dumps(self._data, indent=4, default=self._json_serializer))
+        return json_file
 
     def get_csv_header(self):
         header = []
@@ -655,25 +675,40 @@ class AutoPROCJob(Job):
             self.echo('Running batch script...')
             await self.run_batch(batchfile=s, stdout_log=log_stdout, stderr_log=log_stderr)
             self.echo('Batch script completed')
-            if (self.config.get_autoproc_output_path() / self._success_file).exists():
-                self._success = True
-                self.echo('autoPROC completed successfully!')
-            else:
-                self._success = False
-                self.echo('autoPROC did not complete successfully, look at summary.html')
+            self.tidy_up()
         else:
             self.echo('Skipping batch script execution and sleeping for 5 seconds...')
             await asyncio.sleep(5)
             self.echo('Done sleeping!')
 
-        self._results = AutoPROCJobResults(job_dir=self.config.get_autoproc_output_path(), job_id=self.config._idn)
-
 
     def tidy_up(self):
+        self.echo('Tidying up results...')
+        self._results = AutoPROCJobResults(job_dir=self.config.get_autoproc_output_path(), job_id=self.config._idn)
+        self._success = self._results.success
+
+        # Destination directory for copied files
+        dest_dir = self.config.get_processed_data_path()
+
+        # Determine prefix for copied files
+        if self.config.mtz_dataset_name:
+            prefix = self.config.mtz_dataset_name
+        else:
+            prefix = self.config.dataset_name
+
+        # Copy files to the processed data directory
+        self.echo(f'Copying files to {dest_dir}... ')
+        self._results.copy_files(dest_dir=dest_dir, prefixes=[prefix])
+        self.echo('Files copied')
+
         if not self._success:
-            self.echo('autoPROC did not complete successfully, skipping tidy-up')
-            return
-        self.echo('Tidying up...')
+            self.echo('autoPROC did not complete successfully, look at summary.html')
+        else:
+            self.echo('autoPROC completed successfully, now parsing the log files...')
+            self._results.parse_logs()
+            j = self._results.save_json(dest_dir)
+            self.echo(f'Log files parsed and results saved to {j}')
+        self.echo('Tidying up complete!')
 
 
 

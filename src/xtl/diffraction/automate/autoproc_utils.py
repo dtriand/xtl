@@ -102,9 +102,9 @@ class ImgInfo:
         if unit == 'm':
             self._detector_distance = v
         elif unit == 'cm':
-            self._detector_distance = v * 100
+            self._detector_distance = v / 100
         elif unit == 'mm':
-            self._detector_distance = v * 1000
+            self._detector_distance = v / 1000
         else:
             raise ValueError(f"Unknown unit: {unit}")
 
@@ -113,7 +113,7 @@ class ImgInfo:
         if unit == 'A':
             self._wavelength = v
         elif unit == 'nm':
-            self._wavelength = v * 10
+            self._wavelength = v / 10
         else:
             raise ValueError(f"Unknown unit: {unit}")
 
