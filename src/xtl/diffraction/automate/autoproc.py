@@ -12,7 +12,7 @@ import warnings
 from xtl import __version__
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
-from xtl.diffraction.automate.autoproc_utils import ImgInfo
+from xtl.diffraction.automate.autoproc_utils import ImgInfo, TruncateUnique, StaranisoUnique
 
 
 def value_to_str(value):
@@ -417,10 +417,24 @@ class AutoPROCJobResults:
 
         # Parsed log files
         self._imginfo: ImgInfo = None
+        self._truncate: TruncateUnique = None
+        self._staraniso: StaranisoUnique = None
 
         # Results dictionary
         self._data = {
             'autoproc.imginfo': {
+                '_file': None,
+                '_file_exists': False,
+                '_is_parsed': False,
+                '_is_processed': False,
+            },
+            'autoproc.truncate': {
+                '_file': None,
+                '_file_exists': False,
+                '_is_parsed': False,
+                '_is_processed': False,
+            },
+            'autoproc.staraniso': {
                 '_file': None,
                 '_file_exists': False,
                 '_is_parsed': False,
@@ -502,7 +516,9 @@ class AutoPROCJobResults:
             warnings.warn(f'File not found: {src_file}')
 
     def parse_logs(self):
-        self.parse_imginfo()
+        self.parse_imginfo_xml()
+        self.parse_truncate_xml()
+        self.parse_staraniso_xml()
         if len(self._logs_is_processed) == 0:
             self._all_logs_processed = False
         else:
@@ -519,17 +535,41 @@ class AutoPROCJobResults:
         self._data[key]['_is_parsed'] = parser._is_parsed
         self._data[key]['_is_processed'] = parser._is_processed
 
-    @property
-    def imginfo(self):
-        if self._imginfo is None:
-            self.parse_imginfo()
-        return self._imginfo
-
-    def parse_imginfo(self):
+    def parse_imginfo_xml(self):
         self._imginfo = ImgInfo(filename=self._imginfo_file, safe_parse=True)
         self._update_parsing_status('autoproc.imginfo', self._imginfo)
         for key, value in self._imginfo.data.items():
             self._data['autoproc.imginfo'][key] = value
+
+    @property
+    def imginfo(self):
+        if self._imginfo is None:
+            self.parse_imginfo_xml()
+        return self._imginfo
+
+    def parse_truncate_xml(self):
+        self._truncate = TruncateUnique(filename=self._stats_iso_file, safe_parse=True)
+        self._update_parsing_status('autoproc.truncate', self._truncate)
+        for key, value in self._truncate.data.items():
+            self._data['autoproc.truncate'][key] = value
+
+    @property
+    def truncate(self):
+        if self._truncate is None:
+            self.parse_truncate_xml()
+        return self._truncate
+
+    def parse_staraniso_xml(self):
+        self._staraniso = StaranisoUnique(filename=self._stats_aniso_file, safe_parse=True)
+        self._update_parsing_status('autoproc.staraniso', self._staraniso)
+        for key, value in self._staraniso.data.items():
+            self._data['autoproc.staraniso'][key] = value
+
+    @property
+    def staraniso(self):
+        if self._staraniso is None:
+            self.parse_staraniso_xml()
+        return self._staraniso
 
     @property
     def data(self):
@@ -548,10 +588,13 @@ class AutoPROCJobResults:
                 print('Unknown object type:', type(obj))
                 return obj.__dict__
 
+    def to_json(self):
+        return json.dumps(self._data, indent=4, default=self._json_serializer)
+
     def save_json(self, dest_dir: Path):
         dest_dir = Path(dest_dir)
         json_file = dest_dir / self._json_fname
-        json_file.write_text(json.dumps(self._data, indent=4, default=self._json_serializer))
+        json_file.write_text(self.to_json())
         return json_file
 
     def get_csv_header(self):
