@@ -1,7 +1,7 @@
 import asyncio
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, date
 from difflib import SequenceMatcher
 import os
 from pathlib import Path
@@ -13,6 +13,7 @@ from xtl import __version__
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
 from xtl.diffraction.automate.autoproc_utils import ImgInfo, TruncateUnique, StaranisoUnique
+from xtl.diffraction.automate.xds_utils import CorrectLp
 
 
 def value_to_str(value):
@@ -388,6 +389,8 @@ class AutoPROCJobResults:
     _mtz_aniso_fname = 'staraniso_alldata-unique.mtz'
     _stats_aniso_fname = 'staraniso_alldata-unique.xml'  # or autoPROC_staraniso.xml
 
+    _correct_lp_fname = 'CORRECT.LP'
+
     _success_fname = _mtz_aniso_fname
 
     def __post_init__(self):
@@ -404,6 +407,8 @@ class AutoPROCJobResults:
         self._mtz_aniso_file = self.job_dir / self._mtz_aniso_fname
         self._stats_aniso_file = self.job_dir / self._stats_aniso_fname
 
+        self._correct_lp_file = self.job_dir / self._correct_lp_fname
+
         # Determine the success of the job
         self._success_file = self.job_dir / self._success_fname
         self._success = self._success_file.exists()
@@ -419,6 +424,7 @@ class AutoPROCJobResults:
         self._imginfo: ImgInfo = None
         self._truncate: TruncateUnique = None
         self._staraniso: StaranisoUnique = None
+        self._correct: CorrectLp = None
 
         # Results dictionary
         self._data = {
@@ -426,19 +432,25 @@ class AutoPROCJobResults:
                 '_file': None,
                 '_file_exists': False,
                 '_is_parsed': False,
-                '_is_processed': False,
+                '_is_processed': False
             },
             'autoproc.truncate': {
                 '_file': None,
                 '_file_exists': False,
                 '_is_parsed': False,
-                '_is_processed': False,
+                '_is_processed': False
             },
             'autoproc.staraniso': {
                 '_file': None,
                 '_file_exists': False,
                 '_is_parsed': False,
-                '_is_processed': False,
+                '_is_processed': False
+            },
+            'xds.correct': {
+                '_file': None,
+                '_file_exists': False,
+                '_is_parsed': False,
+                '_is_processed': False
             }
         }
 
@@ -519,6 +531,7 @@ class AutoPROCJobResults:
         self.parse_imginfo_xml()
         self.parse_truncate_xml()
         self.parse_staraniso_xml()
+        self.parse_correct_lp()
         if len(self._logs_is_processed) == 0:
             self._all_logs_processed = False
         else:
@@ -571,16 +584,33 @@ class AutoPROCJobResults:
             self.parse_staraniso_xml()
         return self._staraniso
 
+    def parse_correct_lp(self):
+        self._correct = CorrectLp(filename=self._correct_lp_file, safe_parse=True)
+        self._update_parsing_status('xds.correct', self._correct)
+        for key, value in self._correct.data.items():
+            self._data['xds.correct'][key] = value
+
+    @property
+    def correct_lp(self):
+        if self._correct is None:
+            self.parse_correct_lp()
+        return self._correct
+
     @property
     def data(self):
-        return self._data
+        data = {
+            'success': self.success,
+            'all_logs_processed': self._all_logs_processed
+        }
+        data.update(self._data)
+        return data
 
     @staticmethod
     def _json_serializer(obj):
         try:
             return obj.toJSON()
         except AttributeError:
-            if isinstance(obj, datetime):
+            if isinstance(obj, datetime) or isinstance(obj, date):
                 return obj.isoformat()
             elif isinstance(obj, Path):
                 return str(obj)
@@ -589,7 +619,7 @@ class AutoPROCJobResults:
                 return obj.__dict__
 
     def to_json(self):
-        return json.dumps(self._data, indent=4, default=self._json_serializer)
+        return json.dumps(self.data, indent=4, default=self._json_serializer)
 
     def save_json(self, dest_dir: Path):
         dest_dir = Path(dest_dir)
