@@ -501,35 +501,42 @@ class ReflectionsXml(AutoProcXmlParser):
         return self._dano_over_sigma_dano
 
     @property
+    def unit_cell(self):
+        return [self.cell_a, self.cell_b, self.cell_c, self.cell_alpha, self.cell_beta, self.cell_gamma]
+
+    @property
+    def statistics(self):
+        statistics = {}
+        for i, shell in enumerate(self.resolution_shell):
+            statistics[shell] = {
+                'resolution_low': self.resolution_low[i],
+                'resolution_high': self.resolution_high[i],
+                'r_merge': self.r_merge[i],
+                'r_meas_within_i_plus_minus': self.r_meas_within_i_plus_minus[i],
+                'r_meas_all_i_plus_i_minus': self.r_meas_all_i_plus_i_minus[i],
+                'r_pim_within_i_plus_minus': self.r_pim_within_i_plus_minus[i],
+                'r_pim_all_i_plus_i_minus': self.r_pim_all_i_plus_i_minus[i],
+                'no_observations': self.no_observations[i],
+                'no_observations_unique': self.no_observations_unique[i],
+                'i_over_sigma_mean': self.i_over_sigma_mean[i],
+                'completeness': self.completeness[i],
+                'multiplicity': self.multiplicity[i],
+                'cc_half': self.cc_half[i],
+                'anomalous_completeness': self.anomalous_completeness[i],
+                'anomalous_multiplicity': self.anomalous_multiplicity[i],
+                'anomalous_cc': self.anomalous_cc[i],
+                'dano_over_sigma_dano': self.dano_over_sigma_dano[i],
+            }
+        return statistics
+
+    @property
     def data(self):
         return {
             'processing_time': self.processing_time,
             'space_group': self.space_group,
+            'unit_cell': self.unit_cell,
             'wavelength': self.wavelength,
-            'cell_a': self.cell_a,
-            'cell_b': self.cell_b,
-            'cell_c': self.cell_c,
-            'cell_alpha': self.cell_alpha,
-            'cell_beta': self.cell_beta,
-            'cell_gamma': self.cell_gamma,
-            'resolution_shell': self.resolution_shell,
-            'resolution_low': self.resolution_low,
-            'resolution_high': self.resolution_high,
-            'r_merge': self.r_merge,
-            'r_meas_within_i_plus_minus': self.r_meas_within_i_plus_minus,
-            'r_meas_all_i_plus_i_minus': self.r_meas_all_i_plus_i_minus,
-            'r_pim_within_i_plus_minus': self.r_pim_within_i_plus_minus,
-            'r_pim_all_i_plus_i_minus': self.r_pim_all_i_plus_i_minus,
-            'no_observations': self.no_observations,
-            'no_observations_unique': self.no_observations_unique,
-            'i_over_sigma_mean': self.i_over_sigma_mean,
-            'completeness': self.completeness,
-            'multiplicity': self.multiplicity,
-            'cc_half': self.cc_half,
-            'anomalous_completeness': self.anomalous_completeness,
-            'anomalous_multiplicity': self.anomalous_multiplicity,
-            'anomalous_cc': self.anomalous_cc,
-            'dano_over_sigma_dano': self.dano_over_sigma_dano,
+            'statistics': self.statistics,
         }
 
 
@@ -631,20 +638,22 @@ class StaranisoUnique(ReflectionsXml):
         return self._resolution_ellipsoid_value_3
 
     @property
+    def resolution_ellipsoid_axes(self):
+        return [
+            [self.resolution_ellipsoid_axis_11, self.resolution_ellipsoid_axis_12, self.resolution_ellipsoid_axis_13],
+            [self.resolution_ellipsoid_axis_21, self.resolution_ellipsoid_axis_22, self.resolution_ellipsoid_axis_23],
+            [self.resolution_ellipsoid_axis_31, self.resolution_ellipsoid_axis_32, self.resolution_ellipsoid_axis_33]
+        ]
+
+    @property
+    def resolution_limits(self):
+        return [self.resolution_ellipsoid_value_1, self.resolution_ellipsoid_value_2, self.resolution_ellipsoid_value_3]
+
+    @property
     def data(self):
         data = super().data
         data.update({
-            'resolution_ellipsoid_axis_11': self.resolution_ellipsoid_axis_11,
-            'resolution_ellipsoid_axis_12': self.resolution_ellipsoid_axis_12,
-            'resolution_ellipsoid_axis_13': self.resolution_ellipsoid_axis_13,
-            'resolution_ellipsoid_axis_21': self.resolution_ellipsoid_axis_21,
-            'resolution_ellipsoid_axis_22': self.resolution_ellipsoid_axis_22,
-            'resolution_ellipsoid_axis_23': self.resolution_ellipsoid_axis_23,
-            'resolution_ellipsoid_axis_31': self.resolution_ellipsoid_axis_31,
-            'resolution_ellipsoid_axis_32': self.resolution_ellipsoid_axis_32,
-            'resolution_ellipsoid_axis_33': self.resolution_ellipsoid_axis_33,
-            'resolution_ellipsoid_value_1': self.resolution_ellipsoid_value_1,
-            'resolution_ellipsoid_value_2': self.resolution_ellipsoid_value_2,
-            'resolution_ellipsoid_value_3': self.resolution_ellipsoid_value_3,
+            'resolution_ellipsoid_axes': self.resolution_ellipsoid_axes,
+            'resolution_limits': self.resolution_limits,
         })
         return data
