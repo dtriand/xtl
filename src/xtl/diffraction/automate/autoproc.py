@@ -491,11 +491,12 @@ class AutoPROCJobResults:
             relative_path = Path(os.path.relpath(path=old_dir, start=new_dir))
 
             # Update all links to the plots
+            # BUG: The links are sometimes relative and sometimes absolute in summary.html - why?
             link_text_old = f'<a href="{old_dir}'
             link_text_new = f'<a href="{relative_path}'
             content_old = summary_old.read_text()
             content_new = content_old.replace(link_text_old, link_text_new)
-            content_updated = content_old != content_new
+            content_updated = (content_old != content_new)
             if not content_updated:
                 warnings.warn(f'Failed to replace the links in {summary_new.name}\n'
                               f'link_text_old: {link_text_old}\n'
@@ -506,13 +507,13 @@ class AutoPROCJobResults:
             gphl_logo_new = f'<img src="{relative_path}/gphl_logo.png"'
             content_old = content_new
             content_new = content_old.replace(gphl_logo_old, gphl_logo_new)
-            content_updated = all([content_updated, content_old != content_new])
-            if not content_updated:
+            if content_old == content_new:
                 warnings.warn(f'Failed to replace the GPhL logo link in {summary_new.name}\n'
                               f'gphl_logo_old: {gphl_logo_old}\n'
                               f'gphl_logo_new: {gphl_logo_new}')
 
             # Create new summary.html file with the updated content
+            content_updated = any([content_updated, content_old != content_new])
             if content_updated:
                 summary_updated = dest_dir / f'{summary_new.stem}_updated.html'
                 summary_updated.write_text(content_new)

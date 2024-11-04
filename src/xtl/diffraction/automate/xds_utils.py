@@ -147,19 +147,20 @@ class XdsLpParser:
 
     def _parse_version(self, line: str):
         block = 'xds/version'
-        pattern = r"\(VERSION ([A-Za-z]{3} \d{2}, \d{4})  BUILT=(\d{8})\)  (\d{2}-[A-Za-z]{3}-\d{4})"
+        pattern = r"\(VERSION ([A-Za-z]{3} \s*\d{1,2}, \d{4})  BUILT=(\d{8})\)"
         match = self._perform_regex(pattern, line, block=block)
         if not match:
             return
         try:
             self._xds_version = date_parser.parse(match.group(1))
             self._xds_build = match.group(2)
-            self._xds_release_date = date_parser.parse(match.group(3))
         except Exception as e:
             self._raise_processing_warning(line, e, block=block)
 
     @property
     def xds_version(self):
+        if not self._xds_version:
+            return None
         return datetime.date(self._xds_version)
 
     @property
@@ -167,16 +168,11 @@ class XdsLpParser:
         return self._xds_build
 
     @property
-    def xds_release_date(self):
-        return datetime.date(self._xds_release_date)
-
-    @property
     def data(self):
         return {
             'xds': {
                 'version': self.xds_version,
-                'build': self.xds_build,
-                'release_date': self.xds_release_date
+                'build': self.xds_build
             },
         }
 
