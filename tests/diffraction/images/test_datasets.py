@@ -77,9 +77,12 @@ class TestDiffractionDataset:
             assert d._file_ext == file_ext
 
         @pytest.mark.parametrize(
-            'make_temp_files, dataset_name, fmt', [
-            (('./a/b/c/dataset_1_1_0001.cbf',), 'dataset_1_1', None),
-            (('./a/b/dataset_1.1_0002',), 'dataset_1.1_0002', 'asdf'),  # override name splitting by providing a fmt
+            'make_temp_files, dataset_name', [
+            (('./a/b/c/dataset_1_1_0001.cbf',), 'dataset_1_1'),
+            (('./a/b/dataset_1.2_0002',), 'dataset_1.2'),
+            (('./a/b/dataset_1.3_0003.cbf',), 'dataset_1.3'),
+            (('./a/b/dataset.1_4_0004.cbf',), 'dataset.1_4'),
+            (('./a/b/dataset.1_5_0005.cbf.gz',), 'dataset.1_5'),
             ], indirect=['make_temp_files']
         )
         def test_file_instead_of_dataset_name(self, make_temp_files, dataset_name, fmt):

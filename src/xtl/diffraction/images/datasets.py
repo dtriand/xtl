@@ -38,11 +38,8 @@ class DiffractionDataset:
             self._is_h5 = True
 
         # Check if a file with extension was provided instead of a dataset name
-        sep = self._file_ext if self._file_ext else '.'
-        fragments = self.dataset_name.rsplit(sep=sep, maxsplit=1)
-        if len(fragments) == 2 and fmt is None:  # ensure that this can be bypassed by providing a fmt
-            self.dataset_name = self._determine_dataset_name(filename=fragments[0], is_h5=self._is_h5)
-            self._file_ext = sep + fragments[1]
+        if '.' in self.dataset_name:
+            self.dataset_name = self._determine_dataset_name(filename=self.dataset_name, is_h5=self._is_h5)
 
         # Check that raw_data_dir exists
         raw_data_dir = self.get_raw_data_dir()
@@ -52,7 +49,6 @@ class DiffractionDataset:
         # Determine the first_image
         if self._first_image is None:
             if self._is_h5:
-                self.dataset_name = self._determine_dataset_name(filename=self.dataset_name, is_h5=self._is_h5)
                 self._first_image = self._determine_h5_master_image()
             else:
                 self._first_image = self._determine_first_image()
@@ -174,8 +170,14 @@ class DiffractionDataset:
             # if filename cannot be further fragmented, return the last segment
             if '_' not in segment:
                 return segment
+
             # Split the filename on the last '_'
             segment, fragment = segment.rsplit('_', 1)
+
+            # Secondary split on the last '.' if it exists -> enables removal of file extensions
+            if '.' in fragment:
+                new_segment, fragment = fragment.rsplit('.', 1)
+                segment = f'{segment}_{new_segment}'
 
             # Break condition
             if is_h5:
