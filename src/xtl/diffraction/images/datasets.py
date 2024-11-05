@@ -17,10 +17,11 @@ class DiffractionDataset:
     dataset_dir: str
     raw_data_dir: Path
     processed_data_dir: Path = None
+    fmt: str = None
 
     # Extra attributes to be determined during __post_init__
     #  Can be overriden by classmethods
-    _first_image: str = None
+    _first_image: Path = None
     _file_ext: str = ''
     _is_compressed: bool = False
     _is_h5: bool = False
@@ -30,6 +31,19 @@ class DiffractionDataset:
     _fstring_subkeys: dict[str, list[str]] = field(default_factory=default_fstring_subkeys)
 
     def __post_init__(self):
+        # Determine the file format
+        fmt = self.fmt.lower().replace('.', '') if self.fmt else None
+        if fmt in ['h5', 'hdf5']:
+            self._file_ext = '.h5'
+            self._is_h5 = True
+
+        # Check if a file with extension was provided instead of a dataset name
+        sep = self._file_ext if self._file_ext else '.'
+        fragments = self.dataset_name.rsplit(sep=sep, maxsplit=1)
+        if len(fragments) == 2 and fmt is None:  # ensure that this can be bypassed by providing a fmt
+            self.dataset_name = self._determine_dataset_name(filename=fragments[0], is_h5=self._is_h5)
+            self._file_ext = sep + fragments[1]
+
         # Check that raw_data_dir exists
         raw_data_dir = self.get_raw_data_dir()
         if not raw_data_dir.exists():
@@ -37,7 +51,11 @@ class DiffractionDataset:
 
         # Determine the first_image
         if self._first_image is None:
-            self._first_image = self._determine_first_image()
+            if self._is_h5:
+                self.dataset_name = self._determine_dataset_name(filename=self.dataset_name, is_h5=self._is_h5)
+                self._first_image = self._determine_h5_master_image()
+            else:
+                self._first_image = self._determine_first_image()
 
         # Determine file extension and other flags
         if not self._file_ext:
@@ -50,9 +68,9 @@ class DiffractionDataset:
             raise NotImplementedError("HDF5 files are not yet supported.")
 
     @property
-    def first_image(self) -> str:
+    def first_image(self) -> Path:
         """
-        The filename of the first image, not the full path.
+        A pathlib.Path instance of the first frame in the dataset.
         """
         return self._first_image
 
@@ -194,11 +212,31 @@ class DiffractionDataset:
         images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         return images
 
-    def _determine_first_image(self) -> str:
+    def _get_h5_master_images(self) -> list[Path]:
+        image_dir = self.get_raw_data_dir()
+        search_pattern = f'*_master{self._file_ext}'
+        images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
+        return images
+
+    def _determine_first_image(self) -> Path:
         """
         Determine the first image in the dataset by searching the raw_data_dir for files that match the dataset name
         and picking the first in alphabetic order.
         """
         for image in self._get_dataset_images():
             if not image.is_dir():
-                return image.name
+                return image
+
+    def _determine_h5_master_image(self) -> Path:
+        """
+        Determine the master .h5 file in the dataset by searching the raw_data_dir for files that match
+        {dataset_name}_master.h5
+        """
+        images = self._get_h5_master_images()
+        if not images:
+            raise FileNotFoundError(f"No master .h5 file found in directory: {self.get_raw_data_dir()}")
+        for image in images:
+            if image.name.startswith(self.dataset_name):
+                return image
+        raise FileNotFoundError(f"No master .h5 file for dataset {self.dataset_name} found in directory: "
+                                f"{self.get_raw_data_dir()}")
