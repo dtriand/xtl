@@ -4,19 +4,13 @@ from pathlib import Path
 import re
 
 
-def default_fstring_subkeys():
-    return {
-        'raw_data_dir': ['raw_data_dir', 'dataset_dir'],
-        'processed_data_dir': ['processed_data_dir', 'dataset_dir']
-    }
-
-
 @dataclass
 class DiffractionDataset:
     dataset_name: str
     dataset_dir: str
     raw_data_dir: Path
     processed_data_dir: Path = None
+    output_dir: str = None
     fmt: str = None
 
     # Extra attributes to be determined during __post_init__
@@ -26,9 +20,15 @@ class DiffractionDataset:
     _is_compressed: bool = False
     _is_h5: bool = False
 
-    fstring_raw_data_dir: str = "{raw_data_dir}/{dataset_dir}"
-    fstring_processed_data_dir: str = "{processed_data_dir}/{dataset_dir}"
-    _fstring_subkeys: dict[str, list[str]] = field(default_factory=default_fstring_subkeys)
+    # F-strings for generating directory paths
+    _fstring_dict: dict[str, str] = field(default_factory=lambda: {
+        'raw_data_dir': "{raw_data_dir}/{dataset_dir}",
+        'processed_data_dir': "{processed_data_dir}/{output_dir}"
+    })
+    _fstring_validator: dict[str, list[str]] = field(default_factory=lambda: {
+        'raw_data_dir': ['raw_data_dir', 'dataset_dir'],
+        'processed_data_dir': ['processed_data_dir', 'output_dir']
+    })
 
     def __post_init__(self):
         # Determine the file format
@@ -41,10 +41,9 @@ class DiffractionDataset:
         if '.' in self.dataset_name:
             self.dataset_name = self._determine_dataset_name(filename=self.dataset_name, is_h5=self._is_h5)
 
-        # Check that raw_data_dir exists
-        raw_data_dir = self.get_raw_data_dir()
-        if not raw_data_dir.exists():
-            raise FileNotFoundError(f"Raw data directory does not exist: {raw_data_dir}")
+        # Check that raw_data exists
+        if not self.raw_data.exists():
+            raise FileNotFoundError(f"Raw data directory does not exist: {self.raw_data}")
 
         # Determine the first_image
         if self._first_image is None:
@@ -58,10 +57,10 @@ class DiffractionDataset:
             _, self._file_ext = self._get_file_stem_and_extension(self._first_image)
         if '.gz' in self._file_ext:
             self._is_compressed = True
-        if self._file_ext == '.h5':
-            self._is_h5 = True
-            # TODO: Add support for .h5 files
-            raise NotImplementedError("HDF5 files are not yet supported.")
+
+        # Determine output_dir
+        if self.output_dir is None:
+            self.output_dir = self.dataset_name
 
     @property
     def first_image(self) -> Path:
@@ -70,37 +69,54 @@ class DiffractionDataset:
         """
         return self._first_image
 
-    def check_path_fstring(self, fstring_type: str):
+    def _check_dir_fstring(self, dir_type: str):
         """
-        Check that the f-string provided for the given fstring_type is valid.
+        Check that the f-string provided for the given dir_type is valid.
         """
         # Check that the type of fstring provided is exists
-        if fstring_type not in self._fstring_subkeys.keys():
-            raise ValueError(f"Invalid fstring_type: {fstring_type}. "
-                             f"Available options are: {self._fstring_subkeys.keys()}")
-        fstring = getattr(self, f'fstring_{fstring_type}')
-        subkeys = self._fstring_subkeys[fstring_type]
+        if dir_type not in self._fstring_validator.keys():
+            raise ValueError(f"Invalid dir_type: {dir_type}. "
+                             f"Available options are: {self._fstring_validator.keys()}")
+        fstring = self._fstring_dict[dir_type]
+        keys = self._fstring_validator[dir_type]
 
-        # Check that all required subkeys are present in the fstring
-        for subkey in subkeys:
-            if f'{{{subkey}}}' not in fstring:
-                raise ValueError(f"Invalid fstring_{fstring_type}: {fstring}. Missing subkey: {subkey}")
+        # Check that all required keys are present in the fstring
+        for key in keys:
+            if f'{{{key}}}' not in fstring:
+                raise ValueError(f"Invalid fstring for dir_type '{dir_type}': {fstring}. Missing key: {key}")
 
-        # Check that there are no extra subkeys in the fstring
-        all_subkeys = re.findall(r'{(.*?)}', fstring)
-        for subkey in all_subkeys:
-            if subkey not in subkeys:
-                raise ValueError(f"Invalid fstring_{fstring_type}: {fstring}. Unexpected subkey: {subkey}")
+        # Check that there are no extra keys in the fstring
+        all_keys = re.findall(r'{(.*?)}', fstring)
+        for key in all_keys:
+            if key not in keys:
+                raise ValueError(f"Invalid fstring for dir_type '{dir_type}': {fstring}. Unexpected key: {key}")
 
-    def get_raw_data_dir(self):
-        self.check_path_fstring('raw_data_dir')
-        subkeys = {key: getattr(self, key) for key in self._fstring_subkeys['raw_data_dir']}
-        return Path(self.fstring_raw_data_dir.format(**subkeys))
+    def register_dir_fstring(self, dir_type: str, fstring: str, keys: list[str]):
+        """
+        Register an f-string for programmatically generating a new directory path based on attributes of this instance.
+        """
+        self._fstring_dict[dir_type] = fstring
+        self._fstring_validator[dir_type] = keys
+        self._check_dir_fstring(dir_type)
 
-    def get_processed_data_dir(self):
-        self.check_path_fstring('processed_data_dir')
-        subkeys = {key: getattr(self, key) for key in self._fstring_subkeys['processed_data_dir']}
-        return Path(self.fstring_processed_data_dir.format(**subkeys))
+        @property
+        def custom_dir(obj):
+            return obj.get_dir(dir_type)
+
+        setattr(self.__class__, dir_type, custom_dir)
+
+    def get_dir(self, dir_type):
+        self._check_dir_fstring(dir_type)
+        keys = {key: getattr(self, key) for key in self._fstring_validator[dir_type]}
+        return Path(self._fstring_dict[dir_type].format(**keys))
+
+    @property
+    def raw_data(self):
+        return self.get_dir('raw_data_dir')
+
+    @property
+    def processed_data(self):
+        return self.get_dir('processed_data_dir')
 
     @classmethod
     def from_image(cls, image: str | Path, raw_dataset_dir: str | Path = None, processed_data_dir: str | Path = None):
@@ -203,19 +219,19 @@ class DiffractionDataset:
         return files
 
     def _get_all_images(self) -> list[Path]:
-        image_dir = self.get_raw_data_dir()
+        image_dir = self.raw_data
         search_pattern = f'*{self._file_ext}'
         images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         return images
 
     def _get_dataset_images(self) -> list[Path]:
-        image_dir = self.get_raw_data_dir()
+        image_dir = self.raw_data
         search_pattern = f'{self.dataset_name}*{self._file_ext}'
         images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         return images
 
     def _get_h5_master_images(self) -> list[Path]:
-        image_dir = self.get_raw_data_dir()
+        image_dir = self.raw_data
         search_pattern = f'*_master{self._file_ext}'
         images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         return images
@@ -236,9 +252,9 @@ class DiffractionDataset:
         """
         images = self._get_h5_master_images()
         if not images:
-            raise FileNotFoundError(f"No master .h5 file found in directory: {self.get_raw_data_dir()}")
+            raise FileNotFoundError(f"No master .h5 file found in directory: {self.raw_data}")
         for image in images:
             if image.name.startswith(self.dataset_name):
                 return image
         raise FileNotFoundError(f"No master .h5 file for dataset {self.dataset_name} found in directory: "
-                                f"{self.get_raw_data_dir()}")
+                                f"{self.raw_data}")
