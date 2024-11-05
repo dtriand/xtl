@@ -49,6 +49,13 @@ class DiffractionDataset:
             # TODO: Add support for .h5 files
             raise NotImplementedError("HDF5 files are not yet supported.")
 
+    @property
+    def first_image(self) -> str:
+        """
+        The filename of the first image, not the full path.
+        """
+        return self._first_image
+
     def check_path_fstring(self, fstring_type: str):
         """
         Check that the f-string provided for the given fstring_type is valid.
@@ -82,18 +89,16 @@ class DiffractionDataset:
         return Path(self.fstring_processed_data_dir.format(**subkeys))
 
     @classmethod
-    def from_first_image(cls, first_image: str | Path, raw_dataset_dir: str | Path = None,
-                         processed_data_dir: str | Path = None):
+    def from_image(cls, image: str | Path, raw_dataset_dir: str | Path = None, processed_data_dir: str | Path = None):
         """
-        Create a DiffractionDataset object from the path to the first image in the dataset. It works both with
+        Create a DiffractionDataset object from the path to an image in the dataset. It works both with
         compressed and uncompressed images. If `raw_dataset_dir` is not provided, it will be assumed that `dataset_dir`
-        is the parent directory of the first image and `raw_dataset_dir` is the parent directory of `dataset_dir`,
-        otherwise the `dataset_dir` will be the relative path from `raw_dataset_dir` to the `first_image`. If the
+        is the parent directory of the image and `raw_dataset_dir` is the parent directory of `dataset_dir`,
+        otherwise the `dataset_dir` will be the relative path from `raw_dataset_dir` to the `image`. If the
         `processed_data_dir` is not provided, it will be assumed to be the current directory.
         """
-        # TODO: Refactor to support any image, not just the first
         # Extract file name and extension, accounting for compressed files
-        image = Path(first_image)
+        image = Path(image)
         file_stem, extension = cls._get_file_stem_and_extension(image)
 
         # Process file extension
@@ -114,14 +119,14 @@ class DiffractionDataset:
             dataset_dir = str(dataset_dir.as_posix())  # convert to string with forward slashes
             if dataset_dir.startswith('.'):  # dataset_dir is the same or outside raw_dataset_dir
                 raise ValueError(f"Invalid 'raw_dataset_dir' provided: {raw_dataset_dir}. "
-                                 f"It does not seem to contain the 'first_image': {first_image}")
+                                 f"It does not seem to contain the 'image': {image}")
 
         # Determine processed_data_dir
         processed_data_dir = Path(processed_data_dir) if processed_data_dir else Path('.')
 
         # Create and return the DiffractionDataset object
         return cls(dataset_name=dataset_name, dataset_dir=dataset_dir, raw_data_dir=raw_dataset_dir,
-                   processed_data_dir=processed_data_dir, _first_image=image.name, _file_ext=extension,
+                   processed_data_dir=processed_data_dir, _file_ext=extension,
                    _is_compressed=is_compressed, _is_h5=is_h5)
 
     @staticmethod
@@ -191,7 +196,8 @@ class DiffractionDataset:
 
     def _determine_first_image(self) -> str:
         """
-        Determine the first image in the dataset by searching the raw_data_dir for files that match the dataset name.
+        Determine the first image in the dataset by searching the raw_data_dir for files that match the dataset name
+        and picking the first in alphabetic order.
         """
         for image in self._get_dataset_images():
             if not image.is_dir():
