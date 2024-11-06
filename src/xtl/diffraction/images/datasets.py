@@ -1,6 +1,6 @@
-import os.path
 from dataclasses import dataclass, field
 from pathlib import Path
+import os.path
 import re
 
 
@@ -30,6 +30,9 @@ class DiffractionDataset:
         'processed_data_dir': ['processed_data_dir', 'output_dir']
     })
 
+    _dataset_images: list[Path] = field(default_factory=list)
+    _dataset_h5_images: list[Path] = field(default_factory=list)
+
     def __post_init__(self):
         # Determine the file format
         fmt = self.fmt.lower().replace('.', '') if self.fmt else None
@@ -45,12 +48,8 @@ class DiffractionDataset:
         if not self.raw_data.exists():
             raise FileNotFoundError(f"Raw data directory does not exist: {self.raw_data}")
 
-        # Determine the first_image
-        if self._first_image is None:
-            if self._is_h5:
-                self._first_image = self._determine_h5_master_image()
-            else:
-                self._first_image = self._determine_first_image()
+        # Determine the first_image, last_image and no_images
+        self._images = self._determine_images()
 
         # Determine file extension and other flags
         if not self._file_ext:
@@ -63,11 +62,39 @@ class DiffractionDataset:
             self.output_dir = self.dataset_name
 
     @property
+    def file_extension(self) -> str:
+        """
+        The file extension of the dataset images.
+        """
+        return self._file_ext
+
+    @property
     def first_image(self) -> Path:
         """
         A pathlib.Path instance of the first frame in the dataset.
         """
         return self._first_image
+
+    @property
+    def last_image(self) -> Path:
+        """
+        A pathlib.Path instance of the last frame in the dataset.
+        """
+        return self._last_image
+
+    @property
+    def no_images(self) -> int:
+        """
+        The number of images in the dataset.
+        """
+        return self._no_images
+
+    @property
+    def images(self) -> list[Path]:
+        """
+        A list of all images in the dataset.
+        """
+        return self._images
 
     def _check_dir_fstring(self, dir_type: str):
         """
@@ -225,10 +252,12 @@ class DiffractionDataset:
         return images
 
     def _get_dataset_images(self) -> list[Path]:
+        if self._dataset_images:
+            return self._dataset_images
         image_dir = self.raw_data
         search_pattern = f'{self.dataset_name}*{self._file_ext}'
-        images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
-        return images
+        self._dataset_images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
+        return self._dataset_images
 
     def _get_h5_master_images(self) -> list[Path]:
         image_dir = self.raw_data
@@ -236,14 +265,47 @@ class DiffractionDataset:
         images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         return images
 
-    def _determine_first_image(self) -> Path:
+    def _get_h5_images(self) -> list[Path]:
+        if self._dataset_h5_images:
+            return self._dataset_h5_images
+        image_dir = self.raw_data
+        search_pattern = f'{self.dataset_name}*{self._file_ext}'
+        self._dataset_h5_images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
+        master_image = self.first_image
+        if master_image not in self._dataset_h5_images:
+            raise FileNotFoundError(f"Master image {master_image} not found in directory: {image_dir}")
+        self._dataset_h5_images.remove(master_image)
+        self._dataset_h5_images.insert(0, master_image)
+        return self._dataset_h5_images
+
+    def reset_images_cache(self):
         """
-        Determine the first image in the dataset by searching the raw_data_dir for files that match the dataset name
-        and picking the first in alphabetic order.
+        Reset the cache of discovered images belonging to the dataset and force execution of the glob command from
+        scratch next time it is invoked. This is useful when new images might have been added in the raw_data directory.
         """
-        for image in self._get_dataset_images():
-            if not image.is_dir():
-                return image
+        self._dataset_images = []
+        self._dataset_h5_images = []
+
+    def get_images(self) -> list[Path]:
+        """
+        Returns all discovered images in the dataset, but it first resets the internal cache.
+        """
+        self.reset_images_cache()
+        self._images = self._determine_images()
+        return self._images
+
+    def _determine_images(self) -> list[Path]:
+        if self._is_h5:
+            self._first_image = self._determine_h5_master_image()
+            self._last_image = None
+            self._no_images = None
+            images = self._get_h5_images()  # run at the end, because it relies on the first_image to be set
+        else:
+            images = self._get_dataset_images()
+            self._first_image = images[0]
+            self._last_image = images[-1]
+            self._no_images = len(images)
+        return images
 
     def _determine_h5_master_image(self) -> Path:
         """
