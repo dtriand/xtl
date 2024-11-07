@@ -4,7 +4,7 @@ from typing import Optional
 
 
 @dataclass
-class _PrioritySystem(ABC):
+class PrioritySystem(ABC):
     _system_type: str
 
     @abstractmethod
@@ -12,7 +12,7 @@ class _PrioritySystem(ABC):
         """
         Prepare a command for execution with this priority system.
         """
-        raise NotImplementedError()
+        pass
 
     @property
     def system_type(self) -> Optional[str]:
@@ -23,7 +23,7 @@ class _PrioritySystem(ABC):
 
 
 @dataclass
-class DefaultPrioritySystem(_PrioritySystem):
+class DefaultPrioritySystem(PrioritySystem):
 
     def __init__(self, system_type: str = None):
         """
@@ -33,7 +33,7 @@ class DefaultPrioritySystem(_PrioritySystem):
 
     def prepare_command(self, command: str) -> str:
         if not isinstance(command, str):
-            raise ValueError('command must be a string')
+            raise ValueError('\'command\' must be a string')
         return command
 
 
@@ -57,7 +57,7 @@ class NicePrioritySystem(DefaultPrioritySystem):
     @nice_level.setter
     def nice_level(self, value: int):
         if not isinstance(value, int):
-            raise ValueError('nice_level must be an integer')
+            raise ValueError('\'nice_level\' must be an integer')
         self._nice_level = value
 
     def prepare_command(self, command: str) -> str:

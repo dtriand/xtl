@@ -267,8 +267,8 @@ class TestDiffractionDataset:
         @pytest.mark.parametrize(
             'temp_files,               is_h5, expected', [
             (_multiple_h5_datasets,    True,  None),
-            (_multiple_cbf_datasets,   False, 'dataset_1_1_####.cbf'),
-            (_multiple_cbf_datasets_2, False, 'dataset_1_1.00##.cbf'),
+            (_multiple_cbf_datasets,   False, 'dataset_1_1_####.cbf'),  # standard method
+            (_multiple_cbf_datasets_2, False, 'dataset_1_1.00##.cbf'),  # string-comparison method
         ], indirect=['temp_files'])
         def test_get_image_template(self, temp_files, is_h5, expected):
             d = DiffractionDataset.from_image(image=temp_files[0])
