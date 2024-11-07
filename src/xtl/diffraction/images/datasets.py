@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 import os.path
 import re
@@ -350,3 +351,34 @@ class DiffractionDataset:
             # Remove dataset images from all images
             images_all -= set(images_dataset)
         return sorted(list(dataset_names))
+
+    def get_image_template(self, full: bool = False) -> str | Path:
+        if self._is_h5:
+            return None
+
+        template = ''
+        # Check if the file name is in the format {dataset_name}_{####}.ext
+        if '_' in self.first_image.name:
+            first_image_name = self.first_image.name.replace(self.file_extension, '')
+            segment, fragment = first_image_name.rsplit(sep='_', maxsplit=1)
+            if segment == self.dataset_name and fragment.isnumeric():
+                template = f'{self.dataset_name}_{"#" * len(fragment)}{self.file_extension}'
+
+        # If the above fails, try to find the longest common string between the first and last image
+        if not template:
+            first = self.first_image.name.replace(self.file_extension, '')
+            last = self.last_image.name.replace(self.file_extension, '')
+
+            match = SequenceMatcher(None, first, last).find_longest_match()
+            if match.a == match.b == 0:
+                common_template = first[match.a:match.a + match.size]
+                no_digits = len(first[match.a + match.size:])
+                template = f'{common_template}{"#" * no_digits}{self.file_extension}'
+
+        if not template:
+            raise ValueError(f"Could not determine image template with first and last image: {self.first_image}, "
+                             f"{self.last_image}")
+
+        if full:
+            return self.raw_data / template
+        return template

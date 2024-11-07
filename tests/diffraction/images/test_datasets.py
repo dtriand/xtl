@@ -262,6 +262,18 @@ class TestDiffractionDataset:
             d = DiffractionDataset.from_image(image=temp_files[0])
             assert d.get_all_dataset_names() == ['dataset_1_1', 'dataset_1_2']
 
+        _multiple_cbf_datasets_2 = [f'./a/b/c/dataset_1_{j}.{i+1:04d}.cbf' for j in range(1, 3) for i in range(0, 10)]
+
+        @pytest.mark.parametrize(
+            'temp_files,               is_h5, expected', [
+            (_multiple_h5_datasets,    True,  None),
+            (_multiple_cbf_datasets,   False, 'dataset_1_1_####.cbf'),
+            (_multiple_cbf_datasets_2, False, 'dataset_1_1.00##.cbf'),
+        ], indirect=['temp_files'])
+        def test_get_image_template(self, temp_files, is_h5, expected):
+            d = DiffractionDataset.from_image(image=temp_files[0])
+            assert d.get_image_template() == expected
+
     class TestFStringFactory:
 
         _images = ['./a/b/c/dataset_1_1_0001.cbf']
