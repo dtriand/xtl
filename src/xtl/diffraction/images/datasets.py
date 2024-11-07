@@ -57,6 +57,10 @@ class DiffractionDataset:
         if '.gz' in self._file_ext:
             self._is_compressed = True
 
+        # Set processed_data_dir
+        if self.processed_data_dir is None:
+            self.processed_data_dir = Path('.')
+
         # Determine output_dir
         if self.output_dir is None:
             self.output_dir = self.dataset_name
@@ -232,7 +236,8 @@ class DiffractionDataset:
                 if fragment.isnumeric():
                     return segment  # anything preceding the numeric fragment
 
-    def _glob_directory(self, directory: Path, pattern: str, files_only: bool = False) -> list[Path]:
+    @staticmethod
+    def _glob_directory(directory: Path, pattern: str, files_only: bool = False) -> list[Path]:
         """
         Glob a directory for files that match the given pattern. If no matches are found, raise a FileNotFoundError.
         """
@@ -320,3 +325,28 @@ class DiffractionDataset:
                 return image
         raise FileNotFoundError(f"No master .h5 file for dataset {self.dataset_name} found in directory: "
                                 f"{self.raw_data}")
+
+    def get_all_dataset_names(self):
+        """
+        Get all dataset names in the raw_data_dir, if more than one dataset are present.
+        """
+        dataset_names = set()
+        images_all = set(self._get_all_images())
+        while True:
+            if not images_all:
+                break
+
+            # Get an image from the set
+            image = images_all.pop()
+
+            # Determine the dataset name from the image
+            dataset_name = self._determine_dataset_name(filename=image.name, is_h5=self._is_h5)
+            dataset_names.add(dataset_name)
+
+            # Grab all images in the dataset
+            images_dataset = self._glob_directory(directory=self.raw_data, pattern=f'{dataset_name}*{self._file_ext}',
+                                                  files_only=True)
+
+            # Remove dataset images from all images
+            images_all -= set(images_dataset)
+        return sorted(list(dataset_names))
