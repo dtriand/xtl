@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Sequence
 
 from xtl.automate.priority_system import PrioritySystem, DefaultPrioritySystem, NicePrioritySystem
 
@@ -27,7 +28,7 @@ class ComputeSite(ABC):
         self._priority_system = value
 
     @abstractmethod
-    def load_modules(self, modules: str | list[str]) -> str:
+    def load_modules(self, modules: str | Sequence[str]) -> str:
         """
         Generates a command for loading the specified modules on the compute site.
         """
@@ -71,13 +72,13 @@ class BiotixHPC(ComputeSite):
         """
         self._priority_system = NicePrioritySystem(10)
 
-    def load_modules(self, modules: str | list[str] | tuple[str]) -> str:
+    def load_modules(self, modules: str | Sequence[str]) -> str:
         mods = []
         if isinstance(modules, str):
             # Check for space-separated modules in a single string
             for mod in modules.split():
                 mods.append(mod)
-        elif isinstance(modules, (list, tuple)):
+        elif isinstance(modules, Sequence):
             # Otherwise append each module in the list
             for i, mod in enumerate(modules):
                 if not isinstance(mod, str):

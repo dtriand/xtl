@@ -1,55 +1,184 @@
+from dataclasses import dataclass
 from pathlib import Path
 import stat
+from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
 
-class BatchFile:
-    HEADER = '#!/bin/bash'
-    COMMENT_CHAR = '#'
-    NEW_LINE_CHAR = '\n'
-    FILE_EXT = '.sh'
 
-    def __init__(self, name, filename, compute_site: ComputeSite = None):
-        self._name = name
-        self._filename = Path(filename).with_suffix(self.FILE_EXT)
-        self._lines = []
+@dataclass
+class Shell:
+    name: str
+    shebang: str
+    file_ext: str
+    comment_char: str = '#'
+    new_line_char: str = '\n'
+
+    def __post_init__(self):
+        if not self.file_ext.startswith('.'):
+            self.file_ext = '.' + self.file_ext
+
+
+# Definitions for common shells
+BashShell = Shell(name='bash', shebang='#!/bin/bash', file_ext='.sh')
+
+
+class BatchFile:
+
+    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None, shell: Shell = BashShell):
+        """
+        A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
+        instance.
+
+        :param filename: The name of the batch file. The file extension will be automatically set based on the Shell.
+        :param compute_site: The ComputeSite where the batch file will be executed
+        :param shell: The Shell that will be used to execute the batch file
+        """
+        if not isinstance(shell, Shell):
+            raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
+        self._shell = shell
+
+        self._filename = Path(filename).with_suffix(self.shell.file_ext)
+
+        # Set compute_site
         if compute_site is None:
             compute_site = LocalSite()
         elif not isinstance(compute_site, ComputeSite):
             raise TypeError(f"compute_site must be an instance of ComputeSite, not {type(compute_site)}")
         self._compute_site = compute_site
 
-    def _add_line(self, line):
-        self._lines.append(str(line) + self.NEW_LINE_CHAR)
+        # List of lines of the batch file
+        self._lines = []
 
-    def add_command(self, command: str = ''):
+        # Set default permissions for the batch file to: user: rwx, group: rw (rwxrw---- or 760) but in DECIMAL repr
+        self._permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP
+
+    @property
+    def filename(self) -> Path:
+        """
+        Returns the filename of the batch file.
+        """
+        return self._filename
+
+    @property
+    def shell(self) -> Shell:
+        """
+        Returns the underlying Shell that will be used to execute the batch file.
+        """
+        return self._shell
+
+    @property
+    def compute_site(self) -> ComputeSite:
+        """
+        Returns the ComputeSite where the batch file will be executed
+        """
+        return self._compute_site
+
+    @property
+    def permissions(self):
+        """
+        Returns the permissions that will be set for the batch file in octal format.
+        """
+        return oct(self._permissions)
+
+    @permissions.setter
+    def permissions(self, value: int | str):
+        """
+        Set the permissions that will be set for the batch file. Expects a 3-digit octal number.
+        """
+        if not isinstance(value, int | str):
+            raise TypeError(f'\'value\' must be an int or str, not {type(value)}')
+
+        # Convert to string and check if it is a number
+        value = str(value)
+        if value.startswith('0o'):  # Remove the '0o' octal representation prefix if present
+            value = value[2:]
+        if not value.isdigit() or len(value) != 3:
+            raise ValueError(f'\'value\' must be a 3-digit integer')
+
+        # Check for a valid permission value
+        for digit in value:
+            if int(digit) not in range(8):
+                raise ValueError(f'\'value\' must be a 3-digit integer with each digit in the range 0-7')
+        self._permissions = int(f'0o{value}', 8)  # Save octal in the decimal representation
+
+    def _add_line(self, line: str) -> None:
+        """
+        Add a line to the batch file.
+        """
+        if line:
+            self._lines.append(str(line))
+
+    def add_empty_line(self, count: int = 1) -> None:
+        """
+        Add an empty line to the batch file.
+        """
+        if not isinstance(count, int):
+            raise TypeError(f'\'count\' must be an int, not {type(count)}')
+        if count < 1:
+            raise ValueError('\'count\' must be greater than 0')
+        for _ in range(count):
+            self._lines.append('')
+
+    def add_command(self, command: str) -> None:
+        """
+        Add a command to the batch file
+        """
         self._add_line(command)
 
-    def add_commands(self, *commands):
+    def add_commands(self, *commands: str | Sequence[str]) -> None:
+        """
+        Add multiple commands to the batch file all at once.
+        """
+        if len(commands) == 1 and isinstance(commands[0], Sequence):  # unpack a list or tuple of commands
+            commands = commands[0]
         for command in commands:
+            if not isinstance(command, str):
+                raise TypeError(f'\'command\' must be a str, not {type(command)}')
             self.add_command(command)
 
     def add_comment(self, comment):
-        self._add_line(f"{self.COMMENT_CHAR} {comment}")
+        """
+        Add a comment to the batch file.
+        """
+        self._add_line(f"{self.shell.comment_char} {comment}")
 
-    def load_modules(self, modules: str | list[str]):
-        self.add_command(self._compute_site.load_modules(modules))
+    def load_modules(self, modules: str | Sequence[str]):
+        """
+        Add command for loading one or more modules on the compute site.
+        """
+        self.add_command(self.compute_site.load_modules(modules))
 
     def purge_modules(self):
-        self.add_command(self._compute_site.purge_modules())
+        """
+        Add command for purging all loaded modules on the compute site.
+        """
+        self.add_command(self.compute_site.purge_modules())
 
-    def assign_variable(self, var_name, expression):
-        self.add_command(str(var_name) + '=' + str(expression))
+    def assign_variable(self, variable: str, value: Any):
+        """
+        Assign a value to a variable in the batch file.
+        """
+        self.add_command(str(variable) + '=' + str(value))
 
-    def save(self, do_chmod=True):
+    def purge_file(self) -> None:
+        """
+        Delete the contents of the file.
+        """
+        self._lines = []
+
+    def save(self, change_permissions: bool = True):
+        """
+        Save the batch file to disk and optionally change its permissions.
+        """
         # Delete the file if it already exists
         self._filename.unlink(missing_ok=True)
 
         # Write contents to file
-        text = self.HEADER + self.NEW_LINE_CHAR + ''.join(self._lines)
+        text = self.shell.shebang + self.shell.new_line_char
+        text += self.shell.new_line_char.join(self._lines)
         self._filename.write_text(text, encoding='utf-8')
 
         # Update permissions (user: read, write, execute; group: read, write)
-        if do_chmod:
-            mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP  # rwxrw---- / 760
-            self._filename.chmod(mode)
+        if change_permissions:
+            self._filename.chmod(self._permissions)
