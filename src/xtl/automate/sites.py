@@ -44,6 +44,14 @@ class ComputeSite(ABC):
         """
         return self._supported_shells
 
+    def is_valid_shell(self, shell: Shell) -> bool:
+        """
+        Checks if the specified shell is supported by this compute site.
+        """
+        if self.supported_shells is None:
+            return True
+        return shell in self.supported_shells
+
     @abstractmethod
     def load_modules(self, modules: str | Sequence[str]) -> str:
         """

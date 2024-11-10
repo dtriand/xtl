@@ -74,7 +74,7 @@ CmdShell = Shell(name='cmd',
                  file_ext='.bat',
                  is_posix=False,
                  executable=r'C:\Windows\System32\cmd.exe',
-                 batch_command=r'{executable} /C {batchfile}')
+                 batch_command=r'{executable} /Q /C {batchfile}')
 
 PowerShell = Shell(name='powershell',
                    shebang='',

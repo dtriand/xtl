@@ -5,7 +5,7 @@ import stat
 
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.batchfile import BatchFile, DefaultShell
-from xtl.automate.shells import Shell, BashShell, CmdShell
+from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell
 
 
 class TestBatchFile:
@@ -71,10 +71,16 @@ class TestBatchFile:
 
     def test_execute_command(self):
         b = BatchFile(filename='test', shell=BashShell)
+        assert b.file.suffix == '.sh'
         assert b.execute_command == r'/bin/bash -c test.sh'
 
         b = BatchFile(filename='test', shell=CmdShell)
-        assert b.execute_command == r'C:\Windows\System32\cmd.exe /C test.bat'
+        assert b.file.suffix == '.bat'
+        assert b.execute_command == r'C:\Windows\System32\cmd.exe /Q /C test.bat'
+
+        b = BatchFile(filename='test', shell=PowerShell)
+        assert b.file.suffix == '.ps1'
+        assert b.execute_command == r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -File test.ps1'
 
     def test_add_line(self):
         b = BatchFile(filename='test')

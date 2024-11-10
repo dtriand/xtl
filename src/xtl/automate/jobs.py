@@ -1,9 +1,12 @@
 import asyncio
 from functools import wraps
 from pathlib import Path
+import shlex
+import warnings
 
-from xtl.automate.batchfile import BatchFile
+from xtl.automate.shells import Shell, DefaultShell
 from xtl.automate.sites import ComputeSite, LocalSite
+from xtl.automate.batchfile import BatchFile
 
 
 def limited_concurrency(limit: int):
@@ -18,7 +21,7 @@ def limited_concurrency(limit: int):
             async with semaphore:
                 return await func(*args, **kwargs)
         # Tag the decorated function as semaphore-limited
-        wrapper.__is_semaphore_limited = True
+        wrapper._is_semaphore_limited = True
         return wrapper
     return decorator
 
@@ -26,66 +29,109 @@ def limited_concurrency(limit: int):
 
 class Job:
     _no_parallel_jobs = 10
-    __is_semaphore_modified = False
+    _is_semaphore_modified = False
 
-    def __init__(self, name: str, compute_site: ComputeSite = None, stdout_log: str | Path = None,
+    def __init__(self, name: str, compute_site: ComputeSite = None, shell: Shell = None, stdout_log: str | Path = None,
                  stderr_log: str | Path = None):
-        self._job_type = 'job'
+        """
+        A class for executing jobs in the form of batch files.
+        :param name: The name of the job - used for logging and identification
+        :param compute_site: The ComputeSite where the job will be executed (default: LocalSite)
+        :param shell: The Shell that will be used to execute the job (default: DefaultShell)
+        :param stdout_log: The filename of the log file for STDOUT (default: <name>.stdout.log)
+        :param stderr_log: The filename of the log file for STDERR (default: <name>.stderr.log)
+        """
+        self._job_type = 'xtl.job'
         self._name = str(name)
 
-        if compute_site is None:
-            compute_site = LocalSite()
-        elif not isinstance(compute_site, ComputeSite):
-            raise TypeError(f"compute_site must be an instance of ComputeSite, not {type(compute_site)}")
-        self._compute_site = compute_site
+        # Set shell and compute_site
+        self._shell, self._compute_site = self._determine_shell_and_site(shell, compute_site)
 
+        # Set log files
         self._stdout = Path(stdout_log) if stdout_log is not None else Path(f'{self._name}.stdout.log')
         self._stderr = Path(stderr_log) if stderr_log is not None else Path(f'{self._name}.stderr.log')
 
+        # Set echo function
+        #  TODO: Implement a logging system
         self._echo = print
 
+    @staticmethod
+    def _determine_shell_and_site(shell: Shell = None, compute_site: ComputeSite = None):
+        """
+        Determine the shell and compute_site to use
+        """
+        if compute_site is None:
+            compute_site = LocalSite()
+        elif not isinstance(compute_site, ComputeSite):
+            raise TypeError(f'\'compute_site\' must be an instance of ComputeSite, not {type(compute_site)}')
+        if shell is None:
+            if compute_site.default_shell is not None:
+                shell = compute_site.default_shell
+            else:
+                shell = DefaultShell
+        elif not isinstance(shell, Shell):
+            raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
+        if not compute_site.is_valid_shell(shell):
+            warnings.warn(f'Shell \'{shell.name}\' is not compatible with compute_site '
+                          f'\'{compute_site.__class__.__name__}\'')
+        return shell, compute_site
+
     def echo(self, message: str):
+        """
+        Echo a message to console using the specified echo function
+        """
         self._echo(f'[{self._name}] {message}')
 
-    def create_batch(self, filename: str, cmds: list[str], do_chmod: bool = True):
-        b = BatchFile(name=f'{self._name}', filename=filename, compute_site=self._compute_site)
-        b.add_commands(*cmds)
-        b.save(do_chmod=do_chmod)
-        return b._filename
+    def create_batch(self, filename: str | Path, cmds: list[str], change_permissions: bool = True) -> BatchFile:
+        """
+        Generate a batch file with the specified commands.
 
-    async def run_batch(self, batchfile: str | Path, arguments: list[str] = None, stdout_log: str | Path = None,
+        :param filename: The name of the batch file
+        :param cmds: A list of commands to be executed
+        :param change_permissions: Whether to make the batch file executable (default: True)
+        """
+        b = BatchFile(filename=filename, compute_site=self._compute_site, shell=self._shell)
+        b.add_commands(cmds)
+        b.save(change_permissions=change_permissions)
+        return b
+
+    async def run_batch(self, batchfile: BatchFile, arguments: list[str] = None, stdout_log: str | Path = None,
                         stderr_log: str | Path = None):
-        # Setup file streams for STDOUT and STDERR of the batch file
-        if stdout_log is None:
-            stdout_log = self._stdout
-        else:
-            stdout_log = Path(stdout_log)
-        if stderr_log is None:
-            stderr_log = self._stderr
-        else:
-            stderr_log = Path(stdout_log)
+        """
+        Execute a batch file with the specified arguments
 
-        # Create the log files if they don't exist
-        stdout_log.touch(exist_ok=True)
-        stderr_log.touch(exist_ok=True)
+        :param batchfile: The BatchFile to execute
+        :param arguments: Additional arguments to pass to the batch file
+        :param stdout_log: The filename of the log file for STDOUT (default: <name>.stdout.log)
+        :param stderr_log: The filename of the log file for STDERR (default: <name>.stderr.log)
+        """
+        stdout, stderr = self._setup_log_files(stdout_log, stderr_log)
 
         # Create arguments list
         if arguments is None:
             arguments = list()
+
+        # Get the executable and the arguments
+        if not isinstance(batchfile, BatchFile):
+            raise TypeError(f'\'batchfile\' must be an instance of BatchFile not {type(batchfile)}')
+        batch_command = batchfile.execute_command
+        args = shlex.split(batch_command, posix=batchfile.shell.is_posix)  # safe split for POSIX and non-POSIX systems
+        executable = args[0]
+        arguments = args[1:] + arguments  # append existing arguments
 
         # Run the batch file
         try:
             # Launch subprocess and capture STDOUT and STDERR
             #  This will run on a separate thread and/or core, determined by the underlying OS
             #  Once the subprocess is launched, the main thread will continue to the next line
-            p = await asyncio.create_subprocess_exec(program=batchfile, *arguments,
+            p = await asyncio.create_subprocess_exec(executable, *arguments, shell=False,
                                                      stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
 
             # Log STDOUT and STDERR to files
             #  This keeps reading from PIPE until the subprocess exits and the buffer is empty
             await asyncio.gather(
-                self._log_stream_to_file(p.stdout, stdout_log),
-                self._log_stream_to_file(p.stderr, stderr_log)
+                self._log_stream_to_file(p.stdout, stdout),
+                self._log_stream_to_file(p.stderr, stderr)
             )
 
         # If a SIGINT is received, terminate the subprocess and raise an exception
@@ -101,7 +147,29 @@ class Job:
         finally:
             pass
 
+    def _setup_log_files(self, stdout_log: str | Path, stderr_log: str | Path) -> tuple[Path, Path]:
+        """
+        Set up the log files for STDOUT and STDERR
+        """
+        # Setup file streams for STDOUT and STDERR of the batch file
+        if stdout_log is None:
+            stdout_log = self._stdout
+        else:
+            stdout_log = Path(stdout_log)
+        if stderr_log is None:
+            stderr_log = self._stderr
+        else:
+            stderr_log = Path(stderr_log)
+
+        # Create the log files if they don't exist
+        stdout_log.touch(exist_ok=True)
+        stderr_log.touch(exist_ok=True)
+        return stdout_log, stderr_log
+
     async def _log_stream_to_file(self, stream, log_file):
+        """
+        Save a chunk of data from a stream to a log file
+        """
         with open(log_file, "wb") as log:
             while True:
                 # Read 4 KB of data from the stream
@@ -134,13 +202,13 @@ class Job:
             # Update the concurrency limit
             _no_parallel_jobs = limit
             # Tag the subclass as modified (for debug)
-            __is_semaphore_modified = True
+            _is_semaphore_modified = True
 
         # Get all methods of the subclass
         methods = [func for func in dir(SubJob) if callable(getattr(SubJob, func)) and not func.startswith("__")]
 
         # Find all methods that have been decorated with @limited_concurrency
-        decorated = [func for func in methods if hasattr(getattr(SubJob, func), '__is_semaphore_limited')]
+        decorated = [func for func in methods if hasattr(getattr(SubJob, func), '_is_semaphore_limited')]
 
         # Redecorate each of the methods with the new semaphore
         for method in decorated:
