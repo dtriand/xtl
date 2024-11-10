@@ -1,7 +1,8 @@
-__all__ = ['Shell', 'BashShell', 'CmdShell', 'PowerShell']
+__all__ = ['Shell', 'DefaultShell', 'BashShell', 'CmdShell', 'PowerShell']
 
 from dataclasses import dataclass
 import re
+import os
 from pathlib import Path
 
 
@@ -81,3 +82,7 @@ PowerShell = Shell(name='powershell',
                    is_posix=False,
                    executable=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
                    batch_command='{executable} -File {batchfile}')
+
+
+# Set the default shell based on the OS
+DefaultShell = CmdShell if os.name == 'nt' else BashShell

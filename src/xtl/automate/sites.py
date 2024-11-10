@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Optional, Sequence
 
 from xtl.automate.priority_system import PrioritySystem, DefaultPrioritySystem, NicePrioritySystem
+from xtl.automate.shells import Shell, DefaultShell, BashShell
 
 
 @dataclass
@@ -12,7 +13,9 @@ class ComputeSite(ABC):
     on a specific site.
     """
 
-    _priority_system: PrioritySystem = None
+    _priority_system: Optional[PrioritySystem] = None
+    _default_shell: Optional[Shell] = None
+    _supported_shells: Sequence[Shell] | None = None
 
     @property
     def priority_system(self):
@@ -26,6 +29,20 @@ class ComputeSite(ABC):
         if not isinstance(value, PrioritySystem):
             raise TypeError('\'priority_system\' must be an instance of PrioritySystem')
         self._priority_system = value
+
+    @property
+    def default_shell(self) -> Optional[Shell]:
+        """
+        The default shell for this compute site. This is used to execute commands on the site.
+        """
+        return self._default_shell
+
+    @property
+    def supported_shells(self) -> Sequence[Shell] | None:
+        """
+        The supported shells for this compute site. This is used to validate the shell passed to the BatchFile.
+        """
+        return self._supported_shells
 
     @abstractmethod
     def load_modules(self, modules: str | Sequence[str]) -> str:
@@ -71,6 +88,8 @@ class BiotixHPC(ComputeSite):
         The default priority system is 'nice -n 10'.
         """
         self._priority_system = NicePrioritySystem(10)
+        self._default_shell = BashShell
+        self._supported_shells = [BashShell]
 
     def load_modules(self, modules: str | Sequence[str]) -> str:
         mods = []

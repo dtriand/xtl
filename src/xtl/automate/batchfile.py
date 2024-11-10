@@ -1,4 +1,4 @@
-__all__ = ['BatchFile']
+__all__ = ['BatchFile', 'DefaultShell']
 
 import os
 from pathlib import Path
@@ -6,11 +6,7 @@ import stat
 from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
-from xtl.automate.shells import Shell, BashShell, CmdShell
-
-
-# Set the default shell based on the OS
-DefaultShell = CmdShell if os.name == 'nt' else BashShell
+from xtl.automate.shells import Shell, DefaultShell, BashShell, CmdShell
 
 
 class BatchFile:

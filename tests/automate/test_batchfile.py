@@ -5,7 +5,7 @@ import stat
 
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.batchfile import BatchFile, DefaultShell
-from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell
+from xtl.automate.shells import Shell, BashShell, CmdShell
 
 
 class TestBatchFile:

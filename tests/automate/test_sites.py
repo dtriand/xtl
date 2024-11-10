@@ -1,6 +1,7 @@
 import pytest
 
 from xtl.automate.priority_system import DefaultPrioritySystem, NicePrioritySystem
+from xtl.automate.shells import BashShell
 from xtl.automate.sites import ComputeSite, LocalSite, BiotixHPC
 
 
@@ -13,6 +14,11 @@ class TestLocalSite:
 
         cs.priority_system = NicePrioritySystem(10)
         assert isinstance(cs.priority_system, NicePrioritySystem)
+
+    def test_default_shell(self):
+        cs = LocalSite()
+        assert cs.default_shell is None
+        assert cs.supported_shells is None
 
     def test_load_modules(self):
         cs = LocalSite()
@@ -38,6 +44,11 @@ class TestBiotixHPC:
 
         cs.priority_system = DefaultPrioritySystem()
         assert isinstance(cs.priority_system, DefaultPrioritySystem)
+
+    def test_default_shell(self):
+        cs = BiotixHPC()
+        assert cs.default_shell == BashShell
+        assert cs.supported_shells == [BashShell]
 
     def test_load_modules(self):
         cs = BiotixHPC()
