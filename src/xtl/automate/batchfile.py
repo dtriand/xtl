@@ -1,31 +1,21 @@
-from dataclasses import dataclass
+__all__ = ['BatchFile']
+
+import os
 from pathlib import Path
 import stat
 from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
+from xtl.automate.shells import Shell, BashShell, CmdShell
 
 
-@dataclass
-class Shell:
-    name: str
-    shebang: str
-    file_ext: str
-    comment_char: str = '#'
-    new_line_char: str = '\n'
-
-    def __post_init__(self):
-        if not self.file_ext.startswith('.'):
-            self.file_ext = '.' + self.file_ext
-
-
-# Definitions for common shells
-BashShell = Shell(name='bash', shebang='#!/bin/bash', file_ext='.sh')
+# Set the default shell based on the OS
+DefaultShell = CmdShell if os.name == 'nt' else BashShell
 
 
 class BatchFile:
 
-    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None, shell: Shell = BashShell):
+    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None, shell: Shell = DefaultShell):
         """
         A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
         instance.
@@ -54,9 +44,9 @@ class BatchFile:
         self._permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP
 
     @property
-    def filename(self) -> Path:
+    def file(self) -> Path:
         """
-        Returns the filename of the batch file.
+        Returns the batch file Path object.
         """
         return self._filename
 
@@ -101,6 +91,10 @@ class BatchFile:
             if int(digit) not in range(8):
                 raise ValueError(f'\'value\' must be a 3-digit integer with each digit in the range 0-7')
         self._permissions = int(f'0o{value}', 8)  # Save octal in the decimal representation
+
+    @property
+    def execute_command(self) -> str:
+        return self.shell.get_batch_command(self.file)
 
     def _add_line(self, line: str) -> None:
         """
@@ -175,7 +169,7 @@ class BatchFile:
         self._filename.unlink(missing_ok=True)
 
         # Write contents to file
-        text = self.shell.shebang + self.shell.new_line_char
+        text = self.shell.shebang + self.shell.new_line_char if self.shell.shebang else ''
         text += self.shell.new_line_char.join(self._lines)
         self._filename.write_text(text, encoding='utf-8')
 

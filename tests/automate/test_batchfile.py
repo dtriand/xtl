@@ -4,30 +4,33 @@ import os
 import stat
 
 from xtl.automate.sites import LocalSite, BiotixHPC
-from xtl.automate.batchfile import Shell, BatchFile
+from xtl.automate.batchfile import BatchFile, DefaultShell
+from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell
 
 
 class TestBatchFile:
 
     def test_filename(self):
-        b = BatchFile(filename='test')
-        assert b.filename.name == 'test.sh'
+        b = BatchFile(filename='test', shell=BashShell)
+        assert b.file.name == 'test.sh'
 
-        b = BatchFile(filename='test.csh')
-        assert b.filename.name == 'test.sh'
+        b = BatchFile(filename='test.csh', shell=BashShell)
+        assert b.file.name == 'test.sh'
 
     def test_shell(self):
-        b = BatchFile(filename='test')
-        assert b.shell.name == 'bash'
-        assert b.shell.shebang == '#!/bin/bash'
-        assert b.shell.file_ext == '.sh'
-        assert b.shell.comment_char == '#'
-        assert b.shell.new_line_char == '\n'
+        shell = CmdShell if os.name == 'nt' else BashShell
 
-        b = BatchFile(filename='test', shell=Shell(name='csh', shebang='#!/bin/csh', file_ext='.csh'))
+        b = BatchFile(filename='test')
+        assert b.shell == shell
+
+        custom_shell = shell=Shell(name='csh', shebang='#!/bin/csh', file_ext='.csh', is_posix=True,
+                                   executable='/bin/csh', batch_command='{executable} -c {batchfile}')
+
+        b = BatchFile(filename='test', shell=custom_shell)
         assert b.shell.name == 'csh'
         assert b.shell.shebang == '#!/bin/csh'
         assert b.shell.file_ext == '.csh'
+        assert b.shell.executable == '/bin/csh'
         assert b.shell.comment_char == '#'
         assert b.shell.new_line_char == '\n'
 
@@ -65,6 +68,13 @@ class TestBatchFile:
 
         with pytest.raises(ValueError):
             b.permissions = 999
+
+    def test_execute_command(self):
+        b = BatchFile(filename='test', shell=BashShell)
+        assert b.execute_command == r'/bin/bash -c test.sh'
+
+        b = BatchFile(filename='test', shell=CmdShell)
+        assert b.execute_command == r'C:\Windows\System32\cmd.exe /C test.bat'
 
     def test_add_line(self):
         b = BatchFile(filename='test')
@@ -114,16 +124,20 @@ class TestBatchFile:
         b.assign_variable(variable='var', value='value')
         assert b._lines == ['var=value']
 
-    @pytest.mark.make_temp_files('test.sh')
+    @pytest.mark.make_temp_files('test' + DefaultShell.file_ext)
     def test_write_file(self, temp_files):
         b = BatchFile(filename=temp_files)
         b.add_command('echo "Hello, World!"')
         b.save(change_permissions=True)
         with open(temp_files, 'r') as f:
-            assert f.read() == '#!/bin/bash\necho "Hello, World!"'
+            text = DefaultShell.shebang + DefaultShell.new_line_char if DefaultShell.shebang else ''
+            text += 'echo "Hello, World!"'
+            assert f.read() == text
 
+    # This test will fail on Windows, as Windows does not support file permissions
+    #  see: https://stackoverflow.com/questions/27500067/chmod-issue-to-change-file-permission-using-python
     @pytest.mark.xfail(condition=(os.name == 'nt'), reason='Windows does not support file permissions')
-    @pytest.mark.make_temp_files('test.sh')
+    @pytest.mark.make_temp_files('test' + DefaultShell.file_ext)
     def test_write_file_permissions(self, temp_files):
         b = BatchFile(filename=temp_files)
         b.save(change_permissions=True)
