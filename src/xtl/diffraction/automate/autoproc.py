@@ -1177,7 +1177,9 @@ class AutoPROCJob2(Job):
             raise ValueError(f'\'config\' must be of type {AutoPROCJobConfig2.__name__} or a sequence of them, '
                              f'not {type(config)}')
 
+        self._run_no = self._determine_run_no()
         self._patch_datasets(self._datasets)
+
         self._module = module
         self._success_file = 'staraniso_alldata-unique.mtz'
         self._success: bool = None
@@ -1190,14 +1192,38 @@ class AutoPROCJob2(Job):
         # Generate the commands for the batch scripts
         self._batch_commands = []
 
-    @staticmethod
-    def _patch_datasets(datasets: Sequence[DiffractionDataset]) -> None:
+    def _determine_run_no(self) -> int:
+        config = self._config if self._config_mode_single else self._config[0]
+        self._run_no = config.run_number
+        processed_data = self._datasets[0].processed_data
+        if not processed_data.exists():
+            return self._run_no
+        while True:
+            output_dir = processed_data / f'{config.job_prefix}_run{self._run_no:02d}'
+            if not output_dir.exists():
+                break
+            if self._run_no > 99:
+                raise FileExistsError(f'\'output_dir\' already exists: {output_dir}\n'
+                                      f'All run numbers from 01 to 99 are already taken!')
+            self._run_no += 1
+        self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
+        return self._run_no
+
+    def _patch_datasets(self, datasets: Sequence[DiffractionDataset]) -> None:
+        config = self._config if self._config_mode_single else self._config[0]
         if isinstance(datasets, DiffractionDataset):
             datasets = [datasets]
         for ds in datasets:
             if not isinstance(ds, DiffractionDataset):
                 raise ValueError(f'Invalid type for dataset: {type(ds)}')
-            # ds.patch()
+
+            # Register a new f-string
+            ds.register_dir_fstring(dir_type='job_dir',
+                                    fstring=f'{{processed_data}}/{config.job_prefix}_run{self._run_no:02d}',
+                                    keys=['processed_data'])
+            # Check that the dataset has been patched
+            if not hasattr(ds, 'job_dir'):
+                raise AttributeError(f'Failed to patch dataset with job_dir attribute: {ds}')
 
     @property
     def _output_dir(self):
@@ -1208,6 +1234,20 @@ class AutoPROCJob2(Job):
         Creates a list of commands to be executed in the batch script. This includes the loading of modules if
         necessary.
         """
+
+        # Command to build:
+        #  process -B -M <macros> \
+        #          -Id <randId_sweepId,raw_data,img_identifier,first_image,last_image> \
+        #          -Id <randId_sweepId,raw_data,img_identifier,first_image,last_image> \
+        #          ... \
+        #          -d <job_dir>/autoproc
+        #
+        # Sweep specific params in the macro file:
+        #  autoPROC_XdsKeyword_XRAY_WAVELENGTH_<randId_sweepId> = 1.0  # does it also work for non XDS keywords?
+        #
+        # ToDo:
+        #  - Add sweep_id and -Id string generation to dataset patching
+
         # If a module was provided, then purge all modules and load the specified one
         if self._module:
             purge_cmd = self._compute_site.purge_modules()

@@ -4,16 +4,46 @@ from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig2, AutoPROCJob2, AutoPROCJobResults
 
 
+no_datasets = 2
+no_images = 100
+cbf_images = [f'./a/b/c/dataset_1_{j+1}_{i+1:04d}.cbf' for j in range(no_datasets)  for i in range(no_images)]
+h5_images = [f'./a/b/c/dataset_1_{j+1}_master.h5' for j in range(no_datasets)] + \
+            [f'./a/b/c/dataset_1_{j+1}_data_{i+1:04d}.h5' for j in range(no_datasets)  for i in range(no_images)]
+
+
+@pytest.fixture
+def datasets(temp_files) -> list[DiffractionDataset]:
+    d = DiffractionDataset.from_image(temp_files[0])
+    p = d.raw_data_dir / 'processed'
+    if d._is_h5:
+        return [DiffractionDataset.from_image(temp_files[k], processed_data_dir=p) for k in range(no_datasets)]
+    return [DiffractionDataset.from_image(temp_files[k * no_images], processed_data_dir=p) for k in range(no_datasets)]
+
+
+@pytest.mark.parametrize(
+        'temp_files, is_h5', [
+        (cbf_images, False),
+        (h5_images,  True)
+        ], indirect=['temp_files'], ids=['cbf', 'h5']
+    )
 class TestAutoPROCJob:
 
-    _images = [f'./a/b/c/dataset_1_{j}_{i+1:04d}.cbf' for j in range(1, 3)  for i in range(0, 100)]
-
-    @pytest.mark.make_temp_files(*_images)
-    def test_init(self, temp_files):
-        d1 = DiffractionDataset.from_image(temp_files[0])
-        d2 = DiffractionDataset.from_image(temp_files[100])
-        assert d1.dataset_name != d2.dataset_name
-
+    def test_run_no(self, datasets, is_h5):
+        # Default initialization
         config = AutoPROCJobConfig2()
-        job = AutoPROCJob2(datasets=[d1, d2], config=config)
-        assert job._job_type == 'xtl.autoPROC.process'
+        job = AutoPROCJob2(datasets=datasets, config=config)
+        assert job._run_no == 1
+
+        # Existing output_dir
+        d = datasets[0]
+        for run in range(5):
+            output_dir = (d.processed_data / f'autoproc_run{run+1:02d}')
+            output_dir.mkdir(parents=True, exist_ok=True)
+        assert job._determine_run_no() == 6
+
+        # More than 99 runs
+        for run in range(100):
+            output_dir = (d.processed_data / f'autoproc_run{run+1:02d}')
+            output_dir.mkdir(parents=True, exist_ok=True)
+        with pytest.raises(FileExistsError):
+            job._determine_run_no()
