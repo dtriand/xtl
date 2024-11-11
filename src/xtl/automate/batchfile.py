@@ -1,6 +1,5 @@
-__all__ = ['BatchFile', 'DefaultShell']
+__all__ = ['BatchFile']
 
-import os
 from pathlib import Path, PurePosixPath
 import stat
 from typing import Any, Sequence, Optional
