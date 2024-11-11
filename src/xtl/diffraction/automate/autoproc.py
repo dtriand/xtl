@@ -7,11 +7,13 @@ import os
 from pathlib import Path
 from random import randint
 import shutil
+from typing import Any, Sequence, Optional
 import warnings
 
 from xtl import __version__
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
+from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
 
@@ -787,10 +789,10 @@ class AutoPROCJob(Job):
 @dataclass
 class AutoPROCJobConfig2:
     # Data directories
-    raw_data_dir: Path
-    processed_data_dir: Path
-    dataset_subdir: str
-    dataset_name: str
+    raw_data_dir: Path = None
+    processed_data_dir: Path = None
+    dataset_subdir: str = None
+    dataset_name: str = None
     dataset_subdir_rename: str = None
     processing_subdir: str = None
     job_prefix: str = 'autoproc'
@@ -1130,9 +1132,13 @@ class AutoPROCJobConfig2:
 class AutoPROCJob2(Job):
     _no_parallel_jobs = 5
 
-    def __init__(self, config: AutoPROCJobConfig2, compute_site: ComputeSite = None, module: str = None,
-                 stdout_log: str | Path = None, stderr_log: str | Path = None, macro_filename: str = 'xtl_autoPROC.dat',
-                 batch_filename: str = 'xtl_autoPROC.sh'):
+    def __init__(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
+                 config: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2],
+                 compute_site: Optional[ComputeSite] = None, module: Optional[str] = None,
+                 stdout_log: Optional[str | Path] = None, stderr_log: Optional[str | Path] = None,
+                 macro_filename: str = 'xtl_autoPROC.dat', batch_filename: str = 'xtl_autoPROC.sh'):
+
+        # Initialize the Job class
         super().__init__(
             name=f'xtl_autoPROC_{randint(0, 9999):04d}',
             compute_site=compute_site,
@@ -1140,16 +1146,42 @@ class AutoPROCJob2(Job):
             stderr_log=stderr_log
         )
         self._job_type = 'xtl.autoPROC.process'
+
+        # Check that the datasets are valid
+        if isinstance(datasets, DiffractionDataset):
+            self._datasets = [datasets]
+        elif isinstance(datasets, Sequence):
+            for i, ds in enumerate(datasets):
+                if not isinstance(ds, DiffractionDataset):
+                    raise ValueError(f'Invalid type for datasets\[{i}]: {type(ds)}')
+            self._datasets = datasets
+        else:
+            raise ValueError(f'\'datasets\' must be of type {DiffractionDataset.__name__} or a sequence of them, '
+                             f'not {type(datasets)}')
+
+        # Check that the config is valid
+        if isinstance(config, AutoPROCJobConfig2):
+            self._config = config
+            self._config._echo = self.echo  # Attach the echo function to the config
+            self._config_mode_single = True
+        elif isinstance(config, Sequence):
+            if len(config) != len(self._datasets):
+                raise ValueError(f'Length mismatch: datasets={len(self._datasets)} != config={len(config)}')
+            for i, c in enumerate(config):
+                if not isinstance(c, AutoPROCJobConfig2):
+                    raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
+                c._echo = self.echo  # Attach the echo function to every config
+            self._config = config
+            self._config_mode_single = False
+        else:
+            raise ValueError(f'\'config\' must be of type {AutoPROCJobConfig2.__name__} or a sequence of them, '
+                             f'not {type(config)}')
+
+        self._patch_datasets(self._datasets)
         self._module = module
         self._success_file = 'staraniso_alldata-unique.mtz'
         self._success: bool = None
         self._results: AutoPROCJobResults = None
-
-        # Load config parameters
-        if not isinstance(config, AutoPROCJobConfig2):
-            raise ValueError(f'config must be an instance of {AutoPROCJobConfig2.__name__}, not {type(config)}')
-        self._config: AutoPROCJobConfig2 = config
-        self._config._echo = self.echo
 
         # Filenames for the macro and batch file
         self._macro_filename = f'{macro_filename}{".dat" if not macro_filename.endswith(".dat") else ""}'
@@ -1157,6 +1189,15 @@ class AutoPROCJob2(Job):
 
         # Generate the commands for the batch scripts
         self._batch_commands = []
+
+    @staticmethod
+    def _patch_datasets(datasets: Sequence[DiffractionDataset]) -> None:
+        if isinstance(datasets, DiffractionDataset):
+            datasets = [datasets]
+        for ds in datasets:
+            if not isinstance(ds, DiffractionDataset):
+                raise ValueError(f'Invalid type for dataset: {type(ds)}')
+            # ds.patch()
 
     @property
     def _output_dir(self):
