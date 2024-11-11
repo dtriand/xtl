@@ -4,7 +4,7 @@ from pathlib import Path
 import shlex
 import warnings
 
-from xtl.automate.shells import Shell, DefaultShell
+from xtl.automate.shells import Shell, DefaultShell, WslShell
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.batchfile import BatchFile
 
@@ -69,7 +69,7 @@ class Job:
                 shell = compute_site.default_shell
             else:
                 shell = DefaultShell
-        elif not isinstance(shell, Shell):
+        elif not isinstance(shell, Shell | WslShell):
             raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
         if not compute_site.is_valid_shell(shell):
             warnings.warn(f'Shell \'{shell.name}\' is not compatible with compute_site '
@@ -105,19 +105,11 @@ class Job:
         :param stdout_log: The filename of the log file for STDOUT (default: <name>.stdout.log)
         :param stderr_log: The filename of the log file for STDERR (default: <name>.stderr.log)
         """
+        # Setup log files
         stdout, stderr = self._setup_log_files(stdout_log, stderr_log)
 
-        # Create arguments list
-        if arguments is None:
-            arguments = list()
-
-        # Get the executable and the arguments
-        if not isinstance(batchfile, BatchFile):
-            raise TypeError(f'\'batchfile\' must be an instance of BatchFile not {type(batchfile)}')
-        batch_command = batchfile.execute_command
-        args = shlex.split(batch_command, posix=batchfile.shell.is_posix)  # safe split for POSIX and non-POSIX systems
-        executable = args[0]
-        arguments = args[1:] + arguments  # append existing arguments
+        # Get the command and arguments to execute the batch file
+        executable, arguments = self._get_executable_and_args(batchfile, arguments)
 
         # Run the batch file
         try:
@@ -165,6 +157,19 @@ class Job:
         stdout_log.touch(exist_ok=True)
         stderr_log.touch(exist_ok=True)
         return stdout_log, stderr_log
+
+    def _get_executable_and_args(self, batchfile: BatchFile, arguments: list[str] = None):
+        """
+        Get the command and arguments to execute the batch file
+        """
+        if not isinstance(batchfile, BatchFile):
+            raise TypeError(f'\'batchfile\' must be an instance of BatchFile not {type(batchfile)}')
+
+        batch_command = batchfile.get_execute_command(arguments=arguments, as_list=True)
+        executable = batch_command[0]
+        arguments = batch_command[1:]
+        return executable, arguments
+
 
     async def _log_stream_to_file(self, stream, log_file):
         """

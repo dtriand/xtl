@@ -1,11 +1,13 @@
 import pytest
 
 import os
+from pathlib import Path
 import stat
 
+from tests.conftest import skipif_not_windows, skipif_not_wsl, supported_distros, wsl_distro_exists
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.batchfile import BatchFile, DefaultShell
-from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell
+from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell, WslShell
 
 
 class TestBatchFile:
@@ -23,8 +25,12 @@ class TestBatchFile:
         b = BatchFile(filename='test')
         assert b.shell == shell
 
-        custom_shell = shell=Shell(name='csh', shebang='#!/bin/csh', file_ext='.csh', is_posix=True,
-                                   executable='/bin/csh', batch_command='{executable} -c {batchfile}')
+        custom_shell = shell=Shell(name='csh',
+                                   shebang='#!/bin/csh',
+                                   file_ext='.csh',
+                                   is_posix=True,
+                                   executable='/bin/csh',
+                                   batch_command='{executable} -c {batch_file} {batch_arguments}')
 
         b = BatchFile(filename='test', shell=custom_shell)
         assert b.shell.name == 'csh'
@@ -33,6 +39,27 @@ class TestBatchFile:
         assert b.shell.executable == '/bin/csh'
         assert b.shell.comment_char == '#'
         assert b.shell.new_line_char == '\n'
+
+    @skipif_not_windows
+    @skipif_not_wsl
+    @pytest.mark.parametrize('distro', supported_distros)
+    def test_wsl_shell(self, distro):
+        if not wsl_distro_exists(distro):
+            pytest.skip(f'{distro} distro not installed')
+
+        # Create a test script
+        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest\test.sh')
+        script.parent.mkdir(parents=True, exist_ok=True)
+        script.touch()
+        assert script.exists()
+
+        # Create batch file
+        b = BatchFile(filename=script, shell=WslShell(distro=distro, shell=BashShell))
+        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash -c "/tmp/pytest/test.sh"'
+
+        # Delete test script
+        script.unlink()
+        assert not script.exists()
 
     def test_compute_site(self):
         b = BatchFile(filename='test')
@@ -72,15 +99,15 @@ class TestBatchFile:
     def test_execute_command(self):
         b = BatchFile(filename='test', shell=BashShell)
         assert b.file.suffix == '.sh'
-        assert b.execute_command == r'/bin/bash -c test.sh'
+        assert b.get_execute_command() == r'/bin/bash -c test.sh'
 
         b = BatchFile(filename='test', shell=CmdShell)
         assert b.file.suffix == '.bat'
-        assert b.execute_command == r'C:\Windows\System32\cmd.exe /Q /C test.bat'
+        assert b.get_execute_command() == r'C:\Windows\System32\cmd.exe /Q /C test.bat'
 
         b = BatchFile(filename='test', shell=PowerShell)
         assert b.file.suffix == '.ps1'
-        assert b.execute_command == r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -File test.ps1'
+        assert b.get_execute_command() == r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -File test.ps1'
 
     def test_add_line(self):
         b = BatchFile(filename='test')

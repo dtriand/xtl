@@ -1,6 +1,9 @@
+from functools import cache
 import random
+import os
 from pathlib import Path
-from shutil import rmtree
+import shutil
+import subprocess
 
 import pytest
 
@@ -9,7 +12,7 @@ CACHE_DIR = Path(__file__).parent / 'cache'
 if not CACHE_DIR.exists():
     CACHE_DIR.mkdir()
 else:
-    rmtree(CACHE_DIR)
+    shutil.rmtree(CACHE_DIR)
     CACHE_DIR.mkdir()
 
 
@@ -60,3 +63,14 @@ def temp_files(request, tmp_path_factory):
     if len(temp_files) == 1:
         return temp_files[0]
     return temp_files
+
+
+skipif_not_windows = pytest.mark.skipif(os.name != 'nt', reason='Test only for Windows')
+skipif_not_linux = pytest.mark.skipif(os.name != 'posix', reason='Test only for Linux')
+skipif_not_wsl = pytest.mark.skipif(shutil.which("wsl") is None, reason='WSL not installed')
+
+supported_distros = ['Ubuntu-18.04', 'Ubuntu-22.04']
+
+@cache
+def wsl_distro_exists(distro):
+    return subprocess.run(f'wsl -d {distro} -e true').returncode == 0

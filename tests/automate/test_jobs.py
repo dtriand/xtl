@@ -2,9 +2,12 @@ import pytest
 import pytest_asyncio
 
 import os
+from pathlib import Path
+import subprocess
 
+from tests.conftest import skipif_not_linux, skipif_not_windows, skipif_not_wsl, supported_distros, wsl_distro_exists
 from xtl.automate.sites import LocalSite, BiotixHPC
-from xtl.automate.shells import Shell, DefaultShell, BashShell, PowerShell, CmdShell
+from xtl.automate.shells import Shell, DefaultShell, BashShell, PowerShell, CmdShell, WslShell
 from xtl.automate.batchfile import BatchFile
 from xtl.automate.jobs import Job, limited_concurrency
 
@@ -35,7 +38,7 @@ class TestJob:
                              file_ext='.csh',
                              is_posix=True,
                              executable='/bin/csh',
-                             batch_command='{executable} -c {batchfile}')
+                             batch_command='{executable} -c {batch_file} {batch_arguments}')
 
         job = Job('test_job', stdout_log='test_stdout.log', stderr_log='test_stderr.log',
                   compute_site=BiotixHPC(), shell=custom_shell)
@@ -90,7 +93,7 @@ class TestJob:
         assert stderr.exists()
         assert stderr.read_text() == ''
 
-    @pytest.mark.skipif(os.name != 'nt', reason='Test only for Windows')
+    @skipif_not_windows
     @pytest.mark.make_temp_files('test_dir')
     @pytest.mark.parametrize(
         'shell,      cmd,             expected', [
@@ -112,7 +115,47 @@ class TestJob:
         assert stderr.exists()
         assert stderr.read_text() == ''
 
-    @pytest.mark.skipif(os.name != 'posix', reason='Test only for POSIX systems')
+    @skipif_not_windows
+    @skipif_not_wsl
+    @pytest.mark.parametrize('distro', supported_distros)
+    @pytest.mark.asyncio
+    async def test_run_args_wsl(self, distro):
+        # TEMP: Mocking execution within WSL. This needs to be properly implemented in the future.
+
+        if not wsl_distro_exists(distro):
+            pytest.skip(f'{distro} distro not installed')
+
+        # Create a test script
+        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest\test.sh')
+        script.parent.mkdir(parents=True, exist_ok=True)
+        script.touch()
+        assert script.exists()
+
+        # Create shell
+        shell = WslShell(distro=distro, shell=BashShell)
+
+        # Create job
+        job = Job('test_job', shell=shell)
+        batch = job.create_batch(filename=script, cmds=['echo "Hello $2"'])
+        subprocess.run(f'wsl -d {distro} -e chmod u+x {batch._wsl_filename}')  # default chmod doesn't work through WSL
+        assert batch.file.exists()
+
+        stdout = script.parent / 'stdout.log'
+        stderr = script.parent / 'stderr.log'
+        await job.run_batch(batchfile=batch, arguments=['Hello', 'to the World!'], # test for spaces in arguments
+                            stdout_log=stdout, stderr_log=stderr)
+
+        assert stdout.exists()
+        assert stdout.read_text() == 'Hello to the World!\n'
+        assert stderr.exists()
+        assert stderr.read_text() == ''
+
+        # Delete test script
+        for f in [script, stdout, stderr]:
+            f.unlink()
+            assert not f.exists()
+
+    @skipif_not_linux
     @pytest.mark.make_temp_files('test_job', 'test_job/test_job.stdout.log', 'test_job/test_job.stderr.log')
     @pytest.mark.asyncio
     async def test_run_all_shells_lin(self, temp_files):
@@ -131,7 +174,7 @@ class TestJob:
             assert stderr.exists()
             assert stderr.read_text() == ''
 
-    @pytest.mark.skipif(os.name != 'posix', reason='Test only for POSIX systems')
+    @skipif_not_linux
     @pytest.mark.make_temp_files('test_dir')
     @pytest.mark.parametrize(
         'shell,     cmd,         expected', [

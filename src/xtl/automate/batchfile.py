@@ -1,17 +1,18 @@
 __all__ = ['BatchFile', 'DefaultShell']
 
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import stat
 from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
-from xtl.automate.shells import Shell, DefaultShell, BashShell, CmdShell
+from xtl.automate.shells import Shell, DefaultShell, WslShell
 
 
 class BatchFile:
 
-    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None, shell: Shell = DefaultShell):
+    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None,
+                 shell: Shell | WslShell = DefaultShell):
         """
         A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
         instance.
@@ -20,11 +21,18 @@ class BatchFile:
         :param compute_site: The ComputeSite where the batch file will be executed
         :param shell: The Shell that will be used to execute the batch file
         """
-        if not isinstance(shell, Shell):
+        if not isinstance(shell, Shell | WslShell):
             raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
         self._shell = shell
 
         self._filename = Path(filename).with_suffix(self.shell.file_ext)
+
+        # Set the filename to be read by WSL
+        if isinstance(shell, WslShell):
+            wsl_filename = self._filename.as_posix().replace(f'//wsl.localhost/{shell.distro}', '')
+            self._wsl_filename = PurePosixPath(wsl_filename)
+        else:
+            self._wsl_filename = None
 
         # Set compute_site
         if compute_site is None:
@@ -88,9 +96,10 @@ class BatchFile:
                 raise ValueError(f'\'value\' must be a 3-digit integer with each digit in the range 0-7')
         self._permissions = int(f'0o{value}', 8)  # Save octal in the decimal representation
 
-    @property
-    def execute_command(self) -> str:
-        return self.shell.get_batch_command(self.file)
+    def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
+        if self._wsl_filename:
+            return self.shell.get_batch_command(batch_file=self._wsl_filename, batch_arguments=arguments, as_list=as_list)
+        return self.shell.get_batch_command(batch_file=self.file, batch_arguments=arguments, as_list=as_list)
 
     def _add_line(self, line: str) -> None:
         """
@@ -167,7 +176,7 @@ class BatchFile:
         # Write contents to file
         text = self.shell.shebang + self.shell.new_line_char if self.shell.shebang else ''
         text += self.shell.new_line_char.join(self._lines)
-        self._filename.write_text(text, encoding='utf-8')
+        self._filename.write_text(text, encoding='utf-8', newline=self.shell.new_line_char)
 
         # Update permissions (user: read, write, execute; group: read, write)
         if change_permissions:
