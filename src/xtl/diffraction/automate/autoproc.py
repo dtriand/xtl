@@ -1,8 +1,8 @@
 import asyncio
-import json
 from dataclasses import dataclass, field
 from datetime import datetime, date
 from difflib import SequenceMatcher
+import json
 import os
 from pathlib import Path
 from random import randint
@@ -845,6 +845,8 @@ class AutoPROCJobConfig2:
     extra_kwargs: dict = field(default_factory=dict)
 
     # Internal attributes
+    _macro_filename: str = 'xtl_autoPROC.dat'
+    _batch_filename: str = 'xtl_autoPROC.sh'
     _autoproc_output_subdir: str = 'autoproc'
     _file_ext: str = ''
     _is_h5_image: bool = False
@@ -862,6 +864,12 @@ class AutoPROCJobConfig2:
 
     def __post_init__(self):
         self._idn = f'{self._idn_prefix}_{randint(0, 9999):04d}'
+
+        # Verify file extensions for macro and batch files
+        if not self._macro_filename.endswith('.dat'):
+            self._macro_filename += '.dat'
+        if not self._batch_filename.endswith('.sh'):
+            self._batch_filename += '.sh'
 
     @property
     def _job_subdir(self):
@@ -1128,13 +1136,27 @@ class AutoPROCJobConfig2:
 
         return ' '.join(command)
 
+    def save_macro(self, dest_dir: Path) -> Optional[Path]:
+        """
+        Save the macro file to a specified directory. If no parameters are provided, then no macro file is created.
+
+        :param dest_dir: Path to the directory where the macro file will be saved
+        """
+        content = self.get_params_macro()
+        if not content:
+            return None
+        dest_dir = Path(dest_dir)
+        macro_file = dest_dir / self._macro_filename
+        macro_file.write_text(data=content, encoding='utf-8')
+        return macro_file
+
 
 class AutoPROCJob2(Job):
     _no_parallel_jobs = 5
 
     def __init__(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
                  config: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2],
-                 compute_site: Optional[ComputeSite] = None, module: Optional[str] = None,
+                 compute_site: Optional[ComputeSite] = None, modules: Optional[Sequence[str]] = None,
                  stdout_log: Optional[str | Path] = None, stderr_log: Optional[str | Path] = None,
                  macro_filename: str = 'xtl_autoPROC.dat', batch_filename: str = 'xtl_autoPROC.sh'):
 
@@ -1145,7 +1167,7 @@ class AutoPROCJob2(Job):
             stdout_log=stdout_log,
             stderr_log=stderr_log
         )
-        self._job_type = 'xtl.autoPROC.process'
+        self._job_type = 'xtl.autoproc.process'
 
         # Datasets and config
         self._datasets: Sequence[DiffractionDataset]
@@ -1159,17 +1181,21 @@ class AutoPROCJob2(Job):
         # Determine if the datasets are in HDF5 format
         self._is_h5 = self.datasets[0].is_h5
 
-        # Determine the run number
-        self._run_no = self._determine_run_no()
+        # Determine the run number for the job
+        self._run_no: int = None
+        self._determine_run_no()
 
         # Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn (not for h5), job_dir)
         self._patch_datasets()
 
-        self._module = module
-        self._success_file = 'staraniso_alldata-unique.mtz'
+        self._modules = modules
+
+        # Results
         self._success: bool = None
+        self._success_file: str = AutoPROCJobResults._success_fname
         self._results: AutoPROCJobResults = None
 
+        # TODO: Move the following attributes to the config class
         # Filenames for the macro and batch file
         self._macro_filename = f'{macro_filename}{".dat" if not macro_filename.endswith(".dat") else ""}'
         self._batch_filename = f'{batch_filename}{".sh" if not batch_filename.endswith(".sh") else ""}'
@@ -1232,6 +1258,16 @@ class AutoPROCJob2(Job):
         """
         return [self._config] if self._common_config else self._config
 
+    @property
+    def run_no(self) -> int:
+        return self._run_no
+
+    @property
+    def job_dir(self) -> Path:
+        processed_data = self._datasets[0].processed_data
+        job_prefix = self.config.job_prefix
+        return processed_data / f'{job_prefix}_run{self.run_no:02d}'
+
     def _determine_run_no(self) -> int:
         """
         Determine the job run number without creating the job_dir.
@@ -1242,11 +1278,10 @@ class AutoPROCJob2(Job):
         if not processed_data.exists():
             return self._run_no
         while True:
-            output_dir = processed_data / f'{config.job_prefix}_run{self._run_no:02d}'
-            if not output_dir.exists():
+            if not self.job_dir.exists():
                 break
             if self._run_no > 99:
-                raise FileExistsError(f'\'output_dir\' already exists: {output_dir}\n'
+                raise FileExistsError(f'\'job_dir\' already exists: {self.job_dir}\n'
                                       f'All run numbers from 01 to 99 are already taken!')
             self._run_no += 1
         self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
@@ -1320,29 +1355,16 @@ class AutoPROCJob2(Job):
         self._batch_commands.append(self._compute_site.prepare_command(process_cmd))
         return self._batch_commands
 
-    @property
-    def config(self):
-        return self._config
-
-    def create_macro(self):
-        macro = self._config.get_params_macro()
-        # Don't create a macro file if there are no parameters provided
-        if not macro:
-            return None
-        # TODO: Remove .save_to_file from the Job class -> perhaps in AutoPROCConfig?
-        macro_file = self.save_to_file(str(self._output_dir / self._macro_filename), macro)
-        return macro_file
-
     @limited_concurrency(_no_parallel_jobs)
     async def run(self, do_run: bool = True):
-        # Check that the provided raw/processed data directories are valid and that images exist
-        self.echo('Checking paths...')
-        self.config.check_paths()
-        self.echo('Paths are valid')
+        # Create the job directory
+        self.echo('Creating job directory...')
+        self.job_dir.mkdir(parents=True, exist_ok=True)
+        self.echo('Directory created')
 
         # Create a macro file with the user parameters
         self.echo('Creating autoPROC macro file...')
-        m = self.create_macro()
+        m = self.config.save_macro(dest_dir=self.job_dir)
         if not m:
             self.echo('No parameters provided, skipping macro file creation')
         else:
@@ -1372,6 +1394,8 @@ class AutoPROCJob2(Job):
             self.echo('Skipping batch script execution and sleeping for 5 seconds...')
             await asyncio.sleep(5)
             self.echo('Done sleeping!')
+
+        # TODO: Modify permissions of the job directory (store permissions in config)
 
 
     def tidy_up(self):

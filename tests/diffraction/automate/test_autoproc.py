@@ -29,6 +29,20 @@ def datasets(temp_files) -> list[DiffractionDataset]:
     )
 class TestAutoPROCJob:
 
+    def test_init(self, datasets, is_h5):
+        config = AutoPROCJobConfig2()
+        job = AutoPROCJob2(datasets=datasets, config=config)
+        assert job._job_type == 'xtl.autoproc.process'
+        assert hasattr(job, '_datasets')
+        assert hasattr(job, '_config')
+        assert hasattr(job, '_single_sweep')
+        assert hasattr(job, '_common_config')
+        assert job._is_h5 if is_h5 else not job._is_h5
+        assert hasattr(job, '_run_no')
+        assert hasattr(job, '_success')
+        assert hasattr(job, '_results')
+        assert job._success_file == 'staraniso_alldata-unique.mtz'
+
     def test_run_no(self, datasets, is_h5):
         # Default initialization
         config = AutoPROCJobConfig2()

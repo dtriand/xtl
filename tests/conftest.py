@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from functools import cache
 import random
 import os
@@ -34,7 +35,7 @@ def temp_files(request, tmp_path_factory):
         files = marker.args
     else:
         if params is None:
-            raise ValueError('No \'images\' marker found and no \'param\' provided on request')
+            raise ValueError('No \'make_temp_files\' marker found and no \'param\' provided on request')
         elif isinstance(params, list | tuple):
             files = request.param
         else:
@@ -73,4 +74,17 @@ supported_distros = ['Ubuntu-18.04', 'Ubuntu-22.04']
 
 @cache
 def wsl_distro_exists(distro):
+    """
+    Check if a WSL distro exists via the `wsl -d <distro> -e true` command
+    """
     return subprocess.run(f'wsl -d {distro} -e true').returncode == 0
+
+
+@contextmanager
+def seed(n: int) -> None:
+    """
+    Set the random seed for a test
+    """
+    random.seed(n)
+    yield
+    random.seed()
