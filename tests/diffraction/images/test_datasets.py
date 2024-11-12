@@ -47,7 +47,6 @@ class TestDiffractionDataset:
                 assert d.processed_data_dir == processed_data_dir
             assert d._file_ext == file_ext
 
-        @pytest.mark.xfail(raises=ValueError)
         @pytest.mark.parametrize(
             'temp_files', [
             ('./a/b/c/dataset_1_1_00001.cbf', './a/b/c'),
@@ -122,7 +121,6 @@ class TestDiffractionDataset:
                     assert d.processed_data_dir == processed_data_dir
                 assert d._file_ext == file_ext
 
-        @pytest.mark.xfail(raises=ValueError)
         @pytest.mark.parametrize(
             'temp_files', [
             ('./a/b/c/dataset_1_1_master.h5', './a/b/c'),
@@ -265,14 +263,14 @@ class TestDiffractionDataset:
         _multiple_cbf_datasets_2 = [f'./a/b/c/dataset_1_{j}.{i+1:04d}.cbf' for j in range(1, 3) for i in range(0, 10)]
 
         @pytest.mark.parametrize(
-            'temp_files,               is_h5, expected', [
-            (_multiple_h5_datasets,    True,  None),
-            (_multiple_cbf_datasets,   False, 'dataset_1_1_####.cbf'),  # standard method
-            (_multiple_cbf_datasets_2, False, 'dataset_1_1.00##.cbf'),  # string-comparison method
+            'temp_files,               first_last, is_h5, expected', [
+            (_multiple_h5_datasets,    False,      True,  None),
+            (_multiple_cbf_datasets,   False,      False, 'dataset_1_1_####.cbf'),  # standard method
+            (_multiple_cbf_datasets_2, True,       False, ('dataset_1_1.00##.cbf', 1, 10)),  # string-comparison method
         ], indirect=['temp_files'])
-        def test_get_image_template(self, temp_files, is_h5, expected):
+        def test_get_image_template(self, temp_files, first_last, is_h5, expected):
             d = DiffractionDataset.from_image(image=temp_files[0])
-            assert d.get_image_template() == expected
+            assert d.get_image_template(first_last=first_last) == expected
 
     class TestFStringFactory:
 

@@ -3,6 +3,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 import os.path
 import re
+from typing import Optional
 
 
 @dataclass
@@ -100,6 +101,13 @@ class DiffractionDataset:
         A list of all images in the dataset.
         """
         return self._images
+
+    @property
+    def is_h5(self) -> bool:
+        """
+        Whether the dataset is comprised of HDF5 files.
+        """
+        return self._is_h5
 
     def _check_dir_fstring(self, dir_type: str):
         """
@@ -352,17 +360,32 @@ class DiffractionDataset:
             images_all -= set(images_dataset)
         return sorted(list(dataset_names))
 
-    def get_image_template(self, full: bool = False) -> str | Path:
+    def get_image_template(self, as_path: bool = False, first_last: bool = False) -> (
+            Optional)[str | Path | tuple[str | Path, Optional[int], Optional[int]]]:
+        """
+        Determine a template string for the images in the dataset in the form of {dataset_name}_{####}.ext.
+        This is similar to what XDS would expect. If `as_path` is True, it will return a path instance with the full
+        path of the image. If `first_last` is True, an attempt will be made to determine the number of the first and
+        last image during the template determination, and it will return (template, img_no_first, img_no_last).
+
+        :param as_path: Whether to return the template as a full Path instance.
+        :param first_last: Whether to return the first and last image numbers along with the template.
+        """
         if self._is_h5:
             return None
 
         template = ''
+        img_no_first, img_no_last = None, None
         # Check if the file name is in the format {dataset_name}_{####}.ext
         if '_' in self.first_image.name:
             first_image_name = self.first_image.name.replace(self.file_extension, '')
             segment, fragment = first_image_name.rsplit(sep='_', maxsplit=1)
             if segment == self.dataset_name and fragment.isnumeric():
                 template = f'{self.dataset_name}_{"#" * len(fragment)}{self.file_extension}'
+                # Determine the number of the first and last image
+                img_no_first = int(fragment)
+                last_image_name = self.last_image.name.replace(self.file_extension, '')
+                img_no_last = int(last_image_name.rsplit(sep='_', maxsplit=1)[1])
 
         # If the above fails, try to find the longest common string between the first and last image
         if not template:
@@ -374,11 +397,17 @@ class DiffractionDataset:
                 common_template = first[match.a:match.a + match.size]
                 no_digits = len(first[match.a + match.size:])
                 template = f'{common_template}{"#" * no_digits}{self.file_extension}'
-
+                try:
+                    img_no_first = int(first[match.a + match.size:])
+                    img_no_last = int(last[match.b + match.size:])
+                except ValueError:
+                    pass
         if not template:
             raise ValueError(f"Could not determine image template with first and last image: {self.first_image}, "
                              f"{self.last_image}")
 
-        if full:
-            return self.raw_data / template
+        if as_path:
+            template = self.raw_data / template
+        if first_last:
+            return template, img_no_first, img_no_last
         return template
