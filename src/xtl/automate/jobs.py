@@ -1,10 +1,9 @@
 import asyncio
 from functools import wraps
 from pathlib import Path
-import shlex
 import warnings
 
-from xtl.automate.shells import Shell, DefaultShell, WslShell
+from xtl.automate.shells import Shell, DefaultShell, BashShell, WslShell
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.batchfile import BatchFile
 
@@ -30,6 +29,8 @@ def limited_concurrency(limit: int):
 class Job:
     _no_parallel_jobs = 10
     _is_semaphore_modified = False
+    _default_shell: Shell = BashShell
+    _supported_shells = []
 
     def __init__(self, name: str, compute_site: ComputeSite = None, shell: Shell = None, stdout_log: str | Path = None,
                  stderr_log: str | Path = None):
@@ -55,22 +56,36 @@ class Job:
         #  TODO: Implement a logging system
         self._echo = print
 
-    @staticmethod
-    def _determine_shell_and_site(shell: Shell = None, compute_site: ComputeSite = None):
+    def _determine_shell_and_site(self, shell: Shell = None, compute_site: ComputeSite = None):
         """
         Determine the shell and compute_site to use
         """
-        if compute_site is None:
+        if compute_site is None:  # Default compute site is LocalSite
             compute_site = LocalSite()
         elif not isinstance(compute_site, ComputeSite):
             raise TypeError(f'\'compute_site\' must be an instance of ComputeSite, not {type(compute_site)}')
-        if shell is None:
-            if compute_site.default_shell is not None:
+
+        if shell is None:  # automatically determine the shell
+            if not compute_site.supported_shells:  # if the compute site doesn't specify any requirements
+                shell = self._default_shell
+            elif not self._supported_shells:  # if the job doesn't specify any requirements
                 shell = compute_site.default_shell
             else:
+                common_shells = [s for s in self._supported_shells if s in compute_site.supported_shells]
+                if self._default_shell in common_shells:  # if the default shell is supported by the site
+                    shell = self._default_shell
+                elif common_shells:  # else choose the first common shell
+                    shell = common_shells[0]
+            if shell is None:  # if still no shell is found
                 shell = DefaultShell
-        elif not isinstance(shell, Shell | WslShell):
+        elif not isinstance(shell, Shell | WslShell):  # if shell is provided but not a Shell
             raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
+
+        # Raise warnings for incompatible shells but continue
+        if self._supported_shells:
+            if not shell in self._supported_shells:
+                warnings.warn(f'Shell \'{shell.name}\' is not compatible with job '
+                              f'\'{self.__class__.__name__}\'')
         if not compute_site.is_valid_shell(shell):
             warnings.warn(f'Shell \'{shell.name}\' is not compatible with compute_site '
                           f'\'{compute_site.__class__.__name__}\'')

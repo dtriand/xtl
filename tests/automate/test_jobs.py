@@ -27,7 +27,7 @@ class TestJob:
     def test_init(self):
         job = Job('test_job')
         assert job._name == 'test_job'
-        assert job._shell == DefaultShell
+        assert job._shell == job._default_shell
         assert isinstance(job._compute_site, LocalSite)
         assert job._stdout.name == 'test_job.stdout.log'
         assert job._stderr.name == 'test_job.stderr.log'
@@ -47,13 +47,37 @@ class TestJob:
         assert job._stderr.name == 'test_stderr.log'
 
     def test_determine_shell_and_site(self):
-        assert Job._determine_shell_and_site(shell=None, compute_site=None) == (DefaultShell, LocalSite())
-        assert Job._determine_shell_and_site(shell=CmdShell, compute_site=None) == (CmdShell, LocalSite())
-        assert Job._determine_shell_and_site(shell=None, compute_site=LocalSite()) == (DefaultShell, LocalSite())
-        assert Job._determine_shell_and_site(shell=PowerShell, compute_site=LocalSite()) == (PowerShell, LocalSite())
-        assert Job._determine_shell_and_site(shell=None, compute_site=BiotixHPC()) == (BashShell, BiotixHPC())
+        j = Job('test_job')
+        # No shell or compute_site -> job defaults
+        assert j._determine_shell_and_site(shell=None, compute_site=None) == (j._default_shell, LocalSite())
+        # Shell specified, no compute_site requirements -> shell defaults
+        assert j._determine_shell_and_site(shell=CmdShell, compute_site=None) == (CmdShell, LocalSite())
+        # No shell, no compute_site requirements -> job defaults
+        assert j._determine_shell_and_site(shell=None, compute_site=LocalSite()) == (j._default_shell, LocalSite())
+        # Shell but not compute_site requirements -> shell
+        assert j._determine_shell_and_site(shell=PowerShell, compute_site=LocalSite()) == (PowerShell, LocalSite())
+        # No shell but compute_site requirements -> compute_site defaults
+        assert j._determine_shell_and_site(shell=None, compute_site=BiotixHPC()) == (BashShell, BiotixHPC())
+        # Shell incompatible with compute_site -> shell but raise warning
         with pytest.warns(UserWarning, match='Shell \'powershell\' is not compatible with compute_site \'BiotixHPC\''):
-            assert Job._determine_shell_and_site(shell=PowerShell, compute_site=BiotixHPC()) == (PowerShell, BiotixHPC())
+            assert j._determine_shell_and_site(shell=PowerShell, compute_site=BiotixHPC()) == (PowerShell, BiotixHPC())
+        # Shell incompatible with job -> shell but raise warning
+        j._supported_shells = [CmdShell, BashShell]
+        with pytest.warns(UserWarning, match='Shell \'powershell\' is not compatible with job \'Job\''):
+            assert j._determine_shell_and_site(shell=PowerShell, compute_site=LocalSite()) == (PowerShell, LocalSite())
+        # No shell but both job and compute_site requirements -> multiple compatible shells -> job default
+        cs = LocalSite()
+        cs._supported_shells = [CmdShell, BashShell]
+        assert j._determine_shell_and_site(shell=None, compute_site=cs) == (BashShell, cs)
+        # No shell but both job and compute_site requirements -> multiple compatible shell -> choose first
+        j._default_shell = None
+        assert j._determine_shell_and_site(shell=None, compute_site=cs) == (CmdShell, cs)
+        # All above failed -> default shell
+        j._default_shell = None
+        j._supported_shells = []
+        cs._default_shell = None
+        cs._supported_shells = []
+        assert j._determine_shell_and_site(shell=None, compute_site=cs) == (DefaultShell, cs)
 
     def test_echo(self, capsys):
         job = Job('test_job')
@@ -64,7 +88,7 @@ class TestJob:
 
     @pytest.mark.make_temp_files('test_job' + DefaultShell.file_ext)
     def test_create_batch(self, temp_files):
-        job = Job('test_job')
+        job = Job('test_job', shell=DefaultShell)
         batch = job.create_batch(filename=temp_files, cmds=['echo "Hello, World!"'])
         assert isinstance(batch, BatchFile)
         assert batch.file.name == 'test_job' + DefaultShell.file_ext
@@ -77,7 +101,7 @@ class TestJob:
     @pytest.mark.asyncio
     async def test_run(self, temp_files):
         batch, stdout, stderr = temp_files
-        job = Job('test_job')
+        job = Job('test_job', shell=DefaultShell)
         batch = job.create_batch(filename=batch, cmds=['echo "Hello, World!"'])
         assert batch.file.exists()
 
@@ -197,7 +221,7 @@ class TestJob:
     @pytest.mark.make_temp_files('test_job' + DefaultShell.file_ext)
     @pytest.mark.asyncio
     async def test_run_missing_batchfile(self, temp_files):
-        job = Job('test_job')
+        job = Job('test_job', shell=DefaultShell)
         batch = job.create_batch(filename=temp_files, cmds=['echo "Hello, World!"'])
         assert batch.file.exists()
         batch.file.unlink()
