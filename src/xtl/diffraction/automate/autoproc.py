@@ -1147,38 +1147,23 @@ class AutoPROCJob2(Job):
         )
         self._job_type = 'xtl.autoPROC.process'
 
-        # Check that the datasets are valid
-        if isinstance(datasets, DiffractionDataset):
-            self._datasets = [datasets]
-        elif isinstance(datasets, Sequence):
-            for i, ds in enumerate(datasets):
-                if not isinstance(ds, DiffractionDataset):
-                    raise ValueError(f'Invalid type for datasets\[{i}]: {type(ds)}')
-            self._datasets = datasets
-        else:
-            raise ValueError(f'\'datasets\' must be of type {DiffractionDataset.__name__} or a sequence of them, '
-                             f'not {type(datasets)}')
+        # Datasets and config
+        self._datasets: Sequence[DiffractionDataset]
+        self._config: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2]
 
-        # Check that the config is valid
-        if isinstance(config, AutoPROCJobConfig2):
-            self._config = config
-            self._config._echo = self.echo  # Attach the echo function to the config
-            self._config_mode_single = True
-        elif isinstance(config, Sequence):
-            if len(config) != len(self._datasets):
-                raise ValueError(f'Length mismatch: datasets={len(self._datasets)} != config={len(config)}')
-            for i, c in enumerate(config):
-                if not isinstance(c, AutoPROCJobConfig2):
-                    raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
-                c._echo = self.echo  # Attach the echo function to every config
-            self._config = config
-            self._config_mode_single = False
-        else:
-            raise ValueError(f'\'config\' must be of type {AutoPROCJobConfig2.__name__} or a sequence of them, '
-                             f'not {type(config)}')
+        # Initialization modes
+        self._single_sweep: bool  # True if only one dataset is provided
+        self._common_config: bool  # True if only one config is provided
+        self._validate_datasets_configs(datasets=datasets, configs=config)
 
+        # Determine if the datasets are in HDF5 format
+        self._is_h5 = self.datasets[0].is_h5
+
+        # Determine the run number
         self._run_no = self._determine_run_no()
-        self._patch_datasets(self._datasets)
+
+        # Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn (not for h5), job_dir)
+        self._patch_datasets()
 
         self._module = module
         self._success_file = 'staraniso_alldata-unique.mtz'
@@ -1192,8 +1177,66 @@ class AutoPROCJob2(Job):
         # Generate the commands for the batch scripts
         self._batch_commands = []
 
+    def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
+                                   configs: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2]):
+        # Check that the datasets are valid
+        if isinstance(datasets, DiffractionDataset):
+            self._datasets = [datasets]
+            self._single_sweep = True
+        elif isinstance(datasets, Sequence):
+            for i, ds in enumerate(datasets):
+                if not isinstance(ds, DiffractionDataset):
+                    raise ValueError(f'Invalid type for datasets\[{i}]: {type(ds)}')
+            self._datasets = datasets
+            self._single_sweep = False
+        else:
+            raise ValueError(f'\'datasets\' must be of type {DiffractionDataset.__name__} or a sequence of them, '
+                             f'not {type(datasets)}')
+
+        # Check that the config is valid
+        if isinstance(configs, AutoPROCJobConfig2):
+            self._config = configs
+            self._config._echo = self.echo  # Attach the echo function to the config
+            self._common_config = True
+        elif isinstance(configs, Sequence):
+            if len(configs) != len(self._datasets):
+                raise ValueError(f'Length mismatch: datasets={len(self._datasets)} != config={len(configs)}')
+            for i, c in enumerate(configs):
+                if not isinstance(c, AutoPROCJobConfig2):
+                    raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
+                c._echo = self.echo  # Attach the echo function to every config
+            self._config = configs
+            self._common_config = False
+        else:
+            raise ValueError(f'\'config\' must be of type {AutoPROCJobConfig2.__name__} or a sequence of them, '
+                             f'not {type(configs)}')
+
+    @property
+    def config(self) -> AutoPROCJobConfig2:
+        """
+        Return the main config.
+        """
+        return self._config if self._common_config else self._config[0]
+
+    @property
+    def datasets(self) -> list[DiffractionDataset]:
+        """
+        Return a list of all datasets.
+        """
+        return self._datasets
+
+    @property
+    def configs(self) -> list[AutoPROCJobConfig2]:
+        """
+        Return a list of all configs.
+        """
+        return [self._config] if self._common_config else self._config
+
     def _determine_run_no(self) -> int:
-        config = self._config if self._config_mode_single else self._config[0]
+        """
+        Determine the job run number without creating the job_dir.
+        """
+        config = self.config
         self._run_no = config.run_number
         processed_data = self._datasets[0].processed_data
         if not processed_data.exists():
@@ -1209,21 +1252,37 @@ class AutoPROCJob2(Job):
         self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
         return self._run_no
 
-    def _patch_datasets(self, datasets: Sequence[DiffractionDataset]) -> None:
-        config = self._config if self._config_mode_single else self._config[0]
-        if isinstance(datasets, DiffractionDataset):
-            datasets = [datasets]
-        for ds in datasets:
-            if not isinstance(ds, DiffractionDataset):
-                raise ValueError(f'Invalid type for dataset: {type(ds)}')
+    def _patch_datasets(self) -> None:
+        """
+        Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn, job_dir).
+        """
+        config = self._config if self._common_config else self._config[0]
+        for i, ds in enumerate(self._datasets):
+            # Set the sweep_id
+            setattr(ds, 'sweep_id', i + 1)
 
-            # Register a new f-string
+            # Set the autoproc_id
+            if self._single_sweep:
+                setattr(ds, 'autoproc_id', f'{config._idn}')
+            else:
+                setattr(ds, 'autoproc_id', f'{config._idn}_s{ds.sweep_id:02d}')
+
+            if not self._is_h5:
+                # Set the autoproc_idn to be passed on the -Id flag
+                # NOTE: Check if HDF5 images can also be parsed with -Id flag
+                #  According to the documentation, the image template should be <dataset_name>_master.h5
+                #  but how would we determine the first and last images? Are they required?
+                image_template, first_image, last_image = ds.get_image_template(as_path=False, first_last=True)
+                if first_image is None or last_image is None:
+                    raise ValueError(f'Failed to determine first and last images for dataset[{i}]: {ds}\n'
+                                     f'template: {image_template}, first: {first_image}, last: {last_image}')
+                setattr(ds, 'autoproc_idn',
+                        f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}')
+
+            # Set the job directory as an f-string
             ds.register_dir_fstring(dir_type='job_dir',
                                     fstring=f'{{processed_data}}/{config.job_prefix}_run{self._run_no:02d}',
                                     keys=['processed_data'])
-            # Check that the dataset has been patched
-            if not hasattr(ds, 'job_dir'):
-                raise AttributeError(f'Failed to patch dataset with job_dir attribute: {ds}')
 
     @property
     def _output_dir(self):

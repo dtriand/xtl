@@ -1,5 +1,6 @@
 import pytest
 
+from tests.conftest import seed
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig2, AutoPROCJob2, AutoPROCJobResults
 
@@ -47,3 +48,15 @@ class TestAutoPROCJob:
             output_dir.mkdir(parents=True, exist_ok=True)
         with pytest.raises(FileExistsError):
             job._determine_run_no()
+
+    @seed(42)
+    def test_patch_datasets(self, datasets, is_h5):
+        config = AutoPROCJobConfig2()
+        job = AutoPROCJob2(datasets=datasets, config=config)
+        assert job._datasets[0].sweep_id == 1
+        assert job._datasets[0].autoproc_id == 'xtl_1824_s01'
+        if not is_h5:
+            assert job._datasets[0].autoproc_idn == \
+                   f'xtl_1824_s01,{datasets[0].raw_data},' \
+                   f'{",".join(map(str, datasets[0].get_image_template(first_last=True)))}'
+        assert job._datasets[0].job_dir == datasets[0].processed_data / 'autoproc_run01'
