@@ -1,10 +1,12 @@
 import asyncio
+import json
 import traceback
 from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
 from pathlib import Path
 
+import pandas as pd
 import typer
 import tabulate
 
@@ -23,7 +25,7 @@ def typer_async(func):
         return asyncio.run(func(*args, **kwargs))
     return wrapper
 
-def parse_csv(csv_file: Path):
+def parse_csv(csv_file: Path, extra_headers: list[str] = None):
     datasets_dict = {
         'dataset_subdir': [],
         'dataset_name': [],
@@ -33,6 +35,9 @@ def parse_csv(csv_file: Path):
         'mtz_crystal_name': [],
         'mtz_dataset_name': []
     }
+    if extra_headers:
+        for header in extra_headers:
+            datasets_dict[header] = []
     indices = {key: None for key in datasets_dict.keys()}
 
     headers = csv_file.read_text().splitlines()[0].replace('#', '').replace(' ', '').split(',')
@@ -438,6 +443,10 @@ async def cli_autoproc_run_many(
     cli.echo(f'\nLaunching jobs at {t0}...')
     do_run = not dry_run
     tasks = [asyncio.create_task(job.run(do_run=do_run)) for job in jobs]
+    # TODO: Add a KeyboardInterrupt handler to cancel the jobs and write partial results to the csv file
+    #  https://www.roguelynn.com/words/asyncio-graceful-shutdowns/
+    # TODO: Add a pause handler that will not submit new jobs until the user confirms to continue
+    #  https://stackoverflow.com/questions/61148269/how-to-pause-an-asyncio-created-task-using-a-lock-or-some-other-method
     try:
         await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as e:
@@ -476,6 +485,70 @@ async def cli_autoproc_run_many(
         f.write(f'# Written by xtl.autoproc.run_many at {datetime.now()}')
 
     cli.echo('xtl.autoproc finished graciously <3\n')
+
+
+def df_stringify(df: pd.DataFrame):
+    df2 = df.copy(deep=True)
+    columns = df.columns
+    for col in columns:
+        if df[col].dtype == 'object':
+            first_object = df[col].dropna().iloc[0]
+            if isinstance(first_object, list | tuple):
+                df2[col] = df[col].apply(lambda x: ' '.join(map(str, x)))
+    return df2
+
+
+@app.command('json2csv', help='Create summary CSV from many JSON files')
+@typer_async
+async def cli_autoproc_json_to_csv(
+        datasets_file: Path = typer.Argument(metavar='<DATASETS.CSV>', help='Path to a CSV file containing dataset names'),
+        out_dir: Path = typer.Option(Path('./'), '-o', '--out-dir', help='Path to the output directory'),
+        debug: bool = typer.Option(False, '--debug', help='Print debug information')
+):
+    cli = CliIO()
+    # Check if csv file exists
+    if not datasets_file.exists():
+        cli.echo(f'File {datasets_file} does not exist', level='error')
+        raise typer.Abort()
+
+    cli.echo(f'Parsing dataset names from {datasets_file}... ', nl=False)
+    datasets = parse_csv(datasets_file, extra_headers=['autoproc_dir', 'autoproc_id', 'mtz_dataset_name'])
+    cli.echo('Done.')
+    cli.echo(f'Found {len(datasets["dataset_subdir"])} datasets')
+
+    data = []
+    if debug:
+        cli.echo('# dataset_subdir, rename_dataset_subdir, autoproc_dir', style={'fg': typer.colors.BRIGHT_MAGENTA})
+    for i, (dataset_dir, output_subdir, job_dir, autoproc_id, mtz) in enumerate(zip(datasets['dataset_subdir'],
+                                                                                    datasets['rename_dataset_subdir'],
+                                                                                    datasets['autoproc_dir'],
+                                                                                    datasets['autoproc_id'],
+                                                                                    datasets['mtz_dataset_name'])):
+        if debug:
+            cli.echo(f'{dataset_dir}, {output_subdir}, {job_dir}', style={'fg': typer.colors.BRIGHT_MAGENTA})
+        if not output_subdir:
+            output_subdir = dataset_dir
+        if job_dir:
+            j = out_dir / output_subdir / job_dir / 'xtl_autoPROC.json'
+            if j.exists():
+                d = {
+                    'id': i,
+                    'dataset_name': mtz,
+                    'job_dir': j.parent.as_uri(),
+                    'autoproc_id': autoproc_id
+                }
+                d.update(json.loads(j.read_text()))
+                data.append(d)
+
+    cli.echo(f'Found {len(data)} JSON files')
+    if not data:
+        return typer.Exit(code=0)
+
+    df = pd.json_normalize(data)
+    df = df_stringify(df)
+    csv_file = Path('.') / f'xtl_autoPROC_summary.csv'
+    df.to_csv(csv_file, index=False)
+    cli.echo(f'Wrote summary to {csv_file}')
 
 
 @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
