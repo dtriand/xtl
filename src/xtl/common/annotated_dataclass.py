@@ -104,6 +104,14 @@ class AnnotatedDataclass:
             self._typecheck_all()
         except TypeError:
             self._cast_all()
+
+        # Synchronize compound parameters
+        for param in self.__dataclass_fields__.values():
+            if param.metadata.get('param_type', None) == 'compound':
+                if param.metadata.get('in_sync', False):
+                    for subparam in param.metadata.get('members', []):
+                        setattr(self, subparam, getattr(self, param.name))
+
         self._validate_all()
 
 
@@ -140,7 +148,7 @@ def pfield(**kwargs) -> Field:
 
 def _ifield(**kwargs) -> Field:
     """
-    Hidden internal fields that will skip type checking, type casting and validaion.
+    Hidden internal fields that will skip type checking, type casting and validation.
     """
     kwargs['param_type'] = '__internal'
     return afield(**kwargs)
