@@ -1,6 +1,7 @@
 import pytest
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.common.annotated_dataclass import afield, cfield, pfield, _ifield
@@ -39,9 +40,9 @@ class TestGPhLConfig:
             d: list[int] = afield(formatter=lambda x: " ".join(map(str, x)))
 
         config = TestConfig(a=True, b='Hello', c=3, d=[1, 2, 3])
-        assert config.get_param_value('a') == {'a': '"yes"'}
-        assert config.get_param_value('b') == {'b': '"Hello"'}
-        assert config.get_param_value('c') == {'c': '"3.0000"'}
+        assert config.get_param_value('a') == {'a': 'yes'}
+        assert config.get_param_value('b') == {'b': 'Hello'}
+        assert config.get_param_value('c') == {'c': '3.0000'}
         assert config.get_param_value('d') == {'d': '"1 2 3"'}
 
     def test_compound_fields(self):
@@ -54,7 +55,7 @@ class TestGPhLConfig:
                             formatter=lambda x: {f'_{k}': v for k, v in x.items()})
 
         config = TestConfig(a=1, b=2)
-        assert config.get_param_value('c') == {'a': '"1"', 'b': 4}
+        assert config.get_param_value('c') == {'a': '1', 'b': 4}
 
         config = TestConfig(b=2)
         assert config.get_param_value('d') == {'_a': None, '_b': 4}
@@ -102,4 +103,10 @@ class TestGPhLConfig:
         assert config.get_all_params(grouped=True) == {'a': 1, 'b': 4, 'c': 3, 'd': 8}
         assert config.get_all_params(grouped=True, modified_only=True) == {'b': 4, 'd': 8}
 
-
+    def test_format_value(self):
+        assert GPhLConfig._format_value(value=True) == 'yes'
+        assert GPhLConfig._format_value(value=False) == 'no'
+        assert GPhLConfig._format_value(value='Hello') == 'Hello'
+        assert GPhLConfig._format_value(value='Hello World!') == '"Hello World!"'
+        assert GPhLConfig._format_value(value=Path('path/to/file')) == '"path/to/file"'
+        assert GPhLConfig._format_value(value=[1, 2, 3], formatter=lambda x: ' '.join(map(str, x))) == '"1 2 3"'

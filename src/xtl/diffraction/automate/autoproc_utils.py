@@ -8,6 +8,186 @@ import warnings
 
 from defusedxml import ElementTree as DET
 
+from xtl.common import afield, pfield, cfield
+from xtl.common.annotated_dataclass import _ifield
+from xtl.diffraction.automate.gphl_utils import GPhLConfig
+
+
+@dataclass
+class AutoPROCConfig(GPhLConfig):
+    # User parameters
+    unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
+                                    default=None,
+                                    alias='cell', group='user_params',
+                                    validator={'len': 6},
+                                    formatter=lambda x: ' '.join([str(y) for y in x]) if x else None)
+    space_group: str = afield(desc='Target space group for the dataset',
+                              default=None,
+                              alias='symm', group='user_params',
+                              formatter=lambda x: x.replace(' ', '') if x else None)
+    wavelength: float = afield(desc='Wavelength of the X-ray beam in Angstroms',
+                               default=None,
+                               alias='wave', group='user_params',
+                               validator={'gt': 0.0})
+    resolution_low: float = afield(desc='Low resolution limit for the dataset',
+                                   default=None,
+                                   alias='init_reso', group='user_params',
+                                   alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
+                                   alias_fstring_keys=['resolution_low', 'resolution_high'],
+                                   validator={'gt': 0.0})
+    resolution_high: float = afield(desc='High resolution limit for the dataset',
+                                    default=None,
+                                    alias='init_reso', group='user_params',
+                                    alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
+                                    alias_fstring_keys=['resolution_low', 'resolution_high'],
+                                    validator={'gt': 0.0})
+    anomalous: bool = afield(desc='Keep anomalous signal',
+                             default=None,
+                             alias='anom', group='user_params')
+    no_residues: int = afield(desc='Number of residues in the asymmetric unit',
+                              default=None,
+                              alias='nres', group='user_params',
+                              validator={'gt': 0})
+    mosaicity: float = afield(desc='Starting mosaicity value in degrees',
+                              default=None,
+                              alias='mosaic', group='user_params',
+                              validator={'gt': 0.0})
+    rfree_mtz: Path = afield(desc='Path to the MTZ file with R-free flags',
+                             default=None,
+                             alias='free_mtz', group='user_params')
+    reference_mtz: Path = afield(desc='Path to the reference MTZ file for unit-cell, space group, indexing and R-free flags',
+                                 default=None,
+                                 alias='ref_mtz', group='user_params')
+    mtz_project_name: str = afield(desc='Project name for the MTZ file',
+                                   default=None,
+                                   alias='pname', group='user_params')
+    mtz_crystal_name: str = afield(desc='Crystal name for the MTZ file',
+                                   default=None,
+                                   alias='xname', group='user_params')
+    mtz_dataset_name: str = afield(desc='Dataset name for the MTZ file',
+                                   default=None,
+                                   alias='dname', group='user_params')
+
+    # XDS parameters
+    xds_njobs: int = afield(desc='Maximum number of jobs for XDS',
+                            default=None,
+                            alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS', group='xds_params',
+                            validator={'ge': 1})
+    xds_nproc: int = afield(desc='Maximum number of processors for XDS',
+                            default=None,
+                            alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_PROCESSORS', group='xds_params',
+                            validator={'ge': 1})
+    xds_lib: Path = afield(desc='Path to external libraries',
+                           default=None,
+                           alias='autoPROC_XdsKeyword_LIB', group='xds_params')
+    xds_polarization_fraction: float = afield(desc='Polarization fraction',
+                                              default=None,
+                                              alias='autoPROC_XdsKeyword_FRACTION_OF_POLARIZATION', group='xds_params',
+                                              validator={'ge': 0.0, 'le': 1.0})
+    xds_idxref_refine_params: list[str] = afield(desc='Parameters to refine in IDXREF',
+                                                 alias='autoPROC_XdsKeyword_REFINEIDXREF', group='xds_params',
+                                                 validator={
+                                                    'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL',
+                                                                'SEGMENT']
+                                                 },
+                                                 formatter=lambda x: ' '.join(x) if x else [],
+                                                 default_factory=lambda: [])
+    xds_integrate_refine_params: list[str] = afield(desc='Parameters to refine in INTEGRATE',
+                                                    alias='autoPROC_XdsKeyword_REFINEINTEGRATE', group='xds_params',
+                                                    validator={
+                                                       'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL']
+                                                    },
+                                                    formatter=lambda x: ' '.join(x) if x else [],
+                                                    default_factory=lambda: [])
+    xds_correct_refine_params: list[str] = afield(desc='Parameters to refine in CORRECT',
+                                                  alias='autoPROC_XdsKeyword_REFINECORRECT', group='xds_params',
+                                                  validator={
+                                                     'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL',
+                                                                 'SEGMENT']},
+                                                  formatter=lambda x: ' '.join(x) if x else [],
+                                                  default_factory=lambda: [])
+    xds_defpix_optimize: bool = afield(desc='Optimize parameters for DEFPIX',
+                                       default=None,
+                                       alias='XdsOptimizeDefpix', group='xds_params')
+    xds_idxref_optimize: bool = afield(desc='Optimize parameters for IDXREF',
+                                       default=None,
+                                       alias='XdsOptimizeIdxref', group='xds_params')
+    xds_n_background_images: int = afield(desc='Number of images for background estimation',
+                                          default=None,
+                                          alias='XdsNumImagesBackgroundRange', group='xds_params')
+
+    # Compound parameters
+    _XdsExcludeIceRingsAutomatically: bool = pfield(alias='XdsExcludeIceRingsAutomatically', default=None)
+    _RunIdxrefExcludeIceRingShells: bool = pfield(alias='RunIdxrefExcludeIceRingShells', default=None,)
+    exclude_ice_rings: bool = cfield(desc='Exclude ice rings from the data',
+                                     default=None,
+                                     group='ice_rings_params',
+                                     members=['_XdsExcludeIceRingsAutomatically', '_RunIdxrefExcludeIceRingShells'],
+                                     in_sync=True)
+
+    # Extra parameters
+    extra_params: dict = afield(desc='Extra parameters for autoPROC',
+                                alias='_extra_params',
+                                group='extra_params',
+                                formatter=lambda x: x if x else {},
+                                default_factory=dict)
+
+    # Macros
+    beamline: str = afield(desc='Beamline name',
+                           default=None,
+                           alias='_beamline_macro',
+                           validator={
+                               'choice': [
+                                   'AlbaBL13Xaloc', 'Als1231', 'Als422', 'Als831', 'AustralianSyncMX1',
+                                   'AustralianSyncMX2', 'DiamondI04-MK', 'DiamondIO4', 'DiamondI23-Day1', 'DiamondI23',
+                                   'EsrfId23-2', 'EsrfId29', 'EsrfId30-B', 'ILL_D19', 'PetraIIIP13', 'PetraIIIP14',
+                                   'SlsPXIII', 'SoleilProxima1'
+                               ]
+                           })
+    resolution_cuttoff_criterion: str = afield(desc='Resolution cuttoff criterion',
+                                               default=None,
+                                               alias='_resolution_cuttoff_macro',
+                                               validator={'choice': ['CC1/2', 'None']},
+                                               formatter=lambda x: {'cc1/2': 'HighResCutOnCChalf' ,
+                                                                    'none': 'NoHighResCut'}.get(x.lower(), None) if x else None)
+
+    _macros: list[str] = cfield(desc='autoPROC macros',
+                                default_factory=list,
+                                group='macros',
+                                members=['beamline', 'resolution_cuttoff_criterion'],
+                                formatter=lambda x: {'_macros':
+                                                         ' '.join(f'-M {v}' for v in x.values() if v is not None)
+                                                         if any(x.values()) else None}
+                                )
+
+    # Batch mode flag
+    batch_mode: bool = pfield(desc='autoPROC in batch mode',
+                              default=None,
+                              formatter=lambda x: '-B' if x else None)
+
+    # List of CLI arguments
+    _args: list[str] = cfield(desc='autoPROC arguments',
+                              default_factory=list,
+                              alias='__args',
+                              members=['batch_mode', '_macros'],
+                              formatter=lambda x: {'__args': ' '.join(v for v in x.values() if v is not None)})
+
+    _groups: dict = _ifield(default_factory=lambda: {
+        'user_params': 'User parameters',
+        'xds_params': 'XDS parameters',
+        'ice_rings_params': 'Ice rings parameters',
+        'extra_params': 'Extra parameters',
+    })
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Format the extra_params
+        if self.extra_params:
+            self.extra_params = {k: self._format_value(v) for k, v in self.extra_params.items()}
+            self._validate_param(self._get_param('extra_params'))
+
+
 
 @dataclass
 class AutoProcXmlParser:

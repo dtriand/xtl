@@ -1,5 +1,6 @@
 from dataclasses import dataclass, Field, _MISSING_TYPE
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Callable, Optional
 
 from xtl.common import AnnotatedDataclass
 
@@ -17,6 +18,23 @@ class GPhLConfig(AnnotatedDataclass):
         if None in fdict.values():
             return None
         return fstring.format(**fdict)
+
+    @staticmethod
+    def _format_value(value: Any, formatter: Optional[Callable] = None):
+        """
+        Apply formatting to a value to ensure it is on paar with the GPhL configuration file format.
+        """
+        if formatter:  # Apply a formatter to the value
+            if isinstance(formatter, Callable):
+                value = formatter(value)
+        if isinstance(value, bool):  # Convert boolean values to 'yes' or 'no'
+            value = 'yes' if value else 'no'
+        if isinstance(value, Path):  # Convert Path objects to strings
+            return f'"{value.as_posix()}"'  # HACK: GPhL always runs on POSIX systems
+        if isinstance(value, str):  # Pad strings with double quotes if they contain spaces
+            if ' ' in value:
+                value = f'"{value}"'
+        return value
 
     def get_param_value(self, name: str) -> dict[str, Any]:
         """
@@ -42,12 +60,7 @@ class GPhLConfig(AnnotatedDataclass):
         v = self._get_alias_value(param) if 'alias_fstring' in param.metadata else value
 
         formatter = param.metadata.get('formatter', None)
-        if formatter:  # Apply a formatter to the value
-            v = formatter(v)
-        if isinstance(v, bool):  # Convert boolean values to 'yes' or 'no'
-            v = 'yes' if v else 'no'
-        if isinstance(v, str):  # Pad strings with double quotes
-            v = f'"{v}"'
+        v = self._format_value(value=v, formatter=formatter)
         return {p: v}
 
     def get_group(self, name: str) -> dict[str, Any]:
