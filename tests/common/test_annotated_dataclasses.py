@@ -81,3 +81,32 @@ class TestAnnotatedDataclass:
             TestClass(param4=[1, 2, '3, 4'])
         with pytest.raises(ValueError):
             TestClass(param6=(1, 5))
+
+    def test_get_param(self):
+        @dataclass
+        class TestClass(AnnotatedDataclass):
+            param1: int = afield(alias='p1')
+            param2: str = afield(alias='p2')
+
+        t = TestClass(param1=42, param2='test')
+        assert t._get_param('param1').name == 'param1'
+        assert t._get_param('p1') is None
+        assert t._get_param('param2').name == 'param2'
+        assert t._get_param('p2') is None
+
+        assert t._get_param_from_alias('p1').name == 'param1'
+        assert t._get_param_from_alias('param1').name == 'param1'
+        assert t._get_param_from_alias('p2').name == 'param2'
+        assert t._get_param_from_alias('param2').name == 'param2'
+
+    def test_get_param_default_value(self):
+        @dataclass
+        class TestClass(AnnotatedDataclass):
+            param1: int = afield(default=42)
+            param2: list[str] = afield(default_factory=list)
+            param3: dict = afield(default_factory=lambda: {'a': 1, 'b': 2})
+
+        t = TestClass()
+        assert t._get_param_default_value(t._get_param('param1')) == 42
+        assert t._get_param_default_value(t._get_param('param2')) == []
+        assert t._get_param_default_value(t._get_param('param3')) == {'a': 1, 'b': 2}

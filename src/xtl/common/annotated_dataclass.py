@@ -1,5 +1,6 @@
-from dataclasses import dataclass, Field
+from dataclasses import dataclass, Field, _MISSING_TYPE
 from dataclasses import field as _field
+from typing import Any, Optional
 
 
 @dataclass
@@ -113,6 +114,40 @@ class AnnotatedDataclass:
                         setattr(self, subparam, getattr(self, param.name))
 
         self._validate_all()
+
+    def _get_param(self, name: str) -> Optional[Field]:
+        """
+        Get a parameter object from its name.
+        """
+        return self.__dataclass_fields__.get(name, None)
+
+    def _get_param_from_alias(self, alias: str) -> Optional[Field]:
+        """
+        Get the parameter object from an alias. If the alias is not found, then it will be treated as a parameter name.
+        """
+        for param in self.__dataclass_fields__.values():
+            if param.metadata.get('alias', None) == alias:
+                return param
+        param = self.__dataclass_fields__.get(alias, None)
+        return param
+
+    def _get_param_default_value(self, param: Field) -> Optional[Any]:
+        """
+        Get the default value of a parameter.
+        """
+        # Skip if parameter does not have a default value and a default factory
+        if not hasattr(param, 'default') and not hasattr(param, 'default_factory'):
+            return None
+        # Get default value from factory
+        default_factory = param.default_factory
+        if not isinstance(default_factory, _MISSING_TYPE):
+            default_value = default_factory()
+        else:
+            default_value = param.default
+        # Skip if default value is not set
+        if isinstance(default_value, _MISSING_TYPE):
+            default_value = None
+        return default_value
 
 
 def afield(**kwargs) -> Field:

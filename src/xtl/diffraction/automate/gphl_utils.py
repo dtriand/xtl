@@ -1,4 +1,4 @@
-from dataclasses import dataclass, Field
+from dataclasses import dataclass, Field, _MISSING_TYPE
 from typing import Any, Optional
 
 from xtl.common import AnnotatedDataclass
@@ -18,21 +18,11 @@ class GPhLConfig(AnnotatedDataclass):
             return None
         return fstring.format(**fdict)
 
-    def _get_param_from_alias(self, alias: str) -> Optional[Field]:
-        """
-        Get the parameter name from an alias.
-        """
-        for param in self.__dataclass_fields__.values():
-            if param.metadata.get('alias', None) == alias:
-                return param
-        param = self.__dataclass_fields__.get(alias, None)
-        return param
-
     def get_param_value(self, name: str) -> dict[str, Any]:
         """
         Get the value of a parameter as a dictionary in the format `{parameter: value}`.
         """
-        param = self.__dataclass_fields__.get(name, None)
+        param = self._get_param(name)
         if not param:
             raise ValueError(f'Invalid parameter {name}')
 
@@ -52,11 +42,11 @@ class GPhLConfig(AnnotatedDataclass):
         v = self._get_alias_value(param) if 'alias_fstring' in param.metadata else value
 
         formatter = param.metadata.get('formatter', None)
-        if formatter:
+        if formatter:  # Apply a formatter to the value
             v = formatter(v)
-        if isinstance(v, bool):
+        if isinstance(v, bool):  # Convert boolean values to 'yes' or 'no'
             v = 'yes' if v else 'no'
-        if isinstance(v, str):
+        if isinstance(v, str):  # Pad strings with double quotes
             v = f'"{v}"'
         return {p: v}
 
@@ -78,29 +68,34 @@ class GPhLConfig(AnnotatedDataclass):
         returned in the groups specified in the `_groups` attribute.
         """
         results = {}
-        if grouped and hasattr(self, '_groups'):
+        if grouped and hasattr(self, '_groups'):  # group mode
             for group, comment in self._groups.items():
                 params = self.get_group(group)
                 if modified_only:
                     new_params = {}
                     for k, v in params.items():
                         p = self._get_param_from_alias(k)
-                        if p:
-                            if not hasattr(p, 'default'):
-                                continue
-                            if v == p.default:
-                                continue
+                        # Skip if parameter does not exist
+                        if p is None:
+                            continue
+                        default_value = self._get_param_default_value(p)
+                        # Skip if value is equal to default value
+                        if v == default_value:
+                            continue
                         new_params.update({k: v})
                     params = new_params
                 if params:
                     results.update({group: {'comment': comment, 'params': params}})
-        else:
+        else:  # standard mode
             for param in self.__dataclass_fields__.values():
                 if param.metadata.get('param_type', None) in ['__internal', 'compound']:
                     continue
                 value = self.get_param_value(param.name)
                 name = param.metadata.get('alias', param.name)
-                if modified_only and value[name] == param.default:
-                    continue
+                if modified_only:
+                    default_value = self._get_param_default_value(param)
+                    # Skip if value is equal to default value
+                    if value[name] == default_value:
+                        continue
                 results.update(value)
         return results
