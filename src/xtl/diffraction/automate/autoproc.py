@@ -11,10 +11,11 @@ from typing import Any, Sequence, Optional
 import warnings
 
 from xtl import __version__
+from xtl.automate.shells import Shell, BashShell
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
 from xtl.diffraction.images.datasets import DiffractionDataset
-from xtl.diffraction.automate.autoproc_utils import ImgInfo, TruncateUnique, StaranisoUnique
+from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
 
 
@@ -1153,16 +1154,20 @@ class AutoPROCJobConfig2:
 
 class AutoPROCJob2(Job):
     _no_parallel_jobs = 5
+    _default_shell = BashShell
+    _supported_shells = [BashShell]
+    _job_prefix = 'autoproc'
 
     def __init__(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
-                 config: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2],
-                 compute_site: Optional[ComputeSite] = None, modules: Optional[Sequence[str]] = None,
-                 stdout_log: Optional[str | Path] = None, stderr_log: Optional[str | Path] = None,
-                 macro_filename: str = 'xtl_autoPROC.dat', batch_filename: str = 'xtl_autoPROC.sh'):
+                 config: AutoPROCConfig | Sequence[AutoPROCConfig],
+                 compute_site: Optional[ComputeSite] = None, shell: Optional[Shell] = None,
+                 modules: Optional[Sequence[str]] = None, stdout_log: Optional[str | Path] = None,
+                 stderr_log: Optional[str | Path] = None):
 
         # Initialize the Job class
         super().__init__(
             name=f'xtl_autoPROC_{randint(0, 9999):04d}',
+            shell=shell,
             compute_site=compute_site,
             stdout_log=stdout_log,
             stderr_log=stderr_log
@@ -1171,7 +1176,7 @@ class AutoPROCJob2(Job):
 
         # Datasets and config
         self._datasets: Sequence[DiffractionDataset]
-        self._config: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2]
+        self._config: AutoPROCConfig | Sequence[AutoPROCConfig]
 
         # Initialization modes
         self._single_sweep: bool  # True if only one dataset is provided
@@ -1185,6 +1190,9 @@ class AutoPROCJob2(Job):
         self._run_no: int = None
         self._determine_run_no()
 
+        # Set the job identifier
+        self._idn = f'{self.config.idn_prefix}_{randint(0, 9999):04d}'
+
         # Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn (not for h5), job_dir)
         self._patch_datasets()
 
@@ -1197,14 +1205,14 @@ class AutoPROCJob2(Job):
 
         # TODO: Move the following attributes to the config class
         # Filenames for the macro and batch file
-        self._macro_filename = f'{macro_filename}{".dat" if not macro_filename.endswith(".dat") else ""}'
-        self._batch_filename = f'{batch_filename}{".sh" if not batch_filename.endswith(".sh") else ""}'
+        # self._macro_filename = f'{macro_filename}{".dat" if not macro_filename.endswith(".dat") else ""}'
+        # self._batch_filename = f'{batch_filename}{".sh" if not batch_filename.endswith(".sh") else ""}'
 
         # Generate the commands for the batch scripts
         self._batch_commands = []
 
     def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
-                                   configs: AutoPROCJobConfig2 | Sequence[AutoPROCJobConfig2]):
+                                   configs: AutoPROCConfig | Sequence[AutoPROCConfig]):
         # Check that the datasets are valid
         if isinstance(datasets, DiffractionDataset):
             self._datasets = [datasets]
@@ -1220,25 +1228,23 @@ class AutoPROCJob2(Job):
                              f'not {type(datasets)}')
 
         # Check that the config is valid
-        if isinstance(configs, AutoPROCJobConfig2):
+        if isinstance(configs, AutoPROCConfig):
             self._config = configs
-            self._config._echo = self.echo  # Attach the echo function to the config
             self._common_config = True
         elif isinstance(configs, Sequence):
             if len(configs) != len(self._datasets):
                 raise ValueError(f'Length mismatch: datasets={len(self._datasets)} != config={len(configs)}')
             for i, c in enumerate(configs):
-                if not isinstance(c, AutoPROCJobConfig2):
+                if not isinstance(c, AutoPROCConfig):
                     raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
-                c._echo = self.echo  # Attach the echo function to every config
             self._config = configs
             self._common_config = False
         else:
-            raise ValueError(f'\'config\' must be of type {AutoPROCJobConfig2.__name__} or a sequence of them, '
+            raise ValueError(f'\'config\' must be of type {AutoPROCConfig.__name__} or a sequence of them, '
                              f'not {type(configs)}')
 
     @property
-    def config(self) -> AutoPROCJobConfig2:
+    def config(self) -> AutoPROCConfig:
         """
         Return the main config.
         """
@@ -1252,7 +1258,7 @@ class AutoPROCJob2(Job):
         return self._datasets
 
     @property
-    def configs(self) -> list[AutoPROCJobConfig2]:
+    def configs(self) -> list[AutoPROCConfig]:
         """
         Return a list of all configs.
         """
@@ -1265,8 +1271,7 @@ class AutoPROCJob2(Job):
     @property
     def job_dir(self) -> Path:
         processed_data = self._datasets[0].processed_data
-        job_prefix = self.config.job_prefix
-        return processed_data / f'{job_prefix}_run{self.run_no:02d}'
+        return processed_data / f'{self._job_prefix}_run{self.run_no:02d}'
 
     def _determine_run_no(self) -> int:
         """
@@ -1291,16 +1296,15 @@ class AutoPROCJob2(Job):
         """
         Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn, job_dir).
         """
-        config = self._config if self._common_config else self._config[0]
         for i, ds in enumerate(self._datasets):
             # Set the sweep_id
             setattr(ds, 'sweep_id', i + 1)
 
             # Set the autoproc_id
             if self._single_sweep:
-                setattr(ds, 'autoproc_id', f'{config._idn}')
+                setattr(ds, 'autoproc_id', f'{self._idn}')
             else:
-                setattr(ds, 'autoproc_id', f'{config._idn}_s{ds.sweep_id:02d}')
+                setattr(ds, 'autoproc_id', f'{self._idn}_s{ds.sweep_id:02d}')
 
             if not self._is_h5:
                 # Set the autoproc_idn to be passed on the -Id flag
@@ -1316,7 +1320,7 @@ class AutoPROCJob2(Job):
 
             # Set the job directory as an f-string
             ds.register_dir_fstring(dir_type='job_dir',
-                                    fstring=f'{{processed_data}}/{config.job_prefix}_run{self._run_no:02d}',
+                                    fstring=f'{{processed_data}}/{self._job_prefix}_run{self._run_no:02d}',
                                     keys=['processed_data'])
 
     @property
@@ -1343,11 +1347,11 @@ class AutoPROCJob2(Job):
         #  - Add sweep_id and -Id string generation to dataset patching
 
         # If a module was provided, then purge all modules and load the specified one
-        if self._module:
+        if self._modules:
             purge_cmd = self._compute_site.purge_modules()
             if purge_cmd:
                 self._batch_commands.append(purge_cmd)
-            load_cmd = self._compute_site.load_modules(self._module)
+            load_cmd = self._compute_site.load_modules(self._modules)
             if load_cmd:
                 self._batch_commands.append(load_cmd)
         # Add the autoPROC command by applying the appropriate priority system

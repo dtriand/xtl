@@ -31,6 +31,7 @@ class Job:
     _is_semaphore_modified = False
     _default_shell: Shell = BashShell
     _supported_shells = []
+    _job_prefix = 'xtl.job'
 
     def __init__(self, name: str, compute_site: ComputeSite = None, shell: Shell = None, stdout_log: str | Path = None,
                  stderr_log: str | Path = None):

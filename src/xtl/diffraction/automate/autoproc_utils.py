@@ -15,6 +15,18 @@ from xtl.diffraction.automate.gphl_utils import GPhLConfig
 
 @dataclass
 class AutoPROCConfig(GPhLConfig):
+    # Housekeeping
+    run_number: int = pfield(desc='Run number', group='housekeeping',
+                             default=1, validator={'ge': 1})
+    macro_filename: str = pfield(desc='Macro filename', group='housekeeping',
+                                 default='xtl_autoPROC.dat',
+                                 formatter=lambda x: f'{x}.dat' if not x.endswith('.dat') else x)
+    batch_filename: str = pfield(desc='Batch filename', group='housekeeping',
+                                 default='xtl_autoPROC.sh',
+                                 formatter=lambda x: f'{x}.sh' if not x.endswith('.sh') else x)
+    idn_prefix: str = pfield(desc='Prefix for the dataset identifier passed on to autoPROC',
+                             default='xtl', group='housekeeping',)
+
     # User parameters
     unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
                                     default=None,
