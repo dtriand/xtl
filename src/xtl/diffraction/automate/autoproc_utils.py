@@ -26,6 +26,8 @@ class AutoPROCConfig(GPhLConfig):
                                  formatter=lambda x: f'{x}.sh' if not x.endswith('.sh') else x)
     idn_prefix: str = pfield(desc='Prefix for the dataset identifier passed on to autoPROC',
                              default='xtl', group='housekeeping',)
+    autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
+                                         default='autoproc', group='housekeeping')
 
     # User parameters
     unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
@@ -169,7 +171,7 @@ class AutoPROCConfig(GPhLConfig):
                                 members=['beamline', 'resolution_cuttoff_criterion'],
                                 formatter=lambda x: {'_macros':
                                                          ' '.join(f'-M {v}' for v in x.values() if v is not None)
-                                                         if any(x.values()) else None}
+                                                         if any(x.values()) else []}
                                 )
 
     # Batch mode flag
@@ -182,13 +184,13 @@ class AutoPROCConfig(GPhLConfig):
                               default_factory=list,
                               alias='__args',
                               members=['batch_mode', '_macros'],
-                              formatter=lambda x: {'__args': ' '.join(v for v in x.values() if v is not None)})
+                              formatter=lambda x: {'__args': ' '.join(v for v in x.values() if v is not None)
+                                                   if any(x.values()) else ''})
 
     _groups: dict = _ifield(default_factory=lambda: {
         'user_params': 'User parameters',
         'xds_params': 'XDS parameters',
-        'ice_rings_params': 'Ice rings parameters',
-        'extra_params': 'Extra parameters',
+        'ice_rings_params': 'Ice rings parameters'
     })
 
     def __post_init__(self):

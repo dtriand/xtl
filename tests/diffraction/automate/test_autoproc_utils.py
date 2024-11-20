@@ -68,15 +68,8 @@ class TestAutoPROCConfig:
                     'autoPROC_XdsKeyword_REFINECORRECT': '"POSITION BEAM AXIS"'
                 }
             },
-            'extra_params': {
-                'comment': 'Extra parameters',
-                'params': {
-                    '_extra_params': {
-                        'test': 'value'
-                    }
-                }
-            }
         }
+        assert config.get_group('extra_params') == {'_extra_params': {'test': 'value'}}
 
         assert config.get_all_params(modified_only=True, grouped=False) == {
             'cell': '"78.0 78.0 37.0 90.0 90.0 90.0"',

@@ -1,5 +1,7 @@
 import pytest
 
+from pathlib import Path
+
 from tests.conftest import seed
 from xtl.automate.shells import BashShell
 from xtl.diffraction.images.datasets import DiffractionDataset
@@ -72,9 +74,63 @@ class TestAutoPROCJob:
         config = AutoPROCConfig()
         job = AutoPROCJob2(datasets=datasets, config=config)
         assert job._datasets[0].sweep_id == 1
-        assert job._datasets[0].autoproc_id == 'xtl_0409_s01'
+        assert job._datasets[0].autoproc_id == 'xtl0409s01'
         if not is_h5:
             assert job._datasets[0].autoproc_idn == \
-                   f'xtl_0409_s01,{datasets[0].raw_data},' \
+                   f'xtl0409s01,{datasets[0].raw_data},' \
                    f'{",".join(map(str, datasets[0].get_image_template(first_last=True)))}'
         assert job._datasets[0].job_dir == datasets[0].processed_data / 'autoproc_run01'
+
+    @seed(42)
+    def test_get_macro_content(self, datasets, is_h5):
+        config = AutoPROCConfig(unit_cell=[78, 78, 37, 90, 90, 90], space_group='P 43 21 2', xds_njobs=16,
+                                batch_mode=True, resolution_cuttoff_criterion='CC1/2', beamline='PetraIIIP14',
+                                extra_params={'autoPROC_XdsIntegPostrefNumCycle': 5})
+        job = AutoPROCJob2(datasets=datasets, config=config)
+        content = job._get_macro_content()
+        print(content)
+        for line in content.splitlines():
+            if line.startswith('# autoproc_id'):
+                assert line == f'# autoproc_id = xtl0409'
+            if line.startswith('# no_sweeps'):
+                assert line == f'# no_sweeps = 2'
+            if line.startswith('__args'):
+                assert '-B -M PetraIIIP14 -M HighResCutOnCChalf' in line
+                line = line.replace('-B -M PetraIIIP14 -M HighResCutOnCChalf', '')
+                prefix = '-h5' if is_h5 else '-Id'
+                args = line[8:-1].split(prefix)
+                ids = [arg.replace('"', '').replace(' ', '').split(',') for arg in args if arg]
+                for i, id in enumerate(ids):
+                    if is_h5:
+                        assert Path(id[0]).parts[-4:] == ('a', 'b', 'c', f'dataset_1_{i+1}_master.h5')
+                    else:
+                        autoproc_id, raw_data, image_template, img_no_first, img_no_last = id
+                        assert autoproc_id == f'xtl0409s0{i+1}'
+                        assert Path(raw_data).parts[-3:] == ('a', 'b', 'c')
+                        assert image_template == f'dataset_1_{i+1}_####.cbf'
+                        assert img_no_first == '1'
+                        assert img_no_last == '100'
+            if line.startswith('cell'):
+                assert line == f'cell="78.0 78.0 37.0 90.0 90.0 90.0"'
+            if line.startswith('symm'):
+                assert line == f'symm=P43212'
+            if line.startswith('autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS'):
+                assert line == f'autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS=16'
+            if line.startswith('autoPROC_XdsIntegPostrefNumCycle'):
+                assert line == f'autoPROC_XdsIntegPostrefNumCycle=5'
+            if line.startswith('# job_type'):
+                assert line == f'# job_type = xtl.autoproc.process'
+            if line.startswith('# run_number'):
+                assert line == f'# run_number = 1'
+            if line.startswith('# job_dir'):
+                assert Path(line.replace('# job_dir', '')).parts[-5:] == \
+                       ('a', 'b', 'processed', f'dataset_1_1', 'autoproc_run01')
+            if line.startswith('# autoproc_output_dir'):
+                assert Path(line.replace('# autoproc_output_dir', '')).parts[-6:] == \
+                       ('a', 'b', 'processed', f'dataset_1_1', 'autoproc_run01', 'autoproc')
+            if line.startswith('# single_sweep'):
+                assert line == f'# single_sweep = False'
+            if line.startswith('# is_h5'):
+                assert line == f'# is_h5 = {is_h5}'
+            if line.startswith('# modules'):
+                assert line == f'# modules = []'

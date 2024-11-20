@@ -5,15 +5,18 @@ from difflib import SequenceMatcher
 import json
 import os
 from pathlib import Path
+import platform
 from random import randint
 import shutil
 from typing import Any, Sequence, Optional
 import warnings
 
 from xtl import __version__
+from xtl.automate.batchfile import BatchFile
 from xtl.automate.shells import Shell, BashShell
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
+from xtl.common.os import get_os_name_and_version
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
@@ -1191,25 +1194,21 @@ class AutoPROCJob2(Job):
         self._determine_run_no()
 
         # Set the job identifier
-        self._idn = f'{self.config.idn_prefix}_{randint(0, 9999):04d}'
+        self._idn = f'{self.config.idn_prefix}{randint(0, 9999):04d}'
 
         # Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn (not for h5), job_dir)
         self._patch_datasets()
 
-        self._modules = modules
+        self._modules = modules if modules else []
 
         # Results
         self._success: bool = None
         self._success_file: str = AutoPROCJobResults._success_fname
         self._results: AutoPROCJobResults = None
 
-        # TODO: Move the following attributes to the config class
-        # Filenames for the macro and batch file
-        # self._macro_filename = f'{macro_filename}{".dat" if not macro_filename.endswith(".dat") else ""}'
-        # self._batch_filename = f'{batch_filename}{".sh" if not batch_filename.endswith(".sh") else ""}'
-
-        # Generate the commands for the batch scripts
-        self._batch_commands = []
+        # Batch and macro file
+        self._batch_file: Path
+        self._macro_file: Path
 
     def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
                                    configs: AutoPROCConfig | Sequence[AutoPROCConfig]):
@@ -1304,7 +1303,7 @@ class AutoPROCJob2(Job):
             if self._single_sweep:
                 setattr(ds, 'autoproc_id', f'{self._idn}')
             else:
-                setattr(ds, 'autoproc_id', f'{self._idn}_s{ds.sweep_id:02d}')
+                setattr(ds, 'autoproc_id', f'{self._idn}s{ds.sweep_id:02d}')
 
             if not self._is_h5:
                 # Set the autoproc_idn to be passed on the -Id flag
@@ -1327,37 +1326,123 @@ class AutoPROCJob2(Job):
     def _output_dir(self):
         return self._config.get_processed_data_path()
 
-    def _build_batch_commands(self):
+    def _get_batch_commands(self):
         """
         Creates a list of commands to be executed in the batch script. This includes the loading of modules if
         necessary.
+
+        The command to be executed is: process -M <MACRO>.dat -d <OUTPUT_DIR>
+
+        The rest of the configuration, including the dataset sweep definition, is provided in the macro file.
         """
 
-        # Command to build:
-        #  process -B -M <macros> \
-        #          -Id <randId_sweepId,raw_data,img_identifier,first_image,last_image> \
-        #          -Id <randId_sweepId,raw_data,img_identifier,first_image,last_image> \
-        #          ... \
-        #          -d <job_dir>/autoproc
-        #
-        # Sweep specific params in the macro file:
-        #  autoPROC_XdsKeyword_XRAY_WAVELENGTH_<randId_sweepId> = 1.0  # does it also work for non XDS keywords?
-        #
-        # ToDo:
-        #  - Add sweep_id and -Id string generation to dataset patching
-
         # If a module was provided, then purge all modules and load the specified one
+        commands = []
         if self._modules:
             purge_cmd = self._compute_site.purge_modules()
             if purge_cmd:
-                self._batch_commands.append(purge_cmd)
+                commands.append(purge_cmd)
             load_cmd = self._compute_site.load_modules(self._modules)
             if load_cmd:
-                self._batch_commands.append(load_cmd)
+                commands.append(load_cmd)
+
         # Add the autoPROC command by applying the appropriate priority system
-        process_cmd = self._config.get_command()
-        self._batch_commands.append(self._compute_site.prepare_command(process_cmd))
-        return self._batch_commands
+        process_cmd = f'process -M {self.job_dir / self.config.macro_filename} ' + \
+                              f'-d {self.job_dir / self.config.autoproc_output_subdir}'
+        commands.append(self._compute_site.prepare_command(process_cmd))
+        return commands
+
+    def _create_batch_file(self) -> BatchFile:
+        commands = self._get_batch_commands()
+        batch = BatchFile(filename=self.job_dir / self.config.batch_filename, compute_site=self._compute_site,
+                          shell=self._shell)
+        batch.add_commands(commands)
+        batch.save(change_permissions=True)
+        self._batch_file = batch.file
+        return batch
+
+    def _get_macro_content(self) -> str:
+        content = [
+            f'# autoPROC macro file',
+            f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}',
+            f'#  {os.getlogin()}@{platform.node()} [{get_os_name_and_version()}]',
+            f'',
+            f'### Dataset definitions',
+            f'# autoproc_id = {self._idn}',
+            f'# no_sweeps = {len(self.datasets)}',
+        ]
+
+        idns = []
+        for dataset in self.datasets:
+            content += [
+                f'## Sweep {dataset.sweep_id} [{dataset.autoproc_id}]: {dataset.dataset_name}',
+                f'#   raw_data = {dataset.raw_data}',
+                f'#   first_image = {dataset.first_image.name}',
+            ]
+            if self._is_h5:
+                # NOTE: dataset.autoproc_idn is not set for HDF5 images because it's currently not fully supported
+                idns.append(dataset.first_image)
+            else:
+                idn = dataset.autoproc_idn
+                idns.append(idn)
+                _, _, image_template, img_no_first, img_no_last = idn.split(',')
+                content += [
+                    f'#   image_template = {image_template}',
+                    f'#   img_no_first = {img_no_first}',
+                    f'#   img_no_last = {img_no_last}',
+                    f'#   idn = {idn}'
+                ]
+        content.append('')
+
+        # Append datasets and macros to the __args parameter
+        prefix = '-h5' if self._is_h5 else '-Id'
+        __args = ' '.join([f'{prefix} "{idn}"' for idn in idns])
+        __args += self.config.get_param_value('_args')['__args']
+
+        content += [
+            f'### CLI arguments (including dataset definitions and macros)',
+            f'__args=\'{__args}\'',
+            f''
+        ]
+
+        # Add any parameters that have been modified from default values on the config
+        all_params = self.config.get_all_params(modified_only=True, grouped=True)
+        for group in all_params.values():
+            content.append(f'### {group["comment"]}')
+            for key, value in group['params'].items():
+                content.append(f'{key}={value}')
+            content.append('')
+
+        # Add extra values, if provided
+        extra_params = self.config.get_group('extra_params')['_extra_params']
+        if extra_params:
+            content.append('### Extra parameters')
+            for key, value in extra_params.items():
+                content.append(f'{key}={value}')
+            content.append('')
+
+        # Add information about the environment
+        content += [
+            f'### XTL environment',
+            f'# job_type = {self._job_type}',
+            f'# run_number = {self.run_no}',
+            f'# job_dir = {self.job_dir}',
+            f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
+            f'## Initialization mode',
+            f'# single_sweep = {self._single_sweep}',
+            f'# is_h5 = {self._is_h5}',
+            f'## Localization',
+            f'# shell = {self._shell.name} [{self._shell.executable}]',
+            f'# compute_site = {self._compute_site.__class__.__name__} [{self._compute_site.priority_system.system_type}]',
+            f'# modules = {self._modules}',
+        ]
+        return '\n'.join(content)
+
+    def _create_macro_file(self) -> Path:
+        self._macro_file = self.job_dir / self.config.macro_filename
+        content = self._get_macro_content()
+        self._macro_file.write_text(content, encoding='utf-8')
+        return self._macro_file
 
     @limited_concurrency(_no_parallel_jobs)
     async def run(self, do_run: bool = True):
@@ -1368,16 +1453,12 @@ class AutoPROCJob2(Job):
 
         # Create a macro file with the user parameters
         self.echo('Creating autoPROC macro file...')
-        m = self.config.save_macro(dest_dir=self.job_dir)
-        if not m:
-            self.echo('No parameters provided, skipping macro file creation')
-        else:
-            self.echo(f'Macro file created: {m}')
+        m = self._create_macro_file()
+        self.echo(f'Macro file created: {m}')
 
         # Create the batch script file
         self.echo('Creating batch script...')
-        self._build_batch_commands()
-        s = self.create_batch(str(self._output_dir / self._batch_filename), self._batch_commands)
+        s = self._create_batch_file()
         self.echo(f'Batch script created: {s}')
 
         # Set up the log files
