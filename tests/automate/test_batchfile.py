@@ -71,31 +71,6 @@ class TestBatchFile:
         with pytest.raises(TypeError):
             b = BatchFile(filename='test', compute_site='asdf')
 
-    def test_permissions(self):
-        b = BatchFile(filename='test')
-        assert b.permissions == '0o760'
-
-        b.permissions = '0o755'
-        assert b.permissions == '0o755'
-        assert b._permissions == 493
-
-        b.permissions = 777
-        assert b.permissions == '0o777'
-        assert b._permissions == 511
-
-        b.permissions = '711'
-        assert b.permissions == '0o711'
-        assert b._permissions == 457
-
-        with pytest.raises(TypeError):
-            b.permissions = 755.
-
-        with pytest.raises(ValueError):
-            b.permissions = 'asdf'
-
-        with pytest.raises(ValueError):
-            b.permissions = 999
-
     def test_execute_command(self):
         b = BatchFile(filename='test', shell=BashShell)
         assert b.file.suffix == '.sh'

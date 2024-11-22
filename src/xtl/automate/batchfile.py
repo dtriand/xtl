@@ -6,6 +6,7 @@ from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.shells import Shell, DefaultShell, WslShell
+from xtl.common.os import get_permissions_in_decimal
 
 
 class BatchFile:
@@ -79,21 +80,7 @@ class BatchFile:
         """
         Set the permissions that will be set for the batch file. Expects a 3-digit octal number.
         """
-        if not isinstance(value, int | str):
-            raise TypeError(f'\'value\' must be an int or str, not {type(value)}')
-
-        # Convert to string and check if it is a number
-        value = str(value)
-        if value.startswith('0o'):  # Remove the '0o' octal representation prefix if present
-            value = value[2:]
-        if not value.isdigit() or len(value) != 3:
-            raise ValueError(f'\'value\' must be a 3-digit integer')
-
-        # Check for a valid permission value
-        for digit in value:
-            if int(digit) not in range(8):
-                raise ValueError(f'\'value\' must be a 3-digit integer with each digit in the range 0-7')
-        self._permissions = int(f'0o{value}', 8)  # Save octal in the decimal representation
+        self._permissions = get_permissions_in_decimal(value)
 
     def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
         if self._wsl_filename:
