@@ -91,6 +91,8 @@ class GPhLConfig(AnnotatedDataclass):
                         # Skip if parameter does not exist
                         if p is None:
                             continue
+                        if p.metadata.get('param_type', None) in ['__internal', 'private']:
+                            continue
                         default_value = self._get_param_default_value(p)
                         # Skip if value is equal to default value
                         if v == default_value:
@@ -101,7 +103,7 @@ class GPhLConfig(AnnotatedDataclass):
                     results.update({group: {'comment': comment, 'params': params}})
         else:  # standard mode
             for param in self.__dataclass_fields__.values():
-                if param.metadata.get('param_type', None) in ['__internal', 'compound']:
+                if param.metadata.get('param_type', None) in ['__internal', 'private', 'compound']:
                     continue
                 value = self.get_param_value(param.name)
                 name = param.metadata.get('alias', param.name)

@@ -48,6 +48,12 @@ class AnnotatedDataclass:
                 if not hasattr(self, subparam):
                     raise ValueError(f'Undefined member parameter {subparam} for {param.name}')
         validator = param.metadata.get('validator', {})
+        if 'func' in validator:
+            try:
+                if not validator['func'](value):
+                    raise ValueError(f'Invalid value for {param.name}\nFailed validation function {validator["func"]}')
+            except Exception as e:
+                raise ValueError(f'Invalid value for {param.name}\nFailed validation function {validator["func"]}: {e}')
         if 'choice' in validator:
             if value not in validator['choice']:
                 raise ValueError(f'Invalid value for {param.name}\nExpected one of {validator["choices"]}, got {value}')

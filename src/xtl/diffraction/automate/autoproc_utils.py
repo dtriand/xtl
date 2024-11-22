@@ -10,6 +10,7 @@ from defusedxml import ElementTree as DET
 
 from xtl.common import afield, pfield, cfield
 from xtl.common.annotated_dataclass import _ifield
+from xtl.common.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 
 
@@ -28,6 +29,10 @@ class AutoPROCConfig(GPhLConfig):
                              default='xtl', group='housekeeping',)
     autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
                                          default='autoproc', group='housekeeping')
+    file_permissions: int = pfield(desc='File permissions for all the output files',
+                                   default=760, group='housekeeping',
+                                   validator={'func': get_permissions_in_decimal},
+                                   formatter=get_permissions_in_decimal)
 
     # User parameters
     unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
@@ -131,8 +136,8 @@ class AutoPROCConfig(GPhLConfig):
                                           alias='XdsNumImagesBackgroundRange', group='xds_params')
 
     # Compound parameters
-    _XdsExcludeIceRingsAutomatically: bool = pfield(alias='XdsExcludeIceRingsAutomatically', default=None)
-    _RunIdxrefExcludeIceRingShells: bool = pfield(alias='RunIdxrefExcludeIceRingShells', default=None,)
+    _XdsExcludeIceRingsAutomatically: bool = afield(alias='XdsExcludeIceRingsAutomatically', default=None)
+    _RunIdxrefExcludeIceRingShells: bool = afield(alias='RunIdxrefExcludeIceRingShells', default=None,)
     exclude_ice_rings: bool = cfield(desc='Exclude ice rings from the data',
                                      default=None,
                                      group='ice_rings_params',
