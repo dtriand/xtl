@@ -453,7 +453,7 @@ class Project(GI.G2sc.G2Project):
                           f'{"I" if as_intensities else "F"}_sf.cif'
 
             if pretty:
-                from xtl.io import mmCIF
+                from xtl.files import mmCIF
                 mmCIF(doc).pretty_export(output_file)
             else:
                 doc.write_file(output_file, gemmi.cif.Style.Pdbx)

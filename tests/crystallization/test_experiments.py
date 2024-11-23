@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from xtl.crystallization.experiments import CrystallizationExperiment
-from xtl.io.npx import npx_load
+from xtl.files.npx import npx_load
 
 class TestCrystallizationExperiment:
 

@@ -11,7 +11,7 @@ from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrato
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 from .images import Image
-from xtl.io.npx import NpxFile
+from xtl.files.npx import NpxFile
 
 
 class _Integrator:

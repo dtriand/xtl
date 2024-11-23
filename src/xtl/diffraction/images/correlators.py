@@ -10,7 +10,7 @@ import numpy as np
 
 import xtl
 from xtl.diffraction.images import Image
-from xtl.io.npx import NpxFile
+from xtl.files.npx import NpxFile
 
 
 class _Correlator:

@@ -1,6 +1,6 @@
 import numpy as np
 
-from xtl.io.npx import NpxFile
+from xtl.files.npx import NpxFile
 
 
 def generate_test_data_reshape(shape: tuple[int, int], data_shape: tuple[int, int]):
