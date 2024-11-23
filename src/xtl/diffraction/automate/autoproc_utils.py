@@ -31,8 +31,7 @@ class AutoPROCConfig(GPhLConfig):
                                          default='autoproc', group='housekeeping')
     file_permissions: int = pfield(desc='File permissions for all the output files',
                                    default=760, group='housekeeping',
-                                   validator={'func': get_permissions_in_decimal},
-                                   formatter=get_permissions_in_decimal)
+                                   validator={'func': get_permissions_in_decimal})
 
     # User parameters
     unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
@@ -163,17 +162,17 @@ class AutoPROCConfig(GPhLConfig):
                                    'SlsPXIII', 'SoleilProxima1'
                                ]
                            })
-    resolution_cuttoff_criterion: str = afield(desc='Resolution cuttoff criterion',
-                                               default=None,
-                                               alias='_resolution_cuttoff_macro',
-                                               validator={'choice': ['CC1/2', 'None']},
-                                               formatter=lambda x: {'cc1/2': 'HighResCutOnCChalf' ,
-                                                                    'none': 'NoHighResCut'}.get(x.lower(), None) if x else None)
+    resolution_cutoff_criterion: str = afield(desc='Resolution cutoff criterion',
+                                              default=None,
+                                              alias='_resolution_cutoff_macro',
+                                              validator={'choice': ['CC1/2', 'None']},
+                                              formatter=lambda x: {'cc1/2': 'HighResCutOnCChalf' ,
+                                                                   'none': 'NoHighResCut'}.get(x.lower(), None) if x else None)
 
     _macros: list[str] = cfield(desc='autoPROC macros',
                                 default_factory=list,
                                 group='macros',
-                                members=['beamline', 'resolution_cuttoff_criterion'],
+                                members=['beamline', 'resolution_cutoff_criterion'],
                                 formatter=lambda x: {'_macros':
                                                          ' '.join(f'-M {v}' for v in x.values() if v is not None)
                                                          if any(x.values()) else []}

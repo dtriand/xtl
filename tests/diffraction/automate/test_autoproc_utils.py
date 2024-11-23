@@ -12,7 +12,7 @@ class TestAutoPROCConfig:
               'mtz_dataset_name', 'xds_njobs', 'xds_nproc', 'xds_lib', 'xds_polarization_fraction',
               'xds_defpix_optimize', 'xds_idxref_optimize', 'xds_n_background_images',
               '_XdsExcludeIceRingsAutomatically', '_RunIdxrefExcludeIceRingShells', 'exclude_ice_rings',
-              'beamline', 'resolution_cuttoff_criterion', 'batch_mode']
+              'beamline', 'resolution_cutoff_criterion', 'batch_mode']
     list_params = ['xds_idxref_refine_params', 'xds_integrate_refine_params', 'xds_correct_refine_params',
                    '_macros', '_args']
     dict_params = ['extra_params']
@@ -87,7 +87,7 @@ class TestAutoPROCConfig:
         }
 
     def test_macros(self):
-        config = AutoPROCConfig(beamline='PetraIIIP14', resolution_cuttoff_criterion='CC1/2')
+        config = AutoPROCConfig(beamline='PetraIIIP14', resolution_cutoff_criterion='CC1/2')
         assert config.get_param_value('_macros') == {
             '_macros': '-M PetraIIIP14 -M HighResCutOnCChalf'
         }
@@ -98,7 +98,7 @@ class TestAutoPROCConfig:
             '__args': ''
         }
 
-        config = AutoPROCConfig(beamline='PetraIIIP14', resolution_cuttoff_criterion='CC1/2', batch_mode=True)
+        config = AutoPROCConfig(beamline='PetraIIIP14', resolution_cutoff_criterion='CC1/2', batch_mode=True)
         assert config.get_param_value('_args') == {
             '__args': '-B -M PetraIIIP14 -M HighResCutOnCChalf'
         }

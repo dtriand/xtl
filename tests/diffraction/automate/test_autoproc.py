@@ -84,7 +84,7 @@ class TestAutoPROCJob:
     @seed(42)
     def test_get_macro_content(self, datasets, is_h5):
         config = AutoPROCConfig(unit_cell=[78, 78, 37, 90, 90, 90], space_group='P 43 21 2', xds_njobs=16,
-                                batch_mode=True, resolution_cuttoff_criterion='CC1/2', beamline='PetraIIIP14',
+                                batch_mode=True, resolution_cutoff_criterion='CC1/2', beamline='PetraIIIP14',
                                 extra_params={'autoPROC_XdsIntegPostrefNumCycle': 5})
         job = AutoPROCJob2(datasets=datasets, config=config)
         content = job._get_macro_content()

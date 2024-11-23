@@ -16,7 +16,7 @@ from xtl.automate.batchfile import BatchFile
 from xtl.automate.shells import Shell, BashShell
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
-from xtl.common.os import get_os_name_and_version
+from xtl.common.os import get_os_name_and_version, chmod_recursively
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
@@ -790,371 +790,6 @@ class AutoPROCJob(Job):
         self.echo('Tidying up complete!')
 
 
-@dataclass
-class AutoPROCJobConfig2:
-    # Data directories
-    raw_data_dir: Path = None
-    processed_data_dir: Path = None
-    dataset_subdir: str = None
-    dataset_name: str = None
-    dataset_subdir_rename: str = None
-    processing_subdir: str = None
-    job_prefix: str = 'autoproc'
-    run_number: int = 1
-    first_image: str = None
-    raw_data_dir_fstring: str = '{raw_data_dir}/{dataset_subdir}'
-    processed_data_dir_fstring: str = '{processed_data_dir}/{dataset_subdir}{processing_subdir}/{job_subdir}'
-
-    # Macros
-    macros: list[str] = field(default_factory=list)
-
-    # User-defined parameters
-    unit_cell: str = None
-    space_group: str = None
-    wavelength: float = None
-    resolution_high: float = None
-    resolution_low: float = None
-    anomalous: bool = False
-    nresidues: int = None
-    mosaicity: float = None
-    free_mtz_file: Path = None
-    reference_mtz_file: Path = None
-
-    # MTZ data hierarchy
-    mtz_project_name: str = None
-    mtz_crystal_name: str = None
-    mtz_dataset_name: str = None
-
-    # Automatic image finding
-    nimages: int = 500
-    compressed_img: bool = True
-
-    # XDS.INP parameters
-    xds_njobs: int = None
-    xds_nproc: int = None
-    xds_pol_fraction: float = None
-    xds_idxref_refine_params: list[str] = None
-    xds_idxref_optimize: bool = None
-    xds_n_bckg_images: int = None
-    xds_defpix_start: int = None
-    xds_lib: str = None
-
-    # Miscellaneous parameters
-    exclude_ice_rings: bool = None
-    beamline: str = None
-    resolution_cutoff_criterion: str = None
-    tricky_data: bool = None
-
-    # Extra kwargs
-    extra_kwargs: dict = field(default_factory=dict)
-
-    # Internal attributes
-    _macro_filename: str = 'xtl_autoPROC.dat'
-    _batch_filename: str = 'xtl_autoPROC.sh'
-    _autoproc_output_subdir: str = 'autoproc'
-    _file_ext: str = ''
-    _is_h5_image: bool = False
-    _is_compressed_image: bool = False
-    _img_template: str = ''
-    _starting_image: int = 1
-    _no_images: int = 0
-    _idn: str = None
-    _idn_prefix: str = 'xtl'
-    _known_beamlines = ['AlbaBL13Xaloc', 'Als1231', 'Als422', 'Als831', 'AustralianSyncMX1', 'AustralianSyncMX2',
-                        'DiamondI04-MK', 'DiamondIO4', 'DiamondI23-Day1', 'DiamondI23', 'EsrfId23-2', 'EsrfId29',
-                        'EsrfId30-B', 'ILL_D19', 'PetraIIIP13', 'PetraIIIP14', 'SlsPXIII', 'SoleilProxima1']
-    _known_resolution_cutoff_criterions = {'CC1/2': 'HighResCutOnCChalf', 'none': 'NoHighResCut'}
-    _echo = print
-
-    def __post_init__(self):
-        self._idn = f'{self._idn_prefix}_{randint(0, 9999):04d}'
-
-        # Verify file extensions for macro and batch files
-        if not self._macro_filename.endswith('.dat'):
-            self._macro_filename += '.dat'
-        if not self._batch_filename.endswith('.sh'):
-            self._batch_filename += '.sh'
-
-    @property
-    def _job_subdir(self):
-        return f'{self.job_prefix}_run{self.run_number:02d}'
-
-    def _check_path_fstring(self, fstring_type: str):
-        subkeys = {
-            'raw_data': ['raw_data_dir', 'dataset_subdir'],
-            'processed_data': ['processed_data_dir', 'dataset_subdir', 'processing_subdir', 'job_subdir']
-        }
-        if fstring_type not in subkeys.keys():
-            raise ValueError(f"Invalid fstring type: {fstring_type}")
-        for subkey in subkeys[fstring_type]:
-            if f'{{{subkey}}}' not in getattr(self, f'{fstring_type}_dir_fstring'):
-                raise ValueError(f"Invalid f-string! Missing key '{subkey}' in {fstring_type} directory f-string")
-
-    def get_raw_data_path(self):
-        self._check_path_fstring('raw_data')
-        return Path(self.raw_data_dir_fstring.format(raw_data_dir=self.raw_data_dir,
-                                                     dataset_subdir=self.dataset_subdir))
-
-    def get_processed_data_path(self):
-        self._check_path_fstring('processed_data')
-        dataset_subdir = self.dataset_subdir_rename if self.dataset_subdir_rename is not None else self.dataset_subdir
-        processing_subdir = f'/{self.processing_subdir}' if self.processing_subdir is not None else ''
-        return Path(self.processed_data_dir_fstring.format(processed_data_dir=self.processed_data_dir,
-                                                           dataset_subdir=dataset_subdir,
-                                                           processing_subdir=processing_subdir,
-                                                           job_subdir=self._job_subdir))
-
-    def get_autoproc_output_path(self):
-        return self.get_processed_data_path() / self._autoproc_output_subdir
-
-    def check_paths(self):
-        # Check if raw data directory exists
-        raw = self.get_raw_data_path()
-        if not raw:
-            raise FileNotFoundError(f"Raw data directory does not exist: {raw}")
-
-        # Check if files exist in the raw data directory
-        raw_images = [img for img in raw.iterdir() if img.is_file()]
-        if not raw_images:
-            raise FileNotFoundError(f"No files found in the raw_data directory: {raw}")
-
-        # Check if images exist for the specified dataset
-        dataset_images = [img for img in raw_images if img.name.startswith(self.dataset_name)]
-        if not dataset_images:
-            raise FileNotFoundError(f"No images for dataset {self.dataset_name} found in the raw_data directory: {raw}")
-
-        # Determine file extension
-        first_image = Path(self.first_image) if self.first_image is not None else dataset_images[0]
-        if first_image.suffix == '.h5':
-            self._file_ext = '.h5'
-            self._is_h5_image = True
-            self._is_compressed_image = False
-        elif first_image.suffix == '.gz':
-            self._is_compressed_image = True
-            uncompressed_image = Path(first_image.stem)
-            self._file_ext = uncompressed_image.suffix + '.gz'
-        else:
-            self._file_ext = first_image.suffix
-            self._is_compressed_image = False
-
-        # Determine image template, e.g. dataset_name_#####.cbf.gz
-        dataset_images.sort()  # sort alphabetically
-        # ToDo: Handling of .h5 images with master and data images
-        self._img_template = self._get_image_template(dataset_images[0], dataset_images[-1])
-
-        processed = self.get_processed_data_path()
-        if processed.exists():
-            while True:
-                self.run_number += 1
-                processed = self.get_processed_data_path()
-                if not processed.exists():
-                    break
-                if self.run_number > 99:
-                    raise FileExistsError(f'Directory for processed_data already exists: {processed}\n'
-                                          f'All run numbers from 01 to 99 are already taken!')
-            self._echo(f'Run number incremented to {self.run_number:02d} to avoid overwriting processed_data existing '
-                       f'directory')
-
-        processed.mkdir(parents=True, exist_ok=True)
-        if not processed.exists():
-            raise FileNotFoundError(f"Could not create directory for processed_data: {processed}")
-
-
-    def _get_image_template(self, img1: Path, img2: Path):
-        # Extract filenames without extensions, this accounts for compressed images
-        fname0 = img1.name.split(self._file_ext)[0]
-        fname1 = img2.name.split(self._file_ext)[0]
-
-        # Find the longest match between the two filenames
-        match = SequenceMatcher(None, fname0, fname1).find_longest_match()
-        if match.a == match.b == 0:
-            template = fname0[match.a:match.a+match.size]
-            frame_digits = len(fname0[match.a+match.size:])
-            self._no_images = int(fname1[match.b+match.size:])
-            return f'{template}{"#" * frame_digits}{self._file_ext}'
-
-    def get_image_identifier(self):
-        return f'{self._idn},{self.get_raw_data_path()},{self._img_template},{self._starting_image},{self._no_images}'
-
-    def get_user_params(self):
-        user_params = dict()
-        if self.unit_cell is not None:
-            user_params['cell'] = self.unit_cell
-        if self.space_group is not None:
-            user_params['symm'] = self.space_group.replace(' ', '')
-        if self.wavelength is not None:
-            user_params['wave'] = self.wavelength
-        if self.resolution_high is not None and self.resolution_low is not None:
-            user_params['init_reso'] = f'{self.resolution_high:.2f} {self.resolution_low:.2f}'
-        if self.anomalous:
-            user_params['anom'] = 'yes'
-        if self.nresidues is not None:
-            user_params['nres'] = self.nresidues
-        if self.mosaicity is not None:
-            user_params['mosaic'] = self.mosaicity
-        if self.free_mtz_file is not None:
-            user_params['free_mtz'] = str(self.free_mtz_file)
-        if self.reference_mtz_file is not None:
-            user_params['ref_mtz'] = str(self.reference_mtz_file)
-
-        if self.mtz_project_name is not None:
-            user_params['pname'] = self.mtz_project_name
-        if self.mtz_crystal_name is not None:
-            user_params['xname'] = self.mtz_crystal_name
-        if self.mtz_dataset_name is not None:
-            user_params['dname'] = self.mtz_dataset_name
-        return user_params
-
-    def get_xds_params(self):
-        xds_params = dict()
-        if self.xds_njobs is not None:
-            xds_params['autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS'] = self.xds_njobs
-        if self.xds_nproc is not None:
-            xds_params['autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_PROCESSORS'] = self.xds_nproc
-        if self.xds_pol_fraction is not None:
-            xds_params['autoPROC_XdsKeyword_FRACTION_OF_POLARIZATION'] = self.xds_pol_fraction
-        if self.xds_idxref_refine_params is not None:
-            xds_params['autoPROC_XdsKeyword_REFINEIDXREF'] = ' '.join(self.xds_idxref_refine_params)
-        if self.xds_idxref_optimize is not None:
-            xds_params['XdsOptimizeIdxref'] = 'yes' if self.xds_idxref_optimize else 'no'
-        if self.xds_n_bckg_images is not None:
-            xds_params['XdsNumImagesBackgroundRange'] = self.xds_n_bckg_images
-        if self.xds_defpix_start is not None:
-            xds_params['XdsOptimizeDefpixStart'] = self.xds_defpix_start
-        if self.xds_lib is not None:
-            xds_params['autoPROC_XdsKeyword_LIB'] = self.xds_lib
-        return xds_params
-
-    def get_misc_params(self):
-        misc_params = dict()
-        if self.exclude_ice_rings is not None:
-            misc_params['_comment'] = 'Ice rings exclusion'
-            misc_params['XdsExcludeIceRingsAutomatically'] = 'yes' if self.exclude_ice_rings else 'no'
-            misc_params['RunIdxrefExcludeIceRingShells'] = 'yes' if self.exclude_ice_rings else 'no'
-        return misc_params
-
-    def get_extra_kwargs(self):
-        return self.extra_kwargs
-
-    def _format_key_value_pair(self, key, value):
-        if isinstance(value, float) or isinstance(value, int):
-            return f'{key}={value}\n'
-        elif key == '_comment':
-            return f'# {value}\n'
-        else:
-            return f'{key}="{value}"\n'
-
-    def get_params_macro(self):
-        has_commands = False
-        macro = f'# autoPROC macro file for dataset {self.dataset_name}\n'
-        macro += f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}\n\n'
-
-        macro += f'### XTL input\n'
-        macro += f'## Directories\n'
-        macro += f'# raw_data_dir = "{self.get_raw_data_path()}"\n'
-        macro += f'# image_template = "{self._img_template}"\n'
-        macro += f'# starting_image = {self._starting_image}\n'
-        macro += f'# final_image = {self._no_images}\n'
-        macro += f'# dataset_idn = "{self._idn}"\n'
-        macro += f'# processed_data_dir = "{self.get_processed_data_path()}"\n'
-        macro += f'# autoproc_output_dir = "{self.get_autoproc_output_path()}"\n\n'
-
-        if self.get_user_params():
-            has_commands = True
-            macro += '### User parameters\n'
-            for key, value in self.get_user_params().items():
-                macro += self._format_key_value_pair(key, value)
-            macro += '\n'
-
-        if self.get_xds_params():
-            has_commands = True
-            macro += '### XDS parameters\n'
-            for key, value in self.get_xds_params().items():
-                macro += self._format_key_value_pair(key, value)
-            macro += '\n'
-
-        if self.get_misc_params():
-            has_commands = True
-            macro += '### Miscellaneous parameters\n'
-            for key, value in self.get_misc_params().items():
-                macro += self._format_key_value_pair(key, value)
-            macro += '\n'
-
-        if self.get_extra_kwargs():
-            has_commands = True
-            macro += '### Extra parameters\n'
-            for key, value in self.get_extra_kwargs().items():
-                macro += self._format_key_value_pair(key, value)
-            macro += '\n'
-
-        if not has_commands:
-            return ''
-        return macro
-
-    def get_beamline(self):
-        if self.beamline:
-            for bl in self._known_beamlines:
-                if bl.lower() == self.beamline.lower():
-                    self.beamline = bl
-                    return [bl]
-        self.beamline = None
-        return []
-
-    def get_resolution_cutoff_criterion(self):
-        if self.resolution_cutoff_criterion:
-            for rc in self._known_resolution_cutoff_criterions.keys():
-                if rc.lower() == self.resolution_cutoff_criterion.lower():
-                    self.resolution_cutoff_criterion = rc
-                    return [self._known_resolution_cutoff_criterions[rc]]
-        self.resolution_cutoff_criterion = None
-        return []
-
-    def get_tricky_data(self):
-        if self.tricky_data is not None:
-            return ['LowResOrTricky'] if self.tricky_data else []
-        return []
-
-    def get_command(self):
-        command = ['process']
-
-        # Run in batch mode
-        command.append('-B')
-
-        # Provide all other user-specified parameters in a macro file
-        if self.get_params_macro():
-            macro = [self.get_processed_data_path() / 'xtl_autoPROC.dat']
-        else:
-            macro = []
-
-        # Add all macros to the command
-        all_macros = set(macro + self.macros + self.get_beamline() + self.get_resolution_cutoff_criterion()
-                      + self.get_tricky_data())  # remove duplicates
-        if all_macros:
-            command.extend([f'-M "{m}"' for m in all_macros])
-
-        # Provide an image identifier (arbitrary id, raw data dir, image template, starting image, final image)
-        command.append(f'-Id "{self.get_image_identifier()}"')
-
-        # Specify output for processed data
-        command.append(f'-d "{self.get_autoproc_output_path()}"')
-
-        return ' '.join(command)
-
-    def save_macro(self, dest_dir: Path) -> Optional[Path]:
-        """
-        Save the macro file to a specified directory. If no parameters are provided, then no macro file is created.
-
-        :param dest_dir: Path to the directory where the macro file will be saved
-        """
-        content = self.get_params_macro()
-        if not content:
-            return None
-        dest_dir = Path(dest_dir)
-        macro_file = dest_dir / self._macro_filename
-        macro_file.write_text(data=content, encoding='utf-8')
-        return macro_file
-
-
 class AutoPROCJob2(Job):
     _no_parallel_jobs = 5
     _default_shell = BashShell
@@ -1176,6 +811,9 @@ class AutoPROCJob2(Job):
             stderr_log=stderr_log
         )
         self._job_type = 'xtl.autoproc.process'
+        self._executable = 'process'
+        self._executable_location: Optional[str] = None
+        self._executable_version: Optional[str] = None
 
         # Datasets and config
         self._datasets: Sequence[DiffractionDataset]
@@ -1192,6 +830,10 @@ class AutoPROCJob2(Job):
         # Determine the run number for the job
         self._run_no: int = None
         self._determine_run_no()
+
+        # Move the log files to the job directory
+        self._stdout = self.job_dir / 'xtl_autoPROC.stdout.log'
+        self._stderr = self.job_dir / 'xtl_autoPROC.stderr.log'
 
         # Set the job identifier
         self._idn = f'{self.config.idn_prefix}{randint(0, 9999):04d}'
@@ -1243,6 +885,10 @@ class AutoPROCJob2(Job):
                              f'not {type(configs)}')
 
     @property
+    def executable(self) -> str:
+        return self._executable
+
+    @property
     def config(self) -> AutoPROCConfig:
         """
         Return the main config.
@@ -1271,6 +917,10 @@ class AutoPROCJob2(Job):
     def job_dir(self) -> Path:
         processed_data = self._datasets[0].processed_data
         return processed_data / f'{self._job_prefix}_run{self.run_no:02d}'
+
+    @property
+    def autoproc_dir(self) -> Path:
+        return self.job_dir / self.config.autoproc_output_subdir
 
     def _determine_run_no(self) -> int:
         """
@@ -1318,42 +968,43 @@ class AutoPROCJob2(Job):
                         f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}')
 
             # Set the job directory as an f-string
+            # FIX: Remove if not required
             ds.register_dir_fstring(dir_type='job_dir',
                                     fstring=f'{{processed_data}}/{self._job_prefix}_run{self._run_no:02d}',
                                     keys=['processed_data'])
 
-    @property
-    def _output_dir(self):
-        return self._config.get_processed_data_path()
+    def _get_modules_commands(self) -> list[str]:
+        commands = []
+        if not self._modules:
+            return commands
+        purge_cmd = self._compute_site.purge_modules()
+        commands.append(purge_cmd) if purge_cmd else None
+        load_cmd = self._compute_site.load_modules(self._modules)
+        commands.append(load_cmd) if load_cmd else None
+        return commands
 
     def _get_batch_commands(self):
         """
         Creates a list of commands to be executed in the batch script. This includes the loading of modules if
         necessary.
 
-        The command to be executed is: process -M <MACRO>.dat -d <OUTPUT_DIR>
+        The command to be executed is: `process -M <MACRO>.dat -d <OUTPUT_DIR>`
 
-        The rest of the configuration, including the dataset sweep definition, is provided in the macro file.
+        The rest of the configuration, including the dataset sweeps definition, is provided in the macro file.
         """
 
         # If a module was provided, then purge all modules and load the specified one
-        commands = []
-        if self._modules:
-            purge_cmd = self._compute_site.purge_modules()
-            if purge_cmd:
-                commands.append(purge_cmd)
-            load_cmd = self._compute_site.load_modules(self._modules)
-            if load_cmd:
-                commands.append(load_cmd)
+        commands = self._get_modules_commands()
 
         # Add the autoPROC command by applying the appropriate priority system
-        process_cmd = f'process -M {self.job_dir / self.config.macro_filename} ' + \
-                              f'-d {self.job_dir / self.config.autoproc_output_subdir}'
+        process_cmd = f'{self.executable} -M {self.job_dir / self.config.macro_filename} -d {self.autoproc_dir}'
         commands.append(self._compute_site.prepare_command(process_cmd))
         return commands
 
     def _create_batch_file(self) -> BatchFile:
         commands = self._get_batch_commands()
+        if not self.job_dir.exists():
+            self.job_dir.mkdir(parents=True, exist_ok=True)
         batch = BatchFile(filename=self.job_dir / self.config.batch_filename, compute_site=self._compute_site,
                           shell=self._shell)
         batch.add_commands(commands)
@@ -1362,16 +1013,20 @@ class AutoPROCJob2(Job):
         return batch
 
     def _get_macro_content(self) -> str:
+        # Header
         content = [
             f'# autoPROC macro file',
             f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}',
             f'#  {os.getlogin()}@{platform.node()} [{get_os_name_and_version()}]',
-            f'',
-            f'### Dataset definitions',
-            f'# autoproc_id = {self._idn}',
-            f'# no_sweeps = {len(self.datasets)}',
+            f''
         ]
 
+        # Dataset definitions
+        content += [
+            f'### Dataset definitions',
+            f'# autoproc_id = {self._idn}',
+            f'# no_sweeps = {len(self.datasets)}'
+        ]
         idns = []
         for dataset in self.datasets:
             content += [
@@ -1394,9 +1049,9 @@ class AutoPROCJob2(Job):
                 ]
         content.append('')
 
-        # Append datasets and macros to the __args parameter
+        # __args parameter
         prefix = '-h5' if self._is_h5 else '-Id'
-        __args = ' '.join([f'{prefix} "{idn}"' for idn in idns])
+        __args = ' '.join([f'{prefix} "{idn}"' for idn in idns]) + ' '
         __args += self.config.get_param_value('_args')['__args']
 
         content += [
@@ -1405,7 +1060,7 @@ class AutoPROCJob2(Job):
             f''
         ]
 
-        # Add any parameters that have been modified from default values on the config
+        # Parameters from AutoPROCConfig
         all_params = self.config.get_all_params(modified_only=True, grouped=True)
         for group in all_params.values():
             content.append(f'### {group["comment"]}')
@@ -1413,7 +1068,7 @@ class AutoPROCJob2(Job):
                 content.append(f'{key}={value}')
             content.append('')
 
-        # Add extra values, if provided
+        # Extra parameters not included in the config definition
         extra_params = self.config.get_group('extra_params')['_extra_params']
         if extra_params:
             content.append('### Extra parameters')
@@ -1421,7 +1076,7 @@ class AutoPROCJob2(Job):
                 content.append(f'{key}={value}')
             content.append('')
 
-        # Add information about the environment
+        # Environment information
         content += [
             f'### XTL environment',
             f'# job_type = {self._job_type}',
@@ -1433,8 +1088,12 @@ class AutoPROCJob2(Job):
             f'# is_h5 = {self._is_h5}',
             f'## Localization',
             f'# shell = {self._shell.name} [{self._shell.executable}]',
-            f'# compute_site = {self._compute_site.__class__.__name__} [{self._compute_site.priority_system.system_type}]',
+            f'# compute_site = {self._compute_site.__class__.__name__} '
+            f'[{self._compute_site.priority_system.system_type}]',
+            f'# permissions = {self.config.file_permissions}',
             f'# modules = {self._modules}',
+            f'# executable = {self._executable_location}',
+            f'# version = {self._executable_version}',
         ]
         return '\n'.join(content)
 
@@ -1445,7 +1104,15 @@ class AutoPROCJob2(Job):
         return self._macro_file
 
     @limited_concurrency(_no_parallel_jobs)
-    async def run(self, do_run: bool = True):
+    async def run(self, execute_batch: bool = True):
+        # Check if the executable exists
+        await self._determine_executable_location()
+        await self._determine_executable_version()
+        if not self._executable_location:
+            self.echo(f'Executable \'{self.executable}\' not found')
+            self.echo('Skipping job execution')
+            return
+
         # Create the job directory
         self.echo('Creating job directory...')
         self.job_dir.mkdir(parents=True, exist_ok=True)
@@ -1459,20 +1126,18 @@ class AutoPROCJob2(Job):
         # Create the batch script file
         self.echo('Creating batch script...')
         s = self._create_batch_file()
-        self.echo(f'Batch script created: {s}')
+        self.echo(f'Batch script created: {s.file}')
 
         # Set up the log files
         self.echo('Initializing log files...')
-        log_stdout = self._output_dir / f'xtl_{self._job_type}.stdout.log'
-        log_stderr = self._output_dir / f'xtl_{self._job_type}.stderr.log'
-        log_stdout.touch(exist_ok=True)
-        log_stderr.touch(exist_ok=True)
+        self._stdout.touch(exist_ok=True)
+        self._stderr.touch(exist_ok=True)
         self.echo('Log files initialized')
 
         # Run the batch script
-        if do_run:
+        if execute_batch:
             self.echo('Running batch script...')
-            await self.run_batch(batchfile=s, stdout_log=log_stdout, stderr_log=log_stderr)
+            await self.run_batch(batchfile=s, stdout_log=self._stdout, stderr_log=self._stderr)
             self.echo('Batch script completed')
             self.tidy_up()
         else:
@@ -1480,26 +1145,20 @@ class AutoPROCJob2(Job):
             await asyncio.sleep(5)
             self.echo('Done sleeping!')
 
-        # TODO: Modify permissions of the job directory (store permissions in config)
-
-
     def tidy_up(self):
         self.echo('Tidying up results...')
-        self._results = AutoPROCJobResults(job_dir=self.config.get_autoproc_output_path(), job_id=self.config._idn)
+        self._results = AutoPROCJobResults(job_dir=self.autoproc_dir, job_id=self._idn)
         self._success = self._results.success
 
         # Destination directory for copied files
-        dest_dir = self.config.get_processed_data_path()
+        dest_dir = self.job_dir
 
         # Determine prefix for copied files
-        if self.config.mtz_dataset_name:
-            prefix = self.config.mtz_dataset_name
-        else:
-            prefix = self.config.dataset_name
+        prefix = [self.config.mtz_dataset_name] if self.config.mtz_dataset_name else None
 
         # Copy files to the processed data directory
         self.echo(f'Copying files to {dest_dir}... ')
-        self._results.copy_files(dest_dir=dest_dir, prefixes=[prefix])
+        self._results.copy_files(dest_dir=dest_dir, prefixes=prefix)
         self.echo('Files copied')
 
         if not self._success:
@@ -1509,7 +1168,82 @@ class AutoPROCJob2(Job):
             self._results.parse_logs()
             j = self._results.save_json(dest_dir)
             self.echo(f'Log files parsed and results saved to {j}')
+
+        self.echo('Updating permissions...')
+        try:
+            chmod_recursively(self.job_dir, permissions=self.config.file_permissions)
+            self.echo(f'Permissions updated to {self.config.file_permissions}')
+        except Exception as e:
+            import traceback
+            self.echo(f'Failed to update permissions to {self.config.file_permissions}')
+            for line in traceback.format_exception(type(e), e, e.__traceback__):
+                self.echo(f'    {line}')
+
         self.echo('Tidying up complete!')
+
+    async def _run_command(self, command: str, prefix: str = 'custom_command', remove_logs: bool = True) \
+            -> tuple[Optional[str], Optional[str]]:
+        if not isinstance(command, str):
+            raise TypeError(f'Invalid type for command: {type(command)}')
+
+        # Create job directory
+        dir_exists = self.job_dir.exists()
+        if not dir_exists:
+            self.job_dir.mkdir(parents=True, exist_ok=True)
+
+        # Gather commands
+        commands = self._get_modules_commands()
+        commands.append(self._compute_site.prepare_command(command))
+
+        # Create batch file
+        batch = BatchFile(filename=self.job_dir / prefix, compute_site=self._compute_site,
+                          shell=self._shell)
+        batch.add_commands(commands)
+        batch.save(change_permissions=True)
+
+        # Run batch file
+        try:
+            stdout = self.job_dir / f'{prefix}.stdout.log'
+            stderr = self.job_dir / f'{prefix}.stderr.log'
+            await self.run_batch(batchfile=batch, stdout_log=stdout, stderr_log=stderr)
+            result = stdout.read_text(), stderr.read_text()
+
+            # Remove files
+            if remove_logs:
+                stdout.unlink()
+                stderr.unlink()
+                batch.file.unlink()
+                if not dir_exists:  # directory was only created for command execution
+                    self.job_dir.rmdir()
+
+            return result
+        except Exception as e:
+            import traceback
+            self.echo(f'Error running command: \'{command}\'')
+            for line in traceback.format_exception(type(e), e, e.__traceback__):
+                self.echo(f'    {line}')
+            return None, None
+
+    async def _determine_executable_location(self) -> Optional[str]:
+        stdout, stderr = await self._run_command(f'which {self.executable}', prefix='which_process',
+                                                 remove_logs=True)
+        if not stdout:
+            return None
+        result = stdout.splitlines()[-1].strip()
+        if result.endswith(self.executable):
+            self._executable_location = result
+        return self._executable_location
+
+    async def _determine_executable_version(self) -> Optional[str]:
+        stdout, stderr = await self._run_command(f'{self.executable} -h', prefix='process_version',
+                                                 remove_logs=True)
+        if not stdout:
+            return None
+        for line in stdout.splitlines():
+            if 'Version:' in line:
+                self._executable_version = line.replace('Version:', '').strip()
+                return self._executable_version
+        return None
 
 
 # class CheckWavelengthJob(Job):
