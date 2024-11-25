@@ -17,23 +17,23 @@ class DiffractionDataset:
 
     # Extra attributes to be determined during __post_init__
     #  Can be overriden by classmethods
-    _first_image: Path = None
-    _file_ext: str = ''
-    _is_compressed: bool = False
-    _is_h5: bool = False
+    _first_image: Path = field(default=None, repr=False)
+    _file_ext: str = field(default='', repr=False)
+    _is_compressed: bool = field(default=False, repr=False)
+    _is_h5: bool = field(default=False, repr=False)
 
     # F-strings for generating directory paths
     _fstring_dict: dict[str, str] = field(default_factory=lambda: {
         'raw_data_dir': "{raw_data_dir}/{dataset_dir}",
         'processed_data_dir': "{processed_data_dir}/{output_dir}"
-    })
+    }, repr=False)
     _fstring_validator: dict[str, list[str]] = field(default_factory=lambda: {
         'raw_data_dir': ['raw_data_dir', 'dataset_dir'],
         'processed_data_dir': ['processed_data_dir', 'output_dir']
-    })
+    }, repr=False)
 
-    _dataset_images: list[Path] = field(default_factory=list)
-    _dataset_h5_images: list[Path] = field(default_factory=list)
+    _dataset_images: list[Path] = field(default_factory=list, repr=False)
+    _dataset_h5_images: list[Path] = field(default_factory=list, repr=False)
 
     def __post_init__(self):
         # Determine the file format

@@ -30,8 +30,13 @@ class AutoPROCConfig(GPhLConfig):
     autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
                                          default='autoproc', group='housekeeping')
     file_permissions: int = pfield(desc='File permissions for all the output files',
-                                   default=760, group='housekeeping',
+                                   default=640, group='housekeeping',
                                    validator={'func': get_permissions_in_decimal})
+    directory_permissions: int = pfield(desc='Directory permissions for all the output directories',
+                                        default=750, group='housekeeping',
+                                        validator={'func': get_permissions_in_decimal})
+    change_permissions: bool = pfield(desc='Change permissions of the output files and directories',
+                                      default=False, group='housekeeping')
 
     # User parameters
     unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
@@ -229,7 +234,7 @@ class AutoProcXmlParser:
         except Exception as e:
             if self.safe_parse:
                 warnings.warn(f'Error parsing file: {self._file}: {e}\n' +
-                              traceback.format_exception(type(e), e, e.__traceback__))
+                              '\n'.join(traceback.format_exception(type(e), e, e.__traceback__)))
             else:
                 raise e
 

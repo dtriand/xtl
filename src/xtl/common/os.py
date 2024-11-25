@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 import platform
-import os
+from typing import Optional
 
 
 def get_os_name_and_version() -> str:
@@ -35,44 +36,50 @@ def get_permissions_in_decimal(value: int | str) -> int:
     return int(f'0o{value}', 8)  # Return octal in the decimal representation
 
 
-def chmod_recursively(path: str | Path, permissions: int | str, directories_only: bool = False):
+def chmod_recursively(path: str | Path, files_permissions: Optional[int | str] = None,
+                      directories_permissions: Optional[int | str] = None):
     """
-    Change the permissions of all files and subdirectories within a directory.
+    Change the permissions of all files and subdirectories within a directory. If symbolic links are encountered, they
+    are skipped. Permissions are provided as 3-digit decimal integers.
     :param path: The path to the directory
-    :param permissions: The desired permissions as a decimal
-    :param directories_only: Whether to change the permissions of directories only
+    :param files_permissions: The desired permissions for files
+    :param directories_permissions: The desired permissions for directories
     """
-    permissions = get_permissions_in_decimal(value=permissions)
+    if not files_permissions and not directories_permissions:
+        raise ValueError('At least one of \'file_permissions\' or \'directories_permissions\' must be provided')
+    files_permissions = get_permissions_in_decimal(value=files_permissions)
+    directories_permissions = get_permissions_in_decimal(value=directories_permissions)
+
+    # Check if path exists and skip if it is a symlink
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f'\'{path}\' does not exist')
+    if path.is_symlink():  # Skip symbolic links
+        return
 
     # Check if the desired permissions are more permissive than the current ones
-    more_permissive = permissions >= int(path.stat().st_mode & 0o777)
-    if more_permissive:
-        # Change permissions from top to bottom of the tree
-        path.lchmod(mode=permissions)
+    more_permissive = directories_permissions >= int(path.stat().st_mode & 0o777)
+    if more_permissive:   # update the root first
         if path.is_file():
+            path.chmod(mode=files_permissions) if files_permissions else None
             return
-        for root, dirs, files in os.walk(path, topdown=True):
-            if not directories_only:
-                for file in files:
-                    file = Path(root) / file
-                    file.lchmod(mode=permissions)
+        path.chmod(mode=directories_permissions) if directories_permissions else None
+    # Walk through the directory top-down when increasing the permissions, bottom-up otherwise
+    for root, dirs, files in os.walk(path, topdown=more_permissive):
+        if files_permissions:
+            for file in files:
+                file = Path(root) / file
+                if file.is_symlink():
+                    continue
+                file.chmod(mode=files_permissions)
+        if directories_permissions:
             for directory in dirs:
                 directory = Path(root) / directory
-                directory.lchmod(mode=permissions)
-    else:
-        # Change permissions from bottom to top of the tree
+                if directory.is_symlink():
+                    continue
+                directory.chmod(mode=directories_permissions)
+    if not more_permissive:  # update the root last
         if path.is_file():
-            path.lchmod(mode=permissions)
+            path.chmod(mode=files_permissions) if files_permissions else None
             return
-        for root, dirs, files in os.walk(path, topdown=False):
-            if not directories_only:
-                for file in files:
-                    file = Path(root) / file
-                    file.lchmod(mode=permissions)
-            for directory in dirs:
-                directory = Path(root) / directory
-                directory.lchmod(mode=permissions)
-        path.lchmod(mode=permissions)
+        path.chmod(mode=directories_permissions) if directories_permissions else None

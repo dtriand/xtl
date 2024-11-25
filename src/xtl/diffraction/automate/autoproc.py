@@ -1090,7 +1090,9 @@ class AutoPROCJob2(Job):
             f'# shell = {self._shell.name} [{self._shell.executable}]',
             f'# compute_site = {self._compute_site.__class__.__name__} '
             f'[{self._compute_site.priority_system.system_type}]',
-            f'# permissions = {self.config.file_permissions}',
+            f'# files_permissions = {self.config.file_permissions}',
+            f'# directories_permissions = {self.config.directory_permissions}',
+            f'# change_permissions = {self.config.change_permissions}',
             f'# modules = {self._modules}',
             f'# executable = {self._executable_location}',
             f'# version = {self._executable_version}',
@@ -1169,15 +1171,20 @@ class AutoPROCJob2(Job):
             j = self._results.save_json(dest_dir)
             self.echo(f'Log files parsed and results saved to {j}')
 
-        self.echo('Updating permissions...')
-        try:
-            chmod_recursively(self.job_dir, permissions=self.config.file_permissions)
-            self.echo(f'Permissions updated to {self.config.file_permissions}')
-        except Exception as e:
-            import traceback
-            self.echo(f'Failed to update permissions to {self.config.file_permissions}')
-            for line in traceback.format_exception(type(e), e, e.__traceback__):
-                self.echo(f'    {line}')
+        # Update permissions
+        if self.config.change_permissions:
+            self.echo('Updating permissions...')
+            try:
+                chmod_recursively(self.job_dir, files_permissions=self.config.file_permissions,
+                                  directories_permissions=self.config.directory_permissions)
+                self.echo(f'File permissions updated to {self.config.file_permissions} and directory permissions '
+                          f'updated to {self.config.directory_permissions}')
+            except Exception as e:
+                import traceback
+                self.echo(f'Failed to update permissions to F {self.config.file_permissions} and '
+                          f'D {self.config.directory_permissions}')
+                for line in traceback.format_exception(type(e), e, e.__traceback__):
+                    self.echo(f'    {line}')
 
         self.echo('Tidying up complete!')
 
