@@ -864,7 +864,7 @@ class AutoPROCJob2(Job):
                 if not isinstance(ds, DiffractionDataset):
                     raise ValueError(f'Invalid type for datasets\[{i}]: {type(ds)}')
             self._datasets = datasets
-            self._single_sweep = False
+            self._single_sweep = len(datasets) == 1  # True if only one dataset is provided
         else:
             raise ValueError(f'\'datasets\' must be of type {DiffractionDataset.__name__} or a sequence of them, '
                              f'not {type(datasets)}')
@@ -880,7 +880,7 @@ class AutoPROCJob2(Job):
                 if not isinstance(c, AutoPROCConfig):
                     raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
             self._config = configs
-            self._common_config = False
+            self._common_config = len(configs) == 1  # True if only one config is provided
         else:
             raise ValueError(f'\'config\' must be of type {AutoPROCConfig.__name__} or a sequence of them, '
                              f'not {type(configs)}')
@@ -944,7 +944,7 @@ class AutoPROCJob2(Job):
 
     def _patch_datasets(self) -> None:
         """
-        Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn, job_dir).
+        Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn, output_dir).
         """
         for i, ds in enumerate(self._datasets):
             # Set the sweep_id
@@ -955,6 +955,8 @@ class AutoPROCJob2(Job):
                 setattr(ds, 'autoproc_id', f'{self._idn}')
             else:
                 setattr(ds, 'autoproc_id', f'{self._idn}s{ds.sweep_id:02d}')
+                # Set the output directory to be the same for all datasets
+                setattr(ds, 'output_dir', self._datasets[0].output_dir)
 
             if not self._is_h5:
                 # Set the autoproc_idn to be passed on the -Id flag
@@ -968,11 +970,11 @@ class AutoPROCJob2(Job):
                 setattr(ds, 'autoproc_idn',
                         f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}')
 
-            # Set the job directory as an f-string
-            # FIX: Remove if not required
-            ds.register_dir_fstring(dir_type='job_dir',
-                                    fstring=f'{{processed_data}}/{self._job_prefix}_run{self._run_no:02d}',
-                                    keys=['processed_data'])
+            # # Set the job directory as an f-string
+            # # FIX: Remove if not required
+            # ds.register_dir_fstring(dir_type='job_dir',
+            #                         fstring=f'{{processed_data}}/{self._job_prefix}_run{self._run_no:02d}',
+            #                         keys=['processed_data'])
 
     def _get_modules_commands(self) -> list[str]:
         commands = []

@@ -896,21 +896,19 @@ class AutoPROCJobResults2:
     _success_fname = _mtz_aniso_fname
 
     def __post_init__(self):
+        # Check that all datasets are instances of DiffractionDataset
+        for i, dataset in enumerate(self.datasets):
+            if not isinstance(dataset, DiffractionDataset):
+                raise TypeError(f'datasets[{i}] is not an instance of {DiffractionDataset.__class__.__name__}')
+
         # Dataset directories
         self._single_sweep = len(self.datasets) == 1
         self._dataset_dirs = [self.job_dir / dataset.autoproc_id for dataset in self.datasets]
-        self.job_id = self.datasets[0]
 
         # Create paths to the log files
+        # Files under job_dir regardless if multi-sweep mode
         self._summary_file = self.job_dir / self._summary_fname
-        if self._single_sweep:
-            self._imginfo_files = [self.job_dir / self._imginfo_fname]
-            self._correct_lp_files = [self.job_dir / self._correct_lp_fname]
-        else:
-            self._imginfo_files = [dataset_dir / self._imginfo_fname for dataset_dir in self._dataset_dirs]
-            self._correct_lp_files = [dataset_dir / self._correct_lp_fname for dataset_dir in self._dataset_dirs]
         self._dat_files = [self.job_dir / f'{dataset.autoproc_id}.dat' for dataset in self.datasets]
-
         self._report_iso_file = self.job_dir / self._report_iso_fname
         self._mtz_iso_file = self.job_dir / self._mtz_iso_fname
         self._stats_iso_file = self.job_dir / self._stats_iso_fname
@@ -919,7 +917,13 @@ class AutoPROCJobResults2:
         self._mtz_aniso_file = self.job_dir / self._mtz_aniso_fname
         self._stats_aniso_file = self.job_dir / self._stats_aniso_fname
 
-        # self._correct_lp_files = [dataset_dir / self._correct_lp_fname for dataset_dir in self._dataset_dirs]
+        # Files that can be under job_dir or job_dir/autoproc_id
+        if self._single_sweep:
+            self._imginfo_files = [self.job_dir / self._imginfo_fname]
+            self._correct_lp_files = [self.job_dir / self._correct_lp_fname]
+        else:
+            self._imginfo_files = [dataset_dir / self._imginfo_fname for dataset_dir in self._dataset_dirs]
+            self._correct_lp_files = [dataset_dir / self._correct_lp_fname for dataset_dir in self._dataset_dirs]
 
         # Determine the success of the job
         self._success_file = self.job_dir / self._success_fname
@@ -938,7 +942,13 @@ class AutoPROCJobResults2:
         self._staraniso: Optional[StaranisoUnique] = None
         self._correct: Optional[Sequence[CorrectLp]] = None
 
-        # Results dictionary
+        # Set the results data dictionary
+        template_dict = {
+            '_file': None,
+            '_file_exists': False,
+            '_is_parsed': False,
+            '_is_processed': False
+        }
         self._data = {
             'datasets': [
                 {
@@ -950,32 +960,22 @@ class AutoPROCJobResults2:
                     'output_dir': dataset.output_dir,
                     'autoproc_id': dataset.autoproc_id,
                 } for dataset in self.datasets
-            ]
-        }
-
-        temp_dict = {
-            '_file': None,
-            '_file_exists': False,
-            '_is_parsed': False,
-            '_is_processed': False
+            ],
+            'autoproc.imginfo': None,
+            'autoproc.truncate': copy.deepcopy(template_dict),
+            'autoproc.staraniso': copy.deepcopy(template_dict),
+            'xds.correct': None,
         }
 
         if self._single_sweep:
-            self._data['autoproc.imginfo'] = copy.deepcopy(temp_dict)
+            self._data['autoproc.imginfo'] = copy.deepcopy(template_dict)
+            self._data['xds.correct'] = copy.deepcopy(template_dict)
         else:
-            self._data['autoproc.imginfo'] = {
-                dataset.autoproc_id: copy.deepcopy(temp_dict) for dataset in self.datasets
-            }
+            self._data['autoproc.imginfo'] = \
+                {dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets}
+            self._data['xds.correct'] = \
+                {dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets}
 
-        self._data['autoproc.truncate'] = copy.deepcopy(temp_dict)
-        self._data['autoproc.staraniso'] = copy.deepcopy(temp_dict)
-
-        if self._single_sweep:
-            self._data['xds.correct'] = copy.deepcopy(temp_dict)
-        else:
-            self._data['xds.correct'] = {
-                dataset.autoproc_id: copy.deepcopy(temp_dict) for dataset in self.datasets
-            }
 
     @property
     def success(self):
@@ -1072,7 +1072,7 @@ class AutoPROCJobResults2:
             self._data[key]['_file_exists'] = parser._file_exists
             self._data[key]['_is_parsed'] = parser._is_parsed
             self._data[key]['_is_processed'] = parser._is_processed
-        else:
+        else:  # for parsers that are dataset-specific, e.g. imginfo, correct_lp
             self._data[key][dataset_id]['_file'] = parser.file
             self._data[key][dataset_id]['_file_exists'] = parser._file_exists
             self._data[key][dataset_id]['_is_parsed'] = parser._is_parsed
