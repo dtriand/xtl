@@ -1,9 +1,14 @@
+import copy
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, date
 import dateutil.parser
+import json
 from pathlib import Path
+import os
 import re
+import shutil
 import traceback
+from typing import Optional, Sequence
 import warnings
 
 from defusedxml import ElementTree as DET
@@ -12,6 +17,8 @@ from xtl.common import afield, pfield, cfield
 from xtl.common.annotated_dataclass import _ifield
 from xtl.common.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
+from xtl.diffraction.automate.xds_utils import CorrectLp
+from xtl.diffraction.images.datasets import DiffractionDataset
 
 
 @dataclass
@@ -25,6 +32,8 @@ class AutoPROCConfig(GPhLConfig):
     batch_filename: str = pfield(desc='Batch filename', group='housekeeping',
                                  default='xtl_autoPROC.sh',
                                  formatter=lambda x: f'{x}.sh' if not x.endswith('.sh') else x)
+    idn: str = pfield(desc='Dataset identifier', group='housekeeping',
+                      default='')
     idn_prefix: str = pfield(desc='Prefix for the dataset identifier passed on to autoPROC',
                              default='xtl', group='housekeeping',)
     autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
@@ -211,7 +220,6 @@ class AutoPROCConfig(GPhLConfig):
             self._validate_param(self._get_param('extra_params'))
 
 
-
 @dataclass
 class AutoProcXmlParser:
     filename: str | Path
@@ -252,6 +260,7 @@ class AutoProcXmlParser:
     @property
     def data(self):
         raise NotImplementedError
+
 
 @dataclass
 class ImgInfo(AutoProcXmlParser):
@@ -747,6 +756,7 @@ class ReflectionsXml(AutoProcXmlParser):
 class TruncateUnique(ReflectionsXml):
     ...
 
+
 @dataclass
 class StaranisoUnique(ReflectionsXml):
     _resolution_ellipsoid_axis_11: float = None
@@ -860,3 +870,318 @@ class StaranisoUnique(ReflectionsXml):
             'resolution_limits': self.resolution_limits,
         })
         return data
+
+
+@dataclass
+class AutoPROCJobResults2:
+    job_dir: Path
+    datasets: list[DiffractionDataset]
+
+    _json_fname = 'xtl_autoPROC.json'
+
+    # Files to process
+    _summary_fname = 'summary.html'  # fix links to relative paths
+    _imginfo_fname = 'imginfo.xml'
+
+    _report_iso_fname = 'report.pdf'
+    _mtz_iso_fname = 'truncate-unique.mtz'
+    _stats_iso_fname = 'truncate-unique.xml'  # or autoPROC.xml
+
+    _report_aniso_fname = 'report_staraniso.pdf'
+    _mtz_aniso_fname = 'staraniso_alldata-unique.mtz'
+    _stats_aniso_fname = 'staraniso_alldata-unique.xml'  # or autoPROC_staraniso.xml
+
+    _correct_lp_fname = 'CORRECT.LP'
+
+    _success_fname = _mtz_aniso_fname
+
+    def __post_init__(self):
+        # Dataset directories
+        self._single_sweep = len(self.datasets) == 1
+        self._dataset_dirs = [self.job_dir / dataset.autoproc_id for dataset in self.datasets]
+        self.job_id = self.datasets[0]
+
+        # Create paths to the log files
+        self._summary_file = self.job_dir / self._summary_fname
+        if self._single_sweep:
+            self._imginfo_files = [self.job_dir / self._imginfo_fname]
+            self._correct_lp_files = [self.job_dir / self._correct_lp_fname]
+        else:
+            self._imginfo_files = [dataset_dir / self._imginfo_fname for dataset_dir in self._dataset_dirs]
+            self._correct_lp_files = [dataset_dir / self._correct_lp_fname for dataset_dir in self._dataset_dirs]
+        self._dat_files = [self.job_dir / f'{dataset.autoproc_id}.dat' for dataset in self.datasets]
+
+        self._report_iso_file = self.job_dir / self._report_iso_fname
+        self._mtz_iso_file = self.job_dir / self._mtz_iso_fname
+        self._stats_iso_file = self.job_dir / self._stats_iso_fname
+
+        self._report_aniso_file = self.job_dir / self._report_aniso_fname
+        self._mtz_aniso_file = self.job_dir / self._mtz_aniso_fname
+        self._stats_aniso_file = self.job_dir / self._stats_aniso_fname
+
+        # self._correct_lp_files = [dataset_dir / self._correct_lp_fname for dataset_dir in self._dataset_dirs]
+
+        # Determine the success of the job
+        self._success_file = self.job_dir / self._success_fname
+        self._success = self._success_file.exists()
+
+        # Keep track of the parsed log files
+        self._logs: list[Path] = []
+        self._logs_exists: list[bool] = []
+        self._logs_is_parsed: list[bool] = []
+        self._logs_is_processed: list[bool] = []
+        self._all_logs_processed: bool = False
+
+        # Parsed log files
+        self._imginfo: Optional[Sequence[ImgInfo]] = None
+        self._truncate: Optional[TruncateUnique] = None
+        self._staraniso: Optional[StaranisoUnique] = None
+        self._correct: Optional[Sequence[CorrectLp]] = None
+
+        # Results dictionary
+        self._data = {
+            'datasets': [
+                {
+                    'dataset_name': dataset.dataset_name,
+                    'raw_data_dir': dataset.raw_data_dir,
+                    'dataset_dir': dataset.dataset_dir,
+                    'first_image': dataset.first_image,
+                    'processed_data_dir': dataset.processed_data_dir,
+                    'output_dir': dataset.output_dir,
+                    'autoproc_id': dataset.autoproc_id,
+                } for dataset in self.datasets
+            ]
+        }
+
+        temp_dict = {
+            '_file': None,
+            '_file_exists': False,
+            '_is_parsed': False,
+            '_is_processed': False
+        }
+
+        if self._single_sweep:
+            self._data['autoproc.imginfo'] = copy.deepcopy(temp_dict)
+        else:
+            self._data['autoproc.imginfo'] = {
+                dataset.autoproc_id: copy.deepcopy(temp_dict) for dataset in self.datasets
+            }
+
+        self._data['autoproc.truncate'] = copy.deepcopy(temp_dict)
+        self._data['autoproc.staraniso'] = copy.deepcopy(temp_dict)
+
+        if self._single_sweep:
+            self._data['xds.correct'] = copy.deepcopy(temp_dict)
+        else:
+            self._data['xds.correct'] = {
+                dataset.autoproc_id: copy.deepcopy(temp_dict) for dataset in self.datasets
+            }
+
+    @property
+    def success(self):
+        return self._success
+
+    def copy_files(self, dest_dir: Path = None, prefixes: list[str] = None):
+        if dest_dir is None:
+            dest_dir = self.job_dir.parent
+        self._copy_summary_html(dest_dir)
+
+        to_keep = [*self._dat_files, self._report_iso_file, self._report_aniso_file]
+        to_rename = [self._mtz_iso_file, self._mtz_aniso_file]
+        if prefixes is None:
+            for file in to_keep + to_rename:
+                self._copy_rename(file, dest_dir)
+        else:
+            if not (isinstance(prefixes, list) or isinstance(prefixes, tuple)):
+                raise ValueError(f'prefixes must be a list or tuple, not {type(prefixes)}')
+            for prefix in prefixes:
+                for file in to_rename:
+                    self._copy_rename(file, dest_dir, prefix)
+            for file in to_keep:
+                self._copy_rename(file, dest_dir)
+
+    def _copy_summary_html(self, dest_dir):
+        summary_old = self._summary_file
+        summary_new = dest_dir / self._summary_fname
+        if self._summary_file.exists():
+            shutil.copy(summary_old, summary_new)
+
+        # Fix links to relative paths
+        if summary_new.exists():
+            content_updated = False
+            new_dir = dest_dir
+            old_dir = self.job_dir
+            relative_path = Path(os.path.relpath(path=old_dir, start=new_dir))
+
+            # Update all links to the plots
+            # BUG: The links are sometimes relative and sometimes absolute in summary.html - why?
+            link_text_old = f'<a href="{old_dir}'
+            link_text_new = f'<a href="{relative_path}'
+            content_old = summary_old.read_text()
+            content_new = content_old.replace(link_text_old, link_text_new)
+            content_updated = (content_old != content_new)
+            if not content_updated:
+                warnings.warn(f'Failed to replace the links in {summary_new.name}\n'
+                              f'link_text_old: {link_text_old}\n'
+                              f'link_text_new: {link_text_new}')
+
+            # Update link to GPhL logo
+            gphl_logo_old = '<img src="gphl_logo.png"'
+            gphl_logo_new = f'<img src="{relative_path}/gphl_logo.png"'
+            content_old = content_new
+            content_new = content_old.replace(gphl_logo_old, gphl_logo_new)
+            if content_old == content_new:
+                warnings.warn(f'Failed to replace the GPhL logo link in {summary_new.name}\n'
+                              f'gphl_logo_old: {gphl_logo_old}\n'
+                              f'gphl_logo_new: {gphl_logo_new}')
+
+            # Create new summary.html file with the updated content
+            content_updated = any([content_updated, content_old != content_new])
+            if content_updated:
+                summary_updated = dest_dir / f'{summary_new.stem}_updated.html'
+                summary_updated.write_text(content_new)
+
+    def _copy_rename(self, src_file: Path, dest_dir: Path, prefix: str = None):
+        if src_file.exists():
+            if prefix:
+                dest_file = dest_dir / f'{prefix}_{src_file.name}'
+            else:
+                dest_file = dest_dir / src_file.name
+            shutil.copy(src_file, dest_file)
+        else:
+            warnings.warn(f'File not found: {src_file}')
+
+    def parse_logs(self):
+        self.parse_imginfo_xml()
+        self.parse_truncate_xml()
+        self.parse_staraniso_xml()
+        self.parse_correct_lp()
+        if len(self._logs_is_processed) == 0:
+            self._all_logs_processed = False
+        else:
+            self._all_logs_processed = all(self._logs_is_processed)
+
+    def _update_parsing_status(self, key: str, parser, dataset_id: str = None):
+        self._logs.append(parser.file)
+        self._logs_exists.append(parser._file_exists)
+        self._logs_is_parsed.append(parser._is_parsed)
+        self._logs_is_processed.append(parser._is_processed)
+
+        if dataset_id is None:
+            self._data[key]['_file'] = parser.file
+            self._data[key]['_file_exists'] = parser._file_exists
+            self._data[key]['_is_parsed'] = parser._is_parsed
+            self._data[key]['_is_processed'] = parser._is_processed
+        else:
+            self._data[key][dataset_id]['_file'] = parser.file
+            self._data[key][dataset_id]['_file_exists'] = parser._file_exists
+            self._data[key][dataset_id]['_is_parsed'] = parser._is_parsed
+            self._data[key][dataset_id]['_is_processed'] = parser._is_processed
+
+    def parse_imginfo_xml(self):
+        parsers = []
+        for imginfo_file, dataset in zip(self._imginfo_files, self.datasets):
+            parser = ImgInfo(filename=imginfo_file, safe_parse=True)
+            if self._single_sweep:
+                self._update_parsing_status(key='autoproc.imginfo', parser=parser)
+                for key, value in parser.data.items():
+                    self._data['autoproc.imginfo'][key] = value
+            else:
+                self._update_parsing_status(key='autoproc.imginfo', parser=parser, dataset_id=dataset.autoproc_id)
+                for key, value in parser.data.items():
+                    self._data['autoproc.imginfo'][dataset.autoproc_id][key] = value
+            parsers.append(parser)
+        if self._single_sweep:
+            self._imginfo = parsers[0]
+        else:
+            self._imginfo = parsers
+
+    @property
+    def imginfo(self) -> ImgInfo | Sequence[ImgInfo]:
+        if self._imginfo is None:
+            self.parse_imginfo_xml()
+        return self._imginfo
+
+    def parse_truncate_xml(self):
+        self._truncate = TruncateUnique(filename=self._stats_iso_file, safe_parse=True)
+        self._update_parsing_status('autoproc.truncate', self._truncate)
+        for key, value in self._truncate.data.items():
+            self._data['autoproc.truncate'][key] = value
+
+    @property
+    def truncate(self) -> TruncateUnique:
+        if self._truncate is None:
+            self.parse_truncate_xml()
+        return self._truncate
+
+    def parse_staraniso_xml(self):
+        self._staraniso = StaranisoUnique(filename=self._stats_aniso_file, safe_parse=True)
+        self._update_parsing_status('autoproc.staraniso', self._staraniso)
+        for key, value in self._staraniso.data.items():
+            self._data['autoproc.staraniso'][key] = value
+
+    @property
+    def staraniso(self) -> StaranisoUnique:
+        if self._staraniso is None:
+            self.parse_staraniso_xml()
+        return self._staraniso
+
+    def parse_correct_lp(self):
+        parsers = []
+        for correctlp_file, dataset in zip(self._correct_lp_files, self.datasets):
+            parser = CorrectLp(filename=correctlp_file, safe_parse=True)
+            if self._single_sweep:
+                self._update_parsing_status(key='xds.correct', parser=parser)
+                for key, value in parser.data.items():
+                    self._data['xds.correct'][key] = value
+            else:
+                self._update_parsing_status(key='xds.correct', parser=parser, dataset_id=dataset.autoproc_id)
+                for key, value in parser.data.items():
+                    self._data['xds.correct'][dataset.autoproc_id][key] = value
+            parsers.append(parser)
+        if self._single_sweep:
+            self._correct = parsers[0]
+        else:
+            self._correct = parsers
+
+    @property
+    def correct_lp(self) -> CorrectLp | Sequence[CorrectLp]:
+        if self._correct is None:
+            self.parse_correct_lp()
+        return self._correct
+
+    @property
+    def data(self):
+        data = {
+            'success': self.success,
+            'all_logs_processed': self._all_logs_processed
+        }
+        data.update(self._data)
+        return data
+
+    @staticmethod
+    def _json_serializer(obj):
+        try:
+            return obj.toJSON()
+        except AttributeError:
+            if isinstance(obj, datetime) or isinstance(obj, date):
+                return obj.isoformat()
+            elif isinstance(obj, Path):
+                return obj.as_uri()
+            else:
+                print('Unknown object type:', type(obj))
+                if hasattr(obj, '__dict__'):
+                    return obj.__dict__
+                else:
+                    print(f'Object does not have a __dict__ method: {obj}')
+                    return 'object_with_no_dict'
+
+    def to_json(self):
+        return json.dumps(self.data, indent=4, default=self._json_serializer)
+
+    def save_json(self, dest_dir: Path):
+        dest_dir = Path(dest_dir)
+        json_file = dest_dir / self._json_fname
+        json_file.write_text(self.to_json())
+        return json_file
+

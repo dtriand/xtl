@@ -18,7 +18,7 @@ from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
 from xtl.common.os import get_os_name_and_version, chmod_recursively
 from xtl.diffraction.images.datasets import DiffractionDataset
-from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, ImgInfo, TruncateUnique, StaranisoUnique
+from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, AutoPROCJobResults2, ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
 
 
@@ -800,7 +800,7 @@ class AutoPROCJob2(Job):
                  config: AutoPROCConfig | Sequence[AutoPROCConfig],
                  compute_site: Optional[ComputeSite] = None, shell: Optional[Shell] = None,
                  modules: Optional[Sequence[str]] = None, stdout_log: Optional[str | Path] = None,
-                 stderr_log: Optional[str | Path] = None):
+                 stderr_log: Optional[str | Path] = None, output_exists: bool = False):
 
         # Initialize the Job class
         super().__init__(
@@ -828,6 +828,7 @@ class AutoPROCJob2(Job):
         self._is_h5 = self.datasets[0].is_h5
 
         # Determine the run number for the job
+        self._reading_mode = output_exists
         self._run_no: int = None
         self._determine_run_no()
 
@@ -836,7 +837,7 @@ class AutoPROCJob2(Job):
         self._stderr = self.job_dir / 'xtl_autoPROC.stderr.log'
 
         # Set the job identifier
-        self._idn = f'{self.config.idn_prefix}{randint(0, 9999):04d}'
+        self._idn = f'{self.config.idn_prefix}{randint(0, 9999):04d}' if not self.config.idn else self.config.idn
 
         # Attach additional attributes to the datasets (sweep_id, autoproc_id, autoproc_idn (not for h5), job_dir)
         self._patch_datasets()
@@ -845,8 +846,8 @@ class AutoPROCJob2(Job):
 
         # Results
         self._success: bool = None
-        self._success_file: str = AutoPROCJobResults._success_fname
-        self._results: AutoPROCJobResults = None
+        self._success_file: str = AutoPROCJobResults2._success_fname
+        self._results: AutoPROCJobResults2 = None
 
         # Batch and macro file
         self._batch_file: Path
@@ -926,19 +927,19 @@ class AutoPROCJob2(Job):
         """
         Determine the job run number without creating the job_dir.
         """
-        config = self.config
-        self._run_no = config.run_number
+        self._run_no = self.config.run_number
         processed_data = self._datasets[0].processed_data
         if not processed_data.exists():
             return self._run_no
-        while True:
+        while not self._reading_mode:  # Run number determination is skipped when in reading mode
             if not self.job_dir.exists():
                 break
             if self._run_no > 99:
                 raise FileExistsError(f'\'job_dir\' already exists: {self.job_dir}\n'
                                       f'All run numbers from 01 to 99 are already taken!')
             self._run_no += 1
-        self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
+        if self._run_no != self.config.run_number:  # Check if the run number was changed
+            self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
         return self._run_no
 
     def _patch_datasets(self) -> None:
@@ -1149,7 +1150,7 @@ class AutoPROCJob2(Job):
 
     def tidy_up(self):
         self.echo('Tidying up results...')
-        self._results = AutoPROCJobResults(job_dir=self.autoproc_dir, job_id=self._idn)
+        self._results = AutoPROCJobResults2(job_dir=self.autoproc_dir, datasets=self.datasets)
         self._success = self._results.success
 
         # Destination directory for copied files

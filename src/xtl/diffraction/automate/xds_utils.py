@@ -32,7 +32,7 @@ class XdsLpParser:
         except Exception as e:
             if self.safe_parse:
                 warnings.warn(f'Error parsing file: {self._file}: {e}\n' +
-                              traceback.format_exception(type(e), e, e.__traceback__))
+                              '\n'.join(traceback.format_exception(type(e), e, e.__traceback__)))
             else:
                 raise e
 
