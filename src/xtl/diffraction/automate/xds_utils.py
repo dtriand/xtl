@@ -6,12 +6,13 @@ import re
 import traceback
 import warnings
 
+from xtl.exceptions.warnings import RegexWarning
+
 
 @dataclass
 class XdsLpParser:
     filename: str
     _lp_type: str
-    safe_parse: bool = False
 
     _xds_version: datetime = None
     _xds_build: str = None
@@ -23,18 +24,11 @@ class XdsLpParser:
 
     def __post_init__(self):
         self._file = Path(self.filename)
-        try:
-            if not self._file.exists():
-                raise FileNotFoundError(f'File not found: {self._file}')
-            self._lp_text = self._file.read_text()
-            self._file_exists = True
-            self._parse_lp()
-        except Exception as e:
-            if self.safe_parse:
-                warnings.warn(f'Error parsing file: {self._file}: {e}\n' +
-                              '\n'.join(traceback.format_exception(type(e), e, e.__traceback__)))
-            else:
-                raise e
+        if not self._file.exists():
+            raise FileNotFoundError(self._file)
+        self._lp_text = self._file.read_text()
+        self._file_exists = True
+        self._parse_lp()
 
     @property
     def file(self):
@@ -51,15 +45,16 @@ class XdsLpParser:
     def _perform_regex(self, pattern: str, line: str, block: str = None):
         match = re.search(pattern, line)
         if not match:
-            warnings.warn(f'RegEx failed while parsing {"block " + block + " " if isinstance(block, str) else ""}: {line}')
-            print(f'Pattern: {pattern}')
+            warnings.warn(f'Regex failed while parsing {"block " + block + " " if isinstance(block, str) else ""}: '
+                          f'{line}\nPattern: {pattern}', category=RegexWarning)
             return None
         return match
 
     def _raise_processing_warning(self, line: str, exception: Exception, block: str = None):
         warnings.warn(f'Processing failed while parsing {"block " + block + " " if isinstance(block, str) else ""}: '
                       f'{line}: {exception}\n' +
-                      traceback.format_exception(type(exception), exception, exception.__traceback__))
+                      '\n'.join(traceback.format_exception(type(exception), exception, exception.__traceback__)),
+                      category=RegexWarning)
 
     def _parse_line_key_value(self, line: str, key: str, value_type: str, sep: str = '', block: str = None):
         if value_type not in ['int', 'float', 'sci-float', 'string', 'boolean']:
@@ -246,8 +241,8 @@ class CorrectLp(XdsLpParser):
         ' CRYSTAL TO DETECTOR DISTANCE (mm)'
     ]
 
-    def __init__(self, filename: str, safe_parse: bool = False):
-        super().__init__(filename, 'CORRECT', safe_parse=safe_parse)
+    def __init__(self, filename: str):
+        super().__init__(filename, 'CORRECT')
 
     def _parse_lp(self):
         super()._parse_lp()

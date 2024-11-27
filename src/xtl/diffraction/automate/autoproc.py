@@ -2,12 +2,14 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, date
 from difflib import SequenceMatcher
+from functools import partial
 import json
 import os
 from pathlib import Path
 import platform
 from random import randint
 import shutil
+import traceback
 from typing import Any, Sequence, Optional
 import warnings
 
@@ -20,6 +22,7 @@ from xtl.common.os import get_os_name_and_version, chmod_recursively
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, AutoPROCJobResults2, ImgInfo, TruncateUnique, StaranisoUnique
 from xtl.diffraction.automate.xds_utils import CorrectLp
+from xtl.exceptions.utils import Catcher
 
 
 def value_to_str(value):
@@ -853,6 +856,9 @@ class AutoPROCJob2(Job):
         self._batch_file: Path
         self._macro_file: Path
 
+        # Set exception and warnings catcher
+        self._exception_catcher = partial(Catcher, echo_func=self.echo)
+
     def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
                                    configs: AutoPROCConfig | Sequence[AutoPROCConfig]):
         # Check that the datasets are valid
@@ -939,7 +945,7 @@ class AutoPROCJob2(Job):
                                       f'All run numbers from 01 to 99 are already taken!')
             self._run_no += 1
         if self._run_no != self.config.run_number:  # Check if the run number was changed
-            self._echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
+            self.echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
         return self._run_no
 
     def _patch_datasets(self) -> None:
@@ -969,12 +975,6 @@ class AutoPROCJob2(Job):
                                      f'template: {image_template}, first: {first_image}, last: {last_image}')
                 setattr(ds, 'autoproc_idn',
                         f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}')
-
-            # # Set the job directory as an f-string
-            # # FIX: Remove if not required
-            # ds.register_dir_fstring(dir_type='job_dir',
-            #                         fstring=f'{{processed_data}}/{self._job_prefix}_run{self._run_no:02d}',
-            #                         keys=['processed_data'])
 
     def _get_modules_commands(self) -> list[str]:
         commands = []
@@ -1152,43 +1152,56 @@ class AutoPROCJob2(Job):
 
     def tidy_up(self):
         self.echo('Tidying up results...')
-        self._results = AutoPROCJobResults2(job_dir=self.autoproc_dir, datasets=self.datasets)
-        self._success = self._results.success
 
-        # Destination directory for copied files
-        dest_dir = self.job_dir
+        # Instantiate the results object
+        with self._exception_catcher() as catcher:
+            self._results = AutoPROCJobResults2(job_dir=self.autoproc_dir, datasets=self.datasets)
+        if catcher.raised:
+            self.echo(f'Failed to create {AutoPROCJobResults2.__class__.__name__} instance')
+            return
+        self._success = self._results.success
 
         # Determine prefix for copied files
         prefix = [self.config.mtz_dataset_name] if self.config.mtz_dataset_name else None
 
         # Copy files to the processed data directory
+        dest_dir = self.job_dir
         self.echo(f'Copying files to {dest_dir}... ')
-        self._results.copy_files(dest_dir=dest_dir, prefixes=prefix)
+        with self._exception_catcher() as catcher:
+            self._results.copy_files(dest_dir=dest_dir, prefixes=prefix)
+        if catcher.raised:
+            self.echo('Failed to copy files')
+            return
         self.echo('Files copied')
 
         if not self._success:
             self.echo('autoPROC did not complete successfully, look at summary.html')
         else:
             self.echo('autoPROC completed successfully, now parsing the log files...')
-            self._results.parse_logs()
-            j = self._results.save_json(dest_dir)
+            with self._exception_catcher() as catcher:
+                    self._results.parse_logs()
+            if catcher.raised:
+                self.echo('Failed to parse log files')
+                return
+            with self._exception_catcher() as catcher:
+                j = self._results.save_json(dest_dir)
+            if catcher.raised:
+                self.echo('Failed to save results to JSON')
+                return
             self.echo(f'Log files parsed and results saved to {j}')
 
         # Update permissions
         if self.config.change_permissions:
             self.echo('Updating permissions...')
-            try:
+            with self._exception_catcher() as catcher:
                 chmod_recursively(self.job_dir, files_permissions=self.config.file_permissions,
                                   directories_permissions=self.config.directory_permissions)
                 self.echo(f'File permissions updated to {self.config.file_permissions} and directory permissions '
                           f'updated to {self.config.directory_permissions}')
-            except Exception as e:
-                import traceback
-                self.echo(f'Failed to update permissions to F {self.config.file_permissions} and '
-                          f'D {self.config.directory_permissions}')
-                for line in traceback.format_exception(type(e), e, e.__traceback__):
-                    self.echo(f'    {line}')
-
+                if catcher.raised:
+                    self.echo(f'Failed to update permissions to F {self.config.file_permissions} and '
+                              f'D {self.config.directory_permissions}')
+                    return
         self.echo('Tidying up complete!')
 
     async def _run_command(self, command: str, prefix: str = 'custom_command', remove_logs: bool = True) \
@@ -1228,7 +1241,6 @@ class AutoPROCJob2(Job):
 
             return result
         except Exception as e:
-            import traceback
             self.echo(f'Error running command: \'{command}\'')
             for line in traceback.format_exception(type(e), e, e.__traceback__):
                 self.echo(f'    {line}')

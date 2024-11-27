@@ -6,6 +6,22 @@ class ConfigWarning(Warning_):
     pass
 
 
+class FileNotFoundWarning(Warning_):
+    pass
+
+
+class HTMLUpdateWarning(Warning_):
+    pass
+
+
+class RegexWarning(Warning_):
+    pass
+
+
+class IncompatibleShellWarning(Warning_):
+    pass
+
+
 class ObjectInstantiationWarning(Warning_):
 
     def __init__(self, message='', raiser=None):

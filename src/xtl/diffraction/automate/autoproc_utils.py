@@ -7,7 +7,6 @@ from pathlib import Path
 import os
 import re
 import shutil
-import traceback
 from typing import Optional, Sequence
 import warnings
 
@@ -19,6 +18,7 @@ from xtl.common.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.diffraction.automate.xds_utils import CorrectLp
 from xtl.diffraction.images.datasets import DiffractionDataset
+from xtl.exceptions.warnings import FileNotFoundWarning, HTMLUpdateWarning
 
 
 @dataclass
@@ -223,7 +223,6 @@ class AutoPROCConfig(GPhLConfig):
 @dataclass
 class AutoProcXmlParser:
     filename: str | Path
-    safe_parse: bool = False
 
     _xml_text: str = None
     _file_exists: bool = False
@@ -232,19 +231,13 @@ class AutoProcXmlParser:
 
     def __post_init__(self):
         self._file = Path(self.filename)
-        try:
-            if not self._file.exists():
-                raise FileNotFoundError(f'File not found: {self._file}')
-            self._xml_text = self._file.read_text()
-            self._file_exists = True
-            self._parse_xml()
-            self._process_xml()
-        except Exception as e:
-            if self.safe_parse:
-                warnings.warn(f'Error parsing file: {self._file}: {e}\n' +
-                              '\n'.join(traceback.format_exception(type(e), e, e.__traceback__)))
-            else:
-                raise e
+        # try:
+        if not self._file.exists():
+            raise FileNotFoundError(self._file)
+        self._xml_text = self._file.read_text()
+        self._file_exists = True
+        self._parse_xml()
+        self._process_xml()
 
     def _parse_xml(self):
         self._tree = DET.fromstring(self._xml_text)
@@ -1023,7 +1016,7 @@ class AutoPROCJobResults2:
             if not content_updated:
                 warnings.warn(f'Failed to replace the links in {summary_new.name}\n'
                               f'link_text_old: {link_text_old}\n'
-                              f'link_text_new: {link_text_new}')
+                              f'link_text_new: {link_text_new}', category=HTMLUpdateWarning)
 
             # Update link to GPhL logo
             gphl_logo_old = '<img src="gphl_logo.png"'
@@ -1033,7 +1026,7 @@ class AutoPROCJobResults2:
             if content_old == content_new:
                 warnings.warn(f'Failed to replace the GPhL logo link in {summary_new.name}\n'
                               f'gphl_logo_old: {gphl_logo_old}\n'
-                              f'gphl_logo_new: {gphl_logo_new}')
+                              f'gphl_logo_new: {gphl_logo_new}', category=HTMLUpdateWarning)
 
             # Create new summary.html file with the updated content
             content_updated = any([content_updated, content_old != content_new])
@@ -1049,7 +1042,7 @@ class AutoPROCJobResults2:
                 dest_file = dest_dir / src_file.name
             shutil.copy(src_file, dest_file)
         else:
-            warnings.warn(f'File not found: {src_file}')
+            warnings.warn(str(src_file), category=FileNotFoundWarning)
 
     def parse_logs(self):
         self.parse_imginfo_xml()
@@ -1081,7 +1074,7 @@ class AutoPROCJobResults2:
     def parse_imginfo_xml(self):
         parsers = []
         for imginfo_file, dataset in zip(self._imginfo_files, self.datasets):
-            parser = ImgInfo(filename=imginfo_file, safe_parse=True)
+            parser = ImgInfo(filename=imginfo_file)
             if self._single_sweep:
                 self._update_parsing_status(key='autoproc.imginfo', parser=parser)
                 for key, value in parser.data.items():
@@ -1103,7 +1096,7 @@ class AutoPROCJobResults2:
         return self._imginfo
 
     def parse_truncate_xml(self):
-        self._truncate = TruncateUnique(filename=self._stats_iso_file, safe_parse=True)
+        self._truncate = TruncateUnique(filename=self._stats_iso_file)
         self._update_parsing_status('autoproc.truncate', self._truncate)
         for key, value in self._truncate.data.items():
             self._data['autoproc.truncate'][key] = value
@@ -1115,7 +1108,7 @@ class AutoPROCJobResults2:
         return self._truncate
 
     def parse_staraniso_xml(self):
-        self._staraniso = StaranisoUnique(filename=self._stats_aniso_file, safe_parse=True)
+        self._staraniso = StaranisoUnique(filename=self._stats_aniso_file)
         self._update_parsing_status('autoproc.staraniso', self._staraniso)
         for key, value in self._staraniso.data.items():
             self._data['autoproc.staraniso'][key] = value
@@ -1129,7 +1122,7 @@ class AutoPROCJobResults2:
     def parse_correct_lp(self):
         parsers = []
         for correctlp_file, dataset in zip(self._correct_lp_files, self.datasets):
-            parser = CorrectLp(filename=correctlp_file, safe_parse=True)
+            parser = CorrectLp(filename=correctlp_file)
             if self._single_sweep:
                 self._update_parsing_status(key='xds.correct', parser=parser)
                 for key, value in parser.data.items():

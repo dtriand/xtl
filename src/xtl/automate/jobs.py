@@ -6,6 +6,7 @@ import warnings
 from xtl.automate.shells import Shell, DefaultShell, BashShell, WslShell
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.batchfile import BatchFile
+from xtl.exceptions.warnings import IncompatibleShellWarning
 
 
 def limited_concurrency(limit: int):
@@ -86,17 +87,17 @@ class Job:
         if self._supported_shells:
             if not shell in self._supported_shells:
                 warnings.warn(f'Shell \'{shell.name}\' is not compatible with job '
-                              f'\'{self.__class__.__name__}\'')
+                              f'\'{self.__class__.__name__}\'', category=IncompatibleShellWarning)
         if not compute_site.is_valid_shell(shell):
             warnings.warn(f'Shell \'{shell.name}\' is not compatible with compute_site '
-                          f'\'{compute_site.__class__.__name__}\'')
+                          f'\'{compute_site.__class__.__name__}\'', category=IncompatibleShellWarning)
         return shell, compute_site
 
-    def echo(self, message: str):
+    def echo(self, message: str, *args, **kwargs):
         """
         Echo a message to console using the specified echo function
         """
-        self._echo(f'[{self._name}] {message}')
+        self._echo(f'[{self._name}] {message}', *args, **kwargs)
 
     def create_batch(self, filename: str | Path, cmds: list[str], change_permissions: bool = True) -> BatchFile:
         """
