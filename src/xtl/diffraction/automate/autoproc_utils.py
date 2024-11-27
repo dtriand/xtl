@@ -149,8 +149,8 @@ class AutoPROCConfig(GPhLConfig):
                                           alias='XdsNumImagesBackgroundRange', group='xds_params')
 
     # Compound parameters
-    _XdsExcludeIceRingsAutomatically: bool = afield(alias='XdsExcludeIceRingsAutomatically', default=None)
-    _RunIdxrefExcludeIceRingShells: bool = afield(alias='RunIdxrefExcludeIceRingShells', default=None,)
+    _XdsExcludeIceRingsAutomatically: bool = afield(alias='XdsExcludeIceRingsAutomatically', default=None, cli_hidden=True)
+    _RunIdxrefExcludeIceRingShells: bool = afield(alias='RunIdxrefExcludeIceRingShells', default=None, cli_hidden=True)
     exclude_ice_rings: bool = cfield(desc='Exclude ice rings from the data',
                                      default=None,
                                      group='ice_rings_params',
@@ -194,7 +194,7 @@ class AutoPROCConfig(GPhLConfig):
 
     # Batch mode flag
     batch_mode: bool = pfield(desc='autoPROC in batch mode',
-                              default=None,
+                              default=None, cli_hidden=True,
                               formatter=lambda x: '-B' if x else None)
 
     # List of CLI arguments

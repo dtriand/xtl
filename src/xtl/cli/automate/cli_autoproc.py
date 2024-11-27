@@ -7,13 +7,17 @@ from functools import partial, wraps
 from pathlib import Path
 
 import pandas as pd
+import rich.box
+import rich.table
 import typer
 import tabulate
 
-from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob
+from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
+from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.automate.sites import LocalSite, BiotixHPC
-from xtl.cli.cliio import CliIO
+from xtl.cli.cliio import CliIO, Console
 from xtl.config import cfg
+from .autoproc_utils import get_attributes_config, get_attributes_dataset
 
 
 app = typer.Typer(name='xtl.autoproc', help='Execute multiple autoPROC jobs')
@@ -551,9 +555,46 @@ async def cli_autoproc_json_to_csv(
     cli.echo(f'Wrote summary to {csv_file}')
 
 
-@app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
-def cli_autoproc_check_wavelength():
-    pass
+@app.command('options', help='Show available autoPROC configuration options')
+def cli_autoproc_options():
+    cli = Console()
+
+    table_kwargs = {
+        'title_style': 'bold italic white on cornflower_blue',
+        'box': rich.box.HORIZONTALS,
+        'expand': True
+    }
+
+    cli.print('The following parameters can be passed as arguments to [b i u]xtl.autoproc process[/b i u], '
+              'or as headers in the [b i u]datasets.csv[/b i u] file.')
+    cli.print()
+    cli.print_table(table=get_attributes_dataset(),
+                    headers=['XTL parameter', 'Type', 'Description'],
+                    column_kwargs=[
+                        {'style': 'cornflower_blue'},
+                        {'style': 'italic'},
+                        {'style': 'bright_black'}
+                    ],
+                    table_kwargs=table_kwargs | {'title': 'Dataset options'}
+                    )
+    cli.print()
+    cli.print_table(table=get_attributes_config(),
+                    headers=['XTL parameter', 'autoPROC parameter', 'Type', 'Description'],
+                    column_kwargs=[
+                        {'style': 'cornflower_blue'},
+                        {'style': 'medium_orchid'},
+                        {'style': 'italic'},
+                        {'style': 'bright_black'}
+                    ],
+                    table_kwargs=table_kwargs | {'title': 'autoPROC configuration options',
+                                                 'caption': 'Parameters in purple are the equivalent autoPROC parameters that will be passed to the process command'}
+                    )
+    # cli.print('Parameters in purple are the equivalent autoPROC parameters that will be passed to the process command')
+
+
+# @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
+# def cli_autoproc_check_wavelength():
+#     pass
 
 
 if __name__ == '__main__':

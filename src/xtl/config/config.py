@@ -26,6 +26,8 @@ _cfg = {
         'gsas': '# Path for GSAS2 installation'
     },
     'cli': {
+        'rich_output': 'True $ x in ["True", "False"] # Enable rich output',
+        'striped_table_rows': 'True $ x in ["True", "False"] # Alternating row colors in tables',
         'gsas_instprm_template_dir': '# Directories for holding template .instprm files'
     }
 }

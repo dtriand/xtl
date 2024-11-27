@@ -1,4 +1,10 @@
 import typer
+import rich.box
+import rich.console
+import rich.table
+import rich.text
+
+from xtl.config import cfg
 
 
 class CliIO:
@@ -29,3 +35,57 @@ class CliIO:
                 pass
             elif self.verbose >= verbose and not self.silent:
                 typer.secho(message, nl=nl, **style)
+
+
+class Console(rich.console.Console):
+
+    def __init__(self, rich_output: bool = cfg['cli']['rich_output'].value,
+                 striped_table_rows: bool = cfg['cli']['striped_table_rows'].value,
+                 **console_kwargs):
+        if isinstance(rich_output, str):
+            self._rich_output = rich_output.lower() == 'true'
+        else:
+            self._rich_output = rich_output
+        if isinstance(striped_table_rows, str):
+            self._striped_table_rows = striped_table_rows.lower() == 'true'
+        else:
+            self._striped_table_rows = striped_table_rows
+
+        super().__init__(**console_kwargs)
+
+    def print(self, *args, **kwargs):
+        messages = [rich.text.Text.from_markup(str(arg)) for arg in args]
+        if not self._rich_output:
+            messages = [m.plain for m in messages]
+        super().print(*messages, **kwargs)
+
+    def print_table(self, table: rich.table.Table | list, headers: list[str], column_kwargs: list[dict] = None,
+                    table_kwargs: dict = None, **kwargs):
+        # Default arguments
+        if column_kwargs is None:
+            column_kwargs = [{} for _ in headers]
+        else:
+            if len(column_kwargs) != len(headers):
+                raise ValueError('Number of items in column_kwargs must match the number of items in headers')
+        if table_kwargs is None:
+            table_kwargs = {}
+
+        # Create Table instance if not provided
+        if not isinstance(table, rich.table.Table):
+            t = rich.table.Table(**table_kwargs)
+            for header, col_kwargs in zip(headers, column_kwargs):
+                t.add_column(header, **col_kwargs)
+            for row in table:
+                t.add_row(*row)
+            table = t
+
+        if self._striped_table_rows:
+            table.row_styles = ['', 'dim']
+        if not self._rich_output:
+            table.header_style = 'none'
+            table.title_style = 'none'
+            table.row_styles = None
+            table.caption_style = 'none'
+            for column in table.columns:
+                column.style = None
+        super().print(table, **kwargs)
