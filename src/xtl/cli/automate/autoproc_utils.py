@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Callable
 
@@ -137,3 +138,24 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, echo: Ca
                     first_image = raw_data_dir / first_image
         datasets_input.append([raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir])
     return datasets_input
+
+
+def merge_configs(csv_dict: dict, dataset_index: int, **params):
+    config = csv_dict['config']
+    if dataset_index >= len(config['unit_cell']):
+        return {}
+    config = {key: value[dataset_index] for key, value in config.items()}
+
+    config = copy.deepcopy(config)
+    for key, value in params.items():
+        # Skip unknown parameters
+        if key not in config.keys():
+            continue
+        # Do not override values from the csv file
+        existing_value = config[key]
+        if value is not None and existing_value is not None:
+            config[key] = value
+
+    # Reduce the config to only changes from default values
+    config = {key: value for key, value in config.items() if value is not None}
+    return config

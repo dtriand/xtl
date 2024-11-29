@@ -6,6 +6,7 @@ from enum import Enum
 from functools import partial, wraps
 import math
 from pathlib import Path
+from pprint import pformat
 import traceback
 
 import pandas as pd
@@ -19,7 +20,7 @@ import tabulate
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.cli.cliio import CliIO, Console
 from xtl.cli.automate.autoproc_utils import get_attributes_config, get_attributes_dataset, parse_csv2, \
-    sanitize_csv_datasets, str_or_none
+    sanitize_csv_datasets, str_or_none, merge_configs
 from xtl.config import cfg
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
@@ -146,7 +147,7 @@ def cli_autoproc_check_files(
 
 
 class ResolutionCriterion(Enum):
-    none = 'none'
+    none = 'None'
     cc_half = 'CC1/2'
 
 
@@ -768,6 +769,9 @@ async def cli_autoproc_process(
     if modules:
         sanitized_input['Modules'] = '\n'.join(modules)
 
+    if do_only:
+        sanitized_input['Total number of jobs'] = f'{do_only} [i](limited by --only)[/]'
+
     if verbose:
         cli.print('The following global parameters will be used unless overriden on the .csv file:')
         cli.print_table(table=[[key, str(value)] for key, value in sanitized_input.items()],
@@ -779,6 +783,7 @@ async def cli_autoproc_process(
     # Housekeeping
     csv_file = None
     datasets = []
+    csv_dict = {}
 
     # Input for DiffractionDataset constructors
     #  raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir
@@ -914,7 +919,62 @@ async def cli_autoproc_process(
                 f.write(','.join(params) + '\n')
             f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
 
-    # Create job configuration
+    # Prepare the jobs
+    jobs = []
+    sanitized_configs = {}
+    APJ = AutoPROCJob2.update_concurrency_limit(no_concurrent_jobs)
+    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
+            transient=True, console=cli) as progress:
+        task = progress.add_task('Preparing jobs...', total=len(datasets))
+        with Catcher(silent=True) as catcher:
+            for i, dataset in enumerate(datasets):
+                if do_only and i >= do_only:
+                    cli.print(f'Skipping the rest of the datasets (--only={do_only})', style='magenta')
+                    break
+                config_input = merge_configs(csv_dict=csv_dict, dataset_index=i, **{
+                    'unit_cell': uc, 'space_group': space_group, 'resolution_high': res_high, 'resolution_low': res_low,
+                    'anomalous': anomalous, 'no_residues': no_residues, 'rfree_mtz': mtz_rfree, 'reference_mtz': mtz_ref,
+                    'xds_njobs': xds_njobs, 'xds_nproc': xds_nproc, 'exclude_ice_rings': exclude_ice_rings,
+                    'beamline': beamline.value, 'resolution_cutoff_criterion': cutoff.value, 'extra_params': extra
+                })
+                sanitized_config = {
+                    'datasets': [dataset],
+                    'config': config_input
+                }
+                sanitized_configs[i] = sanitized_config
+                if debug:
+                    progress.console.print(f'Job options for dataset {i+1}:')
+                    progress.console.print(sanitized_config)
+                    progress.console.print()
+                try:
+                    config = AutoPROCConfig(**config_input)
+                    job = APJ(datasets=dataset, config=config, compute_site=cs, modules=modules)
+                except Exception as e:
+                    catcher.log_exception({'index': i + 1, 'data': sanitized_config, 'exception': e})
+                    continue
+                jobs.append(job)
+                progress.advance(task)
+
+    # Exit if there were any errors while creating the jobs
+    if catcher.errors:
+        cli.print(f'The following {len(catcher.errors)} job(s) could not be created:', style='red')
+        for error in catcher.errors:
+            cli.print(f':police_car_light: Job {error["index"]} was instantiated with the following data:',
+                      style='red bold')
+            cli.print(error['data'], style='red dim')
+            cli.print(f'\n    The following exception was raised:', style='red')
+            cli.print_traceback(exc=error['exception'], indent='    ')
+            cli.print()
+        cli.print('All data passed to the jobs is saved in [u]jobs_input.txt[/]', style='magenta')
+        with open('jobs_input.txt', 'w') as f:
+            f.write(pformat(sanitized_configs))
+        raise typer.Abort()
+
+    if debug:
+        typer.confirm('Would you like to proceed with the above jobs?', abort=True)
+
+    # Run the jobs
+
 
 
 # @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
