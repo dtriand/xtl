@@ -1,9 +1,10 @@
 import asyncio
 import json
-import traceback
+import os
 from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
+import math
 from pathlib import Path
 import traceback
 
@@ -627,22 +628,21 @@ async def cli_autoproc_process(
                                    help='Path to a MTZ file with R-free flags', rich_help_panel='autoPROC parameters'),
     mtz_ref: Path = typer.Option(None, '-R', '--mtz-ref', help='Path to a reference MTZ file',
                                  rich_help_panel='autoPROC parameters'),
-    no_residues: int = typer.Option(None, '-N', '--no-residues',
-                                    help='Number of residues in the asymmetric unit',
-                                    rich_help_panel='autoPROC parameters'),
-    anomalous: bool = typer.Option(True, '--no-anomalous', is_flag=True, flag_value=False,
-                                   show_default=False, help='Merge anomalous signal',
+    resolution: str = typer.Option(None, '-r', '--resolution', help='Resolution range',
                                    rich_help_panel='autoPROC parameters'),
-    exclude_ice_rings: bool = typer.Option(None, '-e', '--exclude-ice', is_flag=True,
-                                           flag_value=True, help='Exclude ice rings',
-                                           rich_help_panel='autoPROC parameters'),
     cutoff: ResolutionCriterion = typer.Option(ResolutionCriterion.cc_half.value, '-c', '--cutoff',
                                                help='Resolution cutoff criterion',
                                                rich_help_panel='autoPROC parameters'),
-    resolution: str = typer.Option(None, '-r', '--resolution', help='Resolution range',
-                                       rich_help_panel='autoPROC parameters'),
     beamline: Beamline = typer.Option(None, '-b', '--beamline', show_choices=False,
                                       help='Beamline name', rich_help_panel='autoPROC parameters'),
+    exclude_ice_rings: bool = typer.Option(None, '-e', '--exclude-ice', is_flag=True,
+                                           flag_value=True, help='Exclude ice rings',
+                                           rich_help_panel='autoPROC parameters'),
+    no_residues: int = typer.Option(None, '-N', '--no-residues',
+                            help='Number of residues in the asymmetric unit', rich_help_panel='autoPROC parameters'),
+    anomalous: bool = typer.Option(True, '--no-anomalous', is_flag=True, flag_value=False,
+                                   show_default=False, help='Merge anomalous signal',
+                                   rich_help_panel='autoPROC parameters'),
     extra_args: list[str] = typer.Option(None, '-x', '--extra',
                                          help='Extra arguments to pass to autoPROC',
                                          rich_help_panel='autoPROC parameters'),
@@ -650,6 +650,8 @@ async def cli_autoproc_process(
     no_concurrent_jobs: int = typer.Option(1, '-n', '--no-jobs',
                                            help='Number of datasets to process in parallel',
                                            rich_help_panel='Parallelization'),
+    n_threads: int = typer.Option(os.cpu_count(), '-t', '--threads', help='Number of threads for all jobs',
+                                  rich_help_panel='Parallelization'),
     xds_njobs: int = typer.Option(None, '-j', '--xds-jobs', help='Number of XDS jobs',
                                   rich_help_panel='Parallelization'),
     xds_nproc: int = typer.Option(None, '-p', '--xds-proc', help='Number of XDS processors',
@@ -677,6 +679,102 @@ async def cli_autoproc_process(
     And a simple CSV file
     '''
     cli = Console(verbose=verbose, debug=debug)
+
+    # Check if dry_run
+    if dry_run:
+        cli.print('Dry run enabled', style='magenta')
+
+    # Sanitize user input
+    sanitized_input = {}
+
+    if raw_dir:
+        if not raw_dir.exists():
+            cli.print(f'Raw data directory {raw_dir} does not exist', style='red')
+            raise typer.Abort()
+        sanitized_input['Raw data directory'] = raw_dir
+
+    directories_created = []
+    if out_dir:
+        if not out_dir.exists():
+            cli.print(f'Creating output directory: {out_dir} ', end='')
+            try:
+                out_dir.mkdir(parents=True)
+            except OSError:
+                cli.print('Failed.', style='red')
+                raise typer.Abort()
+            cli.print('Done.', style='green')
+            directories_created.append(out_dir)
+        sanitized_input['Output directory'] = out_dir
+
+    if unit_cell:
+        uc = parse_unit_cell(unit_cell)
+        sanitized_input['Unit-cell parameters'] = ", ".join(map(str, uc))
+    else:
+        uc = None
+
+    if space_group:
+        sanitized_input['Space group'] = space_group.replace(' ', '')
+
+    if mtz_rfree:
+        sanitized_input['MTZ file with R-free flags'] = mtz_rfree
+
+    if mtz_ref:
+        sanitized_input['Reference MTZ file'] = mtz_ref
+
+    res_low, res_high = parse_resolution_range(resolution)
+    if res_low or res_high:
+        if not res_low:
+            res_low = 999.0
+        if not res_high:
+            res_high = 0.1
+        sanitized_input['Resolution range'] = f'{res_low} - {res_high} Å'
+
+    if cutoff != ResolutionCriterion.none:
+        if res_high:
+            sanitized_input['Resolution cutoff criterion'] = (f'[strike]{cutoff.value}[/strike] [i](ignored because a '
+                                                              f'resolution range was provided)[/i]')
+            cutoff = ResolutionCriterion.none
+        else:
+            sanitized_input['Resolution cutoff criterion'] = cutoff.value
+
+    if beamline:
+        sanitized_input['Beamline'] = beamline.value
+
+    if exclude_ice_rings:
+        sanitized_input['Ice rings'] = 'excluded'
+
+    if no_residues:
+        if no_residues <= 0:
+            no_residues = None
+        else:
+            sanitized_input['Number of residues'] = no_residues
+
+    sanitized_input['Anomalous signal'] = 'kept' if anomalous else 'merged'
+
+    extra = parse_extra_args(extra_args)
+    if extra:
+        sanitized_input['Extra autoPROC arguments'] = '\n'.join([f'{k}={v}' for k, v in extra.items()])
+
+    sanitized_input['Number of concurrent jobs'] = no_concurrent_jobs
+    sanitized_input['Number of threads per job'] = math.floor(n_threads / no_concurrent_jobs)
+    if xds_njobs:
+        sanitized_input['Number of XDS jobs'] = xds_njobs
+    if xds_nproc:
+        sanitized_input['Number of XDS processors'] = xds_nproc
+
+    cs = compute_site.get_site()
+    sanitized_input['Computation site'] = f'{compute_site.value}' + (f' \[{cs.priority_system.system_type}]'
+                                                                     if cs.priority_system.system_type else '')
+    if modules:
+        sanitized_input['Modules'] = '\n'.join(modules)
+
+    if verbose:
+        cli.print('The following global parameters will be used unless overriden on the .csv file:')
+        cli.print_table(table=[[key, str(value)] for key, value in sanitized_input.items()],
+                        headers=['Parameter', 'Value'],
+                        column_kwargs=[{'style': 'deep_pink1'}, {'style': 'orange3'}],
+                        table_kwargs={'title': 'Global parameters', 'expand': True, 'box': rich.box.HORIZONTALS})
+        typer.confirm('Would you like to proceed with the above parameters?', abort=True)
 
     # Housekeeping
     csv_file = None
@@ -714,7 +812,7 @@ async def cli_autoproc_process(
     # Report the dataset attributes parsed from the CSV file
     if verbose:
         renderable_datasets = [list(map(str_or_none, dataset_params)) for dataset_params in datasets_input]
-        cli.print('The following parameters will be used for locating the images:\n')
+        cli.print('The following parameters will be used for locating the images:')
         cli.print_table(table=renderable_datasets,
                         headers=['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
                                  'processed_data_dir', 'output_dir'],
@@ -724,7 +822,7 @@ async def cli_autoproc_process(
                                        {'overflow': 'fold', 'style': 'orange3'},
                                        {'overflow': 'fold', 'style': 'dodger_blue1'},
                                        {'overflow': 'fold', 'style': 'steel_blue1'}],
-                        table_kwargs={'title': 'Input for DiffractionDataset', 'expand': True,
+                        table_kwargs={'title': 'Sanitized datasets input', 'expand': True,
                                       'box': rich.box.HORIZONTALS})
         cli.print()
 
@@ -803,7 +901,7 @@ async def cli_autoproc_process(
                                        {'overflow': 'fold', 'style': 'cyan3'},
                                        {'overflow': 'fold', 'style': 'sea_green3'},
                                        {'overflow': 'fold', 'style': 'dark_cyan'}],
-                        table_kwargs={'title': 'DiffractionDataset attributes', 'expand': True,
+                        table_kwargs={'title': 'Datasets attributes', 'expand': True,
                                       'caption': 'Table also saved as [u]datasets_sanitized.csv[/u]',
                                       'box': rich.box.HORIZONTALS})
         cli.print()
@@ -815,6 +913,8 @@ async def cli_autoproc_process(
             for params in renderable_params:
                 f.write(','.join(params) + '\n')
             f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
+
+    # Create job configuration
 
 
 # @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
