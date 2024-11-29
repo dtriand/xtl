@@ -5,23 +5,29 @@ from datetime import datetime
 from enum import Enum
 from functools import partial, wraps
 from pathlib import Path
+import traceback
 
 import pandas as pd
 import rich.box
+from rich.markup import escape
 import rich.table
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 import tabulate
 
-from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
-from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.cli.cliio import CliIO, Console
+from xtl.cli.automate.autoproc_utils import get_attributes_config, get_attributes_dataset, parse_csv2, \
+    sanitize_csv_datasets, str_or_none
 from xtl.config import cfg
-from .autoproc_utils import get_attributes_config, get_attributes_dataset
+from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
+from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
+from xtl.diffraction.images.datasets import DiffractionDataset
+from xtl.exceptions.utils import Catcher
 
 
-app = typer.Typer(name='xtl.autoproc', help='Execute multiple autoPROC jobs')
-
+app = typer.Typer(name='xtl.autoproc', help='Execute multiple autoPROC jobs', rich_markup_mode='rich',
+                  epilog='</> with ❤️ by [i magenta]_dtriand[/]')
 
 def typer_async(func):
     @wraps(func)
@@ -555,7 +561,7 @@ async def cli_autoproc_json_to_csv(
     cli.echo(f'Wrote summary to {csv_file}')
 
 
-@app.command('options', help='Show available autoPROC configuration options')
+@app.command('options', help='Show available autoPROC configuration options', epilog=app.info.epilog)
 def cli_autoproc_options():
     cli = Console()
 
@@ -575,7 +581,10 @@ def cli_autoproc_options():
                         {'style': 'italic'},
                         {'style': 'bright_black'}
                     ],
-                    table_kwargs=table_kwargs | {'title': 'Dataset options'}
+                    table_kwargs=table_kwargs | {'title': 'Dataset options',
+                                                 'caption': 'An additional \'dataset_group\' parameter can be added to '
+                                                            'the [u]datasets.csv[/u] file to process and merge multiple'
+                                                            ' datasets together ([i]e.g.[/i] multi-sweep data)'}
                     )
     cli.print()
     cli.print_table(table=get_attributes_config(),
@@ -587,9 +596,225 @@ def cli_autoproc_options():
                         {'style': 'bright_black'}
                     ],
                     table_kwargs=table_kwargs | {'title': 'autoPROC configuration options',
-                                                 'caption': 'Parameters in purple are the equivalent autoPROC parameters that will be passed to the process command'}
+                                                 'caption': 'Parameters in purple are the equivalent autoPROC '
+                                                            'parameters that will be passed to the process command. '
+                                                            'Additional parameters can be passed as a dictionary in '
+                                                            'the \'extra_params\' argument. A full list of the '
+                                                            'available autoPROC parameters can be found '
+                                                            '[link=https://www.globalphasing.com/autoproc/manual/appendix1.html]'
+                                                            'here[/link].'}
                     )
-    # cli.print('Parameters in purple are the equivalent autoPROC parameters that will be passed to the process command')
+
+    return typer.Exit(code=0)
+
+
+@app.command('process', short_help='Run multiple autoPROC jobs', epilog=app.info.epilog)
+@typer_async
+async def cli_autoproc_process(
+    input_files: list[Path] = typer.Argument(metavar='<DATASETS>',
+                                         help='List of paths to the first image files of datasets or a datasets.csv file'),
+    # Dataset parameters
+    raw_dir: Path = typer.Option(None, '-i', '--raw-dir', help='Path to the raw data directory',
+                                 rich_help_panel='Dataset parameters'),
+    out_dir: Path = typer.Option(Path('./'), '-o', '--out-dir', help='Path to the output directory',
+                                 rich_help_panel='Dataset parameters'),
+    # autoPROC parameters
+    unit_cell: str = typer.Option(None, '-u', '--unit-cell', help='Unit-cell parameters',
+                                  rich_help_panel='autoPROC parameters'),
+    space_group: str = typer.Option(None, '-s', '--space-group', help='Space group',
+                                    rich_help_panel='autoPROC parameters'),
+    mtz_rfree: Path = typer.Option(None, '-f', '--mtz-rfree',
+                                   help='Path to a MTZ file with R-free flags', rich_help_panel='autoPROC parameters'),
+    mtz_ref: Path = typer.Option(None, '-R', '--mtz-ref', help='Path to a reference MTZ file',
+                                 rich_help_panel='autoPROC parameters'),
+    no_residues: int = typer.Option(None, '-N', '--no-residues',
+                                    help='Number of residues in the asymmetric unit',
+                                    rich_help_panel='autoPROC parameters'),
+    anomalous: bool = typer.Option(True, '--no-anomalous', is_flag=True, flag_value=False,
+                                   show_default=False, help='Merge anomalous signal',
+                                   rich_help_panel='autoPROC parameters'),
+    exclude_ice_rings: bool = typer.Option(None, '-e', '--exclude-ice', is_flag=True,
+                                           flag_value=True, help='Exclude ice rings',
+                                           rich_help_panel='autoPROC parameters'),
+    cutoff: ResolutionCriterion = typer.Option(ResolutionCriterion.cc_half.value, '-c', '--cutoff',
+                                               help='Resolution cutoff criterion',
+                                               rich_help_panel='autoPROC parameters'),
+    resolution: str = typer.Option(None, '-r', '--resolution', help='Resolution range',
+                                       rich_help_panel='autoPROC parameters'),
+    beamline: Beamline = typer.Option(None, '-b', '--beamline', show_choices=False,
+                                      help='Beamline name', rich_help_panel='autoPROC parameters'),
+    extra_args: list[str] = typer.Option(None, '-x', '--extra',
+                                         help='Extra arguments to pass to autoPROC',
+                                         rich_help_panel='autoPROC parameters'),
+    # Parallelization parameters
+    no_concurrent_jobs: int = typer.Option(1, '-n', '--no-jobs',
+                                           help='Number of datasets to process in parallel',
+                                           rich_help_panel='Parallelization'),
+    xds_njobs: int = typer.Option(None, '-j', '--xds-jobs', help='Number of XDS jobs',
+                                  rich_help_panel='Parallelization'),
+    xds_nproc: int = typer.Option(None, '-p', '--xds-proc', help='Number of XDS processors',
+                                  rich_help_panel='Parallelization'),
+    # Localization
+    modules: list[str] = typer.Option(None, '-m', '--module',
+                                      help='Module to load before running the jobs', rich_help_panel='Localization'),
+    compute_site: ComputeSite = typer.Option(cfg['automate']['compute_site'].value, '--compute-site',
+                                             help='Computation site for configuring the job execution',
+                                             rich_help_panel='Localization'),
+    # Debugging
+    verbose: int = typer.Option(0, '-v', '--verbose', count=True,
+                                help='Print additional information', rich_help_panel='Debugging'),
+    debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
+                               rich_help_panel='Debugging'),
+    dry_run: bool = typer.Option(False, '--dry', help='Dry run without running autoPROC',
+                                 rich_help_panel='Debugging'),
+    do_only: int = typer.Option(None, '--only', hidden=True, help='Do only X jobs',
+                                rich_help_panel='Debugging'),
+):
+    '''
+    Examples:
+        asdfasdf
+        asdfasdf
+    And a simple CSV file
+    '''
+    cli = Console(verbose=verbose, debug=debug)
+
+    # Housekeeping
+    csv_file = None
+    datasets = []
+
+    # Input for DiffractionDataset constructors
+    #  raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir
+    datasets_input = []
+
+    # Check if a datasets.csv file was provided
+    if len(input_files) == 1 and input_files[0].suffix == '.csv':
+        if not input_files[0].exists():
+            cli.print(f'File {input_files[0]} does not exist', style='red')
+            raise typer.Abort()
+        csv_file = input_files[0]
+        cli.print(f'Parsing datasets from {csv_file}')
+        csv_dict = parse_csv2(csv_file)
+        cli.print(f'Found {len(csv_dict["headers"])} headers in the CSV file: ')
+        cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
+
+        # Check if dataset paths have been fully specified and collect the images
+        datasets_input = sanitize_csv_datasets(csv_dict=csv_dict, raw_dir=raw_dir, out_dir=out_dir, echo=cli.print)
+    else:
+        for i, image in enumerate(input_files):
+            # Prepend the raw_dir if an absolute path is not provided
+            if raw_dir and raw_dir.exists():
+                if not image.is_absolute():
+                    image = raw_dir / image
+            if not image.exists():
+                cli.print(f'Image for dataset {i+1} does not exist: {image}', style='red')
+                raise typer.Abort()
+            datasets_input.append([None, None, None, image, out_dir, None])
+    cli.print(f'Found {len(datasets_input)} datasets from input')
+
+    # Report the dataset attributes parsed from the CSV file
+    if verbose:
+        renderable_datasets = [list(map(str_or_none, dataset_params)) for dataset_params in datasets_input]
+        cli.print('The following parameters will be used for locating the images:\n')
+        cli.print_table(table=renderable_datasets,
+                        headers=['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
+                                 'processed_data_dir', 'output_dir'],
+                        column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
+                                       {'overflow': 'fold', 'style': 'medium_orchid1'},
+                                       {'overflow': 'fold', 'style': 'plum1'},
+                                       {'overflow': 'fold', 'style': 'orange3'},
+                                       {'overflow': 'fold', 'style': 'dodger_blue1'},
+                                       {'overflow': 'fold', 'style': 'steel_blue1'}],
+                        table_kwargs={'title': 'Input for DiffractionDataset', 'expand': True,
+                                      'box': rich.box.HORIZONTALS})
+        cli.print()
+
+    # Create DiffractionDataset instances
+    no_images = 0
+    t0 = datetime.now()
+    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
+            transient=True) as progress:
+        task = progress.add_task('Looking for images in directories...', total=len(datasets_input))
+        with Catcher(silent=True) as catcher:
+            for i, (r_dir, d_dir, d_name, image, p_dir, o_dir) in enumerate(datasets_input):
+                try:
+                    if image:
+                        reading_method = 'from_image'
+                        dataset = DiffractionDataset.from_image(image=image, raw_dataset_dir=r_dir,
+                                                                processed_data_dir=p_dir)
+                    else:
+                        reading_method = 'from_dirs'
+                        dataset = DiffractionDataset(dataset_name=d_name, dataset_dir=d_dir, raw_data_dir=r_dir,
+                                                     processed_data_dir=p_dir, output_dir=o_dir)
+                except Exception as e:
+                    catcher.log_exception(
+                        {
+                            'index': i + 1,
+                            'method': reading_method,
+                            'data': {
+                                'raw_data_dir': r_dir, 'dataset_dir': d_dir, 'dataset_name': d_name,
+                                'first_image': image, 'processed_data_dir': p_dir, 'output_dir': o_dir
+                            },
+                            'exception': e
+                        }
+                    )
+                    continue
+                no_images += dataset.no_images
+                dataset.reset_images_cache()
+                datasets.append(dataset)
+                progress.advance(task)
+    t1 = datetime.now()
+    cli.print(f'Found {no_images:,} images in {len(datasets)} datasets in {t1 - t0}')
+
+    # Exit if there were any errors while creating the datasets
+    if catcher.errors:
+        cli.print(f'The following {len(catcher.errors)} dataset(s) could not be processed:', style='red')
+        for error in catcher.errors:
+            cli.print(f':police_car_light: Dataset {error["index"]} read with method \'{error["method"]}\'',
+                      style='red bold')
+            for key, value in error['data'].items():
+                cli.print(f'    - {key}: {value}', style='red dim')
+            cli.print(f'\n    The following exception was raised:', style='red')
+            cli.print_traceback(exc=error['exception'], indent='    ')
+            cli.print()
+        raise typer.Abort()
+
+    # Report the actual attributes of the datasets
+    if verbose:
+        renderable_params = []
+        for dataset in datasets:
+            params = [dataset.raw_data, dataset.dataset_dir, dataset.dataset_name, dataset.first_image,
+                      dataset.processed_data, dataset.output_dir]
+            template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
+            params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
+            renderable_params.append(list(map(str_or_none, params)))
+        headers = ['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir', 'output_dir',
+                   'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
+        cli.print('The following datasets were initialized:\n')
+        cli.print_table(table=renderable_params,
+                        headers=headers,
+                        column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
+                                       {'overflow': 'fold', 'style': 'medium_orchid1'},
+                                       {'overflow': 'fold', 'style': 'plum1'},
+                                       {'overflow': 'fold', 'style': 'orange3'},
+                                       {'overflow': 'fold', 'style': 'dodger_blue1'},
+                                       {'overflow': 'fold', 'style': 'steel_blue1'},
+                                       {'overflow': 'fold', 'style': 'dark_orange3'},
+                                       {'overflow': 'fold', 'style': 'salmon1'},
+                                       {'overflow': 'fold', 'style': 'cyan3'},
+                                       {'overflow': 'fold', 'style': 'sea_green3'},
+                                       {'overflow': 'fold', 'style': 'dark_cyan'}],
+                        table_kwargs={'title': 'DiffractionDataset attributes', 'expand': True,
+                                      'caption': 'Table also saved as [u]datasets_sanitized.csv[/u]',
+                                      'box': rich.box.HORIZONTALS})
+        cli.print()
+
+        # Save datasets attributes to a CSV file
+        output = Path('./datasets_sanitized.csv')
+        with output.open('w') as f:
+            f.write('# ' + ','.join(headers) + '\n')
+            for params in renderable_params:
+                f.write(','.join(params) + '\n')
+            f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
 
 
 # @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')

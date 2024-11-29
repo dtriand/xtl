@@ -105,7 +105,7 @@ class DiffractionDataset:
     @property
     def is_h5(self) -> bool:
         """
-        Whether the dataset is comprised of HDF5 files.
+        Whether the dataset consists of HDF5 files.
         """
         return self._is_h5
 

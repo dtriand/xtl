@@ -1,8 +1,11 @@
+import traceback
+
 import typer
 import rich.box
 import rich.console
 import rich.table
 import rich.text
+import rich.pretty
 
 from xtl.config import cfg
 
@@ -39,9 +42,11 @@ class CliIO:
 
 class Console(rich.console.Console):
 
-    def __init__(self, rich_output: bool = cfg['cli']['rich_output'].value,
+    def __init__(self, verbose: int = 0, debug: bool = False, rich_output: bool = cfg['cli']['rich_output'].value,
                  striped_table_rows: bool = cfg['cli']['striped_table_rows'].value,
                  **console_kwargs):
+        self.verbose = verbose
+        self.debug = debug
         if isinstance(rich_output, str):
             self._rich_output = rich_output.lower() == 'true'
         else:
@@ -54,10 +59,19 @@ class Console(rich.console.Console):
         super().__init__(**console_kwargs)
 
     def print(self, *args, **kwargs):
-        messages = [rich.text.Text.from_markup(str(arg)) for arg in args]
+        messages = []
+        for arg in args:
+            if isinstance(arg, str):
+                messages.append(rich.text.Text.from_markup(arg))
+            else:
+                messages.append(arg)
         if not self._rich_output:
-            messages = [m.plain for m in messages]
+            # BUG: escaped characters that are not markup are also striped, e.g. \[text] will be lost
+            messages = [m.plain for m in messages if isinstance(m, rich.text.Text)]
         super().print(*messages, **kwargs)
+
+    def pprint(self, obj, **kwargs):
+        rich.pretty.pprint(obj, **kwargs)
 
     def print_table(self, table: rich.table.Table | list, headers: list[str], column_kwargs: list[dict] = None,
                     table_kwargs: dict = None, **kwargs):
@@ -89,3 +103,15 @@ class Console(rich.console.Console):
             for column in table.columns:
                 column.style = None
         super().print(table, **kwargs)
+
+    def print_traceback(self, exc: Exception, indent: str = ''):
+        if self.debug:  # Format traceback with rich
+            try:
+                raise exc
+            except Exception:
+                super().print_exception(show_locals=True)
+        elif self.verbose:  # Standard traceback
+            for line in traceback.format_exception(type(exc), exc, exc.__traceback__):
+                self.print(f'{indent}{line}', style='red dim')
+        else:  # Only print the exception
+            self.print(f'{indent}{exc}', style='red dim')
