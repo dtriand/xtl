@@ -665,6 +665,12 @@ async def cli_autoproc_process(
     compute_site: ComputeSite = typer.Option(cfg['automate']['compute_site'].value, '--compute-site',
                                              help='Computation site for configuring the job execution',
                                              rich_help_panel='Localization'),
+    chmod: bool = typer.Option(cfg['automate']['change_permissions'].value, '--chmod',
+                               help='Change permissions of the output directories', rich_help_panel='Localization'),
+    chmod_files: int = typer.Option(cfg['automate']['permissions_files'].value, '--chmod-files',
+                                    help='Permissions for files', rich_help_panel='Localization'),
+    chmod_dirs: int = typer.Option(cfg['automate']['permissions_directories'].value, '--chmod-dirs',
+                                   help='Permissions for directories', rich_help_panel='Localization'),
     # Debugging
     verbose: int = typer.Option(0, '-v', '--verbose', count=True,
                                 help='Print additional information', rich_help_panel='Debugging'),
@@ -685,7 +691,7 @@ async def cli_autoproc_process(
 
     # Check if dry_run
     if dry_run:
-        cli.print('Dry run enabled', style='magenta')
+        cli.print(':two-hump_camel: Dry run enabled', style='magenta')
 
     # Sanitize user input
     sanitized_input = {}
@@ -771,6 +777,15 @@ async def cli_autoproc_process(
     if modules:
         sanitized_input['Modules'] = '\n'.join(modules)
 
+    if chmod != bool(cfg['automate']['change_permissions'].value):
+        sanitized_input['Change permissions'] = 'enabled' if chmod else 'disabled'
+
+    if chmod_files != int(cfg['automate']['permissions_files'].value):
+        sanitized_input['Permissions for files'] = chmod_files
+
+    if chmod_dirs != int(cfg['automate']['permissions_directories'].value):
+        sanitized_input['Permissions for directories'] = chmod_dirs
+
     if do_only:
         sanitized_input['Total number of jobs'] = f'{do_only} [i](limited by --only)[/]'
 
@@ -797,9 +812,9 @@ async def cli_autoproc_process(
             cli.print(f'File {input_files[0]} does not exist', style='red')
             raise typer.Abort()
         csv_file = input_files[0]
-        cli.print(f'Parsing datasets from {csv_file}')
+        cli.print(f'📃 Parsing datasets from {csv_file}')
         csv_dict = parse_csv2(csv_file)
-        cli.print(f'Found {len(csv_dict["headers"])} headers in the CSV file: ')
+        cli.print(f'📑 Found {len(csv_dict["headers"])} headers in the CSV file: ')
         cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
 
         # Check if dataset paths have been fully specified and collect the images
@@ -814,7 +829,7 @@ async def cli_autoproc_process(
                 cli.print(f'Image for dataset {i+1} does not exist: {image}', style='red')
                 raise typer.Abort()
             datasets_input.append([None, None, None, image, out_dir, None])
-    cli.print(f'Found {len(datasets_input)} datasets from input')
+    cli.print(f'🗃️ Found {len(datasets_input)} datasets from input')
 
     # Report the dataset attributes parsed from the CSV file
     if verbose:
@@ -838,7 +853,8 @@ async def cli_autoproc_process(
     t0 = datetime.now()
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                   transient=True) as progress:
-        task = progress.add_task('Looking for images in directories...', total=len(datasets_input))
+        task = progress.add_task('🔎 Looking for images in directories...',
+                                 total=len(datasets_input))
         with Catcher(silent=True) as catcher:
             for i, (r_dir, d_dir, d_name, image, p_dir, o_dir) in enumerate(datasets_input):
                 try:
@@ -868,7 +884,7 @@ async def cli_autoproc_process(
                 datasets.append(dataset)
                 progress.advance(task)
     t1 = datetime.now()
-    cli.print(f'Found {no_images:,} images in {len(datasets)} datasets in {t1 - t0}')
+    cli.print(f'📷 Found {no_images:,} images in {len(datasets)} datasets in {t1 - t0}')
 
     # Exit if there were any errors while creating the datasets
     if catcher.errors:
@@ -931,13 +947,14 @@ async def cli_autoproc_process(
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                   transient=True, console=cli) as progress:
         APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold')
-        task = progress.add_task('Preparing jobs...', total=len(datasets))
+        task = progress.add_task('🛠️ Preparing jobs...', total=len(datasets))
         with Catcher(silent=True) as catcher:
             for i, dataset in enumerate(datasets):
                 if do_only and i >= do_only:
                     cli.print(f'Skipping the rest of the datasets (--only={do_only})', style='magenta')
                     break
                 config_input = merge_configs(csv_dict=csv_dict, dataset_index=i, **{
+                    'change_permissions': chmod, 'file_permissions': chmod_files, 'directory_permissions': chmod_dirs,
                     'unit_cell': uc, 'space_group': space_group, 'resolution_high': res_high, 'resolution_low': res_low,
                     'anomalous': anomalous, 'no_residues': no_residues, 'rfree_mtz': mtz_rfree, 'reference_mtz': mtz_ref,
                     'xds_njobs': xds_njobs, 'xds_nproc': xds_nproc, 'exclude_ice_rings': exclude_ice_rings,
@@ -966,7 +983,8 @@ async def cli_autoproc_process(
 
                 jobs.append(job)
                 progress.advance(task)
-    cli.print(f'Prepared {len(jobs)} jobs')
+    no_jobs = len(jobs)
+    cli.print(f'🛠️ Prepared {no_jobs} job' + 's' if no_jobs > 1 else '')
 
     # Exit if there were any errors while creating the jobs
     if catcher.errors:
@@ -983,8 +1001,8 @@ async def cli_autoproc_process(
             f.write(pformat(sanitized_configs))
         raise typer.Abort()
 
-    message = f'Would you like to launch {len(jobs)} jobs'
-    message += f' in batches of {no_concurrent_jobs}?' if no_concurrent_jobs > 1 else '?'
+    message = f'🚀 Would you like to launch {no_jobs} job' + 's' if no_jobs > 1 else ''
+    message += f' in batches of {no_concurrent_jobs}?' if no_jobs > no_concurrent_jobs > 1 else '?'
     typer.confirm(message, abort=True)
 
     # Run the jobs
@@ -996,7 +1014,7 @@ async def cli_autoproc_process(
         jobs_succeeded = 0
         jobs_tidyup_failed = 0
         jobs_failed = 0
-        running = progress.add_task(':person_running: Running jobs... ', total=len(jobs),
+        running = progress.add_task(':person_running: Running jobs... ', total=no_jobs,
                                     status=': Running...')
 
         # Attach progress bar's print to the jobs
@@ -1030,7 +1048,7 @@ async def cli_autoproc_process(
                 progress.update(running, status=f':star-struck: [green]{jobs_succeeded}[/] '
                                                 f':thinking_face: [yellow]{jobs_tidyup_failed}[/] '
                                                 f':loudly_crying_face: [red]{jobs_failed}[/]')
-
+    cli.print()
     t1 = datetime.now()
 
     file_size = 0
@@ -1062,7 +1080,7 @@ async def cli_autoproc_process(
         f.write('\n'.join([str(created) for created in directories_created]))
 
     # TODO:
-    #  [ ] Change permissions
+    #  [x] Change permissions
     #  [ ] Fix output_dir bug
     #  [ ] Write new csv file for downstream processing
     #  [ ] Run GPhL workflow files

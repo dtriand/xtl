@@ -17,7 +17,10 @@ _cfg = {
         'version': __version__
     },
     'automate': {
-        'compute_site': 'local'
+        'compute_site': 'local',
+        'change_permissions': 'False $ x in ["True", "False"] # Change permissions of files and directories after execution of external jobs',
+        'permissions_files': '700 # Permissions for files',
+        'permissions_directories': '700 # Permissions for directories',
     },
     'units': {
         'temperature': 'C $ x in "CKF" # C for Celsius, K for Kelvin, F for Fahrenheit'
