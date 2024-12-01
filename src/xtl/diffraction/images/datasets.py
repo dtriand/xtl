@@ -65,7 +65,7 @@ class DiffractionDataset:
 
         # Determine output_dir
         if self.output_dir is None:
-            self.output_dir = self.dataset_name
+            self.output_dir = self.dataset_dir
 
     @property
     def file_extension(self) -> str:

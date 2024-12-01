@@ -47,6 +47,7 @@ def get_attributes_dataset() -> list[list[str]]:
         ['first_image', 'Path', 'Full path to the first image file'],
         ['processed_data_dir', 'Path', 'Path to the processed data directory'],
         ['output_dir', 'str', 'Subdirectory within the processed data directory'],
+        ['output_subdir', 'str', 'Subdirectory within the output directory']
     ]
     return attributes
 
@@ -100,43 +101,73 @@ def parse_csv2(csv_file: Path, extra_headers: list[str] = None):
     return csv_dict
 
 
-def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, echo: Callable = print) -> list:
+def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None,
+                          echo: Callable = print) -> list:
     datasets_input = []
-    for i, (raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir) in (
+    for i, (raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir) in (
             enumerate(zip(csv_dict['dataset']['raw_data_dir'], csv_dict['dataset']['dataset_dir'],
                           csv_dict['dataset']['dataset_name'], csv_dict['dataset']['first_image'],
-                          csv_dict['dataset']['processed_data_dir'], csv_dict['dataset']['output_dir']))):
+                          csv_dict['dataset']['processed_data_dir'], csv_dict['dataset']['output_dir'],
+                          csv_dict['dataset']['output_subdir']))):
+
+        # Initialize via DiffractionDataset.from_image class method
         if first_image:
             first_image = Path(first_image)
-        if not dataset_name:
-            echo(f'Dataset on line {i + 1} does not have attribute \'dataset_name\'', style='red')
-            raise typer.Abort()
-        if not dataset_dir:
-            echo(f'Dataset on line {i + 1} does not have attribute \'dataset_dir\'', style='red')
-            raise typer.Abort()
-        if not raw_data_dir:
-            if not raw_dir:
-                echo(f'Dataset on line {i + 1} does not have the attribute \'raw_data_dir\' and a global '
-                          f'raw data directory was not specified with --raw-dir', style='red')
-                raise typer.Abort()
-            else:
+            if not raw_data_dir:
                 raw_data_dir = raw_dir
-            raw_data_dir = Path(raw_data_dir)
-        if not processed_data_dir:
-            if not out_dir:
-                echo(f'Dataset on line {i + 1} does not have the attribute \'processed_data_dir\' and a global '
-                          f'output directory was not specified with --out-dir', style='red')
-                raise typer.Abort()
-            else:
-                processed_data_dir = out_dir
-            processed_data_dir = Path(processed_data_dir)
-        if not first_image.is_absolute():
-            if raw_data_dir:
+            # If the first image is not an absolute path, append the raw_data_dir and dataset_dir
+            if not first_image.is_absolute():
+                if not raw_data_dir:
+                    echo(f'Image on line {i + 1} is a relative path and a \'raw_data_dir\' was not provided or a '
+                         f'global raw data directory was not specified with --raw-dir', style='red')
+                    raise typer.Abort()
+                raw_data_dir = Path(raw_data_dir).resolve()
                 if dataset_dir:
                     first_image = raw_data_dir / dataset_dir / first_image
                 else:
                     first_image = raw_data_dir / first_image
-        datasets_input.append([raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir])
+
+        # Initialize via DiffractionDataset.__init__ method
+        else:
+            if not dataset_name:
+                echo(f'Dataset on line {i + 1} does not have attribute \'dataset_name\'', style='red')
+                raise typer.Abort()
+            if not dataset_dir:
+                echo(f'Dataset on line {i + 1} does not have attribute \'dataset_dir\'', style='red')
+                raise typer.Abort()
+
+            # If no raw_data directory is specified, use the global raw directory
+            if not raw_data_dir:
+                raw_data_dir = raw_dir
+            if not raw_data_dir:
+                echo(f'Dataset on line {i + 1} does not have the attribute \'raw_data_dir\' and a global '
+                     f'raw data directory was not specified with --raw-dir', style='red')
+                raise typer.Abort()
+            raw_data_dir = Path(raw_data_dir).resolve()
+
+        # If no processed_data directory is specified, use the global output directory
+        if not processed_data_dir:
+            if not out_dir:
+                echo(f'Dataset on line {i + 1} does not have the attribute \'processed_data_dir\' and a global '
+                     f'output directory was not specified with --out-dir', style='red')
+                raise typer.Abort()
+            else:
+                processed_data_dir = out_dir
+        processed_data_dir = Path(processed_data_dir).resolve()
+
+        # If no output subdirectory is specified, use the global output subdirectory
+        if not output_subdir:
+            output_subdir = out_subdir
+
+        if output_subdir:
+            # Remove leading slashes and dots
+            if output_subdir[:2] in ['./', '.\\']:
+                output_subdir = output_subdir[2:]
+            elif output_subdir[0] in ['/', '\\']:
+                output_subdir = output_subdir[1:]
+
+        datasets_input.append([raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir,
+                               output_subdir])
     return datasets_input
 
 

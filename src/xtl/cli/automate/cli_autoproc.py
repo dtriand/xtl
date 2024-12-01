@@ -616,12 +616,15 @@ def cli_autoproc_options():
 @typer_async
 async def cli_autoproc_process(
     input_files: list[Path] = typer.Argument(metavar='<DATASETS>',
-                                         help='List of paths to the first image files of datasets or a datasets.csv file'),
+                                         help='List of paths to the first image files of datasets or a datasets.csv '
+                                              'file'),
     # Dataset parameters
     raw_dir: Path = typer.Option(None, '-i', '--raw-dir', help='Path to the raw data directory',
                                  rich_help_panel='Dataset parameters'),
     out_dir: Path = typer.Option(Path('./'), '-o', '--out-dir', help='Path to the output directory',
                                  rich_help_panel='Dataset parameters'),
+    out_subdir: str = typer.Option(None, '--out-subdir', help='Subdirectory within the output '
+                                   'directory', rich_help_panel='Dataset parameters'),
     # autoPROC parameters
     unit_cell: str = typer.Option(None, '-u', '--unit-cell', help='Unit-cell parameters',
                                   rich_help_panel='autoPROC parameters'),
@@ -678,7 +681,7 @@ async def cli_autoproc_process(
                                rich_help_panel='Debugging'),
     dry_run: bool = typer.Option(False, '--dry', help='Dry run without running autoPROC',
                                  rich_help_panel='Debugging'),
-    do_only: int = typer.Option(None, '--only', hidden=True, help='Do only X jobs',
+    do_only: int = typer.Option(0, '--only', hidden=True, help='Do only X jobs',
                                 rich_help_panel='Debugging'),
 ):
     '''
@@ -697,6 +700,7 @@ async def cli_autoproc_process(
     sanitized_input = {}
 
     if raw_dir:
+        raw_dir = raw_dir.resolve()
         if not raw_dir.exists():
             cli.print(f'Raw data directory {raw_dir} does not exist', style='red')
             raise typer.Abort()
@@ -704,6 +708,7 @@ async def cli_autoproc_process(
 
     directories_created = []
     if out_dir:
+        out_dir = out_dir.resolve()
         if not out_dir.exists():
             cli.print(f'Creating output directory: {out_dir} ', end='')
             try:
@@ -714,6 +719,9 @@ async def cli_autoproc_process(
             cli.print('Done.', style='green')
             directories_created.append(out_dir)
         sanitized_input['Output directory'] = out_dir
+
+    if out_subdir:
+        sanitized_input['Output subdirectory'] = out_subdir
 
     if unit_cell:
         uc = parse_unit_cell(unit_cell)
@@ -747,7 +755,8 @@ async def cli_autoproc_process(
             sanitized_input['Resolution cutoff criterion'] = cutoff.value
 
     if beamline:
-        sanitized_input['Beamline'] = beamline.value
+        beamline = beamline.value
+        sanitized_input['Beamline'] = beamline
 
     if exclude_ice_rings:
         sanitized_input['Ice rings'] = 'excluded'
@@ -795,7 +804,7 @@ async def cli_autoproc_process(
                         headers=['Parameter', 'Value'],
                         column_kwargs=[{'style': 'deep_pink1'}, {'style': 'orange3'}],
                         table_kwargs={'title': 'Global parameters', 'expand': True, 'box': rich.box.HORIZONTALS})
-        typer.confirm('Would you like to proceed with the above parameters?', abort=True)
+        cli.confirm('Would you like to proceed with the above parameters?', default=False)
 
     # Housekeeping
     csv_file = None
@@ -818,7 +827,8 @@ async def cli_autoproc_process(
         cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
 
         # Check if dataset paths have been fully specified and collect the images
-        datasets_input = sanitize_csv_datasets(csv_dict=csv_dict, raw_dir=raw_dir, out_dir=out_dir, echo=cli.print)
+        datasets_input = sanitize_csv_datasets(csv_dict=csv_dict, raw_dir=raw_dir, out_dir=out_dir,
+                                               out_subdir=out_subdir, echo=cli.print)
     else:
         for i, image in enumerate(input_files):
             # Prepend the raw_dir if an absolute path is not provided
@@ -837,13 +847,14 @@ async def cli_autoproc_process(
         cli.print('The following parameters will be used for locating the images:')
         cli.print_table(table=renderable_datasets,
                         headers=['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
-                                 'processed_data_dir', 'output_dir'],
+                                 'processed_data_dir', 'output_dir', 'output_subdir'],
                         column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
                                        {'overflow': 'fold', 'style': 'medium_orchid1'},
                                        {'overflow': 'fold', 'style': 'plum1'},
                                        {'overflow': 'fold', 'style': 'orange3'},
                                        {'overflow': 'fold', 'style': 'dodger_blue1'},
-                                       {'overflow': 'fold', 'style': 'steel_blue1'}],
+                                       {'overflow': 'fold', 'style': 'steel_blue1'},
+                                       {'overflow': 'fold', 'style': 'cornflower_blue'}],
                         table_kwargs={'title': 'Sanitized datasets input', 'expand': True,
                                       'box': rich.box.HORIZONTALS})
         cli.print()
@@ -855,8 +866,8 @@ async def cli_autoproc_process(
                   transient=True) as progress:
         task = progress.add_task('🔎 Looking for images in directories...',
                                  total=len(datasets_input))
-        with Catcher(silent=True) as catcher:
-            for i, (r_dir, d_dir, d_name, image, p_dir, o_dir) in enumerate(datasets_input):
+        with Catcher(silent=not debug) as catcher:  # debug will print the exceptions
+            for i, (r_dir, d_dir, d_name, image, p_dir, o_dir, o_sdir) in enumerate(datasets_input):
                 try:
                     if image:
                         reading_method = 'from_image'
@@ -873,12 +884,16 @@ async def cli_autoproc_process(
                             'method': reading_method,
                             'data': {
                                 'raw_data_dir': r_dir, 'dataset_dir': d_dir, 'dataset_name': d_name,
-                                'first_image': image, 'processed_data_dir': p_dir, 'output_dir': o_dir
+                                'first_image': image, 'processed_data_dir': p_dir, 'output_dir': o_dir,
+                                'output_subdir': o_sdir
                             },
                             'exception': e
                         }
                     )
                     continue
+                if o_sdir:
+                    dataset._fstring_dict['processed_data_dir'] += f'/{o_sdir}'
+                    dataset._check_dir_fstring('processed_data_dir')
                 no_images += dataset.no_images
                 dataset.reset_images_cache()
                 datasets.append(dataset)
@@ -900,14 +915,19 @@ async def cli_autoproc_process(
         raise typer.Abort()
 
     # Report the actual attributes of the datasets
-    if verbose:
-        renderable_params = []
-        for dataset in datasets:
-            params = [dataset.raw_data, dataset.dataset_dir, dataset.dataset_name, dataset.first_image,
-                      dataset.processed_data, dataset.output_dir]
-            template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
-            params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
-            renderable_params.append(list(map(str_or_none, params)))
+    renderable_params = []
+    missing_dirs = 0
+    for dataset in datasets:
+        processed_data_dir = dataset.processed_data
+        if not processed_data_dir.exists():
+            processed_data_dir = f'[u red]{processed_data_dir}[/]'
+            missing_dirs += 1
+        params = [dataset.raw_data, dataset.dataset_dir, dataset.dataset_name, dataset.first_image,
+                  processed_data_dir, dataset.output_dir]
+        template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
+        params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
+        renderable_params.append(list(map(str_or_none, params)))
+    if verbose or missing_dirs:
         headers = ['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir', 'output_dir',
                    'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
         cli.print('The following datasets were initialized:\n')
@@ -928,6 +948,11 @@ async def cli_autoproc_process(
                                       'caption': 'Table also saved as [u]datasets_sanitized.csv[/u]',
                                       'box': rich.box.HORIZONTALS})
         cli.print()
+        if missing_dirs:
+            cli.print(f'Any [u red]red and underlined paths[/] in table above indicate missing directories that will '
+                      f'be generated.\n[yellow]Please ensure that these paths are correct [b]before launching the '
+                      f'jobs![/][/]')
+        cli.confirm('Do the above output directories look correct?', default=False)
 
         # Save datasets attributes to a CSV file
         output = Path('./datasets_sanitized.csv')
@@ -948,17 +973,18 @@ async def cli_autoproc_process(
                   transient=True, console=cli) as progress:
         APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold')
         task = progress.add_task('🛠️ Preparing jobs...', total=len(datasets))
-        with Catcher(silent=True) as catcher:
+        with Catcher(silent=not debug) as catcher:  # debug will print the exceptions
             for i, dataset in enumerate(datasets):
-                if do_only and i >= do_only:
+                if i >= do_only > 0:
                     cli.print(f'Skipping the rest of the datasets (--only={do_only})', style='magenta')
                     break
                 config_input = merge_configs(csv_dict=csv_dict, dataset_index=i, **{
                     'change_permissions': chmod, 'file_permissions': chmod_files, 'directory_permissions': chmod_dirs,
                     'unit_cell': uc, 'space_group': space_group, 'resolution_high': res_high, 'resolution_low': res_low,
-                    'anomalous': anomalous, 'no_residues': no_residues, 'rfree_mtz': mtz_rfree, 'reference_mtz': mtz_ref,
-                    'xds_njobs': xds_njobs, 'xds_nproc': xds_nproc, 'exclude_ice_rings': exclude_ice_rings,
-                    'beamline': beamline.value, 'resolution_cutoff_criterion': cutoff.value, 'extra_params': extra
+                    'anomalous': anomalous, 'no_residues': no_residues, 'rfree_mtz': mtz_rfree,
+                    'reference_mtz': mtz_ref, 'xds_njobs': xds_njobs, 'xds_nproc': xds_nproc,
+                    'exclude_ice_rings': exclude_ice_rings, 'beamline': beamline,
+                    'resolution_cutoff_criterion': cutoff.value, 'extra_params': extra
                 })
                 sanitized_config = {
                     'input': {
@@ -984,7 +1010,7 @@ async def cli_autoproc_process(
                 jobs.append(job)
                 progress.advance(task)
     no_jobs = len(jobs)
-    cli.print(f'🛠️ Prepared {no_jobs} job' + 's' if no_jobs > 1 else '')
+    cli.print(f'🛠️ Prepared {no_jobs} job' + ('s' if no_jobs > 1 else ''))
 
     # Exit if there were any errors while creating the jobs
     if catcher.errors:
@@ -1001,9 +1027,13 @@ async def cli_autoproc_process(
             f.write(pformat(sanitized_configs))
         raise typer.Abort()
 
-    message = f'🚀 Would you like to launch {no_jobs} job' + 's' if no_jobs > 1 else ''
-    message += f' in batches of {no_concurrent_jobs}?' if no_jobs > no_concurrent_jobs > 1 else '?'
-    typer.confirm(message, abort=True)
+    message = f'🚀 Would you like to launch {no_jobs} job'
+    if no_jobs > 1:
+        message += 's'
+    if no_jobs > no_concurrent_jobs > 1:
+        message += f' in batches of {no_concurrent_jobs}'
+    message += '?'
+    cli.confirm(message, default=False)
 
     # Run the jobs
     t0 = datetime.now()
@@ -1081,8 +1111,9 @@ async def cli_autoproc_process(
 
     # TODO:
     #  [x] Change permissions
-    #  [ ] Fix output_dir bug
+    #  [x] Fix output_dir bug
     #  [ ] Write new csv file for downstream processing
+    #  [ ] Add option for logging stdout to file (--log)
     #  [ ] Run GPhL workflow files
     #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]
     #  [ ] Rethink success criteria

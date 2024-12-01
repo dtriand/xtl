@@ -3,9 +3,10 @@ import traceback
 import typer
 import rich.box
 import rich.console
+import rich.pretty
+import rich.prompt
 import rich.table
 import rich.text
-import rich.pretty
 
 from xtl.config import cfg
 
@@ -57,6 +58,11 @@ class Console(rich.console.Console):
             self._striped_table_rows = striped_table_rows
 
         super().__init__(**console_kwargs)
+
+    def confirm(self, message: str, **kwargs):
+        prompt = rich.prompt.Confirm(console=self)
+        if not prompt.ask(message, **kwargs):
+            raise typer.Abort()
 
     def print(self, *args, **kwargs):
         markup = kwargs.get('markup', None)
