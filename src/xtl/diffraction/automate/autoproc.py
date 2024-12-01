@@ -799,6 +799,10 @@ class AutoPROCJob2(Job):
     _supported_shells = [BashShell]
     _job_prefix = 'autoproc'
 
+    _echo_success_kwargs = {}
+    _echo_warning_kwargs = {}
+    _echo_error_kwargs = {}
+
     def __init__(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
                  config: AutoPROCConfig | Sequence[AutoPROCConfig],
                  compute_site: Optional[ComputeSite] = None, shell: Optional[Shell] = None,
@@ -857,7 +861,9 @@ class AutoPROCJob2(Job):
         self._macro_file: Path
 
         # Set exception and warnings catcher
-        self._exception_catcher = partial(Catcher, echo_func=self.echo)
+        self._exception_catcher = partial(Catcher, echo_func=self.echo, error_kwargs=self._echo_error_kwargs,
+                                          warning_kwargs=self._echo_warning_kwargs)
+
 
     def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
                                    configs: AutoPROCConfig | Sequence[AutoPROCConfig]):
@@ -945,7 +951,8 @@ class AutoPROCJob2(Job):
                                       f'All run numbers from 01 to 99 are already taken!')
             self._run_no += 1
         if self._run_no != self.config.run_number:  # Check if the run number was changed
-            self.echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories')
+            self.echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories',
+                      **self._echo_warning_kwargs)
         return self._run_no
 
     def _patch_datasets(self) -> None:
@@ -1146,9 +1153,11 @@ class AutoPROCJob2(Job):
             self.echo('Batch script completed')
             self.tidy_up()
         else:
-            self.echo('Skipping batch script execution and sleeping for 5 seconds...')
+            self.echo('Skipping batch script execution and sleeping for 5 seconds...', **self._echo_warning_kwargs)
             await asyncio.sleep(5)
-            self.echo('Done sleeping!')
+            self._success = True
+            self.echo('Done sleeping!', **self._echo_success_kwargs)
+        return self
 
     def tidy_up(self):
         self.echo('Tidying up results...')
@@ -1170,23 +1179,23 @@ class AutoPROCJob2(Job):
         with self._exception_catcher() as catcher:
             self._results.copy_files(dest_dir=dest_dir, prefixes=prefix)
         if catcher.raised:
-            self.echo('Failed to copy files')
+            self.echo('Failed to copy files', **self._echo_error_kwargs)
             return
         self.echo('Files copied')
 
         if not self._success:
-            self.echo('autoPROC did not complete successfully, look at summary.html')
+            self.echo('autoPROC did not complete successfully, look at summary.html', **self._echo_warning_kwargs)
         else:
             self.echo('autoPROC completed successfully, now parsing the log files...')
             with self._exception_catcher() as catcher:
                     self._results.parse_logs()
             if catcher.raised:
-                self.echo('Failed to parse log files')
+                self.echo('Failed to parse log files', **self._echo_error_kwargs)
                 return
             with self._exception_catcher() as catcher:
                 j = self._results.save_json(dest_dir)
             if catcher.raised:
-                self.echo('Failed to save results to JSON')
+                self.echo('Failed to save results to JSON', **self._echo_error_kwargs)
                 return
             self.echo(f'Log files parsed and results saved to {j}')
 
@@ -1200,7 +1209,7 @@ class AutoPROCJob2(Job):
                           f'updated to {self.config.directory_permissions}')
                 if catcher.raised:
                     self.echo(f'Failed to update permissions to F {self.config.file_permissions} and '
-                              f'D {self.config.directory_permissions}')
+                              f'D {self.config.directory_permissions}', **self._echo_error_kwargs)
                     return
         self.echo('Tidying up complete!')
 

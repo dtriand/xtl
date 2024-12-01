@@ -153,9 +153,13 @@ def merge_configs(csv_dict: dict, dataset_index: int, **params):
             continue
         # Do not override values from the csv file
         existing_value = config[key]
-        if value is not None and existing_value is not None:
+        if value is not None and existing_value is None:
             config[key] = value
 
     # Reduce the config to only changes from default values
     config = {key: value for key, value in config.items() if value is not None}
     return config
+
+
+def get_directory_size(directory: Path) -> int:
+    return sum(f.stat().st_size for f in directory.rglob('*'))

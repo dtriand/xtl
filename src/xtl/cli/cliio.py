@@ -59,9 +59,12 @@ class Console(rich.console.Console):
         super().__init__(**console_kwargs)
 
     def print(self, *args, **kwargs):
+        markup = kwargs.get('markup', None)
+        if markup is None:
+            markup = self._markup
         messages = []
         for arg in args:
-            if isinstance(arg, str):
+            if isinstance(arg, str) and markup:
                 messages.append(rich.text.Text.from_markup(arg))
             else:
                 messages.append(arg)

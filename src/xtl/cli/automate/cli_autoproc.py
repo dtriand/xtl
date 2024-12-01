@@ -7,25 +7,27 @@ from functools import partial, wraps
 import math
 from pathlib import Path
 from pprint import pformat
+from time import sleep
 import traceback
 
 import pandas as pd
 import rich.box
 from rich.markup import escape
 import rich.table
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn, TextColumn
 import typer
 import tabulate
 
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.cli.cliio import CliIO, Console
 from xtl.cli.automate.autoproc_utils import get_attributes_config, get_attributes_dataset, parse_csv2, \
-    sanitize_csv_datasets, str_or_none, merge_configs
+    sanitize_csv_datasets, str_or_none, merge_configs, get_directory_size
 from xtl.config import cfg
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.exceptions.utils import Catcher
+from xtl.math import si_units
 
 
 app = typer.Typer(name='xtl.autoproc', help='Execute multiple autoPROC jobs', rich_markup_mode='rich',
@@ -835,7 +837,7 @@ async def cli_autoproc_process(
     no_images = 0
     t0 = datetime.now()
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
-            transient=True) as progress:
+                  transient=True) as progress:
         task = progress.add_task('Looking for images in directories...', total=len(datasets_input))
         with Catcher(silent=True) as catcher:
             for i, (r_dir, d_dir, d_name, image, p_dir, o_dir) in enumerate(datasets_input):
@@ -923,8 +925,12 @@ async def cli_autoproc_process(
     jobs = []
     sanitized_configs = {}
     APJ = AutoPROCJob2.update_concurrency_limit(no_concurrent_jobs)
+    APJ._echo_success_kwargs = {'style': 'green'}
+    APJ._echo_warning_kwargs = {'style': 'yellow'}
+    APJ._echo_error_kwargs = {'style': 'red'}
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
-            transient=True, console=cli) as progress:
+                  transient=True, console=cli) as progress:
+        APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold')
         task = progress.add_task('Preparing jobs...', total=len(datasets))
         with Catcher(silent=True) as catcher:
             for i, dataset in enumerate(datasets):
@@ -938,22 +944,29 @@ async def cli_autoproc_process(
                     'beamline': beamline.value, 'resolution_cutoff_criterion': cutoff.value, 'extra_params': extra
                 })
                 sanitized_config = {
-                    'datasets': [dataset],
-                    'config': config_input
+                    'input': {
+                        'datasets': [dataset],
+                        'config': config_input
+                    }
                 }
                 sanitized_configs[i] = sanitized_config
-                if debug:
-                    progress.console.print(f'Job options for dataset {i+1}:')
-                    progress.console.print(sanitized_config)
-                    progress.console.print()
                 try:
                     config = AutoPROCConfig(**config_input)
+                    sanitized_configs[i]['config'] = config
                     job = APJ(datasets=dataset, config=config, compute_site=cs, modules=modules)
+                    sanitized_configs[i]['job'] = job.__dict__
                 except Exception as e:
                     catcher.log_exception({'index': i + 1, 'data': sanitized_config, 'exception': e})
                     continue
+                finally:
+                    if debug:
+                        progress.console.print(f'Job options for dataset {i+1}:')
+                        progress.console.print(sanitized_config)
+                        progress.console.print()
+
                 jobs.append(job)
                 progress.advance(task)
+    cli.print(f'Prepared {len(jobs)} jobs')
 
     # Exit if there were any errors while creating the jobs
     if catcher.errors:
@@ -970,11 +983,91 @@ async def cli_autoproc_process(
             f.write(pformat(sanitized_configs))
         raise typer.Abort()
 
-    if debug:
-        typer.confirm('Would you like to proceed with the above jobs?', abort=True)
+    message = f'Would you like to launch {len(jobs)} jobs'
+    message += f' in batches of {no_concurrent_jobs}?' if no_concurrent_jobs > 1 else '?'
+    typer.confirm(message, abort=True)
 
     # Run the jobs
+    t0 = datetime.now()
+    cli.print(f'\nLaunching jobs at {t0}...')
+    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
+                  TextColumn('Status {task.fields[status]}'),
+                  transient=True, console=cli) as progress:
+        jobs_succeeded = 0
+        jobs_tidyup_failed = 0
+        jobs_failed = 0
+        running = progress.add_task(':person_running: Running jobs... ', total=len(jobs),
+                                    status=': Running...')
 
+        # Attach progress bar's print to the jobs
+        logger = partial(progress.console.print, highlight=False, overflow='fold', markup=False)
+        for job in jobs:
+            job._echo = logger
+
+        # Generate tasks list
+        pending_tasks = [asyncio.create_task(job.run(execute_batch=not dry_run)) for job in jobs]
+        # with Catcher(silent=True) as catcher:
+        while pending_tasks:
+            # try:
+            completed_tasks, pending_tasks = await asyncio.wait(pending_tasks,
+                                                                return_when=asyncio.FIRST_COMPLETED)
+            # except Exception as e:
+            #     catcher.log_exception({'index': i + 1, 'job': job, 'exception': e})
+            for completed_task in completed_tasks:
+                job = completed_task.result()
+                directories_created.append(job.job_dir)
+                progress.advance(running)
+                if job._success:
+                    jobs_succeeded += 1
+                else:
+                    if job._results is None:
+                        jobs_tidyup_failed += 1
+                    else:
+                        if not (job.job_dir / job._results._json_fname).exists():
+                            jobs_tidyup_failed += 1
+                        else:
+                            jobs_failed += 1
+                progress.update(running, status=f':star-struck: [green]{jobs_succeeded}[/] '
+                                                f':thinking_face: [yellow]{jobs_tidyup_failed}[/] '
+                                                f':loudly_crying_face: [red]{jobs_failed}[/]')
+
+    t1 = datetime.now()
+
+    file_size = 0
+    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
+                  transient=True, console=cli) as progress:
+        task = progress.add_task(':bookmark_tabs: Calculating disk space used...',
+                                 total=len(directories_created))
+        for created in directories_created:
+            file_size += get_directory_size(created)
+            progress.advance(task)
+        sleep(0.5)
+
+    jobs_all = len(jobs) + 1
+    if jobs_succeeded == jobs_all:
+        cli.print(f'😎 All jobs completed at {t1}', style='green')
+    else:
+        cli.print(f'🫡 All jobs completed at {t1}', style='green')
+        cli.print(f'Outlook: '
+                  f'[green]:star-struck: {jobs_succeeded} succeeded[/], '
+                  f'[yellow]:thinking_face: {jobs_tidyup_failed} tidy-up failed[/], '
+                  f'[red]:loudly_crying_face: {jobs_failed} failed[/]',)
+    cli.print(f':hourglass_done: Total elapsed time: {t1 - t0} (approx. {(t1 - t0) / len(jobs)} per job)')
+
+    file_size_human_friendly = si_units(file_size, suffix='B', base=1024, digits=2)
+    cli.print(f':bookmark_tabs: Total disk space used: {file_size_human_friendly}')
+
+    # Write new csv file for downstream processing
+    with open('jobs_output.txt', 'w') as f:
+        f.write('\n'.join([str(created) for created in directories_created]))
+
+    # TODO:
+    #  [ ] Change permissions
+    #  [ ] Fix output_dir bug
+    #  [ ] Write new csv file for downstream processing
+    #  [ ] Run GPhL workflow files
+    #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]
+    #  [ ] Rethink success criteria
 
 
 # @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')

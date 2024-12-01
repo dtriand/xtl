@@ -34,6 +34,9 @@ class Job:
     _supported_shells = []
     _job_prefix = 'xtl.job'
 
+    # TODO: Implement a logging system
+    _echo = print
+
     def __init__(self, name: str, compute_site: ComputeSite = None, shell: Shell = None, stdout_log: str | Path = None,
                  stderr_log: str | Path = None):
         """
@@ -54,9 +57,6 @@ class Job:
         self._stdout = Path(stdout_log) if stdout_log is not None else Path(f'{self._name}.stdout.log')
         self._stderr = Path(stderr_log) if stderr_log is not None else Path(f'{self._name}.stderr.log')
 
-        # Set echo function
-        #  TODO: Implement a logging system
-        self._echo = print
 
     def _determine_shell_and_site(self, shell: Shell = None, compute_site: ComputeSite = None):
         """
@@ -97,7 +97,10 @@ class Job:
         """
         Echo a message to console using the specified echo function
         """
-        self._echo(f'[{self._name}] {message}', *args, **kwargs)
+        if self._echo is print:
+            self._echo(f'[{self._name}] {message}')
+        else:
+            self._echo(f'[{self._name}] {message}', *args, **kwargs)
 
     def create_batch(self, filename: str | Path, cmds: list[str], change_permissions: bool = True) -> BatchFile:
         """
