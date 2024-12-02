@@ -1,8 +1,12 @@
+from pathlib import Path
+from pprint import pformat
 import traceback
+from typing import Optional
 
 import typer
 import rich.box
 import rich.console
+from rich.markup import escape
 import rich.pretty
 import rich.prompt
 import rich.table
@@ -43,11 +47,25 @@ class CliIO:
 
 class Console(rich.console.Console):
 
-    def __init__(self, verbose: int = 0, debug: bool = False, rich_output: bool = cfg['cli']['rich_output'].value,
+    def __init__(self, verbose: int = 0, debug: bool = False, log_file: Optional[Path] = None,
+                 rich_output: bool = cfg['cli']['rich_output'].value,
                  striped_table_rows: bool = cfg['cli']['striped_table_rows'].value,
                  **console_kwargs):
         self.verbose = verbose
         self.debug = debug
+
+        log_filename = console_kwargs.pop('log_filename', 'log.txt')
+        if log_file:
+            log_file = Path(log_file)
+            if log_file.is_dir():
+                if not log_file.exists():
+                    raise FileNotFoundError(f'Log directory does not exist: {log_file}')
+                self._log_file = log_file / log_filename
+            else:
+                self._log_file = log_file
+            console_kwargs['record'] = True
+        else:
+            self._log_file = None
         if isinstance(rich_output, str):
             self._rich_output = rich_output.lower() == 'true'
         else:
@@ -66,6 +84,7 @@ class Console(rich.console.Console):
 
     def print(self, *args, **kwargs):
         markup = kwargs.get('markup', None)
+        log_escape = kwargs.pop('log_escape', False)
         if markup is None:
             markup = self._markup
         messages = []
@@ -76,10 +95,21 @@ class Console(rich.console.Console):
                 messages.append(arg)
         if not self._rich_output:
             # BUG: escaped characters that are not markup are also striped, e.g. \[text] will be lost
-            messages = [m.plain for m in messages if isinstance(m, rich.text.Text)]
+            messages = [m.plain if isinstance(m, rich.text.Text) else m for m in messages]
+        if self._log_file:
+            with open(self._log_file, 'a') as f:
+                log_messages = [escape(str(m)) if log_escape else m for m in messages]
+                rich.print(*log_messages, file=f)
+        if kwargs.pop('log_only', False):
+            return
         super().print(*messages, **kwargs)
 
     def pprint(self, obj, **kwargs):
+        if self._log_file:
+            with open(self._log_file, 'a') as f:
+                f.write(pformat(obj))
+        if kwargs.pop('log_only', False):
+            return
         rich.pretty.pprint(obj, **kwargs)
 
     def print_table(self, table: rich.table.Table | list, headers: list[str], column_kwargs: list[dict] = None,
@@ -111,6 +141,11 @@ class Console(rich.console.Console):
             table.caption_style = 'none'
             for column in table.columns:
                 column.style = None
+        if self._log_file:
+            with open(self._log_file, 'a') as f:
+                rich.print(table, file=f)
+        if kwargs.pop('log_only', False):
+            return
         super().print(table, **kwargs)
 
     def print_traceback(self, exc: Exception, indent: str = ''):
@@ -124,3 +159,6 @@ class Console(rich.console.Console):
                 self.print(f'{indent}{line}', style='red dim')
         else:  # Only print the exception
             self.print(f'{indent}{exc}', style='red dim')
+        if self._log_file:
+            with open(self._log_file, 'a') as f:
+                f.write('\n'.join(traceback.format_exception(type(exc), exc, exc.__traceback__)))

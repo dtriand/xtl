@@ -1121,9 +1121,9 @@ class AutoPROCJob2(Job):
         await self._determine_executable_location()
         await self._determine_executable_version()
         if not self._executable_location:
-            self.echo(f'Executable \'{self.executable}\' not found')
+            self.echo(f'Executable \'{self.executable}\' not found in PATH')
             self.echo('Skipping job execution')
-            return
+            return self
 
         # Create the job directory
         self.echo('Creating job directory...')

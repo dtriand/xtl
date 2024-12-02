@@ -41,6 +41,8 @@ def si_units(value, suffix='', base=1000, digits=None):
     :param int digits: Digits to round value at
     :return:
     """
+    if value == 0:
+        return f"{value} {suffix}"
     magnitude = int(math.floor(math.log(value, base)))
     scaled = value / math.pow(base, magnitude)
     if digits is not None:

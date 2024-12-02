@@ -629,6 +629,8 @@ async def cli_autoproc_process(
     chmod_dirs: int = typer.Option(cfg['automate']['permissions_directories'].value, '--chmod-dirs',
                                    help='Permissions for directories', rich_help_panel='Localization'),
     # Debugging
+    log_file: Path = typer.Option(None, '-l', '--log', help='Path to the log file',
+                                  rich_help_panel='Debugging'),
     verbose: int = typer.Option(0, '-v', '--verbose', count=True,
                                 help='Print additional information', rich_help_panel='Debugging'),
     debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
@@ -644,7 +646,11 @@ async def cli_autoproc_process(
         asdfasdf
     And a simple CSV file
     '''
-    cli = Console(verbose=verbose, debug=debug)
+    if log_file is None and cfg['cli']['log_file'].value:
+        log_file = Path(cfg['cli']['log_file'].value)
+    log_filename = f'xtl.autoproc.process_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+
+    cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename)
 
     # Check if dry_run
     if dry_run:
@@ -773,10 +779,13 @@ async def cli_autoproc_process(
     if len(input_files) == 1 and input_files[0].suffix == '.csv':
         if not input_files[0].exists():
             cli.print(f'File {input_files[0]} does not exist', style='red')
-            raise typer.Abort()
         csv_file = input_files[0]
         cli.print(f'📃 Parsing datasets from {csv_file}')
-        csv_dict = parse_csv2(csv_file)
+
+        cli.print('\n### CSV FILE CONTENTS \n' + csv_file.read_text() + '### END CSV FILE CONTENTS\n',
+                  log_only=True)
+
+        csv_dict = parse_csv2(csv_file, echo=cli.print)
         cli.print(f'📑 Found {len(csv_dict["headers"])} headers in the CSV file: ')
         cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
 
@@ -796,9 +805,10 @@ async def cli_autoproc_process(
     cli.print(f'🗃️ Found {len(datasets_input)} datasets from input')
 
     # Report the dataset attributes parsed from the CSV file
-    if verbose:
+    if log_file or verbose:
+        log_only = (verbose == 0)
         renderable_datasets = [list(map(str_or_none, dataset_params)) for dataset_params in datasets_input]
-        cli.print('The following parameters will be used for locating the images:')
+        cli.print('The following parameters will be used for locating the images:', log_only=log_only)
         cli.print_table(table=renderable_datasets,
                         headers=['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
                                  'processed_data_dir', 'output_dir', 'output_subdir'],
@@ -810,8 +820,9 @@ async def cli_autoproc_process(
                                        {'overflow': 'fold', 'style': 'steel_blue1'},
                                        {'overflow': 'fold', 'style': 'cornflower_blue'}],
                         table_kwargs={'title': 'Sanitized datasets input', 'expand': True,
-                                      'box': rich.box.HORIZONTALS})
-        cli.print()
+                                      'box': rich.box.HORIZONTALS},
+                        log_only=log_only)
+        cli.print(log_only=log_only)
 
     # Create DiffractionDataset instances
     no_images = 0
@@ -881,10 +892,11 @@ async def cli_autoproc_process(
         template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
         params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
         renderable_params.append(list(map(str_or_none, params)))
-    if verbose or missing_dirs:
+    if verbose or missing_dirs or log_file:
+        log_only = (verbose != 0) or missing_dirs
         headers = ['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir', 'output_dir',
                    'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
-        cli.print('The following datasets were initialized:\n')
+        cli.print('The following datasets were initialized:\n', log_only=log_only)
         cli.print_table(table=renderable_params,
                         headers=headers,
                         column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
@@ -900,12 +912,13 @@ async def cli_autoproc_process(
                                        {'overflow': 'fold', 'style': 'dark_cyan'}],
                         table_kwargs={'title': 'Datasets attributes', 'expand': True,
                                       'caption': 'Table also saved as [u]datasets_sanitized.csv[/u]',
-                                      'box': rich.box.HORIZONTALS})
-        cli.print()
+                                      'box': rich.box.HORIZONTALS},
+                        log_only=log_only)
+        cli.print(log_only=log_only)
         if missing_dirs:
             cli.print(f'Any [u red]red and underlined paths[/] in table above indicate missing directories that will '
                       f'be generated.\n[yellow]Please ensure that these paths are correct [b]before launching the '
-                      f'jobs![/][/]')
+                      f'jobs![/][/]', log_only=log_only)
         cli.confirm('Do the above output directories look correct?', default=False)
 
         # Save datasets attributes to a CSV file
@@ -925,12 +938,14 @@ async def cli_autoproc_process(
     APJ._echo_error_kwargs = {'style': 'red'}
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                   transient=True, console=cli) as progress:
-        APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold')
+        APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold', log_escape=True)
         task = progress.add_task('🛠️ Preparing jobs...', total=len(datasets))
         with Catcher(silent=not debug) as catcher:  # debug will print the exceptions
+            progress.console.print('\n### JOB OPTIONS', log_only=True)
             for i, dataset in enumerate(datasets):
                 if i >= do_only > 0:
-                    cli.print(f'Skipping the rest of the datasets (--only={do_only})', style='magenta')
+                    progress.console.print(f'Skipping the rest of the datasets (--only={do_only})',
+                                           style='magenta')
                     break
                 config_input = merge_configs(csv_dict=csv_dict, dataset_index=i, **{
                     'change_permissions': chmod, 'file_permissions': chmod_files, 'directory_permissions': chmod_dirs,
@@ -956,13 +971,15 @@ async def cli_autoproc_process(
                     catcher.log_exception({'index': i + 1, 'data': sanitized_config, 'exception': e})
                     continue
                 finally:
-                    if debug:
-                        progress.console.print(f'Job options for dataset {i+1}:')
-                        progress.console.print(sanitized_config)
-                        progress.console.print()
+                    if debug or log_file:
+                        log_only = not debug
+                        progress.console.print(f'Job options for dataset {i+1}:', log_only=log_only)
+                        progress.console.pprint(sanitized_config, log_only=log_only)
+                        progress.console.print('', log_only=log_only)
 
                 jobs.append(job)
                 progress.advance(task)
+            progress.console.print('### END JOB OPTIONS', log_only=True)
     no_jobs = len(jobs)
     cli.print(f'🛠️ Prepared {no_jobs} job' + ('s' if no_jobs > 1 else ''))
 
@@ -975,7 +992,7 @@ async def cli_autoproc_process(
             cli.print(error['data'], style='red dim')
             cli.print(f'\n    The following exception was raised:', style='red')
             cli.print_traceback(exc=error['exception'], indent='    ')
-            cli.print()
+            cli.print('')
         cli.print('All data passed to the jobs is saved in [u]jobs_input.txt[/]', style='magenta')
         with open('jobs_input.txt', 'w') as f:
             f.write(pformat(sanitized_configs))
@@ -987,6 +1004,7 @@ async def cli_autoproc_process(
     if no_jobs > no_concurrent_jobs > 1:
         message += f' in batches of {no_concurrent_jobs}'
     message += '?'
+    cli.print(message, log_only=True)
     cli.confirm(message, default=False)
 
     # Run the jobs
@@ -1002,7 +1020,7 @@ async def cli_autoproc_process(
                                     status=': Running...')
 
         # Attach progress bar's print to the jobs
-        logger = partial(progress.console.print, highlight=False, overflow='fold', markup=False)
+        logger = partial(progress.console.print, highlight=False, overflow='fold', markup=False, log_escape=True)
         for job in jobs:
             job._echo = logger
 
@@ -1032,7 +1050,7 @@ async def cli_autoproc_process(
                 progress.update(running, status=f':star-struck: [green]{jobs_succeeded}[/] '
                                                 f':thinking_face: [yellow]{jobs_tidyup_failed}[/] '
                                                 f':loudly_crying_face: [red]{jobs_failed}[/]')
-    cli.print()
+    cli.print('')
     t1 = datetime.now()
 
     file_size = 0
@@ -1067,7 +1085,7 @@ async def cli_autoproc_process(
     #  [x] Change permissions
     #  [x] Fix output_dir bug
     #  [ ] Write new csv file for downstream processing
-    #  [ ] Add option for logging stdout to file (--log)
+    #  [x] Add option for logging stdout to file (--log)
     #  [ ] Run GPhL workflow files
     #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]
     #  [ ] Rethink success criteria
