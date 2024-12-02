@@ -21,7 +21,8 @@ import tabulate
 from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.cli.cliio import CliIO, Console
 from xtl.cli.automate.autoproc_utils import get_attributes_config, get_attributes_dataset, parse_csv2, \
-    sanitize_csv_datasets, str_or_none, merge_configs, get_directory_size
+    sanitize_csv_datasets, str_or_none, merge_configs, get_directory_size, parse_resolution_range, parse_unit_cell, \
+    parse_extra_params
 from xtl.config import cfg
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
@@ -187,53 +188,6 @@ class Beamline(Enum):
     soleil_proxima1 = 'SoleilProxima1'
 
 
-def parse_resolution_range(resolution: str):
-    resolution = resolution.replace(' ', '') if resolution else None
-    if not resolution:
-        return None, None
-    elif '-' not in resolution:
-        return None, float(resolution)
-    elif resolution.startswith('-'):
-        return None, float(resolution[1:])
-    elif resolution.endswith('-'):
-        return float(resolution[:-1]), None
-    else:
-        res_low, res_high = resolution.split('-')
-        res_low, res_high = float(res_low), float(res_high)
-        if res_high > res_low:
-            return res_high, res_low
-        return res_low, res_high
-
-
-def parse_unit_cell(unit_cell: str):
-    if not unit_cell:
-        return []
-    if ',' in unit_cell:
-        uc = unit_cell.replace(' ', '').split(',')
-        if len(uc) != 6:
-            raise ValueError('Unit-cell parameters must be 6 comma-separated values')
-        return [float(x) for x in uc]
-    elif ' ' in unit_cell:
-        uc = unit_cell.split()
-        if len(uc) != 6:
-            raise ValueError('Unit-cell parameters must be 6 space-separated values')
-        return [float(x) for x in uc]
-    else:
-        raise ValueError('Unit-cell parameters must be 6 comma-separated or space-separated values')
-
-
-def parse_extra_args(extra_args: list[str]):
-    if not extra_args:
-        return {}
-    extra = {}
-    for arg in extra_args:
-        if '=' in arg:
-            key, value = arg.split('=')
-            extra[key] = value
-    return extra
-
-
-
 def create_config(unit_cell: list[float], space_group: str, resolution_high: float, resolution_low: float,
                   anomalous: bool, nresidues: int, free_mtz_file: Path, xds_njobs: int, xds_nproc: int,
                   exclude_ice_rings: bool, beamline: Beamline, cutoff: ResolutionCriterion, extra_args: dict = None):
@@ -357,7 +311,7 @@ async def cli_autoproc_run_many(
         cli.echo(f'Using R-free flags from: {mtz_rfree}')
 
     # Extra arguments
-    extra = parse_extra_args(extra_args)
+    extra = parse_extra_params(extra_args)
     if extra:
         cli.echo('Extra arguments:')
         for key, value in extra.items():
@@ -769,7 +723,7 @@ async def cli_autoproc_process(
 
     sanitized_input['Anomalous signal'] = 'kept' if anomalous else 'merged'
 
-    extra = parse_extra_args(extra_args)
+    extra = parse_extra_params(extra_args)
     if extra:
         sanitized_input['Extra autoPROC arguments'] = '\n'.join([f'{k}={v}' for k, v in extra.items()])
 
@@ -994,7 +948,7 @@ async def cli_autoproc_process(
                 }
                 sanitized_configs[i] = sanitized_config
                 try:
-                    config = AutoPROCConfig(**config_input)
+                    config = AutoPROCConfig(batch_mode=True, **config_input)
                     sanitized_configs[i]['config'] = config
                     job = APJ(datasets=dataset, config=config, compute_site=cs, modules=modules)
                     sanitized_configs[i]['job'] = job.__dict__

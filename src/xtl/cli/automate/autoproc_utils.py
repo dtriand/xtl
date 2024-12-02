@@ -52,7 +52,53 @@ def get_attributes_dataset() -> list[list[str]]:
     return attributes
 
 
-def parse_csv2(csv_file: Path, extra_headers: list[str] = None):
+def parse_resolution_range(resolution: str):
+    resolution = resolution.replace(' ', '') if resolution else None
+    if not resolution:
+        return None, None
+    elif '-' not in resolution:
+        return None, float(resolution)
+    elif resolution.startswith('-'):
+        return None, float(resolution[1:])
+    elif resolution.endswith('-'):
+        return float(resolution[:-1]), None
+    else:
+        res_low, res_high = resolution.split('-')
+        res_low, res_high = float(res_low), float(res_high)
+        if res_high > res_low:
+            return res_high, res_low
+        return res_low, res_high
+
+
+def parse_unit_cell(unit_cell: str):
+    if not unit_cell:
+        return []
+    if ',' in unit_cell:
+        uc = unit_cell.replace(' ', '').split(',')
+        if len(uc) != 6:
+            raise ValueError('Unit-cell parameters must be 6 comma-separated values')
+        return [float(x) for x in uc]
+    elif ' ' in unit_cell:
+        uc = unit_cell.split()
+        if len(uc) != 6:
+            raise ValueError('Unit-cell parameters must be 6 space-separated values')
+        return [float(x) for x in uc]
+    else:
+        raise ValueError('Unit-cell parameters must be 6 comma-separated or space-separated values')
+
+
+def parse_extra_params(extra_params: list[str]):
+    if not extra_params:
+        return {}
+    extra = {}
+    for arg in extra_params:
+        if '=' in arg:
+            key, value = arg.split('=')
+            extra[key] = value
+    return extra
+
+
+def parse_csv2(csv_file: Path, extra_headers: list[str] = None, echo: Callable = print) -> dict:
     parsable_attrs_dataset = [attr[0] for attr in get_attributes_dataset()]
     parsable_attrs_config = [attr[0] for attr in get_attributes_config()]
 
@@ -71,18 +117,25 @@ def parse_csv2(csv_file: Path, extra_headers: list[str] = None):
 
     indices = {key: None for key in csv_dict['index'].keys()}
 
+    if not csv_file.read_text().startswith('#'):
+        echo(f'CSV file {csv_file} does not have a header line starting with \'#\'', style='red')
+        raise typer.Abort()
     headers = csv_file.read_text().splitlines()[0].replace('#', '').replace(' ', '').split(',')
     for i, header in enumerate(headers):
         if header in indices.keys():
             indices[header] = i
 
-    for line in csv_file.read_text().splitlines()[1:]:
+    no_cols = len(headers)
+    for i, line in enumerate(csv_file.read_text().splitlines()[1:]):
         # Skip commented lines
         if line.startswith('#'):
             continue
 
         # Split each line to a list of values
         values = line.split(',')
+        if len(values) != no_cols:
+            echo(f'Line {i + 2} in CSV file {csv_file} has {len(values)} columns, expected {no_cols}', style='red')
+            raise typer.Abort()
 
         # Iterate over the keys and append the values to the corresponding list
         for key, group in csv_dict['index'].items():
@@ -94,6 +147,8 @@ def parse_csv2(csv_file: Path, extra_headers: list[str] = None):
                 v = values[indices[key]]
                 if not v:
                     v = None
+                if key == 'extra_params':  # Parse extra parameters
+                    v = parse_extra_params(v.split(';'))
                 csv_dict[group][key].append(v)
 
     # Set the keys that have been found in the csv header to the headers list
@@ -184,6 +239,9 @@ def merge_configs(csv_dict: dict, dataset_index: int, **params):
             continue
         # Do not override values from the csv file
         existing_value = config[key]
+        if key == 'extra_params' and existing_value:
+            # Merge any global extra_params that do not already exist in the csv file
+            config[key].update({k: v for k, v in value.items() if k not in existing_value.keys()})
         if value is not None and existing_value is None:
             config[key] = value
 
