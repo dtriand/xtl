@@ -23,6 +23,7 @@ from xtl.cli.cliio import CliIO, Console
 from xtl.cli.automate.autoproc_utils import get_attributes_config, get_attributes_dataset, parse_csv2, \
     sanitize_csv_datasets, str_or_none, merge_configs, get_directory_size, parse_resolution_range, parse_unit_cell, \
     parse_extra_params
+from xtl.common.os import get_permissions_in_decimal
 from xtl.config import cfg
 from xtl.diffraction.automate.autoproc import AutoPROCJobConfig, AutoPROCJob, AutoPROCJob2
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
@@ -529,8 +530,7 @@ def cli_autoproc_options():
         'expand': True
     }
 
-    cli.print('The following parameters can be passed as arguments to [b i u]xtl.autoproc process[/b i u], '
-              'or as headers in the [b i u]datasets.csv[/b i u] file.')
+    cli.print('The following parameters can be passed as headers in the [b i u]datasets.csv[/b i u] file.')
     cli.print()
     cli.print_table(table=get_attributes_dataset(),
                     headers=['XTL parameter', 'Type', 'Description'],
@@ -540,9 +540,10 @@ def cli_autoproc_options():
                         {'style': 'bright_black'}
                     ],
                     table_kwargs=table_kwargs | {'title': 'Dataset options',
-                                                 'caption': 'An additional \'dataset_group\' parameter can be added to '
-                                                            'the [u]datasets.csv[/u] file to process and merge multiple'
-                                                            ' datasets together ([i]e.g.[/i] multi-sweep data)'}
+                                                 # 'caption': 'An additional \'dataset_group\' parameter can be added to '
+                                                 #            'the [u]datasets.csv[/u] file to process and merge multiple'
+                                                 #            ' datasets together ([i]e.g.[/i] multi-sweep data)'
+                                                 }
                     )
     cli.print()
     cli.print_table(table=get_attributes_config(),
@@ -611,7 +612,7 @@ async def cli_autoproc_process(
                                            help='Number of datasets to process in parallel',
                                            rich_help_panel='Parallelization'),
     n_threads: int = typer.Option(os.cpu_count(), '-t', '--threads', help='Number of threads for all jobs',
-                                  rich_help_panel='Parallelization'),
+                                  rich_help_panel='Parallelization', hidden=True),
     xds_njobs: int = typer.Option(None, '-j', '--xds-jobs', help='Number of XDS jobs',
                                   rich_help_panel='Parallelization'),
     xds_nproc: int = typer.Option(None, '-p', '--xds-proc', help='Number of XDS processors',
@@ -641,16 +642,31 @@ async def cli_autoproc_process(
                                 rich_help_panel='Debugging'),
 ):
     '''
-    Examples:
-        asdfasdf
-        asdfasdf
-    And a simple CSV file
+    EXAMPLES
+
+    Simplest possible usage:
+    xtl.autoproc process datasets.csv
+
+    Provide starting unit-cell parameters and space group:
+    xtl.autoproc process datasets.csv -u "78 78 37 90 90 90" -s "P 43 21 2"
+
+    Provide reference MTZ file:
+    xtl.autoproc process datasets.csv -R reference.mtz
+
+
+    DATASETS.CSV EXAMPLE
+    # first_image
+    /path/to/dataset1/dataset1_00001.cbf.gz
+    /path/to/dataset2/dataset2_00001.cbf.gz
+    ...
     '''
     if log_file is None and cfg['cli']['log_file'].value:
         log_file = Path(cfg['cli']['log_file'].value)
     log_filename = f'xtl.autoproc.process_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    log_permissions = chmod_files if chmod else None
 
-    cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename)
+    cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename,
+                  log_permissions=log_permissions)
 
     # Check if dry_run
     if dry_run:
@@ -772,7 +788,7 @@ async def cli_autoproc_process(
     csv_dict = {}
 
     # Input for DiffractionDataset constructors
-    #  raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir
+    #  raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir
     datasets_input = []
 
     # Check if a datasets.csv file was provided
@@ -928,6 +944,8 @@ async def cli_autoproc_process(
             for params in renderable_params:
                 f.write(','.join(params) + '\n')
             f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
+        if chmod:
+            output.chmod(mode=get_permissions_in_decimal(chmod_files))
 
     # Prepare the jobs
     jobs = []
@@ -996,6 +1014,8 @@ async def cli_autoproc_process(
         cli.print('All data passed to the jobs is saved in [u]jobs_input.txt[/]', style='magenta')
         with open('jobs_input.txt', 'w') as f:
             f.write(pformat(sanitized_configs))
+        if chmod:
+            Path('jobs_input.txt').chmod(mode=get_permissions_in_decimal(chmod_files))
         raise typer.Abort()
 
     message = f'🚀 Would you like to launch {no_jobs} job'
@@ -1010,14 +1030,15 @@ async def cli_autoproc_process(
     # Run the jobs
     t0 = datetime.now()
     cli.print(f'\nLaunching jobs at {t0}...')
+    output_csv = []
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
-                  TextColumn('Status {task.fields[status]}'),
+                  TextColumn('{task.fields[status]}'),
                   transient=True, console=cli) as progress:
         jobs_succeeded = 0
         jobs_tidyup_failed = 0
         jobs_failed = 0
         running = progress.add_task(':person_running: Running jobs... ', total=no_jobs,
-                                    status=': Running...')
+                                    status='Status: Running...')
 
         # Attach progress bar's print to the jobs
         logger = partial(progress.console.print, highlight=False, overflow='fold', markup=False, log_escape=True)
@@ -1026,30 +1047,54 @@ async def cli_autoproc_process(
 
         # Generate tasks list
         pending_tasks = [asyncio.create_task(job.run(execute_batch=not dry_run)) for job in jobs]
-        # with Catcher(silent=True) as catcher:
-        while pending_tasks:
-            # try:
-            completed_tasks, pending_tasks = await asyncio.wait(pending_tasks,
-                                                                return_when=asyncio.FIRST_COMPLETED)
-            # except Exception as e:
-            #     catcher.log_exception({'index': i + 1, 'job': job, 'exception': e})
-            for completed_task in completed_tasks:
-                job = completed_task.result()
-                directories_created.append(job.job_dir)
-                progress.advance(running)
-                if job._success:
-                    jobs_succeeded += 1
-                else:
-                    if job._results is None:
-                        jobs_tidyup_failed += 1
-                    else:
-                        if not (job.job_dir / job._results._json_fname).exists():
-                            jobs_tidyup_failed += 1
+        with Catcher(silent=not debug) as catcher:
+            while pending_tasks:
+                try:
+                    completed_tasks, pending_tasks = await asyncio.wait(pending_tasks,
+                                                                        return_when=asyncio.FIRST_COMPLETED)
+                    for completed_task in completed_tasks:
+                        job = completed_task.result()
+                        directories_created.append(job.job_dir)
+
+                        for d in job.datasets:
+                            c = job.config
+                            output_csv.append([job._idn, job.run_no, job._success, d.sweep_id, d.autoproc_id,
+                                               d.dataset_name, d.dataset_dir, d.first_image, d.raw_data_dir,
+                                               d.processed_data_dir, d.output_dir, c.mtz_project_name,
+                                               c.mtz_crystal_name, c.mtz_dataset_name])
+
+
+                        progress.advance(running)
+                        if job._success:
+                            jobs_succeeded += 1
                         else:
-                            jobs_failed += 1
-                progress.update(running, status=f':star-struck: [green]{jobs_succeeded}[/] '
-                                                f':thinking_face: [yellow]{jobs_tidyup_failed}[/] '
-                                                f':loudly_crying_face: [red]{jobs_failed}[/]')
+                            if job._results is None:
+                                jobs_tidyup_failed += 1
+                            else:
+                                if not (job.job_dir / job._results._json_fname).exists():
+                                    jobs_tidyup_failed += 1
+                                else:
+                                    jobs_failed += 1
+                        progress.update(running, status=f'Status: :star-struck: [green]{jobs_succeeded}[/] '
+                                                        f':thinking_face: [yellow]{jobs_tidyup_failed}[/] '
+                                                        f':loudly_crying_face: [red]{jobs_failed}[/]')
+                except Exception as e:
+                    catcher.log_exception({'index': i + 1, 'job': job, 'exception': e})
+                    continue
+        csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
+        if chmod:
+            csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
+            csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
+        with open(csv_out, 'w') as f:
+            f.write('# ' + ','.join(['job_id', 'run_no', 'success', 'sweep_id', 'autoproc_id',
+                                     'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
+                                     'processed_data_dir', 'output_dir', 'mtz_project_name',
+                                     'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
+            for line in output_csv:
+                values = [str(v) if v else '' for v in line]
+                f.write(','.join(values) + '\n')
+            f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
+            cli.print(f'Wrote new .csv file: {csv_out}')
     cli.print('')
     t1 = datetime.now()
 
@@ -1084,7 +1129,7 @@ async def cli_autoproc_process(
     # TODO:
     #  [x] Change permissions
     #  [x] Fix output_dir bug
-    #  [ ] Write new csv file for downstream processing
+    #  [x] Write new csv file for downstream processing
     #  [x] Add option for logging stdout to file (--log)
     #  [ ] Run GPhL workflow files
     #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]

@@ -12,6 +12,7 @@ import rich.prompt
 import rich.table
 import rich.text
 
+from xtl.common.os import get_permissions_in_decimal
 from xtl.config import cfg
 
 
@@ -55,6 +56,7 @@ class Console(rich.console.Console):
         self.debug = debug
 
         log_filename = console_kwargs.pop('log_filename', 'log.txt')
+        log_permissions = console_kwargs.pop('log_permissions', None)
         if log_file:
             log_file = Path(log_file)
             if log_file.is_dir():
@@ -63,6 +65,9 @@ class Console(rich.console.Console):
                 self._log_file = log_file / log_filename
             else:
                 self._log_file = log_file
+            if log_permissions:
+                self._log_file.touch(mode=get_permissions_in_decimal(log_permissions))
+                self._log_file.chmod(mode=get_permissions_in_decimal(log_permissions))
             console_kwargs['record'] = True
         else:
             self._log_file = None
@@ -76,6 +81,9 @@ class Console(rich.console.Console):
             self._striped_table_rows = striped_table_rows
 
         super().__init__(**console_kwargs)
+
+        if self._log_file:
+            self.print(f'Logging to: {self._log_file}', style='dim')
 
     def confirm(self, message: str, **kwargs):
         prompt = rich.prompt.Confirm(console=self)

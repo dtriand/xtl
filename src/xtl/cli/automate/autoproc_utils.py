@@ -147,7 +147,10 @@ def parse_csv2(csv_file: Path, extra_headers: list[str] = None, echo: Callable =
                 v = values[indices[key]]
                 if not v:
                     v = None
-                if key == 'extra_params':  # Parse extra parameters
+                if key in ['unit_cell', 'xds_idxref_refine_params', 'xds_integrate_refine_params',
+                           'xds_correct_refine_params']:
+                    v = v.split(';')
+                elif key == 'extra_params':  # Parse extra parameters
                     v = parse_extra_params(v.split(';'))
                 csv_dict[group][key].append(v)
 
