@@ -267,7 +267,7 @@ def df_stringify(df: pd.DataFrame):
         if df[col].dtype == 'object':
             first_object = df[col].dropna().iloc[0]
             if isinstance(first_object, list | tuple):
-                df2[col] = df[col].apply(lambda x: ' '.join(map(str, x)))
+                df2[col] = df[col].apply(lambda x: ';'.join(map(str, x)))
     return df2
 
 
