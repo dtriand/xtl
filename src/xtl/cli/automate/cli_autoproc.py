@@ -80,7 +80,7 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None):
 
     return datasets_dict
 
-@app.command('check_files', help='Check a datasets.csv file')
+@app.command('check_files', help='Check a datasets.csv file', hidden=True)
 def cli_autoproc_check_files(
         datasets_file: Path = typer.Argument(metavar='<DATASETS.CSV>', help='Path to a CSV file containing dataset names'),
         raw_dir: Path = typer.Option(None, '-i', '--raw-dir', help='Path to the raw data directory')
@@ -202,7 +202,7 @@ def create_config(unit_cell: list[float], space_group: str, resolution_high: flo
     return config
 
 
-@app.command('run_many', help='Run multiple autoPROC jobs')
+@app.command('run_many', help='Run multiple autoPROC jobs', hidden=True)
 @typer_async
 async def cli_autoproc_run_many(
         datasets_file: Path = typer.Argument(metavar='<DATASETS.CSV>', help='Path to a CSV file containing dataset names'),
@@ -467,9 +467,9 @@ def df_stringify(df: pd.DataFrame):
     return df2
 
 
-@app.command('json2csv', help='Create summary CSV from many JSON files')
+@app.command('json2csv2', help='Create summary CSV from many JSON files', hidden=True)
 @typer_async
-async def cli_autoproc_json_to_csv(
+async def cli_autoproc_json_to_csv2(
         datasets_file: Path = typer.Argument(metavar='<DATASETS.CSV>', help='Path to a CSV file containing dataset names'),
         out_dir: Path = typer.Option(Path('./'), '-o', '--out-dir', help='Path to the output directory'),
         debug: bool = typer.Option(False, '--debug', help='Print debug information')
@@ -642,23 +642,25 @@ async def cli_autoproc_process(
                                 rich_help_panel='Debugging'),
 ):
     '''
+    Execute multiple autoPROC jobs in parallel.
+
+
+
     EXAMPLES
+        Simplest possible usage:
+        xtl.autoproc process datasets.csv
 
-    Simplest possible usage:
-    xtl.autoproc process datasets.csv
+        Provide starting unit-cell parameters and space group:
+        xtl.autoproc process datasets.csv -u "78 78 37 90 90 90" -s "P 43 21 2"
 
-    Provide starting unit-cell parameters and space group:
-    xtl.autoproc process datasets.csv -u "78 78 37 90 90 90" -s "P 43 21 2"
-
-    Provide reference MTZ file:
-    xtl.autoproc process datasets.csv -R reference.mtz
-
+        Provide reference MTZ file:
+        xtl.autoproc process datasets.csv -R reference.mtz
 
     DATASETS.CSV EXAMPLE
-    # first_image
-    /path/to/dataset1/dataset1_00001.cbf.gz
-    /path/to/dataset2/dataset2_00001.cbf.gz
-    ...
+        # first_image
+        /path/to/dataset1/dataset1_00001.cbf.gz
+        /path/to/dataset2/dataset2_00001.cbf.gz
+        ...
     '''
     if log_file is None and cfg['cli']['log_file'].value:
         log_file = Path(cfg['cli']['log_file'].value)
@@ -873,6 +875,7 @@ async def cli_autoproc_process(
                     )
                     continue
                 if o_sdir:
+                    setattr(dataset, 'output_subdir', o_sdir)
                     dataset._fstring_dict['processed_data_dir'] += f'/{o_sdir}'
                     dataset._check_dir_fstring('processed_data_dir')
                 no_images += dataset.no_images
@@ -909,7 +912,7 @@ async def cli_autoproc_process(
         params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
         renderable_params.append(list(map(str_or_none, params)))
     if verbose or missing_dirs or log_file:
-        log_only = (verbose != 0) or missing_dirs
+        log_only = not(verbose or missing_dirs)
         headers = ['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir', 'output_dir',
                    'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
         cli.print('The following datasets were initialized:\n', log_only=log_only)
@@ -1058,10 +1061,11 @@ async def cli_autoproc_process(
 
                         for d in job.datasets:
                             c = job.config
-                            output_csv.append([job._idn, job.run_no, job._success, d.sweep_id, d.autoproc_id,
-                                               d.dataset_name, d.dataset_dir, d.first_image, d.raw_data_dir,
-                                               d.processed_data_dir, d.output_dir, c.mtz_project_name,
-                                               c.mtz_crystal_name, c.mtz_dataset_name])
+                            o_sdir = d.output_subdir if hasattr(d, 'output_subdir') else None
+                            output_csv.append([job.job_dir.resolve(), job.run_no, job._success, d.sweep_id,
+                                               d.autoproc_id, d.dataset_name, d.dataset_dir, d.first_image,
+                                               d.raw_data_dir, d.processed_data_dir, d.output_dir, o_sdir,
+                                               c.mtz_project_name, c.mtz_crystal_name, c.mtz_dataset_name])
 
 
                         progress.advance(running)
@@ -1088,7 +1092,7 @@ async def cli_autoproc_process(
         with open(csv_out, 'w') as f:
             f.write('# ' + ','.join(['job_id', 'run_no', 'success', 'sweep_id', 'autoproc_id',
                                      'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
-                                     'processed_data_dir', 'output_dir', 'mtz_project_name',
+                                     'processed_data_dir', 'output_dir', 'output_subdir', 'mtz_project_name',
                                      'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
             for line in output_csv:
                 values = [str(v) if v else '' for v in line]
@@ -1134,6 +1138,57 @@ async def cli_autoproc_process(
     #  [ ] Run GPhL workflow files
     #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]
     #  [ ] Rethink success criteria
+
+
+@app.command('json2csv', short_help='Create summary CSV from many JSON files', epilog=app.info.epilog)
+@typer_async
+async def cli_autoproc_json_to_csv(
+        datasets_file: Path = typer.Argument(metavar='<DATASETS.CSV>', help='Path to a CSV file containing dataset names'),
+        out_dir: Path = typer.Option(Path('./'), '-o', '--out-dir', help='Path to the output directory'),
+        debug: bool = typer.Option(False, '--debug', help='Print debug information')
+):
+    '''
+    Reads a datasets.csv file and collects all the xtl_autoPROC.json files from the job directories to create a single
+    summary CSV file.
+
+    Note that the datasets.csv file must contain the following columns: 'job_dir', 'sweep_id', 'autoproc_id'.
+    '''
+    cli = Console()
+    # Check if csv file exists
+    if not datasets_file.exists():
+        cli.print(f'File {datasets_file} does not exist', style='red')
+        raise typer.Abort()
+
+    cli.print(f'Parsing dataset names from {datasets_file}... ')
+    datasets = parse_csv2(datasets_file, extra_headers=['job_dir', 'sweep_id', 'autoproc_id'])
+    cli.print(f'Found {len(datasets["extra"]["job_dir"])} datasets')
+
+    data = []
+    if debug:
+        cli.print('# dataset_subdir, rename_dataset_subdir, autoproc_dir', style='magenta')
+    for i, (j_dir, sweep_id, autoproc_id) in enumerate(zip(datasets["extra"]['job_dir'], datasets["extra"]['sweep_id'],
+                                                           datasets["extra"]['autoproc_id'])):
+        if j_dir:
+            j = Path(j_dir) / 'xtl_autoPROC.json'
+            if j.exists():
+                d = {
+                    'id': i,
+                    'sweep_id': sweep_id,
+                    'job_dir': j.parent.as_uri(),
+                    'autoproc_id': autoproc_id
+                }
+                d.update(json.loads(j.read_text()))
+                data.append(d)
+
+    cli.print(f'Found {len(data)} JSON files')
+    if not data:
+        return typer.Exit(code=0)
+
+    df = pd.json_normalize(data)
+    df = df_stringify(df)
+    csv_file = Path('.') / f'xtl_autoPROC_summary.csv'
+    df.to_csv(csv_file, index=False)
+    cli.print(f'Wrote summary to {csv_file}')
 
 
 # @app.command('check_wavelength', help='Check wavelength with aP_fit_wvl_to_spots')
