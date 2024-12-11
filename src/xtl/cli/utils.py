@@ -1,5 +1,17 @@
+import asyncio
+from functools import wraps
+
 import click
 import tabulate
+
+
+
+def typer_async(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(func(*args, **kwargs))
+    return wrapper
+
 
 # Tabulate formatting settings
 tabulate.MIN_PADDING = 0

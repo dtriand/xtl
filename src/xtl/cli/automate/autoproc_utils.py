@@ -1,10 +1,13 @@
 import copy
+from enum import Enum
 from pathlib import Path
 from typing import Callable
 
+import pandas as pd
 import typer
 
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
+from xtl.automate.sites import LocalSite, BiotixHPC
 
 
 def str_or_none(s):
@@ -98,7 +101,7 @@ def parse_extra_params(extra_params: list[str]):
     return extra
 
 
-def parse_csv2(csv_file: Path, extra_headers: list[str] = None, echo: Callable = print) -> dict:
+def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = print) -> dict:
     parsable_attrs_dataset = [attr[0] for attr in get_attributes_dataset()]
     parsable_attrs_config = [attr[0] for attr in get_attributes_config()]
 
@@ -255,3 +258,53 @@ def merge_configs(csv_dict: dict, dataset_index: int, **params):
 
 def get_directory_size(directory: Path) -> int:
     return sum(f.stat().st_size for f in directory.rglob('*'))
+
+
+def df_stringify(df: pd.DataFrame):
+    df2 = df.copy(deep=True)
+    columns = df.columns
+    for col in columns:
+        if df[col].dtype == 'object':
+            first_object = df[col].dropna().iloc[0]
+            if isinstance(first_object, list | tuple):
+                df2[col] = df[col].apply(lambda x: ' '.join(map(str, x)))
+    return df2
+
+
+class ResolutionCriterion(Enum):
+    none = 'None'
+    cc_half = 'CC1/2'
+
+
+class ComputeSite(Enum):
+    local = 'local'
+    biotix_hpc = 'biotix'
+
+    def get_site(self):
+        if self == ComputeSite.local:
+            return LocalSite()
+        elif self == ComputeSite.biotix_hpc:
+            return BiotixHPC()
+        else:
+            raise ValueError(f'Unknown compute_site: {self}')
+
+
+class Beamline(Enum):
+    alba_bl13_xaloc = 'AlbaBL13Xaloc'
+    als_1231 = 'Als1231'
+    als_422 = 'Als422'
+    als_831 = 'Als831'
+    australian_sync_mx1 = 'AustralianSyncMX1'
+    australian_sync_mx2 = 'AustralianSyncMX2'
+    diamond_i04_mk = 'DiamondI04-MK'
+    diamond_io4 = 'DiamondIO4'
+    diamond_i23_day1 = 'DiamondI23-Day1'
+    diamond_i23 = 'DiamondI23'
+    esrf_id23_2 = 'EsrfId23-2'
+    esrf_id29 = 'EsrfId29'
+    esrf_id30_b = 'EsrfId30-B'
+    ill_d19 = 'ILL_D19'
+    petra_iii_p13 = 'PetraIIIP13'
+    petra_iii_p14 = 'PetraIIIP14'
+    sls_pxiii = 'SlsPXIII'
+    soleil_proxima1 = 'SoleilProxima1'
