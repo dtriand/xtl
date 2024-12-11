@@ -20,7 +20,7 @@ import xtl.cli.automate.autoproc_utils as apu
 from xtl.cli.utils import typer_async
 from xtl.common.os import get_permissions_in_decimal
 from xtl.config import cfg
-from xtl.diffraction.automate.autoproc import AutoPROCJob2
+from xtl.diffraction.automate.autoproc import AutoPROCJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.exceptions.utils import Catcher
@@ -464,7 +464,7 @@ async def cli_autoproc_process(
     # Prepare the jobs
     jobs = []
     sanitized_configs = {}
-    APJ = AutoPROCJob2.update_concurrency_limit(no_concurrent_jobs)
+    APJ = AutoPROCJob.update_concurrency_limit(no_concurrent_jobs)
     APJ._echo_success_kwargs = {'style': 'green'}
     APJ._echo_warning_kwargs = {'style': 'yellow'}
     APJ._echo_error_kwargs = {'style': 'red'}

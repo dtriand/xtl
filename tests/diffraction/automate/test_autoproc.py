@@ -5,7 +5,7 @@ from pathlib import Path
 from tests.conftest import seed
 from xtl.automate.shells import BashShell
 from xtl.diffraction.images.datasets import DiffractionDataset
-from xtl.diffraction.automate.autoproc import AutoPROCJob2, AutoPROCJobResults
+from xtl.diffraction.automate.autoproc import AutoPROCJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 
 
@@ -35,7 +35,7 @@ class TestAutoPROCJob:
 
     def test_init(self, datasets, is_h5):
         config = AutoPROCConfig()
-        job = AutoPROCJob2(datasets=datasets, config=config)
+        job = AutoPROCJob(datasets=datasets, config=config)
         assert job._job_type == 'xtl.autoproc.process'
         assert hasattr(job, '_datasets')
         assert hasattr(job, '_config')
@@ -52,7 +52,7 @@ class TestAutoPROCJob:
     def test_run_no(self, datasets, is_h5):
         # Default initialization
         config = AutoPROCConfig()
-        job = AutoPROCJob2(datasets=datasets, config=config)
+        job = AutoPROCJob(datasets=datasets, config=config)
         assert job._run_no == 1
 
         # Existing output_dir
@@ -72,7 +72,7 @@ class TestAutoPROCJob:
     @seed(42)
     def test_patch_datasets(self, datasets, is_h5):
         config = AutoPROCConfig()
-        job = AutoPROCJob2(datasets=datasets, config=config)
+        job = AutoPROCJob(datasets=datasets, config=config)
         assert job._datasets[0].sweep_id == 1
         assert job._datasets[0].autoproc_id == 'xtl0409s01'
         if not is_h5:
@@ -86,7 +86,7 @@ class TestAutoPROCJob:
         config = AutoPROCConfig(unit_cell=[78, 78, 37, 90, 90, 90], space_group='P 43 21 2', xds_njobs=16,
                                 batch_mode=True, resolution_cutoff_criterion='CC1/2', beamline='PetraIIIP14',
                                 extra_params={'autoPROC_XdsIntegPostrefNumCycle': 5})
-        job = AutoPROCJob2(datasets=datasets, config=config)
+        job = AutoPROCJob(datasets=datasets, config=config)
         content = job._get_macro_content()
         print(content)
         for line in content.splitlines():

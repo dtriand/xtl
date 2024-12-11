@@ -866,7 +866,7 @@ class StaranisoUnique(ReflectionsXml):
 
 
 @dataclass
-class AutoPROCJobResults2:
+class AutoPROCJobResults:
     job_dir: Path
     datasets: list[DiffractionDataset]
 
