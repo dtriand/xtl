@@ -732,7 +732,7 @@ async def cli_autoproc_process_wf(
     '''
     if log_file is None and cfg['cli']['log_file'].value:
         log_file = Path(cfg['cli']['log_file'].value)
-    log_filename = f'xtl.autoproc.process_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    log_filename = f'xtl.autoproc.process_wf_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     log_permissions = chmod_files if chmod else None
 
     cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename,
@@ -915,6 +915,7 @@ async def cli_autoproc_process_wf(
         APJ._echo_success_kwargs = {'style': 'green'}
         APJ._echo_warning_kwargs = {'style': 'yellow'}
         APJ._echo_error_kwargs = {'style': 'red'}
+        t0 = datetime.now()
         with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                       transient=True, console=cli) as progress:
             APJ._echo = partial(progress.console.print, highlight=False, markup=False, overflow='fold', log_escape=True)
@@ -926,7 +927,6 @@ async def cli_autoproc_process_wf(
                         progress.console.print(f'Skipping the rest of the datasets (--only={do_only})',
                                                style='magenta')
                         break
-                    progress.console.print('Merging configs')
                     config_input = apu.merge_configs(csv_dict=csv_dict, dataset_index=i, **{
                         'change_permissions': chmod, 'file_permissions': chmod_files,
                         'directory_permissions': chmod_dirs,
@@ -985,6 +985,8 @@ async def cli_autoproc_process_wf(
                     progress.advance(task)
                 progress.console.print('### END JOB OPTIONS', log_only=True)
         no_jobs = len(jobs)
+        t1 = datetime.now()
+        cli.print(f'📷 Found {no_images:,} images from {len(nml_input)} NML files in {t1 - t0}')
         cli.print(f'🛠️ Prepared {no_jobs} job' + ('s' if no_jobs > 1 else ''))
 
         # Exit if there were any errors while creating the jobs
