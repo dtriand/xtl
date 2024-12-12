@@ -1,10 +1,13 @@
 import asyncio
+import copy
 from datetime import datetime
 from functools import partial
+import f90nml
 import os
 from pathlib import Path
 import platform
 from random import randint
+import re
 import traceback
 from typing import Sequence, Optional
 
@@ -501,6 +504,233 @@ class AutoPROCJob(Job):
                 self._executable_version = line.replace('Version:', '').strip()
                 return self._executable_version
         return None
+
+
+class AutoPROCWorkflowJob(AutoPROCJob):
+    _job_prefix = 'autoproc_wf'
+
+    def __init__(self, nml_file: Path, config: AutoPROCConfig | Sequence[AutoPROCConfig],
+                 compute_site: Optional[ComputeSite] = None,  shell: Optional[Shell] = None,
+                 modules: Optional[Sequence[str]] = None, stdout_log: Optional[str | Path] = None,
+                 stderr_log: Optional[str | Path] = None,
+                 raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+                 processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None):
+
+        # Extract datasets from NML file
+        self._nml_file = Path(nml_file)
+        self._nml = self._parse_nml(nml_file=self._nml_file)
+        datasets = self._get_datasets_from_nml(raw_data_dir=raw_data_dir, processed_data_dir=processed_data_dir)
+
+        # Copy the config for each of the datasets
+        if isinstance(config, AutoPROCConfig):
+            config = [copy.deepcopy(config) for i in range(len(datasets))]
+
+        # Parent constructor
+        super().__init__(
+            datasets=datasets, config=config, compute_site=compute_site, shell=shell, modules=modules,
+            stdout_log=stdout_log, stderr_log=stderr_log
+        )
+
+        # Modify attributes
+        self._job_type = 'xtl.autoproc.aP_wf_process'
+        self._executable = 'aP_wf_process'
+
+    def _parse_nml(self, nml_file: Path) -> dict:
+        nml_dict = {'datasets': [], 'crystal': {}}
+        try:
+            nml = f90nml.read(nml_file)
+        except Exception as e:
+            raise ValueError(f'Failed to parse namelist file: {nml_file}') from e
+
+        for key in ['goniostat_setting_list', 'centred_goniostat_setting_list', 'detector_setting_list',
+                    'simcal_beam_setting_list', 'simcal_sweep_list', 'process_crystal_list']:
+            if key not in nml:
+                raise ValueError(f'Namelist file does not contain \'{key}\' group')
+
+        # Get information about the crystal symmetry
+        nml_dict['crystal'] = {
+            'input': {
+                'unit_cell': nml['process_crystal_list']['prior_cell_dim'] +
+                             nml['process_crystal_list']['prior_cell_ang_deg'],
+                'space_group': nml['process_crystal_list']['prior_sg_name']
+            },
+            'indexed': {
+                'unit_cell': nml['process_crystal_list']['cell_dim'] +
+                             nml['process_crystal_list']['cell_ang_deg'],
+                'space_group': nml['process_crystal_list']['sg_name']
+            }
+        }
+
+        # Get sweep information
+        for i, sweep in enumerate(nml['simcal_sweep_list']):
+            dataset = {
+                'sweep_id': i + 1,
+                'name_template': sweep['name_template'],
+                'img_first': sweep['image_no'],
+                'img_last': sweep['n_frames'],
+                'exposure': sweep['exposure'],
+                'ap_params': {  # these will be passed as extra_params to config
+                    'goniostat_Omega_angle': sweep['start_deg'],
+                    'osc': sweep['step_deg']
+                }
+            }
+
+            # Get goniostat information
+            goniostat_id = None
+            centred_goniostat_id = sweep['centred_goniostat_setting_id']
+            for centred_goniostat in nml['centred_goniostat_setting_list']:
+                if centred_goniostat['id'] == centred_goniostat_id:
+                    dataset['ap_params']['Xparm2Simin_TransX'] = centred_goniostat['trans_1']
+                    dataset['ap_params']['Xparm2Simin_TransY'] = centred_goniostat['trans_2']
+                    dataset['ap_params']['Xparm2Simin_TransZ'] = centred_goniostat['trans_3']
+                    goniostat_id = centred_goniostat['goniostat_setting_id']
+                    break
+
+            for goniostat in nml['goniostat_setting_list']:
+                if goniostat['id'] == goniostat_id:
+                    dataset['ap_params']['goniostat_Kappa_angle'] = goniostat['kappa_deg']
+                    dataset['ap_params']['goniostat_Phi_angle'] = goniostat['phi_deg']
+                    break
+
+            # Get beam information
+            beam_id = sweep['beam_setting_id']
+            beam = nml['simcal_beam_setting_list']
+            if beam['id'] == beam_id:
+                dataset['ap_params']['wave'] = beam['lambda']
+
+            # Get detector information
+            detector_id = sweep['detector_setting_id']
+            detector = nml['detector_setting_list']
+            if detector['id'] == detector_id:
+                dataset['ap_params']['dist'] = detector['det_coord']
+
+            nml_dict['datasets'].append(dataset)
+        return nml_dict
+
+
+    def _get_datasets_from_nml(self, raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+                               processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None) -> list[DiffractionDataset]:
+        datasets = []
+        no_datasets = len(self._nml['datasets'])
+
+        dirs = {'raw_data_dirs': [], 'processed_data_dirs': []}
+        for dtype, directories in zip(dirs.keys(), [raw_data_dir, processed_data_dir]):
+            if directories is None:
+                dirs[dtype] = [None for _ in range(no_datasets)]
+            elif isinstance(directories, (str, Path)):
+                dirs[dtype] = [Path(directories) for _ in range(no_datasets)]
+            elif isinstance(directories, Sequence):
+                if len(dirs) != no_datasets:
+                    raise ValueError(f'Length mismatch for \'{dtype}\': datasets={no_datasets} != '
+                                     f'directories={len(directories)}')
+                dirs[dtype] = [Path(d) for d in directories]
+
+        for i, dataset in enumerate(self._nml['datasets']):
+            # Get path to first image from the template string
+            no_digits = dataset['name_template'].count('?')
+            first_image = re.sub(r'\?.*', str(dataset['img_first']).zfill(no_digits), dataset['name_template'],
+                                 count=1)
+            first_image = Path(first_image)
+
+            # Generate dataset from the first image
+            ds = DiffractionDataset.from_image(image=first_image, raw_dataset_dir=dirs['raw_data_dirs'][i],
+                                               processed_data_dir=dirs['processed_data_dirs'][i])
+            datasets.append(ds)
+        return datasets
+
+
+    def _patch_datasets(self) -> None:
+        # iterate over _datasets and _nml and patch both datasets and configs
+        for ds, cfg, nml in zip(self.datasets, self.configs, self._nml['datasets']):
+            # Set the sweep_id
+            setattr(ds, 'sweep_id', nml['sweep_id'])
+
+            # Set the autoproc_id
+            setattr(ds, 'autoproc_id', f'{ds.sweep_id:03d}')
+
+            # Set the extra_params for the config
+            cfg.extra_params['nml_params'] = nml['ap_params']
+
+
+    def _get_macro_content(self) -> str:
+        # Header
+        content = [
+            f'# aP_wf_process macro file',
+            f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}',
+            f'#  {os.getlogin()}@{platform.node()} [{get_os_name_and_version()}]',
+            f''
+        ]
+
+        # Dataset definitions
+        content += [
+            f'### Dataset definitions',
+            f'# autoproc_id = {self._idn}',
+            f'# no_sweeps = {len(self.datasets)}'
+        ]
+        for dataset, config in zip(self.datasets, self.configs):
+            content += [
+                f'## Sweep {dataset.sweep_id} [{dataset.autoproc_id}]: {dataset.dataset_name}',
+                f'#   raw_data = {dataset.raw_data}',
+                f'#   first_image = {dataset.first_image.name}',
+            ]
+            if not self._is_h5:
+                image_template, img_no_first, img_no_last = dataset.get_image_template(as_path=False, first_last=True)
+                content += [
+                    f'#   image_template = {image_template}',
+                    f'#   img_no_first = {img_no_first}',
+                    f'#   img_no_last = {img_no_last}',
+                ]
+            for key, value in config.extra_params.pop('nml_params', {}).items():
+                content.append(f'#   {key}_{dataset.autoproc_id} = {value}')
+        content.append('')
+
+        # Parameters from AutoPROCConfig
+        all_params = self.config.get_all_params(modified_only=True, grouped=True)
+        for group in all_params.values():
+            content.append(f'### {group["comment"]}')
+            for key, value in group['params'].items():
+                content.append(f'{key}={value}')
+            content.append('')
+
+        # Extra parameters not included in the config definition
+        extra_params = self.config.get_group('extra_params')['_extra_params']
+        if extra_params:
+            content.append('### Extra parameters')
+            for key, value in extra_params.items():
+                content.append(f'{key}={value}')
+            content.append('')
+
+        # Environment information
+        content += [
+            f'### XTL environment',
+            f'# job_type = {self._job_type}',
+            f'# run_number = {self.run_no}',
+            f'# job_dir = {self.job_dir}',
+            f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
+            f'## Initialization mode',
+            f'# single_sweep = {self._single_sweep}',
+            f'# is_h5 = {self._is_h5}',
+            f'## Localization',
+            f'# shell = {self._shell.name} [{self._shell.executable}]',
+            f'# compute_site = {self._compute_site.__class__.__name__} '
+            f'[{self._compute_site.priority_system.system_type}]',
+            f'# files_permissions = {self.config.file_permissions}',
+            f'# directories_permissions = {self.config.directory_permissions}',
+            f'# change_permissions = {self.config.change_permissions}',
+            f'# modules = {self._modules}',
+            f'# executable = {self._executable_location}',
+            f'# version = {self._executable_version}',
+        ]
+        return '\n'.join(content)
+
+    def _get_batch_commands(self):
+        # If a module was provided, then purge all modules and load the specified one
+        commands = self._get_modules_commands()
+
+        # Add the autoPROC command by applying the appropriate priority system
+        process_cmd = f'{self.executable} -i {self._nml_file} -M {self.job_dir / self.config.macro_filename} -o {self.autoproc_dir}'
+        commands.append(self._compute_site.prepare_command(process_cmd))
+        return commands
 
 
 # class CheckWavelengthJob(Job):

@@ -232,6 +232,47 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
     return datasets_input
 
 
+def sanitize_nml_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None,
+                          echo: Callable = print) -> list:
+    nml_input = []
+    for i, (nml_file, raw_data_dir, processed_data_dir, output_dir, output_subdir) in (
+            enumerate(zip(csv_dict['extra']['nml_file'], csv_dict['dataset']['raw_data_dir'],
+                          csv_dict['dataset']['processed_data_dir'], csv_dict['dataset']['output_dir'],
+                          csv_dict['dataset']['output_subdir']))):
+
+        # Determine raw_data_dir
+        if not raw_data_dir:
+            raw_data_dir = raw_dir
+        if not raw_data_dir:
+            echo(f'Dataset on line {i + 1} does not have the attribute \'raw_data_dir\' and a global '
+                 f'raw data directory was not specified with --raw-dir', style='red')
+            raise typer.Abort()
+        raw_data_dir = Path(raw_data_dir).resolve()
+
+        # Determine processed_data_dir
+        if not processed_data_dir:
+            processed_data_dir = out_dir
+        if not processed_data_dir:
+            echo(f'Dataset on line {i + 1} does not have the attribute \'processed_data_dir\' and a global '
+                 f'output directory was not specified with --out-dir', style='red')
+            raise typer.Abort()
+        processed_data_dir = Path(processed_data_dir).resolve()
+
+        # If no output subdirectory is specified, use the global output subdirectory
+        if not output_subdir:
+            output_subdir = out_subdir
+
+        if output_subdir:
+            # Remove leading slashes and dots
+            if output_subdir[:2] in ['./', '.\\']:
+                output_subdir = output_subdir[2:]
+            elif output_subdir[0] in ['/', '\\']:
+                output_subdir = output_subdir[1:]
+
+        nml_input.append([nml_file, raw_data_dir, processed_data_dir, output_dir, output_subdir])
+    return nml_input
+
+
 def merge_configs(csv_dict: dict, dataset_index: int, **params):
     config = csv_dict['config']
     if dataset_index >= len(config['unit_cell']):
