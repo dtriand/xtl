@@ -159,7 +159,8 @@ class DiffractionDataset:
         return self.get_dir('processed_data_dir')
 
     @classmethod
-    def from_image(cls, image: str | Path, raw_dataset_dir: str | Path = None, processed_data_dir: str | Path = None):
+    def from_image(cls, image: str | Path, raw_dataset_dir: str | Path = None, processed_data_dir: str | Path = None,
+                   output_dir: str = None):
         """
         Create a DiffractionDataset object from the path to an image in the dataset. It works both with
         compressed and uncompressed images. If `raw_dataset_dir` is not provided, it will be assumed that `dataset_dir`
@@ -196,7 +197,7 @@ class DiffractionDataset:
 
         # Create and return the DiffractionDataset object
         return cls(dataset_name=dataset_name, dataset_dir=dataset_dir, raw_data_dir=raw_dataset_dir,
-                   processed_data_dir=processed_data_dir, _file_ext=extension,
+                   processed_data_dir=processed_data_dir, output_dir=output_dir, _file_ext=extension,
                    _is_compressed=is_compressed, _is_h5=is_h5)
 
     @staticmethod

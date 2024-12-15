@@ -368,7 +368,7 @@ async def cli_autoproc_process(
                     if image:
                         reading_method = 'from_image'
                         dataset = DiffractionDataset.from_image(image=image, raw_dataset_dir=r_dir,
-                                                                processed_data_dir=p_dir)
+                                                                processed_data_dir=p_dir, output_dir=o_dir)
                     else:
                         reading_method = 'from_dirs'
                         dataset = DiffractionDataset(dataset_name=d_name, dataset_dir=d_dir, raw_data_dir=r_dir,
