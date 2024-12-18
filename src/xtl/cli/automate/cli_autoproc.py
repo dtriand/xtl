@@ -603,7 +603,7 @@ async def cli_autoproc_process(
             csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
             csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
         with open(csv_out, 'w') as f:
-            f.write('# ' + ','.join(['job_id', 'run_no', 'success', 'sweep_id', 'autoproc_id',
+            f.write('# ' + ','.join(['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id',
                                      'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
                                      'processed_data_dir', 'output_dir', 'output_subdir', 'mtz_project_name',
                                      'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
@@ -1074,7 +1074,7 @@ async def cli_autoproc_process_wf(
                 csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
                 csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
             with open(csv_out, 'w') as f:
-                f.write('# ' + ','.join(['job_id', 'run_no', 'success', 'sweep_id', 'autoproc_id',
+                f.write('# ' + ','.join(['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id',
                                          'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
                                          'processed_data_dir', 'output_dir', 'output_subdir', 'mtz_project_name',
                                          'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
