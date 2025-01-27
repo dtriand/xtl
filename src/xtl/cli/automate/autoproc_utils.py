@@ -16,6 +16,12 @@ def str_or_none(s):
     return str(s)
 
 
+def stringify(s):
+    if s is None:
+        return ''
+    return str(s)
+
+
 def get_param_type(t: tuple):
     a, b = t
     if not b:
@@ -44,6 +50,7 @@ def get_attributes_config() -> list[list[str]]:
 
 def get_attributes_dataset() -> list[list[str]]:
     attributes = [
+        ['group_id', 'int', 'Group ID for the dataset'],
         ['raw_data_dir', 'Path', 'Path to the raw data directory'],
         ['dataset_dir', 'str', 'Subdirectory within the raw data directory'],
         ['dataset_name', 'str', 'Name of the dataset excluding image number'],
@@ -165,11 +172,11 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = 
 def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None,
                           echo: Callable = print) -> list:
     datasets_input = []
-    for i, (raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir) in (
-            enumerate(zip(csv_dict['dataset']['raw_data_dir'], csv_dict['dataset']['dataset_dir'],
-                          csv_dict['dataset']['dataset_name'], csv_dict['dataset']['first_image'],
-                          csv_dict['dataset']['processed_data_dir'], csv_dict['dataset']['output_dir'],
-                          csv_dict['dataset']['output_subdir']))):
+    for i, (group_id, raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir) in (
+            enumerate(zip(csv_dict['dataset']['group_id'], csv_dict['dataset']['raw_data_dir'],
+                          csv_dict['dataset']['dataset_dir'], csv_dict['dataset']['dataset_name'],
+                          csv_dict['dataset']['first_image'], csv_dict['dataset']['processed_data_dir'],
+                          csv_dict['dataset']['output_dir'], csv_dict['dataset']['output_subdir']))):
 
         # Initialize via DiffractionDataset.from_image class method
         if first_image:
@@ -227,8 +234,8 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
             elif output_subdir[0] in ['/', '\\']:
                 output_subdir = output_subdir[1:]
 
-        datasets_input.append([raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir,
-                               output_subdir])
+        datasets_input.append([group_id, raw_data_dir, dataset_dir, dataset_name, first_image,
+                               processed_data_dir, output_dir, output_subdir])
     return datasets_input
 
 

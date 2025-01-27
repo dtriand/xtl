@@ -299,11 +299,11 @@ async def cli_autoproc_process(
 
     # Housekeeping
     csv_file = None
-    datasets = []
+    datasets = {}
     csv_dict = {}
 
     # Input for DiffractionDataset constructors
-    #  raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir
+    #  group_id, raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir
     datasets_input = []
 
     # Check if a datasets.csv file was provided
@@ -332,7 +332,7 @@ async def cli_autoproc_process(
             if not image.exists():
                 cli.print(f'Image for dataset {i+1} does not exist: {image}', style='red')
                 raise typer.Abort()
-            datasets_input.append([None, None, None, image, out_dir, None])
+            datasets_input.append([None, None, None, None, image, out_dir, None, None])
     cli.print(f'🗃️ Found {len(datasets_input)} datasets from input')
 
     # Report the dataset attributes parsed from the CSV file
@@ -341,9 +341,10 @@ async def cli_autoproc_process(
         renderable_datasets = [list(map(apu.str_or_none, dataset_params)) for dataset_params in datasets_input]
         cli.print('The following parameters will be used for locating the images:', log_only=log_only)
         cli.print_table(table=renderable_datasets,
-                        headers=['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
+                        headers=['group_id', 'raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image',
                                  'processed_data_dir', 'output_dir', 'output_subdir'],
-                        column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
+                        column_kwargs=[{'overflow': 'fold', 'style': 'green3'},
+                                       {'overflow': 'fold', 'style': 'deep_pink1'},
                                        {'overflow': 'fold', 'style': 'medium_orchid1'},
                                        {'overflow': 'fold', 'style': 'plum1'},
                                        {'overflow': 'fold', 'style': 'orange3'},
@@ -363,7 +364,7 @@ async def cli_autoproc_process(
         task = progress.add_task('🔎 Looking for images in directories...',
                                  total=len(datasets_input))
         with Catcher(silent=not debug) as catcher:  # debug will print the exceptions
-            for i, (r_dir, d_dir, d_name, image, p_dir, o_dir, o_sdir) in enumerate(datasets_input):
+            for i, (g_id, r_dir, d_dir, d_name, image, p_dir, o_dir, o_sdir) in enumerate(datasets_input):
                 try:
                     if image:
                         reading_method = 'from_image'
@@ -379,6 +380,7 @@ async def cli_autoproc_process(
                             'index': i + 1,
                             'method': reading_method,
                             'data': {
+                                'group_id': g_id,
                                 'raw_data_dir': r_dir, 'dataset_dir': d_dir, 'dataset_name': d_name,
                                 'first_image': image, 'processed_data_dir': p_dir, 'output_dir': o_dir,
                                 'output_subdir': o_sdir
@@ -393,7 +395,12 @@ async def cli_autoproc_process(
                     dataset._check_dir_fstring('processed_data_dir')
                 no_images += dataset.no_images
                 dataset.reset_images_cache()
-                datasets.append(dataset)
+
+                group_id = g_id if g_id else f'xtl_{i}'
+                if group_id not in datasets:
+                    datasets[group_id] = []
+                datasets[group_id].append(dataset)
+                setattr(dataset, 'group_id', group_id)
                 progress.advance(task)
     t1 = datetime.now()
     cli.print(f'📷 Found {no_images:,} images in {len(datasets)} datasets in {t1 - t0}')
@@ -414,24 +421,26 @@ async def cli_autoproc_process(
     # Report the actual attributes of the datasets
     renderable_params = []
     missing_dirs = 0
-    for dataset in datasets:
-        processed_data_dir = dataset.processed_data
-        if not processed_data_dir.exists():
-            processed_data_dir = f'[u red]{processed_data_dir}[/]'
-            missing_dirs += 1
-        params = [dataset.raw_data, dataset.dataset_dir, dataset.dataset_name, dataset.first_image,
-                  processed_data_dir, dataset.output_dir]
-        template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
-        params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
-        renderable_params.append(list(map(apu.str_or_none, params)))
+    for group, dsets in datasets.items():
+        for dataset in dsets:
+            processed_data_dir = dataset.processed_data
+            if not processed_data_dir.exists():
+                processed_data_dir = f'[u red]{processed_data_dir}[/]'
+                missing_dirs += 1
+            params = [dataset.group_id, dataset.raw_data, dataset.dataset_dir, dataset.dataset_name,
+                      dataset.first_image, processed_data_dir, dataset.output_dir]
+            template, img_no_first, img_no_last = dataset.get_image_template(first_last=True)
+            params += [template, dataset.file_extension, img_no_first, img_no_last, dataset.no_images]
+            renderable_params.append(list(map(apu.str_or_none, params)))
     if verbose or missing_dirs or log_file:
         log_only = not(verbose or missing_dirs)
-        headers = ['raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir', 'output_dir',
-                   'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
+        headers = ['group_id', 'raw_data_dir', 'dataset_dir', 'dataset_name', 'first_image', 'processed_data_dir',
+                   'output_dir', 'image_template', 'file_extension', 'img_no_first', 'img_no_last', 'no_images']
         cli.print('The following datasets were initialized:\n', log_only=log_only)
         cli.print_table(table=renderable_params,
                         headers=headers,
-                        column_kwargs=[{'overflow': 'fold', 'style': 'deep_pink1'},
+                        column_kwargs=[{'overflow': 'fold', 'style': 'green3'},
+                                       {'overflow': 'fold', 'style': 'deep_pink1'},
                                        {'overflow': 'fold', 'style': 'medium_orchid1'},
                                        {'overflow': 'fold', 'style': 'plum1'},
                                        {'overflow': 'fold', 'style': 'orange3'},
@@ -476,7 +485,7 @@ async def cli_autoproc_process(
         task = progress.add_task('🛠️ Preparing jobs...', total=len(datasets))
         with Catcher(silent=not debug) as catcher:  # debug will print the exceptions
             progress.console.print('\n### JOB OPTIONS', log_only=True)
-            for i, dataset in enumerate(datasets):
+            for i, (group, dsets) in enumerate(datasets.items()):
                 if i >= do_only > 0:
                     progress.console.print(f'Skipping the rest of the datasets (--only={do_only})',
                                            style='magenta')
@@ -491,7 +500,7 @@ async def cli_autoproc_process(
                 })
                 sanitized_config = {
                     'input': {
-                        'datasets': [dataset],
+                        'datasets': dsets,
                         'config': config_input
                     }
                 }
@@ -499,7 +508,7 @@ async def cli_autoproc_process(
                 try:
                     config = AutoPROCConfig(batch_mode=True, **config_input)
                     sanitized_configs[i]['config'] = config
-                    job = APJ(datasets=dataset, config=config, compute_site=cs, modules=modules)
+                    job = APJ(datasets=dsets, config=config, compute_site=cs, modules=modules)
                     sanitized_configs[i]['job'] = job.__dict__
                 except Exception as e:
                     catcher.log_exception({'index': i + 1, 'data': sanitized_config, 'exception': e})
@@ -543,10 +552,20 @@ async def cli_autoproc_process(
     cli.print(message, log_only=True)
     cli.confirm(message, default=False)
 
+    # Prepare output csv
+    csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
+    if chmod:
+        csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
+        csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
+    with open(csv_out, 'w') as f:
+        f.write('# ' + ','.join(['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id', 'group_id',
+                                 'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
+                                 'processed_data_dir', 'output_dir', 'output_subdir',
+                                 'mtz_project_name', 'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
+
     # Run the jobs
     t0 = datetime.now()
     cli.print(f'\nLaunching jobs at {t0}...')
-    output_csv = []
     with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                   TextColumn('{task.fields[status]}'),
                   transient=True, console=cli) as progress:
@@ -575,11 +594,13 @@ async def cli_autoproc_process(
                         for d in job.datasets:
                             c = job.config
                             o_sdir = d.output_subdir if hasattr(d, 'output_subdir') else None
-                            output_csv.append([job.job_dir.resolve(), job.run_no, job._success, d.sweep_id,
-                                               d.autoproc_id, d.dataset_name, d.dataset_dir, d.first_image,
-                                               d.raw_data_dir, d.processed_data_dir, d.output_dir, o_sdir,
-                                               c.mtz_project_name, c.mtz_crystal_name, c.mtz_dataset_name])
-
+                            g_id = d.group_id if hasattr(d, 'group_id') else None
+                            output_csv = [job.job_dir.resolve(), job.run_no, job._success, d.sweep_id,
+                                          d.autoproc_id, g_id, d.dataset_name, d.dataset_dir, d.first_image,
+                                          d.raw_data_dir, d.processed_data_dir, d.output_dir, o_sdir,
+                                          c.mtz_project_name, c.mtz_crystal_name, c.mtz_dataset_name]
+                            with open(csv_out, 'a') as f:
+                                f.write(','.join(map(apu.stringify, output_csv)) + '\n')
 
                         progress.advance(running)
                         if job._success:
@@ -597,21 +618,12 @@ async def cli_autoproc_process(
                                                         f':loudly_crying_face: [red]{jobs_failed}[/]')
                 except Exception as e:
                     catcher.log_exception({'index': i + 1, 'job': job, 'exception': e})
+                    progress.console.print_traceback(exc=e, indent='    ')
                     continue
-        csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
-        if chmod:
-            csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
-            csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
-        with open(csv_out, 'w') as f:
-            f.write('# ' + ','.join(['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id',
-                                     'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
-                                     'processed_data_dir', 'output_dir', 'output_subdir', 'mtz_project_name',
-                                     'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
-            for line in output_csv:
-                values = [str(v) if v else '' for v in line]
-                f.write(','.join(values) + '\n')
-            f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
-            cli.print(f'Wrote new .csv file: {csv_out}')
+
+            with open(csv_out, 'a') as f:
+                f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
+                cli.print(f'Wrote new .csv file: {csv_out}')
     cli.print('')
     t1 = datetime.now()
 
@@ -1015,10 +1027,21 @@ async def cli_autoproc_process_wf(
         cli.print(message, log_only=True)
         cli.confirm(message, default=False)
 
+        # Prepare output csv
+        csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
+        if chmod:
+            csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
+            csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
+        with open(csv_out, 'w') as f:
+            f.write('# ' + ','.join(
+                ['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id',
+                 'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
+                 'processed_data_dir', 'output_dir', 'output_subdir',
+                 'mtz_project_name', 'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
+
         # Run the jobs
         t0 = datetime.now()
         cli.print(f'\nLaunching jobs at {t0}...')
-        output_csv = []
         with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(), MofNCompleteColumn(),
                       TextColumn('{task.fields[status]}'),
                       transient=True, console=cli) as progress:
@@ -1047,10 +1070,12 @@ async def cli_autoproc_process_wf(
                             for d in job.datasets:
                                 c = job.config
                                 o_sdir = d.output_subdir if hasattr(d, 'output_subdir') else None
-                                output_csv.append([job.job_dir.resolve(), job.run_no, job._success, d.sweep_id,
-                                                   d.autoproc_id, d.dataset_name, d.dataset_dir, d.first_image,
-                                                   d.raw_data_dir, d.processed_data_dir, d.output_dir, o_sdir,
-                                                   c.mtz_project_name, c.mtz_crystal_name, c.mtz_dataset_name])
+                                output_csv = [job.job_dir.resolve(), job.run_no, job._success, d.sweep_id,
+                                              d.autoproc_id, d.dataset_name, d.dataset_dir, d.first_image,
+                                              d.raw_data_dir, d.processed_data_dir, d.output_dir, o_sdir,
+                                              c.mtz_project_name, c.mtz_crystal_name, c.mtz_dataset_name]
+                                with open(csv_out, 'a') as f:
+                                    f.write(','.join(map(apu.stringify, output_csv)) + '\n')
 
                             progress.advance(running)
                             if job._success:
@@ -1069,18 +1094,8 @@ async def cli_autoproc_process_wf(
                     except Exception as e:
                         catcher.log_exception({'index': i + 1, 'job': job, 'exception': e})
                         continue
-            csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
-            if chmod:
-                csv_out.touch(mode=get_permissions_in_decimal(chmod_files))
-                csv_out.chmod(mode=get_permissions_in_decimal(chmod_files))
-            with open(csv_out, 'w') as f:
-                f.write('# ' + ','.join(['job_dir', 'run_no', 'success', 'sweep_id', 'autoproc_id',
-                                         'dataset_name', 'dataset_dir', 'first_image', 'raw_data_dir',
-                                         'processed_data_dir', 'output_dir', 'output_subdir', 'mtz_project_name',
-                                         'mtz_crystal_name', 'mtz_dataset_name']) + '\n')
-                for line in output_csv:
-                    values = [str(v) if v else '' for v in line]
-                    f.write(','.join(values) + '\n')
+
+            with open(csv_out, 'a') as f:
                 f.write(f'# Written by xtl.autoproc.process_wf at {datetime.now()}')
                 cli.print(f'Wrote new .csv file: {csv_out}')
         cli.print('')
