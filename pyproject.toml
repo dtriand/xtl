@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xtl"
+dynamic = ["version"]
+authors = [
+    {name = "Dimitris P. Triandafillidis", email = "64985525+dtriand@users.noreply.github.com"}
+]
+description = "A collection of tools for macromolecular crystallography"
+keywords = ["x-ray", "diffraction", "crystallography", "macromolecular", "structural", "biology",
+            "GSAS2", "autoPROC", "PDB"]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "click>=8.1.8",
+    "ConfigUpdater>=3.1.1",
+    "defusedxml>=0.7.1",
+    "distro>=1.9.0",
+    "fabio>=2023.6.0",
+    "f90nml>=1.4.4",
+    "gemmi>=0.5.5",
+    "hdf5plugin>=4.2.0",
+    "matplotlib>=3.8.0",
+    "numpy>=1.26.0",
+    "pandas>=2.2.3",
+    "pint>=0.19.2",
+    "pyfai>=2023.9.0",
+    "pyxray>=1.7.0",
+    "requests>=2.31.0",
+    "rich>=13.6.0",
+    "tabulate>=0.8.10",
+    "typer>=0.9.0"
+]
+
+[project.urls]
+homepage = "https://github.com/dtriand/xtl"
+
+[project.scripts]
+xtl = "xtl.cli.cli:cli_main"
+gsas2 = "xtl.cli.cli_gsas2:cli_gsas"
+pdbapi = "xtl.cli.cli_pdbapi:cli_pdbapi"
+diffplot = "xtl.cli.cli_diffplot:app"
+difftegrate = "xtl.cli.cli_difftegrate:app"
+h5peek = "xtl.cli.cli_h5peek:app"
+"xtl.autoproc" = "xtl.cli.automate.cli_autoproc:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.2.0",
+    "pytest-mock>=3.10.0",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "xtl.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
