@@ -8,7 +8,7 @@ src/xtl/crystallization2
 src/xtl/plots
 
 ### Temporary
-docs/
+docs_/
 assets/
 src/xtl/xtl.cfg
 
@@ -49,7 +49,7 @@ MANIFEST
 MANIFEST.in
 
 ## Sphinx documentation
-docs/_build/
+docs/build/
 
 ## Tox
 .tox
