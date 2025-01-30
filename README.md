@@ -1,8 +1,7 @@
 # XTL: Crystallographic Tools Library
 
 XTL is a collection of tools for everyday use in the workflow of the 
-macromolecular crystallographer. Apart from powerful scripting 
-capabilities, XTL also includes a lot of CLIs for typical operations.
+macromolecular crystallographer. 
 
 ## Installation
 XTL can be installed using:
