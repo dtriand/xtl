@@ -9,9 +9,4 @@ XTL can be installed using:
 pip install xtl
 ```
 
-To enable GSAS2 functionality, you need to install some optional 
-dependencies as well. Install via:
-```commandline
-pip instal xtl[full]
-```
 
