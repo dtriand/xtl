@@ -264,7 +264,7 @@ class TestDiffractionDataset:
 
         @pytest.mark.parametrize(
             'temp_files,               first_last, is_h5, expected', [
-            (_multiple_h5_datasets,    False,      True,  None),
+            (_multiple_h5_datasets,    False,      True,  'dataset_1_1_master.h5'),
             (_multiple_cbf_datasets,   False,      False, 'dataset_1_1_####.cbf'),  # standard method
             (_multiple_cbf_datasets_2, True,       False, ('dataset_1_1.00##.cbf', 1, 10)),  # string-comparison method
         ], indirect=['temp_files'])
