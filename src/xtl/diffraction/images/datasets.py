@@ -372,13 +372,12 @@ class DiffractionDataset:
         :param as_path: Whether to return the template as a full Path instance.
         :param first_last: Whether to return the first and last image numbers along with the template.
         """
-        if self._is_h5:
-            return None
-
         template = ''
         img_no_first, img_no_last = None, None
-        # Check if the file name is in the format {dataset_name}_{####}.ext
-        if '_' in self.first_image.name:
+        if self._is_h5:
+            template = self.first_image.name
+        elif '_' in self.first_image.name:
+            # Check if the file name is in the format {dataset_name}_{####}.ext
             first_image_name = self.first_image.name.replace(self.file_extension, '')
             segment, fragment = first_image_name.rsplit(sep='_', maxsplit=1)
             if segment == self.dataset_name and fragment.isnumeric():
@@ -388,24 +387,24 @@ class DiffractionDataset:
                 last_image_name = self.last_image.name.replace(self.file_extension, '')
                 img_no_last = int(last_image_name.rsplit(sep='_', maxsplit=1)[1])
 
-        # If the above fails, try to find the longest common string between the first and last image
-        if not template:
-            first = self.first_image.name.replace(self.file_extension, '')
-            last = self.last_image.name.replace(self.file_extension, '')
+            # If the above fails, try to find the longest common string between the first and last image
+            if not template:
+                first = self.first_image.name.replace(self.file_extension, '')
+                last = self.last_image.name.replace(self.file_extension, '')
 
-            match = SequenceMatcher(None, first, last).find_longest_match()
-            if match.a == match.b == 0:
-                common_template = first[match.a:match.a + match.size]
-                no_digits = len(first[match.a + match.size:])
-                template = f'{common_template}{"#" * no_digits}{self.file_extension}'
-                try:
-                    img_no_first = int(first[match.a + match.size:])
-                    img_no_last = int(last[match.b + match.size:])
-                except ValueError:
-                    pass
-        if not template:
-            raise ValueError(f"Could not determine image template with first and last image: {self.first_image}, "
-                             f"{self.last_image}")
+                match = SequenceMatcher(None, first, last).find_longest_match()
+                if match.a == match.b == 0:
+                    common_template = first[match.a:match.a + match.size]
+                    no_digits = len(first[match.a + match.size:])
+                    template = f'{common_template}{"#" * no_digits}{self.file_extension}'
+                    try:
+                        img_no_first = int(first[match.a + match.size:])
+                        img_no_last = int(last[match.b + match.size:])
+                    except ValueError:
+                        pass
+            if not template:
+                raise ValueError(f"Could not determine image template with first and last image: {self.first_image}, "
+                                 f"{self.last_image}")
 
         if as_path:
             template = self.raw_data / template

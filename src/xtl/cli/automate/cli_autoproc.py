@@ -17,6 +17,7 @@ import rich.table
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn, TextColumn
 import typer
 
+from xtl.cli.automate.autoproc_utils import stringify
 from xtl.cli.cliio import Console
 import xtl.cli.automate.autoproc_utils as apu
 from xtl.cli.utils import typer_async
@@ -393,7 +394,7 @@ async def cli_autoproc_process(
                     setattr(dataset, 'output_subdir', o_sdir)
                     dataset._fstring_dict['processed_data_dir'] += f'/{o_sdir}'
                     dataset._check_dir_fstring('processed_data_dir')
-                no_images += dataset.no_images
+                no_images += dataset.no_images if dataset.no_images else 1
                 dataset.reset_images_cache()
 
                 group_id = g_id if g_id else f'xtl_{i}'
@@ -467,7 +468,7 @@ async def cli_autoproc_process(
         with output.open('w') as f:
             f.write('# ' + ','.join(headers) + '\n')
             for params in renderable_params:
-                f.write(','.join(params) + '\n')
+                f.write(','.join(map(stringify, params)) + '\n')
             f.write(f'# Written by xtl.autoproc.process at {datetime.now()}')
         if chmod:
             output.chmod(mode=get_permissions_in_decimal(chmod_files))
