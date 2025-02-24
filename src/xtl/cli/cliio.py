@@ -88,7 +88,8 @@ class Console(rich.console.Console):
     def confirm(self, message: str, **kwargs):
         prompt = rich.prompt.Confirm(console=self)
         if not prompt.ask(message, **kwargs):
-            raise typer.Abort()
+            return False
+        return True
 
     def print(self, *args, **kwargs):
         markup = kwargs.get('markup', None)
