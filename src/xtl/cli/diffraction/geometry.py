@@ -4,7 +4,7 @@ from pyFAI.detectors import ALL_DETECTORS, Detector
 from pyFAI.geometry import Geometry
 import typer
 
-from xtl.cli.cliio import Console, epilog
+from xtl.cli.cliio import Console
 
 
 app = typer.Typer()
@@ -54,8 +54,7 @@ def get_geometry_info(geometry: Geometry) -> dict:
     return {f'{k}': f'{v}' for k, v in geometry.get_config().items() if k not in ['poni_version', 'detector_config']}
 
 
-@app.command('geometry', help='Create a .poni file for describing detector geometry (interactive)',
-             epilog=epilog)
+@app.command('geometry', help='Create a .poni file for describing detector geometry (interactive)')
 def cli_diffraction_geometry():
     cli = Console()
 
