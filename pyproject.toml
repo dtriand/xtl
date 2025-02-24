@@ -45,7 +45,7 @@ dependencies = [
     "requests>=2.31.0",
     "rich>=13.6.0",
     "tabulate>=0.8.10",
-    "typer>=0.9.0"
+    "typer>=0.15.1"
 ]
 
 [project.urls]
@@ -59,6 +59,7 @@ diffplot = "xtl.cli.cli_diffplot:app"
 difftegrate = "xtl.cli.cli_difftegrate:app"
 h5peek = "xtl.cli.cli_h5peek:app"
 "xtl.autoproc" = "xtl.cli.automate.cli_autoproc:app"
+"xtl.diffraction" = "xtl.cli.diffraction:app"
 
 [project.optional-dependencies]
 dev = [
