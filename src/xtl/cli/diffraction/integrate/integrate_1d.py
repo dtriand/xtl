@@ -38,8 +38,13 @@ def cli_diffraction_integrate_1d(
                                              rich_help_panel='Output parameters', is_flag=True),
         overwrite: bool = typer.Option(False, '-f', '--force', help='Overwrite existing files',
                                         rich_help_panel='Output parameters', is_flag=True),
+        # Debugging
+        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
+                                    rich_help_panel='Debugging'),
+        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
+                                   rich_help_panel='Debugging'),
 ):
-    cli = Console()
+    cli = Console(verbose=verbose, debug=debug)
     input_images = images
 
     try:
