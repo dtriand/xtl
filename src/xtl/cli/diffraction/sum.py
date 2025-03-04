@@ -5,14 +5,14 @@ import numpy as np
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
-from xtl.cli.cliio import Console
+from xtl.cli.cliio import Console, epilog
 from xtl.cli.diffraction.cli_utils import get_image_frames
 
 
 app = typer.Typer()
 
 
-@app.command('sum', help='Sum or average diffraction images')
+@app.command('sum', help='Sum or average diffraction images', epilog=epilog)
 def cli_diffraction_sum(
         images: list[str] = typer.Argument(..., help='Images to integrate'),
         # Summation parameters

@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
-from xtl.cli.cliio import Console
+from xtl.cli.cliio import Console, epilog
 from xtl.cli.diffraction.cli_utils import get_image_frames, IntegrationErrorModel, IntegrationRadialUnits
 
 
 app = typer.Typer()
 
 
-@app.command('1d', help='Perform 1D integration')
+@app.command('1d', help='Perform 1D integration', epilog=epilog)
 def cli_diffraction_integrate_1d(
         images: list[str] = typer.Argument(..., help='Images to integrate'),
         geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file',

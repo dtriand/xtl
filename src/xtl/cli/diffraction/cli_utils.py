@@ -3,6 +3,12 @@ from enum import Enum
 from xtl.diffraction.images.images import Image
 
 
+class ZScale(Enum):
+    LINEAR = 'linear'
+    LOG = 'log'
+    SQRT = 'sqrt'
+
+
 class IntegrationErrorModel(Enum):
     NONE = 'None'
     POISSON = 'poisson'

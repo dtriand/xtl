@@ -5,7 +5,7 @@ import numpy as np
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
-from xtl.cli.cliio import Console
+from xtl.cli.cliio import Console, epilog
 from xtl.cli.diffraction.cli_utils import get_image_frames, IntegrationErrorModel, IntegrationRadialUnits
 from xtl.diffraction.images.correlators import AzimuthalCrossCorrelatorQQ_1
 
@@ -17,7 +17,7 @@ from xtl.math import si_units
 app = typer.Typer()
 
 
-@app.command('qq', help='Calculate CCF within the same Q vector')
+@app.command('qq', help='Calculate CCF within the same Q vector', epilog=epilog)
 def cli_diffraction_correlate_qq(
 images: list[str] = typer.Argument(..., help='Images to integrate'),
         geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file',
