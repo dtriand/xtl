@@ -16,6 +16,9 @@ from xtl.common.os import get_permissions_in_decimal
 from xtl.config import cfg
 
 
+epilog='</> with ❤️ by [i magenta]_dtriand[/]'
+
+
 class CliIO:
 
     def __init__(self, debug: bool = False, verbose: int = 0, silent: bool = False):
