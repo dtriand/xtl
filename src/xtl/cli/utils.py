@@ -1,8 +1,12 @@
 import asyncio
+import time
 from functools import wraps
+from typing import Callable, Optional
 
 import click
 import tabulate
+
+from xtl.math import si_units
 
 
 
@@ -11,6 +15,48 @@ def typer_async(func):
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
     return wrapper
+
+
+class Timer:
+    def __init__(self, silent: bool = False, high_precision: bool = False,
+                 message: str = 'Completed in', si_units: bool = True,
+                 echo_func: Callable = print):
+        self._high_precision = high_precision
+        self._silent = silent
+        self._message = message
+        self._si_units = si_units
+        self._echo_func = echo_func
+        self._timer_func = time.perf_counter_ns if self._high_precision else time.perf_counter
+        self._t0: Optional[float | int] = None
+        self._t1: Optional[float | int] = None
+
+    @property
+    def duration(self):
+        if self._t0 is None or self._t1 is None:
+            return None
+        else:
+            return self._t1 - self._t0
+
+    def report(self):
+        duration = self.duration
+        if duration is None:
+            return None
+        if self._high_precision:
+            duration = duration / 1e9
+        if self._si_units:
+            duration = si_units(duration, suffix='s', digits=3)
+        self._echo_func(f'{self._message} {duration}')
+
+    def __enter__(self):
+        self._t0 = self._timer_func()
+        return self
+
+    def __exit__(self, *args):
+        self._t1 = self._timer_func()
+        if not self._silent:
+            self.report()
+
+
 
 
 # Tabulate formatting settings

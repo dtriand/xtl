@@ -6,12 +6,12 @@ from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNComple
 import typer
 
 from xtl.cli.cliio import Console, epilog
+from xtl.cli.utils import Timer
 from xtl.cli.diffraction.cli_utils import get_image_frames, IntegrationErrorModel, IntegrationRadialUnits
 from xtl.diffraction.images.correlators import AzimuthalCrossCorrelatorQQ_1
+from xtl.exceptions.utils import Catcher
 
-from datetime import datetime
 import warnings
-from xtl.math import si_units
 
 
 app = typer.Typer()
@@ -19,7 +19,7 @@ app = typer.Typer()
 
 @app.command('qq', help='Calculate CCF within the same Q vector', epilog=epilog)
 def cli_diffraction_correlate_qq(
-images: list[str] = typer.Argument(..., help='Images to integrate'),
+        images: list[str] = typer.Argument(..., help='Images to process'),
         geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file',
                                       exists=True),
         # mask: Path = typer.Option(None, '-m', '--mask', help='Mask file'),
@@ -55,113 +55,140 @@ images: list[str] = typer.Argument(..., help='Images to integrate'),
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
 
-    try:
+    with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
         images = get_image_frames(input_images)
-    except ValueError as e:
-        cli.print_traceback(e)
+    if catcher.raised:
         cli.print(f'Error: Failed to read all images', style='red')
         raise typer.Abort()
 
-    try:
+    with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
         for i, image in enumerate(images):
             image.load_geometry(geometry)
-    except Exception as e:
-        cli.print_traceback(e)
+    if catcher.raised:
         cli.print(f'Error: Failed to load geometry file {geometry} for image {input_images[i]}', style='red')
         raise typer.Abort()
     g = images[0].geometry
     cli.print(f'Wavelength read from geometry file: {g.get_wavelength() * 1e10:.6f} \u212B')
 
     ### Copied from xcca.py, minor modifications to make it work
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(),
-                  MofNCompleteColumn(), transient=True, console=cli) as progress:
+    # Format units
+    r_repr = '2\u03b8' if units_radial == IntegrationRadialUnits.TWOTHETA_DEG else 'q'
+
+    # Integration parameters
+    integration_kwargs = {
+        'points_radial': points_radial,
+        'units_radial': units_radial.value,
+        'error_model': error_model.value if error_model != IntegrationErrorModel.NONE else None,
+    }
+
+    with (Catcher(echo_func=cli.print, traceback_func=cli.print_traceback),
+          Progress(SpinnerColumn(), *Progress.get_default_columns(),
+                   TimeElapsedColumn(), MofNCompleteColumn(),
+                   transient=True, console=cli) as progress):
         task = progress.add_task('Calculating CCFs...', total=len(images))
         for img in images:
             dataset_name = img.file.stem.replace('_master', '')
 
-            if not output_dir.exists():
-                output_dir.mkdir(parents=True)
-
             # Calculate 1D azimuthal integration
-            progress.console.print(f'Performing 1D azimuthal integration with {points_radial} 2\u03b8 points... ', end='')
-            t0 = datetime.now()
-            ai1 = img.initialize_azimuthal_integrator(dim=1)
-            ai1.initialize(points_radial=points_radial)
-            ai1.integrate()
-            t1 = datetime.now()
-            t = (t1 - t0).total_seconds()
-            progress.console.print(f'Completed in {si_units(t, suffix="s", digits=3)}')
+            if verbose:
+                progress.console.print(f'Performing 1D azimuthal integration with '
+                                       f'{points_radial} {r_repr} points...')
+            with Timer(silent=verbose<=1, echo_func=progress.console.print):
+                ai1 = img.initialize_azimuthal_integrator(dim=1)
+                ai1.initialize(**integration_kwargs)
+                ai1.integrate(keep=True)
+
             ai1_file = output_dir / f'{dataset_name}_1D.xye'
-            ai1.save(ai1_file, overwrite=True)
-            progress.console.print(f'Saved 1D integration results to {ai1_file}')
+            ai1.save(ai1_file, overwrite=overwrite)
+            if verbose:
+                progress.console.print(f'Saved 1D integration results to {ai1_file}')
 
             # Calculate CCF
-            progress.console.print(f'Calculating CCF over {points_radial}\u00d7{points_azimuthal} 2\u03b8\u00d7\u03c7 points... ', end='')
-            t0 = datetime.now()
-            ccf = AzimuthalCrossCorrelatorQQ_1(img)
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore')
-                ccf.correlate(points_radial=points_radial, points_azimuthal=points_azimuthal, method=0)
-            xcca = ccf.ccf
-            t1 = datetime.now()
-            t = (t1 - t0).total_seconds()
-            progress.console.print(f'Completed in {si_units(t, suffix="s", digits=3)}')
+            if verbose:
+                progress.console.print(f'Calculating CCF over {points_radial}\u00d7{points_azimuthal} '
+                                       f'{r_repr}\u00d7\u03c7 points...')
+            with Timer(silent=verbose<=1, echo_func=progress.console.print):
+                accf = AzimuthalCrossCorrelatorQQ_1(img)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore')
+                    accf.correlate(points_radial=points_radial, points_azimuthal=points_azimuthal,
+                                  units_radial=units_radial.value, method=0)
+
             ccf_file = output_dir / f'{dataset_name}_ccf.npx'
-            ccf.save(ccf_file, overwrite=True)
-            progress.console.print(f'Saved CCF results to {ccf_file}')
+            accf.save(ccf_file, overwrite=overwrite)
+            if verbose:
+                progress.console.print(f'Saved CCF results to {ccf_file}')
 
             # Save 2D azimuthal integration
             ai2_file = output_dir / f'{dataset_name}_2D.npx'
-            img.ai2.save(ai2_file, overwrite=True)
-            progress.console.print(f'Saved 2D integration results to {ai2_file}')
+            img.ai2.save(ai2_file, overwrite=overwrite)
+            if verbose:
+                progress.console.print(f'Saved 2D integration results to {ai2_file}')
 
             # Prepare plots
             fig = plt.figure('XCCA overview', figsize=(16 / 1.2, 9 / 1.2))
-            gs = fig.add_gridspec(2, 3, wspace=0.25, hspace=0.3)
-            ax0 = fig.add_subplot(gs[:, 0])  # speckle pattern
-            ax1 = fig.add_subplot(gs[0, 1])  # cake plot
-            ax2 = fig.add_subplot(gs[1, 1], sharex=ax1)  # 1D azimuthal integration
-            ax3 = fig.add_subplot(gs[0, 2])  # 2D CCF
-            ax4 = fig.add_subplot(gs[1, 2], sharex=ax3)  # Average CCF
-            norm = 'log'
+            gs0 = fig.add_gridspec(1, 2, wspace=0.2,
+                                   width_ratios=[1.2, 2])  # outer grid (1x2)
+            gs1 = gs0[1].subgridspec(2, 2, wspace=0.3, hspace=0.1,
+                                     height_ratios=[3, 2])  # inner grid (2x2)
+            ax0 = fig.add_subplot(gs0[0, 0])  # speckle pattern
+            ax1 = fig.add_subplot(gs1[0, 0])  # cake plot
+            ax2 = fig.add_subplot(gs1[1, 0], sharex=ax1)  # 1D azimuthal integration
+            ax3 = fig.add_subplot(gs1[0, 1])  # 2D CCF
+            ax4 = fig.add_subplot(gs1[1, 1], sharex=ax3)  # Average CCF
+
+            ax0.tick_params(direction='in', color='white', bottom=True, top=True, left=True, right=True)
+            for ax in [ax1, ax2, ax3, ax4]:
+                ax.tick_params(direction='in', bottom=True, left=True)
+
+            norm = 'linear'
 
             # Speckle pattern
             _, _, m0 = img.plot(ax=ax0, fig=fig, apply_mask=True, overlay_mask=True,
-                                title='Speckle pattern', zscale=norm)
-            fig.colorbar(m0, location='bottom')
+                                title='Speckle pattern', zscale=norm, cmap='magma')
+            fig.colorbar(m0, location='bottom', pad=0.07)
+            ax0.text(0.5, -0.3, 'Intensity (arbitrary units)', va='bottom', ha='center',
+                     transform=ax0.transAxes, bbox={'alpha': 0.})
 
             # 2D integration
-            _, _, m1 = img.ai2.plot(ax=ax1, fig=fig, title='Cake projection', zscale=norm)
-            fig.colorbar(m1)
+            _, _, m1 = img.ai2.plot(ax=ax1, fig=fig, title='Cake projection', zscale=norm,
+                                    cmap='magma')
+            fig.colorbar(m1, location='bottom')
+            ax1.text(-0.05, -0.276, 'Int.', va='bottom', ha='right', transform=ax1.transAxes,
+                     bbox={'alpha': 0.})
 
             # 1D integration
-            img.ai1.plot(ax=ax2, fig=fig)
+            img.ai1.plot(ax=ax2, fig=fig, line_color='xkcd:plum')
             ax2.set_title('Azimuthal integration')
 
             # CCF
-            m = np.nanmean(xcca)
-            s = np.nanstd(xcca)
+            m = np.nanmean(accf.ccf)
+            s = np.nanstd(accf.ccf)
             nstd = 1
             vmin = m - nstd * s
             vmax = m + nstd * s
-            _, _, m3 = ccf.plot(ax=ax3, fig=fig, zmin=vmin, zmax=vmax, zscale='symlog')
-            fig.colorbar(m3)
+            _, _, m3 = accf.plot(ax=ax3, fig=fig, zmin=vmin, zmax=vmax, zscale='symlog',
+                                 cmap='Spectral')
+            fig.colorbar(m3, location='bottom')
+            ax3.text(-0.05, -0.276, 'CCF', va='bottom', ha='right', transform=ax3.transAxes,
+                     bbox={'alpha': 0.})
 
             # Average CCF
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore')
-                ccf_mean = np.nanmean(xcca, axis=0)
-            ax4.plot(img.ai1.results.radial, ccf_mean)
-            ax4.set_xlabel('Radial angle / 2\u03b8 (\u00b0)')
+                ccf_mean = np.nanmean(accf.ccf, axis=0)
+            ax4.plot(img.ai1.results.radial, ccf_mean, color='xkcd:plum')
+            ax4.set_xlabel(accf.units_radial_repr)
             ax4.set_ylabel('\u27e8CCF\u27e9$_{\u03c7}$')
             ax4.set_title('Average CCF')
 
-            fig.suptitle(f'{img.file.name} frame #{img.frame}')
+            fig.suptitle(f'{img.file.name} frame #{img.frame}', y=0.95)
 
             # Save plot
             fig_file = output_dir / f'{dataset_name}_overview.png'
-            fig.savefig(fig_file, dpi=600)
+            fig.savefig(fig_file, dpi=600, bbox_inches='tight')
             progress.console.print(f'Saved overview plot to {fig_file}')
 
             plt.close(fig)

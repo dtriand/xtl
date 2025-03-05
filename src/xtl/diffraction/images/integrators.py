@@ -238,7 +238,7 @@ class AzimuthalIntegrator1D(_Integrator):
                    encoding=encoding)
 
     def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
-             title: str = None, label: str = None, xscale: str = None, yscale: str = None,
+             title: str = None, label: str = None, xscale: str = None, yscale: str = None, line_color: str = None,
              errors: bool = False) -> tuple[plt.Axes, plt.Figure]:
         """
         Prepare a plot of the 1D integration results. ``plt.show()`` must be called separately to display the plot.
@@ -253,6 +253,7 @@ class AzimuthalIntegrator1D(_Integrator):
                            ``'linear'``)
         :param str yscale: y-axis scale, one from: ``'linear'``, ``'log'``, ``'symlog'`` or ``'logit'`` (default:
                            ``'linear'``)
+        :param str line_color: Line color (default: ``None``)
         :param bool errors: Display intensity uncertainties as an error band (only if calculated during integration)
         :return:
         """
@@ -280,7 +281,7 @@ class AzimuthalIntegrator1D(_Integrator):
             raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
 
         intensities, radial = self.results.intensity, self.results.radial
-        ax.plot(radial, intensities, label=label)
+        ax.plot(radial, intensities, color=line_color, label=label)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_xscale(xscale)
