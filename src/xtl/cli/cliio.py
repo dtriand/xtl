@@ -168,9 +168,9 @@ class Console(rich.console.Console):
                 super().print_exception(show_locals=True)
         elif self.verbose:  # Standard traceback
             for line in traceback.format_exception(type(exc), exc, exc.__traceback__):
-                self.print(f'{indent}{line}', style='red dim')
+                self.print(f'{indent}{line}', style='red')
         else:  # Only print the exception
-            self.print(f'{indent}{exc}', style='red dim')
+            self.print(f'{indent}{exc}', style='red')
         if self._log_file:
             with open(self._log_file, 'a') as f:
                 f.write('\n'.join(traceback.format_exception(type(exc), exc, exc.__traceback__)))

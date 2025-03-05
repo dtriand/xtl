@@ -1,13 +1,15 @@
 import traceback
-from typing import Callable
+from typing import Callable, Optional
 import warnings
 
 
 class Catcher:
-    def __init__(self, silent: bool = False, error_message: str = 'Exception was raised: ', echo_func: Callable = print,
+    def __init__(self, silent: bool = False, error_message: str = 'Exception was raised: ',
+                 echo_func: Callable = print, traceback_func: Optional[Callable] = None,
                  error_kwargs: dict = None, warning_kwargs: dict = None):
         self.silent = silent
         self.echo_func = echo_func
+        self.traceback_func = traceback_func
         self._errors = []
         self.error_message = error_message
         self.error_kwargs = error_kwargs or {}
@@ -30,9 +32,12 @@ class Catcher:
         if exc_type:
             self.raised = True
             if not self.silent:
-                self.echo_func(self.error_message, **self.error_kwargs)
-                for line in traceback.format_exception(exc_type, exc_val, exc_tb):
-                    self.echo_func(f'    {line}', **self.error_kwargs)
+                if self.traceback_func is not None:
+                    self.traceback_func(exc_val)
+                else:
+                    self.echo_func(self.error_message, **self.error_kwargs)
+                    for line in traceback.format_exception(exc_type, exc_val, exc_tb):
+                        self.echo_func(f'    {line}', **self.error_kwargs)
         return True
 
     @property
