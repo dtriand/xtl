@@ -23,6 +23,7 @@ def cli_diffraction_correlate_qq(
         geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file',
                                       exists=True),
         # mask: Path = typer.Option(None, '-m', '--mask', help='Mask file'),
+        # blemishes: Path = typer.Option(None, '-b', '--blemishes', help='Blemishes file'),
         # Integration parameters
         points_radial: int = typer.Option(300, '-pR', '--points-radial', help='Number of points along the radial axis',
                                           min=50, rich_help_panel='Integration parameters'),
@@ -181,7 +182,7 @@ def cli_diffraction_correlate_qq(
                 ccf_mean = np.nanmean(accf.ccf, axis=0)
             ax4.plot(img.ai1.results.radial, ccf_mean, color='xkcd:plum')
             ax4.set_xlabel(accf.units_radial_repr)
-            ax4.set_ylabel('\u27e8CCF\u27e9$_{\u03c7}$')
+            ax4.set_ylabel('\u27e8CCF\u27e9$_{\u0394}$')
             ax4.set_title('Average CCF')
 
             fig.suptitle(f'{img.file.name} frame #{img.frame}', y=0.95)
