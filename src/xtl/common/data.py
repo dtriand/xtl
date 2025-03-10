@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from typing_extensions import Self
 
 from numpydantic import NDArray, Shape
@@ -6,6 +6,9 @@ from numpydantic.dtype import Number
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from xtl.common.labels import Label
+
+
+TData = Union['Data0D', 'Data1D', 'Data2D', 'Data3D', 'DataGrid2D']
 
 
 class Data0D(BaseModel):
@@ -86,7 +89,7 @@ class DataGrid2D(BaseModel):
 
     x: Data0D
     y: Data0D
-    z: NDArray[Shape['*', '*'], Number]
+    z: NDArray[Shape['*, *'], Number]
 
     @model_validator(mode='after')
     def check_array_shapes(self) -> Self:
