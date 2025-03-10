@@ -8,8 +8,10 @@ gemmi==0.5.8
 hdf5plugin==4.2.0
 matplotlib==3.8.0
 numpy==1.26.0
+numpydantic==1.6.7
 pandas==2.2.3
 pint==0.19.2
+pydantic==2.10.6
 pyfai==2023.9.0
 pyxray==1.7.0
 requests==2.31.0
