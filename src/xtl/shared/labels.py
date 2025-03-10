@@ -1,10 +1,12 @@
-from dataclasses import dataclass
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field
 
-@dataclass
-class Label:
+
+class Label(BaseModel):
+    __pydantic_config__ = ConfigDict(validate_assignment=True, extra='forbid')
+
     value: str
-    description: Optional[str] = None
-    repr: Optional[str] = None
-    latex: Optional[str] = None
+    desc: Optional[str] = Field(default=None, repr=False)
+    repr: Optional[str] = Field(default=None, repr=False)
+    latex: Optional[str] = Field(default=None, repr=False)
