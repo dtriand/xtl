@@ -1,11 +1,27 @@
-from typing import Optional, Union
+from enum import Enum
+from functools import partial
+from typing import Any, Optional, Union
 from typing_extensions import Self
 
 from numpydantic import NDArray, Shape
 from numpydantic.dtype import Number
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator, field_validator
 
 from xtl.common.labels import Label
+
+
+def _validate_enum(cls, v: Any, e: Enum):
+    if isinstance(v, str):
+        try:
+            return e(v)
+        except ValueError:
+            values = [f'{m.value!r}' for m in e]
+            raise ValueError(f'{v!r} is not a valid {e.__name__}, '
+                             f'choose one from: {", ".join(values)}')
+    return v
+
+
+enum_validator = lambda f, e: field_validator(f, mode='before')(partial(_validate_enum, e=e))
 
 
 TData = Union['Data0D', 'Data1D', 'Data2D', 'Data3D', 'DataGrid2D']
@@ -18,7 +34,7 @@ class Data0D(BaseModel):
     model_config = ConfigDict(validate_assignment=True, extra='forbid')
 
     data: NDArray[Shape['*'], Number]
-    label: Label
+    label: Optional[Label] = None
     units: Optional[Label] = None
 
 

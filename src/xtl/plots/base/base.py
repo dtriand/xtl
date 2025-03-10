@@ -7,12 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, validate_call
 
 from xtl.common.data import TData, Data0D, Data1D
 from xtl.common.labels import Label, LabelFmt
-
-
-class GraphConfig(BaseModel):
-    model_config = ConfigDict(validate_assignment=True, extra='forbid')
-
-    label_fmt: LabelFmt = LabelFmt.VALUE
+from xtl.plots.config import GraphConfig
+from xtl.plots.config.axis import AxisConfig
 
 
 class GraphBase(BaseModel):
@@ -28,20 +24,24 @@ class GraphBase(BaseModel):
 
     title: Optional[str] = None
 
-    def get_label(self, data: Data0D) -> Optional[str]:
-        value = getattr(data.label, self.config.label_fmt.value)
-        units = getattr(data.units, self.config.label_fmt.value)
+    def _get_label(self, data: Data0D) -> Optional[str]:
+        """
+        Returns a string in the form of `quantity (units)` for the given data. The
+        format is determined by the `label_fmt` attribute of the `config` attribute.
+        """
+        quant = getattr(data.label, self.config.label_fmt.value, None)
+        units = getattr(data.units, self.config.label_fmt.value, None)
 
-        v = value or data.label.value
-        u = units or data.units.value
+        q = quant or getattr(data.label, 'value', None)
+        u = units or getattr(data.units, 'value', None)
         if self.config.label_fmt in [LabelFmt.VALUE, LabelFmt.LATEX]:
             if u:
-                return f'{v} ({u})'
-            return v
+                return f'{q} ({u})'
+            return q
         elif self.config.label_fmt == LabelFmt.REPR:
             if u:
-                return f'{v} [{u}]'
-            return v
+                return f'{q} [{u}]'
+            return q
         return None
 
     def plot(self):
@@ -51,13 +51,20 @@ class GraphBase(BaseModel):
 class Graph1D(GraphBase):
     data: Data1D
 
-    @property
-    def xlabel(self) -> str:
-        return self.get_label(self.data.x)
+    config_x: Optional[AxisConfig] = Field(default_factory=AxisConfig, repr=False, exclude=True)
+    config_y: Optional[AxisConfig] = Field(default_factory=AxisConfig, repr=False, exclude=True)
+
+    def model_post_init(self, __context: Any) -> None:
+        self.config.axes.x = self.config_x
+        self.config.axes.y = self.config_y
 
     @property
-    def ylabel(self) -> str:
-        return self.get_label(self.data.y)
+    def label_x(self) -> str:
+        return self._get_label(self.data.x)
+
+    @property
+    def label_y(self) -> str:
+        return self._get_label(self.data.y)
 
     @validate_call
     def plot(self, xlabel: Optional[str] = None, ylabel: Optional[str] = None):
@@ -68,5 +75,6 @@ class Graph1D(GraphBase):
 
         self.axis.plot(self.data.x.data, self.data.y.data)
 
-        self.axis.set_xlabel(self.xlabel)
-        self.axis.set_ylabel(self.ylabel)
+        self.axis.set_title(self.title)
+        self.axis.set_xlabel(self.label_x)
+        self.axis.set_ylabel(self.label_y)
