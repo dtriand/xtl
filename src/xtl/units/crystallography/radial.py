@@ -91,6 +91,9 @@ class RadialValue:
     type: RadialUnitType | str
 
     def __post_init__(self):
+        if isinstance(self.type, str):
+            # Recast type to enum
+            self.type = RadialUnitType(self.type)
         r = RadialUnitType(self.type)
         self._radial: RadialUnit = RadialUnit.from_type(r)
 
