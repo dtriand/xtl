@@ -59,6 +59,7 @@ diffplot = "xtl.cli.cli_diffplot:app"
 h5peek = "xtl.cli.cli_h5peek:app"
 "xtl.autoproc" = "xtl.cli.automate.cli_autoproc:app"
 "xtl.diffraction" = "xtl.cli.diffraction:app"
+"xtl.math" = "xtl.cli.math:app"
 
 [project.optional-dependencies]
 dev = [
