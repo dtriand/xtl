@@ -194,4 +194,10 @@ def cli_diffraction_correlate_qq(
 
             plt.close(fig)
 
+            # Delete integrators and image to free up memory
+            #  The correlator gets overwritten on the next iteration
+            del img.ai1
+            del img.ai2
+            del img
+
             progress.advance(task)
