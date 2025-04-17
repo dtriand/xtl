@@ -311,9 +311,15 @@ def get_directory_size(directory: Path) -> int:
 def df_stringify(df: pd.DataFrame):
     df2 = df.copy(deep=True)
     columns = df.columns
+    # Flatten any lists
     for col in columns:
         if df[col].dtype == 'object':
-            first_object = df[col].dropna().iloc[0]
+            column = df[col].dropna()
+            # Check if the column is empty
+            if column.size == 0:
+                continue
+            # Check if the first object is a list or tuple
+            first_object = column.iloc[0]
             if isinstance(first_object, list | tuple):
                 df2[col] = df[col].apply(lambda x: ';'.join(map(str, x)))
     return df2
