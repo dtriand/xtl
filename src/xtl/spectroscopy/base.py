@@ -158,7 +158,7 @@ class Spectrum:
         :return:
         '''
         f = filename.parent / (filename.stem + '_temp.csv')
-        f.write_text(filename.read_text().split('\n\n')[0] + '\n')
+        f.write_text((filename.read_text().split('\n\n')[0] + '\n').replace(',\n', '\n'))
         import_kwargs['skiprows'] = 2
         try:
             self._import_csv(f, import_kwargs)
