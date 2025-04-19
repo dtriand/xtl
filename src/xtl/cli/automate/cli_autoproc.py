@@ -318,6 +318,10 @@ async def cli_autoproc_process(
                   log_only=True)
 
         csv_dict = apu.parse_csv(csv_file, echo=cli.print)
+        if len(csv_dict['headers']) == 0:
+            cli.print(f'No valid headers found in {csv_file}', style='red')
+            raise typer.Abort()
+
         cli.print(f'📑 Found {len(csv_dict["headers"])} headers in the CSV file: ')
         cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
 
@@ -656,14 +660,6 @@ async def cli_autoproc_process(
     with open('jobs_output.txt', 'w') as f:
         f.write('\n'.join([str(created) for created in directories_created]))
 
-    # TODO:
-    #  [x] Change permissions
-    #  [x] Fix output_dir bug
-    #  [x] Write new csv file for downstream processing
-    #  [x] Add option for logging stdout to file (--log)
-    #  [x] Run GPhL workflow files
-    #  [ ] Monitor resources in the progress bar [psutil.cpu_percent() and psutil.virtual_memory().percent]
-    #  [ ] Rethink success criteria
 
 
 @app.command('process_wf', short_help='Run multiple GPhL workflow jobs', epilog=app.info.epilog)
@@ -884,6 +880,10 @@ async def cli_autoproc_process_wf(
                   log_only=True)
 
         csv_dict = apu.parse_csv(csv_file, extra_headers=['nml_file'], echo=cli.print)
+        if len(csv_dict['headers']) == 0:
+            cli.print(f'No valid headers found in {csv_file}', style='red')
+            raise typer.Abort()
+
         cli.print(f'📑 Found {len(csv_dict["headers"])} headers in the CSV file: ')
         cli.print('\n'.join(f' - {h} ' + escape(f'[{csv_dict["index"][h]}]') for h in csv_dict['headers']))
 
