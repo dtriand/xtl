@@ -16,3 +16,4 @@ requests==2.31.0
 rich==13.9.4
 tabulate==0.8.10
 typer==0.15.1
+xlsxwriter==3.2.3

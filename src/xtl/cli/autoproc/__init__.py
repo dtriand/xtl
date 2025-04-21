@@ -4,7 +4,7 @@ from .options import app as options_app
 from .process import app as process_app
 from .process_wf import app as process_wf_app
 from .fixnml import app as fixnml_app
-from .json2csv import app as json2csv_app
+from .summarize import app as summarize_app
 
 from xtl.cli.cliio import epilog
 
@@ -15,4 +15,4 @@ app.add_typer(options_app)
 app.add_typer(process_app)
 app.add_typer(process_wf_app)
 app.add_typer(fixnml_app)
-app.add_typer(json2csv_app)
+app.add_typer(summarize_app)

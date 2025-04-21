@@ -30,7 +30,7 @@ class Catcher:
                 self.echo_func(f'Warning was raised by: {w.filename}:{w.lineno}', **self.warning_kwargs)
                 self.echo_func(f'    {w.category.__name__}: {w.message}', **self.warning_kwargs)
         if exc_type:
-            self.raised = True
+            self.log_exception([exc_type, exc_val, exc_tb])
             if not self.silent:
                 if self.traceback_func is not None:
                     self.traceback_func(exc_val)
