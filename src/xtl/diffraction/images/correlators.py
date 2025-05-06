@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -7,10 +8,15 @@ from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import binned_statistic
 
 import xtl
 from xtl.diffraction.images import Image
 from xtl.files.npx import NpxFile
+
+
+AzimuthalCrossCorrelationResult = namedtuple('AzimuthalCrossCorrelationResult', ['radial', 'azimuthal', 'ccf'])
+DiscreteCorrelationFunctionResult = namedtuple('DiscreteCorrelationFunctionResult', ['x', 'dcf', 'errors'])
 
 
 class _Correlator:
@@ -27,6 +33,7 @@ class _Correlator:
         if not isinstance(image, Image):
             raise ValueError(f'Must be an Image instance, not {image.__class__.__name__}')
         self.image.check_geometry()
+        self._results: AzimuthalCrossCorrelationResult = None
 
         # Units representation
         self.units_radial: str = '2theta_deg'
@@ -38,6 +45,10 @@ class _Correlator:
         self.cmap = 'viridis'
         self.cmap_bad_values = 'white'
         self.symlog_linthresh = 0.05
+
+    @property
+    def results(self):
+        return self._results
 
 
 class AzimuthalCrossCorrelatorQQ_1(_Correlator):
@@ -190,7 +201,8 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
 
             # Transpose array to match the axes of the intensity array
             self._ccf = ccf.T  # dim = (delta, radial)
-        return self.ccf
+        self._results = AzimuthalCrossCorrelationResult(radial=ai2.radial, azimuthal=ai2.azimuthal, ccf=self._ccf)
+        return self.results
 
     @property
     def ccf(self):
@@ -362,7 +374,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         pixel_geometry = self.image.geometry.corner_array(unit=self.units_radial, use_cython=True)
         # self.image.geometry.normalize_azimuth_range()
         # self.image.geometry.guess_npt_rad()
-        
+
         # We need to grab the corner 0 pixel in order to perfectly align with the beam center
         radial = pixel_geometry[:, :, 0, 0]
         chi = np.rad2deg(pixel_geometry[:, :, 0, 1])
@@ -407,15 +419,18 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         # radial_shells_in_pixels = self._q2r(radial_shells, in_pixels=True)
         # average_width = np.mean((radial_shells_in_pixels - np.roll(radial_shells_in_pixels, 1))[1:])
         # print(f'Average shell width: {average_width:.2f} px')
-        for i, radial_low in enumerate(radial_shells[:-1]):
-            radial_high = radial_shells[i + 1]
+        # dcf, x, _ = binned_statistic(x=lag.flatten(), values=udcf.flatten(), bins=x_bins, statistic='mean')
 
-            ring = (radial >= radial_low) & (radial < radial_high)
+        # Assign every pixel to a radial shell bin (first bin is 1, not 0)
+        pixel_bins = np.digitize(x=radial, bins=radial_shells)
+        for i, _ in enumerate(radial_shells[:-1]):
+            ring = np.where(pixel_bins == i + 1)
             self.shells_img[ring] = np.random.random()
 
-            intensities = np.extract(ring, self.image.data)
-            azimuthals = np.extract(ring, chi)
-            radials = np.extract(ring, radial)
+            intensities = self.image.data[ring]
+            azimuthals = chi[ring]
+            radials = radial[ring]
+
             sorter = np.argsort(azimuthals)
             pixels = np.vstack((azimuthals[sorter], radials[sorter], intensities[sorter]))
             self.pixels_per_shell.append(pixels)
@@ -434,7 +449,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
             di[i] = np.roll(di0, -i)
         return di
 
-    def correlate(self, points_radial: int = 500, units_radial: str = '2theta', shell_range=(0, 100)):
+    def correlate_1(self, points_radial: int = 500, units_radial: str = '2theta', shell_range=(0, 100)):
         self._set_units(units_radial=units_radial, units_azimuthal='chi_deg')
         print('Splitting pixels to shells... ', end='')
         t1 = datetime.now()
@@ -475,6 +490,108 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         print(f'Completed in {(t4 - t3).total_seconds():.3f} sec')
         self.ccf = ccf
 
+    def correlate(self, points_radial: int = 500, points_azimuthal: int = 360, units_radial: str = '2theta',
+                  shell_range: tuple | list = None) -> AzimuthalCrossCorrelationResult:
+        """
+        Calculate the intensity cross-correlation function (CCF) for the entire radial range. This uses the true pixel
+        intensities as input for the calculations. The function being calculated is:
+
+        .. math::
+            CCF(q, \\Delta) = \\frac{\\langle I(q,\\chi) \\times I(q, \\chi + \\Delta) \\rangle_\\chi -
+            \\langle I(q,\\chi) \\rangle_\\chi^2}{Var(I(q,\\chi))}
+
+        where ``q`` is the radial coordinate, ``\u03c7`` is the azimuthal coordinate, ``\u0394`` the offset in
+        azimuthal coordinates and ``Var`` is the variance.
+
+        Since the intensities are unevenly distributed along the azimuthal axis (due to the projection from a finite
+        size cartesian grid to azimuthal coordinates), the CCF is calculated using the Discrete Correlation Function.
+
+        :param points_radial: Number of resolution shells (default: ``500``)
+        :param points_azimuthal: Number of binning shells for the CCF along the azimuthal axis (default: ``360``, i.e.
+                                 delta step of 1 degree).
+        :param units_radial: Units for the radial axis. Can be either ``'2theta'`` or ``'q'`` (default: ``'2theta'``)
+        :param shell_range:
+        :return:
+        """
+        # Setup units
+        self._set_units(units_radial=units_radial, units_azimuthal='chi_deg')
+
+        # Bin radial shells
+        self._split_pixels_to_shells(no_shells=points_radial)
+
+        if shell_range is None:
+            shell_range = (0, -1)
+
+        # Calculate binning array
+        dx = 360 / points_azimuthal
+        x = np.linspace(-180 - dx / 2, 180 + dx / 2, points_azimuthal)
+
+        # Calculate CCF
+        ccfs = []
+        radials = []
+        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0]:shell_range[1]]):
+            result = self.calculate_dacf(x_bins=x, x0=chi, y0=I, calculate_errors=False)
+            ccfs.append(result.dcf / (np.nanmean(I) ** 2))
+            radials.append(np.nanmean(radial))
+        self._results = AzimuthalCrossCorrelationResult(radial=np.array(radials), azimuthal=result.x,
+                                                        ccf=np.vstack(ccfs).T)
+        return self.results
+
+    @staticmethod
+    def calculate_dacf(x_bins: np.array, x0: np.array, y0: np.array, e0: np.array = None, calculate_errors=False) \
+            -> DiscreteCorrelationFunctionResult:
+        """
+        Calculate the discrete auto-correlation function (DACF) for a given set of data points. The function calculated
+        is as follows:
+
+        .. math::
+            DACF(\\chi) = \\frac{1}{M}\\sum\\frac{(y_i - \\langle y \\rangle)(y_j - \\bar{y})}{\\sigma_y^2 -
+            \\epsilon_y^2}
+
+        where  ``\u27e8y\u27e9`` is the mean value of ``y``, ``\u03c3_y`` is the standard deviation of ``y``,
+        ``\u03b5_y`` is the uncertainty of ``y`` (set to zero if not provided) and ``M`` is the number of ``ij`` pairs
+        for which ``\u03c7 - \u0394\u03c7/2 \u2264 \u0394x_ij < \u03c7 + \u0394\u03c7/2``. ``\u0394\u03c7`` is an
+        arbitrarily defined binning step.
+
+        Reference:
+            Edelson, R A, and J. H. Krolik. “The Discrete Correlation Function: A New Method for Analyzing Unevenly
+            Sampled Variability Data.” Astrophysical Journal 333 (October 1988): 646. https://doi.org/10.1086/166773.
+
+        :param np.array x_bins: bin edges for binning the DACF
+        :param np.array x0: the sampling interval of the data
+        :param np.array y0: data to be correlated
+        :param np.array e0: uncertainties of the data (default: ``None``)
+        :param bool calculate_errors: whether to also calculate the errors of the DACF (default: ``False``)
+        :return:
+        """
+        #
+        if e0 is None:
+            e0 = np.zeros_like(x0)
+
+        # Calculate element-wise offsets (i.e. lag array)
+        lag = np.subtract.outer(x0, x0)
+
+        # Calculate unbinned DACF
+        y0_fluct = y0 - np.mean(y0)
+        w = np.var(y0) - np.mean(e0) ** 2
+        udcf = np.multiply.outer(y0_fluct, y0_fluct) / w
+
+        # Calculate DACF by binning based on the lag array
+        dcf, x, _ = binned_statistic(x=lag.flatten(), values=udcf.flatten(), bins=x_bins, statistic='mean')
+        dcf /= np.nanmean(y0) ** 2
+
+        # Calculate bin centers
+        x = x[:-1] + np.diff(x) / 2
+
+        # Calculate errors
+        if calculate_errors:
+            dcf_errors = np.zeros_like(x)
+            ibins = np.digitize(x=lag, bins=x)
+            for k in range(x.shape[0]):
+                dcf_errors[k] = np.sqrt(np.sum(np.square(udcf[ibins[k]] - dcf[k]))) / (ibins[k].size - 1)
+            return DiscreteCorrelationFunctionResult(x=x, dcf=dcf, errors=dcf_errors)
+        return DiscreteCorrelationFunctionResult(x=x, dcf=dcf, errors=None)
+
     def plot_shells(self):
         fig, ax = plt.subplots(1, 1)
         ax = plt.imshow(self.shells_img, cmap='prism')
@@ -504,12 +621,36 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         ax.set_ylabel(self.units_radial_repr)
         fig.colorbar(mapper, ax=ax)
 
-    def plot_ccf(self):
+    def plot_ccf_at(self, q: float):
         fig, ax = plt.subplots(1, 1)
-        for chi, radial, ccf in self.ccf:
-            ax.hlines(np.nanmin(radial), xmin=-180, xmax=180, linestyles='--', colors='grey')
-            r_min, r_max = np.nanmin(radial), np.nanmax(radial)
-            norm = Normalize(vmin=r_min, vmax=r_max, clip=True)
-            ax.plot(chi, (r_max - r_min) * norm(ccf) + r_min, 'o-')
-        ax.set_xlabel(self.units_azimuthal_repr)
-        ax.set_ylabel(self.units_radial_repr)
+        radial, azimuthal, ccf = self.results
+        i = np.argmin(np.abs(radial - q))
+
+        ax.plot(azimuthal, ccf[:, i]/max(ccf[:, i]))
+        ax.plot(self.pixels_per_shell[i][0], self.pixels_per_shell[i][2]/max(self.pixels_per_shell[i][2]))
+
+        # for chi, radial, ccf in self.ccf:
+        #     ax.hlines(np.nanmin(radial), xmin=-180, xmax=180, linestyles='--', colors='grey')
+        #     r_min, r_max = np.nanmin(radial), np.nanmax(radial)
+        #     norm = Normalize(vmin=r_min, vmax=r_max, clip=True)
+        #     ax.plot(chi, (r_max - r_min) * norm(ccf) + r_min, 'o-')
+        # ax.set_xlabel(self.units_azimuthal_repr)
+        # ax.set_ylabel(self.units_radial_repr)
+
+    def plot(self, ax, fig, zscale: str = None, zmin: float = None, zmax: float = None, **kwargs):
+        if zscale in [None, 'linear']:
+            norm = partial(Normalize, clip=False)
+        elif zscale in ['log', 'log10']:
+            norm = partial(LogNorm, clip=False)
+        elif zscale in ['symlog']:
+            norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
+        else:
+            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log, symlog')
+
+        radial, azimuthal, ccf = self.results
+        ccf[int(ccf.shape[0] / 2)] = np.nan
+        img = ax.imshow(ccf, origin='lower', aspect='auto', interpolation='nearest',
+                        # cmap=cmap,
+                        norm=norm(vmin=zmin, vmax=zmax),
+                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+        return ax, fig, img
