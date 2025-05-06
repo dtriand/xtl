@@ -13,6 +13,7 @@ pint==0.19.2
 pydantic==2.11.5
 pyfai==2023.9.0
 pyxray==1.7.0
+reciprocalspaceship==1.0.3
 requests==2.31.0
 rich==13.9.4
 sphinx==8.1.3
