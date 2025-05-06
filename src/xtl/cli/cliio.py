@@ -16,6 +16,9 @@ from xtl.common.os import get_permissions_in_decimal
 from xtl.config import cfg
 
 
+epilog='</> with ❤️ by [i magenta]_dtriand[/]'
+
+
 class CliIO:
 
     def __init__(self, debug: bool = False, verbose: int = 0, silent: bool = False):
@@ -88,7 +91,8 @@ class Console(rich.console.Console):
     def confirm(self, message: str, **kwargs):
         prompt = rich.prompt.Confirm(console=self)
         if not prompt.ask(message, **kwargs):
-            raise typer.Abort()
+            return False
+        return True
 
     def print(self, *args, **kwargs):
         markup = kwargs.get('markup', None)
@@ -164,9 +168,9 @@ class Console(rich.console.Console):
                 super().print_exception(show_locals=True)
         elif self.verbose:  # Standard traceback
             for line in traceback.format_exception(type(exc), exc, exc.__traceback__):
-                self.print(f'{indent}{line}', style='red dim')
+                self.print(f'{indent}{line}', style='red')
         else:  # Only print the exception
-            self.print(f'{indent}{exc}', style='red dim')
+            self.print(f'{indent}{exc}', style='red')
         if self._log_file:
             with open(self._log_file, 'a') as f:
                 f.write('\n'.join(traceback.format_exception(type(exc), exc, exc.__traceback__)))

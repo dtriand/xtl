@@ -18,7 +18,7 @@ from xtl.math import si_units
 app = typer.Typer(name='diffplot', help='Plot diffraction data')
 
 
-@app.command('frames', help='Plot multiple 2D images')
+@app.command('frames', help='Plot multiple 2D images', deprecated=True)
 def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
                         frames: int = typer.Argument(1, help='No of frames to plot'),
                         log_intensities: bool = typer.Option(False, '-l', '--log', help='Logarithmic intensity scale'),

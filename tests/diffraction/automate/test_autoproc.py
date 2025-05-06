@@ -79,7 +79,7 @@ class TestAutoPROCJob:
             assert job._datasets[0].autoproc_idn == \
                    f'xtl0409s01,{datasets[0].raw_data},' \
                    f'{",".join(map(str, datasets[0].get_image_template(first_last=True)))}'
-        assert job._datasets[0].job_dir == datasets[0].processed_data / 'autoproc_run01'
+        assert job._datasets[0].output_dir == datasets[0].output_dir
 
     @seed(42)
     def test_get_macro_content(self, datasets, is_h5):
@@ -124,10 +124,10 @@ class TestAutoPROCJob:
                 assert line == f'# run_number = 1'
             if line.startswith('# job_dir'):
                 assert Path(line.replace('# job_dir', '')).parts[-5:] == \
-                       ('a', 'b', 'processed', f'dataset_1_1', 'autoproc_run01')
+                       ('a', 'b', 'processed', 'c', 'autoproc_run01')
             if line.startswith('# autoproc_output_dir'):
                 assert Path(line.replace('# autoproc_output_dir', '')).parts[-6:] == \
-                       ('a', 'b', 'processed', f'dataset_1_1', 'autoproc_run01', 'autoproc')
+                       ('a', 'b', 'processed', 'c', 'autoproc_run01', 'autoproc')
             if line.startswith('# single_sweep'):
                 assert line == f'# single_sweep = False'
             if line.startswith('# is_h5'):

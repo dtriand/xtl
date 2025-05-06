@@ -2,6 +2,8 @@ from math import sqrt
 
 from typing_extensions import Literal
 
+import numpy as np
+
 from .trig import sin, asin, sin_d, cos_d
 
 
@@ -29,6 +31,56 @@ def ttheta_to_d_spacing(ttheta, wavelength, mode: Literal['d', 'r'] = 'd'):
     :rtype: float
     """
     return wavelength / (2 * sin(ttheta / 2, mode))
+
+
+# Conversion functions (assuming standard units, aka deg, A, 1/A)
+tth_to_d = lambda x, w: w / (2 * np.sin(np.radians(x / 2)))
+d_to_tth = lambda x, w: 2 * np.degrees(np.arcsin(w / (2 * x)))
+d_to_q = lambda x, w: 2 * np.pi / x
+q_to_d = lambda x, w: 2 * np.pi / x
+tth_to_q = lambda x, w: d_to_q(tth_to_d(x, w), w)
+q_to_tth = lambda x, w: d_to_tth(q_to_d(x, w), w)
+radial_converters = {
+    '2theta': {
+        'd': tth_to_d,
+        'q': tth_to_q
+    },
+    'd': {
+        '2theta': d_to_tth,
+        'q': d_to_q
+    },
+    'q': {
+        '2theta': q_to_tth,
+        'd': q_to_d
+    }
+}
+
+deg_to_rad = lambda x: np.radians(x)
+rad_to_deg = lambda x: np.degrees(x)
+nm_to_A = lambda x: x * 10.
+A_to_nm = lambda x: x / 10.
+inv_nm_to_inv_A = lambda x: x / 10.
+inv_A_to_inv_nm = lambda x: x * 10.
+unit_converters = {
+    'degrees': {
+        'radians': deg_to_rad
+    },
+    'radians': {
+        'degrees': rad_to_deg
+    },
+    'nm': {
+        'A': nm_to_A
+    },
+    'A': {
+        'nm': A_to_nm
+    },
+    '1/nm': {
+        '1/A': inv_nm_to_inv_A
+    },
+    '1/A': {
+        '1/nm': inv_A_to_inv_nm
+    }
+}
 
 
 # Reference

@@ -200,11 +200,14 @@ class AutoPROCJob(Job):
                 # Set the output directory to be the same for all datasets
                 setattr(ds, 'output_dir', self._datasets[0].output_dir)
 
-            if not self._is_h5:
-                # Set the autoproc_idn to be passed on the -Id flag
+            if ds.is_h5:
+                # Set the autoproc_idn to be passed on the -Id/-h5 flag
                 # NOTE: Check if HDF5 images can also be parsed with -Id flag
                 #  According to the documentation, the image template should be <dataset_name>_master.h5
                 #  but how would we determine the first and last images? Are they required?
+                image_template, first_image, last_image = ds.get_image_template(as_path=True, first_last=True)
+                setattr(ds, 'autoproc_idn', f'{image_template}')
+            else:
                 image_template, first_image, last_image = ds.get_image_template(as_path=False, first_last=True)
                 if first_image is None or last_image is None:
                     raise ValueError(f'Failed to determine first and last images for dataset[{i}]: {ds}\n'
@@ -273,9 +276,12 @@ class AutoPROCJob(Job):
                 f'#   raw_data = {dataset.raw_data}',
                 f'#   first_image = {dataset.first_image.name}',
             ]
-            if self._is_h5:
-                # NOTE: dataset.autoproc_idn is not set for HDF5 images because it's currently not fully supported
-                idns.append(dataset.first_image)
+            if dataset.is_h5:
+                idn = dataset.autoproc_idn  # equivalent to dataset.first_image
+                idns.append(idn)
+                content += [
+                    f'#   idn = {idn}'
+                ]
             else:
                 idn = dataset.autoproc_idn
                 idns.append(idn)
@@ -289,8 +295,10 @@ class AutoPROCJob(Job):
         content.append('')
 
         # __args parameter
-        prefix = '-h5' if self._is_h5 else '-Id'
-        __args = ' '.join([f'{prefix} "{idn}"' for idn in idns]) + ' '
+        __args = ''
+        for idn, dataset in zip(idns, self.datasets):
+            prefix = '-h5' if dataset.is_h5 else '-Id'
+            __args += f'{prefix} "{idn}" '
         __args += self.config.get_param_value('_args')['__args']
 
         content += [
@@ -324,7 +332,6 @@ class AutoPROCJob(Job):
             f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
             f'## Initialization mode',
             f'# single_sweep = {self._single_sweep}',
-            f'# is_h5 = {self._is_h5}',
             f'## Localization',
             f'# shell = {self._shell.name} [{self._shell.executable}]',
             f'# compute_site = {self._compute_site.__class__.__name__} '
@@ -709,7 +716,6 @@ class AutoPROCWorkflowJob(AutoPROCJob):
             f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
             f'## Initialization mode',
             f'# single_sweep = {self._single_sweep}',
-            f'# is_h5 = {self._is_h5}',
             f'## Localization',
             f'# shell = {self._shell.name} [{self._shell.executable}]',
             f'# compute_site = {self._compute_site.__class__.__name__} '
