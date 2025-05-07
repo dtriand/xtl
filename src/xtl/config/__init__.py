@@ -180,7 +180,8 @@ API Reference
 """
 
 
-from xtl import __version__
+from xtl import __version_tuple__
+from xtl.version import version_from_str
 from xtl.config.config import Config
 from xtl.exceptions import ConfigWarning
 
@@ -209,8 +210,8 @@ def _check_config_version(config_to_check):
     :param Config config_to_check:
     :return:
     """
-    current_version = _version_tuple(__version__)
-    config_version = _version_tuple(config_to_check['xtl']['version'].value)
+    current_version = __version_tuple__
+    config_version = version_from_str(config_to_check['xtl']['version'].value).safe_tuple
     if config_version < current_version:
         warnings.warn(f'Using a config from an older version of XTL. Attempting to upgrade config...', ConfigWarning)
         config_to_check.upgrade_config()
