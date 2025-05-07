@@ -57,6 +57,14 @@ class VersionInfo:
                 f'{self.serial}')
 
     @property
+    def string_safe(self):
+        """
+        Return a string representation of the version including only major, minor and
+        micro levels (e.g., '1.2.3').
+        """
+        return f'{self.major}.{self.minor}.{self.micro}'
+
+    @property
     def tuple(self) -> Tuple[int, int, int, str, int]:
         """
         Return a tuple representation of the version (e.g., (1, 2, 3, 'a', 4)).
@@ -64,7 +72,7 @@ class VersionInfo:
         return self.major, self.minor, self.micro, self.release_level, self.serial
 
     @property
-    def safe_tuple(self) -> Tuple[int, int, int]:
+    def tuple_safe(self) -> Tuple[int, int, int]:
         """
         Return a tuple representation of the version including only major, minor and
         micro levels (e.g., (1, 2, 3)).
@@ -149,7 +157,7 @@ version = VersionInfo(
     major=0,
     minor=1,
     micro=0,
-    level=ReleaseLevel.ALPHA,
+    level=ReleaseLevel.DEV,
     serial=0,  # < 16
     date=datetime(year=2025, month=6, day=1),
 )
