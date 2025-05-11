@@ -2,7 +2,7 @@ from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import os
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
@@ -64,6 +64,9 @@ def Option(
     """
     Create a field with custom validation, serialization and metadata.
     """
+    if default is PydanticUndefined and default_factory is _Unset:
+        raise ValueError('Either \'default\' or \'default_factory\' must be provided')
+
     if extra is _Unset:
         extra = {}
 
@@ -153,6 +156,58 @@ class Options(BaseModel):
                     custom_validators[name]['after'].append(validator)
         return custom_validators
 
+    @staticmethod
+    def _apply_validators(name: str, value: Any,
+                          validators: list[AfterValidator | BeforeValidator],
+                          errors: list[InitErrorDetails] = None) \
+            -> tuple[Any, list[InitErrorDetails]]:
+        if errors is None:
+            errors = []
+        new_errors = []
+
+        for validator in validators:
+            try:
+                value = validator.func(value)
+            except ValueError as e:
+                new_errors.append(InitErrorDetails(type='value_error', loc=(name,),
+                                                   input=value, ctx={'error': e}))
+
+        if new_errors:
+            return _Unset, errors + new_errors
+        else:
+            return value, errors
+
+    @classmethod
+    def _validate_before(cls, name: str, value: Any,
+                         validators: dict[str, list[BeforeValidator | AfterValidator]],
+                         errors: list[InitErrorDetails] = None,
+                         parse_env: bool = False) -> tuple[Any, list[InitErrorDetails]]:
+        if errors is None:
+            errors = []
+
+        if parse_env:
+            value = cls._get_envvar(value)
+
+        # Apply validators
+        value, new_errors = cls._apply_validators(name=name, value=value,
+                                                  validators=validators['before'],
+                                                  errors=errors)
+        return value, new_errors
+
+    @classmethod
+    def _validate_after(cls, name: str, value: Any,
+                        validators: dict[str, list[BeforeValidator | AfterValidator]],
+                        errors: list[InitErrorDetails] = None) \
+            -> tuple[Any, list[InitErrorDetails]]:
+        if errors is None:
+            errors = []
+
+        # Apply validators
+        value, new_errors = cls._apply_validators(name=name, value=value,
+                                                  validators=validators['after'],
+                                                  errors=errors)
+        return value, new_errors
+
     @model_validator(mode='wrap')
     @classmethod
     def _custom_validation(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) \
@@ -186,22 +241,19 @@ class Options(BaseModel):
         # Apply before validators for raw data only
         if mode == 'dict':
             for name, value in data.items():
+                new_errors = []
                 if name not in validators:
                     continue
-                # Replace environment variables in the value
-                if parse_env:
-                    value = cls._get_envvar(value)
+                value, new_errors = cls._validate_before(name=name, value=value,
+                                                         validators=validators[name],
+                                                         errors=new_errors,
+                                                         parse_env=parse_env)
+
+                if not new_errors:
                     # Update value
                     data[name] = value
-                for validator in validators[name]['before']:
-                    try:
-                        # Call the validator function
-                        value = validator.func(value)
-                        # Update value
-                        data[name] = value
-                    except ValueError as e:
-                        errors.append(InitErrorDetails(type='value_error', loc=(name,),
-                                                       input=value, ctx={'error': e}))
+
+                errors.extend(new_errors)
             # Check and raise validation errors
             if errors:
                 raise ValidationError.from_exception_data(title='before_validators',
@@ -212,22 +264,17 @@ class Options(BaseModel):
 
         # Apply after validators
         for name, value in validated_self.model_dump().items():
+            new_errors = []
             if name not in validators:
                 continue
-            for validator in validators[name]['after']:
-                try:
-                    # Call the validator function
-                    value = validator.func(value)
-                    # Update value
-                    if mode == 'dict':
-                        setattr(validated_self, name, value)
-                    elif mode == 'pydantic':
-                        # Note: Workaround to prevent infinite recursion when using
-                        #  setattr
-                        validated_self.__dict__[name] = value
-                except ValueError as e:
-                    errors.append(InitErrorDetails(type='value_error', loc=(name,),
-                                                   input=value, ctx={'error': e}))
+            value, new_errors = cls._validate_after(name=name, value=value,
+                                                    validators=validators[name],
+                                                    errors=new_errors)
+            if not new_errors:
+                # Note: Workaround to prevent infinite recursion when using
+                #  setattr
+                validated_self.__dict__[name] = value
+            errors.extend(new_errors)
         # Check and raise validation errors
         if errors:
             raise ValidationError.from_exception_data(title='after_validators',
@@ -235,23 +282,30 @@ class Options(BaseModel):
         return validated_self
 
     def __setattr__(self, name: str, value: Any) -> None:
+        # Check if the attribute is a pydantic field
+        if name not in self.__pydantic_fields__:
+            super().__setattr__(name, value)
+            return
+
+        # Apply before validators
+        validators = self._get_custom_validators()
         errors = []
-        # Check if the attribute is a field
-        if name in self.__dict__:
-            if name in self._get_custom_validators():
-                # Replace environment variables in the value
-                if self._parse_env:
-                    value = self._get_envvar(value)
-                # Apply before validators
-                for validator in self._get_custom_validators()[name]['before']:
-                    try:
-                        value = validator.func(value)
-                    except ValueError as e:
-                        errors.append(InitErrorDetails(type='value_error', loc=(name,),
-                                                       input=value, ctx={'error': e}))
+        if name in validators:
+            value, errors = self._validate_before(name=name, value=value,
+                                                  validators=validators[name],
+                                                  parse_env=self._parse_env)
         # Check and raise validation errors
         if errors:
             raise ValidationError.from_exception_data(title='before_validators',
                                                       line_errors=errors)
-        # Continue with the default behavior
-        super().__setattr__(name, value)
+
+        try:
+            # Validate the model with the new value
+            data = self.model_dump()
+            data.update({name: value})
+            self.model_validate(data)
+            # Update the attribute if validation is successful
+            super().__setattr__(name, value)
+        except ValidationError as e:
+            raise e
+
