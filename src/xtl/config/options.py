@@ -97,11 +97,10 @@ def Option(
         multiple_of=multiple_of, allow_inf_nan=allow_inf_nan, max_digits=max_digits,
         decimal_places=decimal_places, min_length=min_length, max_length=max_length)
 
-    if default_factory:
+    if default_factory is not _Unset:
         f = partial_field(default_factory=default_factory)
     else:
         f = partial_field(default=default)
-
     return f
 
 
