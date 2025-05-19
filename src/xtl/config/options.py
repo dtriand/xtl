@@ -1,6 +1,8 @@
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
+import json
 import os
+from pathlib import Path
 import re
 from typing import Any, Callable, Optional
 from typing_extensions import Self
@@ -307,4 +309,46 @@ class Options(BaseModel):
             super().__setattr__(name, value)
         except ValidationError as e:
             raise e
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.model_dump()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        return cls(**data)
+
+    def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
+                keep_file_ext: bool = False) -> str | Path:
+        if filename is None:
+            return self.model_dump_json()
+
+        filename = Path(filename)
+        if not filename.parent.exists():
+            filename.parent.mkdir(parents=True, exist_ok=True)
+        if filename.exists() and not overwrite:
+            raise FileExistsError(f'File {filename} already exists')
+        if filename.suffix != '.json' and not keep_file_ext:
+            filename = filename.with_suffix('.json')
+        with open(filename, 'w') as f:
+            f.write(self.model_dump_json(indent=4))
+        return filename
+
+    @classmethod
+    def from_json(cls, s: str | Path) -> Self:
+        data = {}
+        if isinstance(s, str):
+            try:
+                data = json.loads(s)
+            except json.JSONDecodeError as e:
+                s = Path(s)
+                if not s.exists():
+                    raise e
+                else:
+                    pass
+        if not data:
+            s = Path(s)
+            if not s.exists():
+                raise FileNotFoundError(f'File not found: {s}')
+            data = json.loads(s.read_text())
+        return cls(**data)
 
