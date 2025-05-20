@@ -111,20 +111,21 @@ def version_from_str(version_str: str, date_str: str = None) -> VersionInfo:
 
     micro = int(parts[2][:i])
 
-    if parts[2][i] == 'a':
+    level_bit = parts[2][i]
+    if level_bit == 'a':
         level, serial = ReleaseLevel.ALPHA, int(parts[2][i + 1:])
-    elif parts[2][i] == 'b':
+    elif level_bit == 'b':
         level, serial = ReleaseLevel.BETA, int(parts[2][i + 1:])
-    elif parts[2][i] == 'g':
+    elif level_bit == 'g':
         level, serial = ReleaseLevel.GAMMA, int(parts[2][i + 1:])
-    elif parts[2][i] == 'r':
+    elif level_bit == 'r':
         level, serial = ReleaseLevel.RC, int(parts[2][i + 2:])
-    elif parts[2][i] == 'f':
+    elif level_bit == 'f':
         level, serial = ReleaseLevel.FINAL, int(parts[2][i + 5:])
-    elif parts[2][i] == 'd':
+    elif level_bit == 'd':
         level, serial = ReleaseLevel.DEV, int(parts[2][i + 3:])
     else:
-        raise ValueError(f'Invalid version string. Unknown level: {parts[2][i]}')
+        raise ValueError(f'Invalid version string. Unknown level: {level_bit}')
 
     if date_str is not None:
         date = datetime.strptime(date_str, '%d/%m/%Y')
