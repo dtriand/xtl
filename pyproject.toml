@@ -45,6 +45,7 @@ dependencies = [
     "requests>=2.31.0",
     "rich>=13.6.0",
     "tabulate>=0.8.10",
+    "toml>=0.10.2",
     "typer>=0.15.1",
     "xlsxwriter>=3.2.3"
 ]
