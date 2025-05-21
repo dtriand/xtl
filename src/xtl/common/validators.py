@@ -76,6 +76,9 @@ def cast_as(value: Any, type_: type | Callable) -> Any:
     Cast the value to the specified type.
     """
     try:
+        if isinstance(type_, type) and isinstance(value, type_):
+            # Do not cast if already the right type
+            return value
         return type_(value)
     except ValueError:
         raise ValueError(f'Cannot cast {value!r} as {type_.__name__}') from None

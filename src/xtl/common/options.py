@@ -8,14 +8,15 @@ from typing import Any, Callable, Optional
 from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
-                      BeforeValidator, AfterValidator, ModelWrapValidatorHandler)
+                      BeforeValidator, AfterValidator, ModelWrapValidatorHandler,
+                      model_serializer, SerializerFunctionWrapHandler)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict
 from pydantic.fields import _Unset, Deprecated, FieldInfo
 import toml
 from toml.decoder import CommentValue
 
-from xtl.config.validators import *
+from xtl.common.validators import *
 from xtl.files.toml import ExtendedTomlEncoder
 
 
@@ -60,20 +61,24 @@ def Option(
         path_is_dir: bool | None = _Unset,  # check if the path is a directory
         path_is_absolute: bool | None = _Unset,  # check if the path is absolute
         # Type casting
-        strict: bool | None = _Unset,
-        # strict type checking (i.e., no implicit conversion)
         cast_as: type | Callable | None = _Unset,
+        # strict type checking (i.e., no implicit conversion)
+        strict: bool | None = _Unset,
+        # Serialization
+        formatter: Callable | None = _Unset,
         # Extra JSON schema
         extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> FieldInfo:
     """
-    Create a `pydantic.Field` with custom validation and more intuitive metadata
-    handling.
+    Create a `pydantic.Field` with custom validation, serialization and more intuitive
+    metadata handling.
 
     Custom validation functions are stored in the `json_schema_extra` attribute of the
     field and then applied during model validation, if the model is of type `Options`.
     If applied to a model that directly inherits from `pydantic.BaseModel`, then all
     custom validation will simply be ignored.
+
+    Custom serialization functions are also stored in the `json_schema_extra` attribute.
 
     :param default: Default value for the field.
     :param default_factory: A callable to generate the default value.
@@ -103,8 +108,9 @@ def Option(
     :param path_is_file: Check if the path is a file for path fields.
     :param path_is_dir: Check if the path is a directory for path fields.
     :param path_is_absolute: Check if the path is absolute for path fields.
-    :param strict: Strict type checking (i.e., no implicit conversion/type coersion).
     :param cast_as: Type or callable to cast the value to prior to validation.
+    :param strict: Strict type checking (i.e., no implicit conversion/type coersion).
+    :param formatter: Custom serializer function for the field.
     :param extra: Extra JSON schema information (equivalent to `json_schema_extra` in
         `pydantic`).
     :return: A `pydantic.FieldInfo` object with custom validation and metadata handling.
@@ -133,6 +139,9 @@ def Option(
         extra['validators'].append(PathIsAbsoluteValidator)
     if cast_as is not _Unset:
         extra['validators'].append(CastAsValidator(cast_as))
+
+    if formatter is not _Unset:
+        extra['serializer'] = formatter
 
     partial_field = partial(
         Field, serialization_alias=alias, title=name, description=desc,
@@ -224,6 +233,26 @@ class Options(BaseModel):
                 elif isinstance(validator, AfterValidator):
                     custom_validators[name]['after'].append(validator)
         return custom_validators
+
+    @classmethod
+    def _get_custom_serializers(cls) -> dict[str, Callable]:
+        """
+        Get the custom serializers for the model.
+
+        :return: A dictionary mapping in the form of
+            ```
+            {'field_name': serializer_function}
+            ```
+        """
+        custom_serializers = {}
+        for name, finfo in cls.__pydantic_fields__.items():
+            # Skip if no serializer is defined
+            if not finfo.json_schema_extra:
+                continue
+            serializer = finfo.json_schema_extra.get('serializer', None)
+            if serializer:
+                custom_serializers[name] = serializer
+        return custom_serializers
 
     @staticmethod
     def _apply_validators(name: str, value: Any,
@@ -341,7 +370,7 @@ class Options(BaseModel):
         else:
             raise TypeError(f'Invalid data type for validation, expected '
                             f'{dict.__class__.__name__} or {cls.__class__.__name__}'
-                            f'but got: {type(data)} instead')
+                            f'but got {type(data)} instead')
 
         # Apply before validators for raw data only
         if mode == 'dict':
@@ -368,7 +397,7 @@ class Options(BaseModel):
         validated_self = handler(data)
 
         # Apply after validators
-        for name, value in validated_self.model_dump().items():
+        for name, value in validated_self.__dict__.items():
             new_errors = []
             if name not in validators:
                 continue
@@ -385,6 +414,39 @@ class Options(BaseModel):
             raise ValidationError.from_exception_data(title='after_validators',
                                                       line_errors=errors)
         return validated_self
+
+    @model_serializer(mode='wrap')
+    def _custom_serialization(self, handler: SerializerFunctionWrapHandler) \
+            -> dict[str, Any]:
+        # Get custom serializers
+        serializers = self._get_custom_serializers()
+
+        # Perform standard pydantic serialization
+        data = handler(self)
+
+        # Apply custom serializers
+        for name in data:
+            if name not in serializers:
+                continue
+
+            # Get serializer
+            serializer = serializers[name]
+
+            # Apply serializer on the original value, not the pydantic serialized value
+            value = serializer(getattr(self, name))
+
+            # Get serialization_alias
+            alias = self.__pydantic_fields__[name].serialization_alias
+            if alias:
+                # If alias is set, remove the original field and add it to the aliased
+                data.pop(name)
+                data[alias] = value
+            else:
+                # If no alias is set, just update the value
+                data[name] = value
+
+        return data
+
 
     def __setattr__(self, name: str, value: Any) -> None:
         # Check if the attribute is a pydantic field
@@ -545,6 +607,7 @@ class Options(BaseModel):
             for name, field in self.__pydantic_fields__.items()
         }
 
+        # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
 
         # If no filename is provided, then return a TOML string
