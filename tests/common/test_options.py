@@ -1,5 +1,6 @@
 import pytest
 
+import os
 from pathlib import Path
 
 from pydantic import Field, ValidationError
@@ -118,3 +119,61 @@ class TestOptions:
             'field': 1.5,
             'path': Path('.')
         }
+
+    def test_envvar(self):
+        class EnvModel(Options):
+            user: str = Option(default=None, formatter=lambda x: x.title())
+
+        os.environ['XTLUSER'] = 'user1'
+        e = EnvModel(user='${XTLUSER}', _parse_env=True)
+        assert e._parse_env == True
+        assert e.model_dump() == {'user': 'User1'}
+
+        os.environ['XTLUSER'] = 'user2'
+        assert e.user == 'user1'  # value is not updated
+        e.user = '${XTLUSER}'
+        assert e._parse_env == True
+        assert e.model_dump() == {'user': 'User2'}
+
+        e = EnvModel(user='${XTLUSER}', _parse_env=False)
+        assert e._parse_env == False
+        assert e.model_dump() == {'user': '${Xtluser}'}
+
+        os.environ.pop('XTLUSER')
+
+    def test_envvar_from_file(self):
+        # Test with simple models
+        class EnvModel(Options):
+            user: str = Option(default='${XTLUSER}', formatter=lambda x: x.title())
+
+        os.environ['XTLUSER'] = 'user1'
+
+        e = EnvModel.from_dict({'user': '${XTLUSER}', '_parse_env': True})
+        assert e._parse_env == True
+        assert e.user == 'user1'
+
+        e = EnvModel.from_json('{"user": "${XTLUSER}", "_parse_env": true}')
+        assert e._parse_env == True
+        assert e.user == 'user1'
+
+        e = EnvModel.from_toml('user = "${XTLUSER}"\n_parse_env = true')
+        assert e._parse_env == True
+        assert e.user == 'user1'
+
+        # Test with nested models
+        class ParentModel(Options):
+            child: EnvModel = Option(default=EnvModel(user='${XTLUSER}'))
+
+        p = ParentModel.from_dict({'child': {'user': '${XTLUSER}', '_parse_env': True}})
+        assert p.child._parse_env == True
+        assert p.child.user == 'user1'
+
+        p = ParentModel.from_json('{"child": {"user": "${XTLUSER}", "_parse_env": true}}')
+        assert p.child._parse_env == True
+        assert p.child.user == 'user1'
+
+        p = ParentModel.from_toml('[child]\nuser = "${XTLUSER}"\n_parse_env = true')
+        assert p.child._parse_env == True
+        assert p.child.user == 'user1'
+
+        os.environ.pop('XTLUSER')

@@ -290,8 +290,8 @@ class Options(BaseModel):
     @classmethod
     def _validate_before(cls, name: str, value: Any,
                          validators: dict[str, list[BeforeValidator | AfterValidator]],
-                         errors: list[InitErrorDetails] = None,
-                         parse_env: bool = False) -> tuple[Any, list[InitErrorDetails]]:
+                         errors: list[InitErrorDetails] = None) \
+            -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply before validators to the value. This is used to validate the value before
         the model has been initialized.
@@ -304,9 +304,6 @@ class Options(BaseModel):
         """
         if errors is None:
             errors = []
-
-        if parse_env:
-            value = cls._get_envvar(value)
 
         # Apply validators
         value, new_errors = cls._apply_validators(name=name, value=value,
@@ -359,7 +356,7 @@ class Options(BaseModel):
             mode = 'dict'
 
             # Check for parsing of environment variables
-            parse_env = data.get('parse_env', False)
+            parse_env = data.get('_parse_env', False)
             cls._parse_env = parse_env
         elif isinstance(data, cls):
             # During value assignment data is a pydantic model
@@ -376,15 +373,18 @@ class Options(BaseModel):
         if mode == 'dict':
             for name, value in data.items():
                 new_errors = []
-                if name not in validators:
-                    continue
-                value, new_errors = cls._validate_before(name=name, value=value,
-                                                         validators=validators[name],
-                                                         errors=new_errors,
-                                                         parse_env=parse_env)
 
+                # Check if the field contains environment variables
+                if parse_env:
+                    value = cls._get_envvar(value)
+
+                if name in validators:
+                    value, new_errors = cls._validate_before(name=name, value=value,
+                                                             validators=validators[name],
+                                                             errors=new_errors)
+
+                # Update value (NB: This runs even if there are no before validators)
                 if not new_errors:
-                    # Update value
                     data[name] = value
 
                 errors.extend(new_errors)
@@ -454,13 +454,16 @@ class Options(BaseModel):
             super().__setattr__(name, value)
             return
 
+        # Check if the field contains environment variables
+        if self._parse_env:
+            value = self._get_envvar(value)
+
         # Apply before validators
         validators = self._get_custom_validators()
         errors = []
         if name in validators:
             value, errors = self._validate_before(name=name, value=value,
-                                                  validators=validators[name],
-                                                  parse_env=self._parse_env)
+                                                  validators=validators[name])
         # Check and raise validation errors
         if errors:
             raise ValidationError.from_exception_data(title='before_validators',
@@ -469,7 +472,8 @@ class Options(BaseModel):
         try:
             # Validate the model with the new value
             data = self.model_dump()
-            data.update({name: value})
+            # Pass `_parse_env` along to ensure persistency
+            data.update({name: value, '_parse_env': self._parse_env})
             self.model_validate(data)
             # Update the attribute if validation is successful
             super().__setattr__(name, value)
