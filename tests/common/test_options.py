@@ -26,8 +26,8 @@ class TestOption:
         # Check the signature of the validator functions
         #  validator.func -> partial function
         #  partial.func -> original function
-        assert o.json_schema_extra['validators'][0].func.func == validate_length
-        assert o.json_schema_extra['validators'][1].func.func == cast_as
+        assert o.json_schema_extra['validators'][0].func.func == cast_as
+        assert o.json_schema_extra['validators'][1].func.func == validate_length
 
     def test_formatters(self):
         o = Option(default=1)

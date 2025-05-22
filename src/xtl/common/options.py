@@ -3,17 +3,16 @@
 .. |Options| replace:: :class:`Options <xtl.common.options.Options>`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
-
-test 2
 """
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import json
+import inspect
 import os
 from pathlib import Path
 import re
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Iterable, Optional, Union
 from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
@@ -27,6 +26,9 @@ from toml.decoder import CommentValue
 
 from xtl.common.validators import *
 from xtl.files.toml import ExtendedTomlEncoder
+
+
+_Validator = Union[BeforeValidator, AfterValidator]
 
 
 def Option(
@@ -71,6 +73,8 @@ def Option(
         path_is_absolute: bool | None = _Unset,  # check if the path is absolute
         # Type casting
         cast_as: type | Callable | None = _Unset,
+        # Additional validators
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
         # strict type checking (i.e., no implicit conversion)
         strict: bool | None = _Unset,
         # Serialization
@@ -117,7 +121,8 @@ def Option(
     :param path_is_dir: Check if the path is a directory for path fields.
     :param path_is_absolute: Check if the path is absolute for path fields.
     :param cast_as: Type or callable to cast the value to prior to validation.
-    :param strict: Strict type checking (i.e., no implicit conversion/type coersion).
+    :param validator: Custom validator function for the field.
+    :param strict: Strict type checking (i.e., no implicit conversion/type coercion).
     :param formatter: Custom serializer function for the field.
     :param extra: Extra JSON schema information (equivalent to ``json_schema_extra`` in
         |Field|).
@@ -133,8 +138,13 @@ def Option(
 
     # Store custom validators in the `json_schema_extra`
     if any([v is not _Unset for v in (length, choices, path_exists, path_is_file,
-                                      path_is_dir, path_is_absolute, cast_as)]):
+                                      path_is_dir, path_is_absolute, cast_as,
+                                      validator)]):
         extra['validators'] = []
+    # Before validators
+    if cast_as is not _Unset:
+        extra['validators'].append(CastAsValidator(cast_as))
+    # After validators
     if length is not _Unset:
         extra['validators'].append(LengthValidator(length))
     if choices is not _Unset:
@@ -147,10 +157,36 @@ def Option(
         extra['validators'].append(PathIsDirValidator)
     if path_is_absolute is not _Unset:
         extra['validators'].append(PathIsAbsoluteValidator)
-    if cast_as is not _Unset:
-        extra['validators'].append(CastAsValidator(cast_as))
+    # Either before or after validators
+    if validator is not _Unset:
+        validators = []
+        # Flatten the validators if it's an iterable
+        if isinstance(validator, Iterable):
+            for v in validator:
+                validators.append(v)
+        else:
+            validators.append(validator)
+
+        # Type checking
+        for i, v in enumerate(validators):
+            if not isinstance(v, _Validator):
+                raise TypeError(f'Validator {i} is not a valid validator')
+
+            # Inspect validator function signature
+            func = v.func
+            if not callable(func):
+                raise TypeError(f'Validator {i} function is not a callable')
+            args = inspect.signature(func).parameters.values()
+            if len(args) != 1:
+                raise TypeError(f'Validator {i} function must take exactly 1 argument, '
+                                f'but it takes {len(args)} instead')
+
+        # Add validators to the extra
+        extra['validators'].extend(validators)
 
     if formatter is not _Unset:
+        if not callable(formatter):
+            raise TypeError('\'formatter\' must be a callable')
         extra['serializer'] = formatter
 
     partial_field = partial(
