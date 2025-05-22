@@ -16,7 +16,7 @@ from xtl import __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'xtl'
-copyright = '%Y, Dimitris P. Triandafillidis'
+copyright = '2020-%Y, Dimitris P. Triandafillidis'
 author = 'Dimitris P. Triandafillidis'
 release = __version__
 
