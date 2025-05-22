@@ -99,20 +99,32 @@ def ChoicesValidator(choices: str | tuple[Any, ...]) -> AfterValidator:
     return AfterValidator(partial(validate_choices, choices=choices))
 
 
-PathExistsValidator = AfterValidator(validate_path_exists)
-"""Pydantic validator to check if a path exists."""
+def PathExistsValidator() -> AfterValidator:
+    """
+    Pydantic validator to check if a path exists.
+    """
+    return AfterValidator(validate_path_exists)
 
 
-PathIsFileValidator = AfterValidator(validate_path_is_file)
-"""Pydantic validator to check if a path is a file."""
+def PathIsFileValidator() -> AfterValidator:
+    """
+    Pydantic validator to check if a path is a file.
+    """
+    return AfterValidator(validate_path_is_file)
 
 
-PathIsDirValidator = AfterValidator(validate_path_is_dir)
-"""Pydantic validator to check if a path is a directory."""
+def PathIsDirValidator() -> AfterValidator:
+    """
+    Pydantic validator to check if a path is a directory.
+    """
+    return AfterValidator(validate_path_is_dir)
 
 
-PathIsAbsoluteValidator = AfterValidator(validate_path_is_absolute)
-"""Pydantic validator to check if a path is absolute."""
+def PathIsAbsoluteValidator() -> AfterValidator:
+    """
+    Pydantic validator to check if a path is absolute.
+    """
+    return AfterValidator(validate_path_is_absolute)
 
 
 def CastAsValidator(type_: type | Callable) -> BeforeValidator:

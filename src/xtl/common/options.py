@@ -1,3 +1,12 @@
+"""
+.. |Option| replace:: :class:`Option <xtl.common.options.Option>`
+.. |Options| replace:: :class:`Options <xtl.common.options.Options>`
+.. |Field| replace:: :func:`pydantic.Field`
+.. |BaseModel| replace:: :class:`pydantic.BaseModel`
+
+test 2
+"""
+
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import json
@@ -70,25 +79,24 @@ def Option(
         extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> FieldInfo:
     """
-    Create a `pydantic.Field` with custom validation, serialization and more intuitive
-    metadata handling.
+    Create a |Field| with custom validation, serialization and more intuitive metadata
+    handling.
 
-    Custom validation functions are stored in the `json_schema_extra` attribute of the
-    field and then applied during model validation, if the model is of type `Options`.
-    If applied to a model that directly inherits from `pydantic.BaseModel`, then all
-    custom validation will simply be ignored.
-
-    Custom serialization functions are also stored in the `json_schema_extra` attribute.
+    Custom validation and serialization functions are stored in the
+    ``json_schema_extra`` attribute of the field and are applied to the model if it is
+    of type |Options|. If an |Option| field is used in a model that directly inherits
+    from |BaseModel|, then all custom validation and serialization will simply be
+    ignored.
 
     :param default: Default value for the field.
     :param default_factory: A callable to generate the default value.
-    :param name: Name of the field (equivalent to `title` in `pydantic`).
-    :param desc: Description of the field (equivalent to `description` in `pydantic`).
+    :param name: Name of the field (equivalent to ``title`` in |Field|).
+    :param desc: Description of the field (equivalent to ``description`` in |Field|).
     :param examples: Example values for this field.
-    :param alias: Alias for the field (equivalent to `serialization_alias` in
-        `pydantic`).
+    :param alias: Alias for the field (equivalent to ``serialization_alias`` in
+        |Field|).
     :param exclude: Exclude this field from serialization.
-    :param repr: Include this field in the model's `__repr__` method.
+    :param repr: Include this field in the model's ``__repr__`` method.
     :param deprecated: Deprecation message for the field.
     :param validate_default: Whether to validate the default value.
     :param choices: Iterable of valid values constraint for the field.
@@ -97,7 +105,7 @@ def Option(
     :param lt: Less than constraint for numeric fields.
     :param le: Less than or equal to constraint for numeric fields.
     :param multiple_of: Multiple of constraint for numeric fields.
-    :param allow_inf_nan: Allow `inf` and `nan` values for numeric fields.
+    :param allow_inf_nan: Allow ``inf`` and ``nan`` values for numeric fields.
     :param max_digits: Maximum number of total digits for decimal fields.
     :param decimal_places: Maximum number of decimal places for decimal fields.
     :param length: Length constraint for iterable fields.
@@ -111,9 +119,11 @@ def Option(
     :param cast_as: Type or callable to cast the value to prior to validation.
     :param strict: Strict type checking (i.e., no implicit conversion/type coersion).
     :param formatter: Custom serializer function for the field.
-    :param extra: Extra JSON schema information (equivalent to `json_schema_extra` in
-        `pydantic`).
-    :return: A `pydantic.FieldInfo` object with custom validation and metadata handling.
+    :param extra: Extra JSON schema information (equivalent to ``json_schema_extra`` in
+        |Field|).
+    :return: A :class:`pydantic.FieldInfo <pydantic.fields.FieldInfo>` object with
+        custom validation and metadata handling.
+    :raises ValueError: If neither ``default`` nor ``default_factory`` is provided.
     """
     if default is PydanticUndefined and default_factory is _Unset:
         raise ValueError('Either \'default\' or \'default_factory\' must be provided')
@@ -161,19 +171,19 @@ def Option(
 class Options(BaseModel):
     """
     Base class for storing various configuration options. This class provides
-    validation and serialization through `Pydantic`. Custom validators are also
-    supported (see `Option` for more details).
+    validation and serialization through `Pydantic`. Custom validators and serializers
+    are also supported (see |Option| for more details).
 
-    Fields can be defined using `Option` or `pydantic.Field`, but custom validation
-    will only be applied if `Option` is used.
+    Fields can be defined using |Option| or |Field|, but custom validation will only be
+    applied if |Option| is used.
 
     In addition to the standard `Pydantic` serialization methods, this class can also
-    be serialized to a TOML file. Deserialization is possible from Python `dict`s and
+    be serialized to a TOML file. Deserialization is possible from Python dictionaries,
     JSON and TOML strings.
 
     Parsing of environment variables in string values is possible by setting
-    `parse_env=True` in the constructor. This will replace any environment variable
-    references in the format `${VARIABLE}` with their values. If the variable is not
+    ``parse_env=True`` in the constructor. This will replace any environment variable
+    references in the format ``${VARIABLE}`` with their values. If the variable is not
     found, it will be replaced with an empty string. The default behavior is to not
     parse environment variables.
     """
@@ -204,7 +214,7 @@ class Options(BaseModel):
     def _get_envvar(data: Any) -> Any:
         """
         Replace environment variables in the data with their values. Environment
-        variables are expected to be in the format `${VARIABLE}`. If the variable is
+        variables are expected to be in the format ``${VARIABLE}``. If the variable is
         not found, it will be replaced with an empty string.
 
         :param data: The data to parse. Only strings are checked.
@@ -276,7 +286,7 @@ class Options(BaseModel):
             -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply validators to the value. This is used to perform a series of validations
-        on the value. If any of the validators raise a `ValueError`, the error is
+        on the value. If any of the validators raise a ``ValueError``, the error is
         captured and returned in the `errors` list. This is on par with the default
         pydantic behavior where all validation errors are collected and raised at once.
 
@@ -514,38 +524,38 @@ class Options(BaseModel):
 
     def to_dict(self) -> dict[str, Any]:
         """
-        Convert the Options to a dictionary. Nested Options objects will be
+        Convert the |Options| to a dictionary. Nested |Options| objects will be
         converted to nested dictionaries.
 
-        :return: A dictionary representation of the Options.
+        :return: A dictionary representation of the |Options|.
         """
         return self.model_dump()
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
         """
-        Create a new Options object from a dictionary. Nested dictionaries can be
-        used to create nested Options objects.
+        Create a new |Options| object from a dictionary. Nested dictionaries can be
+        used to create nested |Options| objects.
 
         :param data: Dictionary containing the values to create the config with.
-        :return: An Options object.
+        :return: An |Options| object.
         """
         return cls(**data)
 
     def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
                 keep_file_ext: bool = False, indent: Optional[int] = 4) -> str | Path:
         """
-        Write the Options to a JSON file. If `filename` is not provided, then the JSON
-        will be returned as a string.
+        Write the |Options| to a JSON file. If ``filename`` is not provided, then the
+        JSON will be returned as a string.
 
         :param filename: Optional output path for the JSON file.
         :param comments: Include comments in the JSON file.
         :param overwrite: Overwrite the file if it already exists.
-        :param keep_file_ext: Keep the file extension if `filename` is provided.
-        :param indent: Indentation level for the JSON string. If `None`, then the JSON
+        :param keep_file_ext: Keep the file extension if ``filename`` is provided.
+        :param indent: Indentation level for the JSON string. If ``None``, then the JSON
             will be compact.
         :return: Either the JSON string or the output path.
-        :raises FileExistsError: If the file already exists and `overwrite` is False.
+        :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
         # If no filename is provided, then return a JSON string
         if filename is None:
@@ -566,10 +576,10 @@ class Options(BaseModel):
     @classmethod
     def from_json(cls, s: str | Path) -> Self:
         """
-        Create a new Options object from a JSON string or file.
+        Create a new |Options| object from a JSON string or file.
 
         :param s: JSON string or path to a JSON file.
-        :return: An Options object.
+        :return: An |Options| object.
         :raises json.JSONDecodeError: If the JSON is invalid.
         :raises FileNotFoundError: If the file does not exist.
         """
@@ -632,15 +642,15 @@ class Options(BaseModel):
     def to_toml(self, filename: Optional[str | Path] = None, comments: bool = False,
                 overwrite: bool = False, keep_file_ext: bool = False) -> str | Path:
         """
-        Write the Options to a TOML file. If `filename` is not provided, then the TOML
-        will be returned as a string.
+        Write the |Options| to a TOML file. If ``filename`` is not provided, then the
+        TOML will be returned as a string.
 
         :param filename: Optional output path for the TOML file.
         :param comments: Include comments in the TOML file.
         :param overwrite: Overwrite the file if it already exists.
-        :param keep_file_ext: Keep the file extension if `filename` is provided.
+        :param keep_file_ext: Keep the file extension if ``filename`` is provided.
         :return: Either the TOML string or the output path.
-        :raises FileExistsError: If the file already exists and `overwrite` is False.
+        :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
         # Cast all fields to toml.CommentValue
         data = {}
@@ -674,10 +684,10 @@ class Options(BaseModel):
     @classmethod
     def from_toml(cls, s: str | Path) -> Self:
         """
-        Create a new Options object from a TOML string or file.
+        Create a new |Options| object from a TOML string or file.
 
         :param s: TOML string or path to a TOML file.
-        :return: An Options object.
+        :return: An |Options| object.
         :raises toml.TomlDecodeError: If the TOML is invalid.
         :raises FileNotFoundError: If the file does not exist.
         """
