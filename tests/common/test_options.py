@@ -48,6 +48,14 @@ class TestOptions:
         # pydantic.Field can also be used along with Option
         field: float = Field()
 
+    class ComplexModel(Options):
+        name: str = Option(default=None, choices=('Alice', 'Bob', 'Charlie'),
+                           alias='first_name', desc='First name of the person')
+        age: int = Option(default=None, gt=0, desc='Age in years')
+        env: str = Option(default='${XTLMAGIC}')
+        envf: str = Option(default='${XTLMAGIC}', formatter=lambda x: x.upper(),
+                           alias='formatted_env', desc='Formatted environment variable')
+
     def test_init(self):
         m = self.MyModel(name='Alice', age=2, double_this='3', field=1.5)
         assert m.model_dump() == {
@@ -84,8 +92,7 @@ class TestOptions:
     def test_formatter(self):
         class MyFormatModel(self.MyModel):
             age: int = Option(default=None, gt=0, cast_as=int, formatter=float)
-            aliased: str = Option(default=None, alias='is_aliased',
-                                  formatter=lambda x: x.upper())
+            aliased: str = Option(default=None, alias='is_aliased')
 
         # Input a string
         m = MyFormatModel(name='Alice', age='2', double_this=3, field=1.5, aliased='a')
@@ -96,10 +103,9 @@ class TestOptions:
             'age': 2.,  # but is dumped as a float
             'double_this': 6,
             'field': 1.5,
-            'is_aliased': 'A'  # aliased value is uppercased
+            'is_aliased': 'a'
         }
         assert isinstance(m.model_dump()['age'], float)
-        assert m.aliased == 'a'  # aliased value is not changed
 
     def test_validation(self):
         class ComplexModel(self.MyModel):
@@ -177,3 +183,73 @@ class TestOptions:
         assert p.child.user == 'user1'
 
         os.environ.pop('XTLUSER')
+
+    def test_dict(self):
+        c0 = self.ComplexModel(name='Alice', age=2)
+        assert c0.to_dict() == {
+            'first_name': 'Alice',
+            'age': 2,
+            'env': '${XTLMAGIC}',
+            'formatted_env': '${XTLMAGIC}'
+        }
+
+        c1 = self.ComplexModel.from_dict(c0.to_dict())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ['XTLMAGIC'] = 'magic'
+        c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
+        assert c0.to_dict() == {
+            'first_name': 'Alice',
+            'age': 2,
+            'env': 'magic',
+            'formatted_env': 'MAGIC'
+        }
+
+        c1 = self.ComplexModel.from_dict(c0.to_dict())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ.pop('XTLMAGIC')
+
+    def test_json(self):
+        c0 = self.ComplexModel(name='Alice', age=2)
+        assert c0.to_json(indent=None) == ('{"age":2,'
+                                           '"env":"${XTLMAGIC}",'
+                                           '"first_name":"Alice",'
+                                           '"formatted_env":"${XTLMAGIC}"}')
+
+        c1 = self.ComplexModel.from_json(c0.to_json())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ['XTLMAGIC'] = 'magic'
+        c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
+        assert c0.to_json(indent=None) == ('{"age":2,'
+                                           '"env":"magic",'
+                                           '"first_name":"Alice",'
+                                           '"formatted_env":"MAGIC"}')
+
+        c1 = self.ComplexModel.from_json(c0.to_json())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ.pop('XTLMAGIC')
+
+    def test_toml(self):
+        c0 = self.ComplexModel(name='Alice', age=2)
+        assert c0.to_toml() == ('first_name = "Alice" \n'
+                                'age = 2 \n'
+                                'env = "${XTLMAGIC}" \n'
+                                'formatted_env = "${XTLMAGIC}" \n')
+
+        c1 = self.ComplexModel.from_toml(c0.to_toml())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ['XTLMAGIC'] = 'magic'
+        c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
+        assert c0.to_toml() == ('first_name = "Alice" \n'
+                                'age = 2 \n'
+                                'env = "magic" \n'
+                                'formatted_env = "MAGIC" \n')
+
+        c1 = self.ComplexModel.from_toml(c0.to_toml())
+        assert c0.to_dict() == c1.to_dict()
+
+        os.environ.pop('XTLMAGIC')

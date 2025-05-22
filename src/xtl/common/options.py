@@ -185,6 +185,21 @@ class Options(BaseModel):
     )
     _parse_env: bool = PrivateAttr(default=False)
 
+    def __init__(self, /, **data: Any) -> None:
+        # Check if the model contains any aliased keys
+        aliased = [field.serialization_alias for field in
+                   self.__pydantic_fields__.values()
+                   if field.serialization_alias is not None]
+        # Check if the input data contain any aliased keys
+        if any(alias in data for alias in aliased):
+            for name, field in self.__pydantic_fields__.items():
+                # Check if the field is aliased
+                alias = field.serialization_alias
+                if alias and alias in data and name not in data:
+                    # Swap the alias key with the original name
+                    data[name] = data.pop(alias)
+        super().__init__(**data)
+
     @staticmethod
     def _get_envvar(data: Any) -> Any:
         """
@@ -399,11 +414,20 @@ class Options(BaseModel):
         # Apply after validators
         for name, value in validated_self.__dict__.items():
             new_errors = []
-            if name not in validators:
-                continue
-            value, new_errors = cls._validate_after(name=name, value=value,
-                                                    validators=validators[name],
-                                                    errors=new_errors)
+
+            # Check for environment variables in fields that were instantiated with
+            #   `default` or `default_value` and no actual value
+            #   NOTE: this skips the before validators
+            if parse_env:
+                new_value = cls._get_envvar(value)
+                if new_value is value:
+                    continue
+                value = new_value
+
+            if name in validators:
+                value, new_errors = cls._validate_after(name=name, value=value,
+                                                        validators=validators[name],
+                                                        errors=new_errors)
             if not new_errors:
                 # Note: Workaround to prevent infinite recursion when using
                 #  setattr()
@@ -424,29 +448,37 @@ class Options(BaseModel):
         # Perform standard pydantic serialization
         data = handler(self)
 
-        # Apply custom serializers
+        aliased = set()
+        data_aliased = {}
         for name in data:
-            if name not in serializers:
-                continue
+            # Get the original value, not the pydantic serialized one
+            value = getattr(self, name)
 
-            # Get serializer
-            serializer = serializers[name]
+            # Apply custom serializer
+            if name in serializers:
+                serializer = serializers[name]
+                value = serializer(value)
 
-            # Apply serializer on the original value, not the pydantic serialized value
-            value = serializer(getattr(self, name))
-
-            # Get serialization_alias
+            # Ensure serialization_alias is used regardless of custom serializers
             alias = self.__pydantic_fields__[name].serialization_alias
             if alias:
-                # If alias is set, remove the original field and add it to the aliased
-                data.pop(name)
-                data[alias] = value
+                # Store aliased values separately to prevent changing keys during
+                #  iteration
+                aliased.add(name)
+                data_aliased[alias] = value
             else:
                 # If no alias is set, just update the value
                 data[name] = value
 
-        return data
+        if aliased:
+            # Remove aliased fields from the original data
+            for name in aliased:
+                data.pop(name)
 
+            # Update the data with aliased fields
+            data.update(data_aliased)
+
+        return data
 
     def __setattr__(self, name: str, value: Any) -> None:
         # Check if the attribute is a pydantic field
@@ -560,7 +592,7 @@ class Options(BaseModel):
             if not s.exists():
                 raise FileNotFoundError(f'File not found: {s}')
             data = json.loads(s.read_text())
-        return cls(**data)
+        return cls.from_dict(data)
 
     def _field_to_comment_value(self, name: str, field: FieldInfo,
                                 keep_comments: bool = False) -> \
@@ -589,6 +621,12 @@ class Options(BaseModel):
         # Prepare comment
         comment = f'# {field.description}' if field.description and keep_comments else ''
 
+        # Apply serialization function
+        if field.json_schema_extra:
+            if 'serializer' in field.json_schema_extra:
+                serializer = field.json_schema_extra['serializer']
+                value = serializer(value)
+
         return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
 
     def to_toml(self, filename: Optional[str | Path] = None, comments: bool = False,
@@ -605,11 +643,14 @@ class Options(BaseModel):
         :raises FileExistsError: If the file already exists and `overwrite` is False.
         """
         # Cast all fields to toml.CommentValue
-        data = {
-            name: self._field_to_comment_value(name=name, field=field,
-                                               keep_comments=comments)
-            for name, field in self.__pydantic_fields__.items()
-        }
+        data = {}
+        for name, field in self.__pydantic_fields__.items():
+            alias = name
+            # Ensure serialization aliases are kept
+            if field.serialization_alias:
+                alias = field.serialization_alias
+            data[alias] = self._field_to_comment_value(name=name, field=field,
+                                                       keep_comments=comments)
 
         # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
