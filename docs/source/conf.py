@@ -25,9 +25,10 @@ release = __version__
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',  # Links to third party packages documentation
-    'sphinx.ext.linkcode',     # Source code links
+    'sphinx.ext.intersphinx',          # Links to third party packages documentation
+    'sphinx.ext.linkcode',             # Source code links
+    'sphinx_favicon',                  # HTML favicon
+    'sphinxcontrib.autodoc_pydantic',  # Pydantic models autodoc
 ]
 
 templates_path = ['_templates']
@@ -40,14 +41,13 @@ autodoc_default_options = {
     'inherited-members': False
 }
 
+# Pydantic autodoc options
+autodoc_pydantic_model_show_json = False
+
 # Documentation for third party packages
 intersphinx_mapping = {
     'pydantic': ('https://docs.pydantic.dev/latest/', None),
 }
-
-#
-autosummary_generate = True
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -55,9 +55,17 @@ autosummary_generate = True
 html_theme = 'sphinx_book_theme'
 html_theme_options = {
     'show_toc_level': 2,
+    'logo': {
+        'image_light': '_static/icon.png',
+        'image_dark': '_static/icon.png',
+    }
 }
 
 html_static_path = ['_static']
+favicons = [
+    'favicon-32x32.png',
+    'favicon-16x16.png',
+]
 
 
 def setup(sphinx):

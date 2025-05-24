@@ -1,4 +1,4 @@
-.. |Option| replace:: :class:`Option <xtl.common.options.Option>`
+.. |Option| replace:: :func:`Option() <xtl.common.options.Option>`
 .. |Options| replace:: :class:`Options <xtl.common.options.Options>`
 .. |pydantic| replace:: :mod:`pydantic`
 .. |Field| replace:: :func:`pydantic.Field`
@@ -15,7 +15,7 @@ configuration from the ``xtl.toml`` file and to validate any modifications on th
 Quickstart
 ----------
 
-The module comes with two objects: |Option| and |Options|, which are wrappers around |Field| and |BaseModel|,
+The module provides two objects: |Option| and |Options|, which are wrappers around |Field| and |BaseModel|,
 respectively. Below is a simple example that showcases what is possible with this API:
 
 .. code-block:: python
@@ -53,7 +53,7 @@ respectively. Below is a simple example that showcases what is possible with thi
     )
 
 Now if we call :meth:`employee.to_dict() <xtl.common.options.Options.to_dict>` (which is equivalent to
-:func:`employee.model_dump() <pydantic.BaseModel.model_dump>` if you prefer the Pydantic API),
+:func:`employee.model_dump() <pydantic.BaseModel.model_dump>` if you prefer the `Pydantic` API),
 we get the following back:
 
 .. code-block:: python
@@ -77,7 +77,7 @@ We notice a few things:
 #. The ``age`` attribute was defined as a |Field| instead and it is still compatible with our model
 
 #. The ``level`` attribute was renamed to ``job_level`` (due to ``alias='job_level'`` which sets the
-   ``serialization_alias`` on the Pydantic field), however the attribute is still accessible through its original name:
+   ``serialization_alias`` on the `Pydantic` field), however the attribute is still accessible through its original name:
 
    >>> employee.level
    'senior'
@@ -94,14 +94,16 @@ We notice a few things:
    level
      Value error, Value is not in choices: ['junior', 'senior'] [type=value_error, input_value='ceo', input_type=str]
 
-   Note that the |Options| class has :attr:`validate_assignment <pydantic.config.ConfigDict.validate_assignment>` set
-   to ``True``.
+   .. note::
+
+      The |Options| class has :attr:`validate_assignment <pydantic.config.ConfigDict.validate_assignment>` set
+      to ``True``.
 
 #. The ``contract_file`` was passed along as a ``str`` but is now ``Path`` (due to ``cast_as=Path``, which performs
-   type casting before Pydantic's model validation)
+   type casting before `Pydantic`\'s model validation)
 
 #. We checked whether ``contract_file`` exists and whether it is a file (due to ``path_exists=True`` and
-   ``path_is_file=True``, which add custom Pydantic validators)
+   ``path_is_file=True``, which add custom `Pydantic` validators)
 
 Data validation
 ---------------
@@ -175,7 +177,7 @@ as ``float`` will be coerced into type ``int``:
     assert isinstance(model.x, int)
 
 Details about `Pydantic`'s type coercion can be found in the
-[documentation](https://docs.pydantic.dev/latest/concepts/conversion_table/)
+`documentation <https://docs.pydantic.dev/latest/concepts/conversion_table/>`_.
 
 The ``cast_as`` argument provides some additional functionality, where it first checks if the value is of the correct
 type, and only attempts to type cast if not. An exemplary use case would be when an argument needs to be defined as a
@@ -199,8 +201,7 @@ type, and only attempts to type cast if not. An exemplary use case would be when
 
 `Pydantic` would have failed to coerce the value into a list in the first call.
 
-Type casting is also useful when using custom types in models. Do note that |Options| has
-:attr:`arbitrary_types_allowed <pydantic.config.ConfigDict.arbitrary_types_allowed>` set to ``True``.
+Type casting is also useful when using custom types in models:
 
 .. code-block:: python
 
@@ -216,6 +217,10 @@ Type casting is also useful when using custom types in models. Do note that |Opt
 
    pet = Pet(animal='Tyrannosaurus rex', name='Otto')
    assert isinstance(pet.animal, Animal)
+
+.. note::
+
+   |Options| has :attr:`arbitrary_types_allowed <pydantic.config.ConfigDict.arbitrary_types_allowed>` set to ``True``.
 
 Custom validation
 ^^^^^^^^^^^^^^^^^
@@ -261,10 +266,16 @@ A few more important notes about crafting custom validators:
   right value is propagated to the next validator. The model value is, however, only mutated from the input value if
   all validators succeed.
 
-  In general, validators should only check the value. Be very careful when mutating the value, as this can lead to
-  unexpected behavior, for example in dictionaries. Mutating the value affects the way it is stored internally. If you
-  find yourself crafting validators that change the way the value is output upon serialization, you should be creating a
-  ``formatter`` instead (see: `Data formatting`_)
+  .. caution::
+
+     In general, validators should only check the value. Be very careful when mutating the value, as this can lead to
+     unexpected behavior, for example in dictionaries.
+
+  .. seealso::
+
+     Mutating the value affects the way it is stored internally. If you find yourself crafting validators that change
+     the way the value is output upon serialization, you should be creating a ``formatter`` instead (see:
+     `Data formatting`_)
 
 * **Validation order**: Validators are applied sequentially. The order of execution is as follows:
 
@@ -369,7 +380,7 @@ environment variables is a mutable operation, meaning that the value of the fiel
 variable. Changing the environment variable after model instantiation will have no effect on the field's value, unless
 the same expression is reassigned to the field, and the model undergoes validation again.
 
-.. note::
+.. important::
 
    The ``_parse_env`` argument is only local in scope, meaning that it only applies to the current model. In case of
    nested |Options| models, environment variable parsing will **not** be propagated from the parent model to its childs.

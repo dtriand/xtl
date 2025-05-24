@@ -170,7 +170,8 @@ def Option(
         # Type checking
         for i, v in enumerate(validators):
             if not isinstance(v, _Validator):
-                raise TypeError(f'Validator {i} is not a valid validator')
+                raise TypeError(f'Validator {i} is not a valid validator, but '
+                                f'{type(v)} instead')
 
             # Inspect validator function signature
             func = v.func
