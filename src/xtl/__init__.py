@@ -3,10 +3,10 @@ __all__ = [
     'settings'
 ]
 
-from .config.version import version as _version
+from .config.version import version
 
 
-version: 'xtl.config.version.VersionInfo' = _version
+version: 'xtl.config.version.VersionInfo'
 """
 Version information for XTL.
 """
@@ -17,11 +17,18 @@ __version_hex__ = version.hex
 __date__ = version.date
 
 
-from .config.settings import XTLSettings
+# Import guard for build tools
+import sys
+if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel']
+       for arg in sys.argv):
+    # Skip imports if running any build tools because no dependencies are available
+    pass
+else:
+    from .config.settings import XTLSettings
 
-settings: XTLSettings = XTLSettings.initialize()
-"""
-Shared settings across XTL, initialized from ``xtl.toml``.
+    settings: XTLSettings = XTLSettings.initialize()
+    """
+    Shared settings across XTL, initialized from ``xtl.toml``.
 
-:meta hide-value:
-"""
+    :meta hide-value:
+    """

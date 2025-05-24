@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A collection of tools for macromolecular crystallography"
 keywords = ["x-ray", "diffraction", "crystallography", "macromolecular", "structural", "biology",
-            "GSAS2", "autoPROC", "PDB"]
+            "autoPROC", "PDB"]
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
 classifiers = [
@@ -21,7 +21,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Physics",
@@ -39,7 +39,8 @@ dependencies = [
     "numpy>=1.26.0",
     "pandas>=2.2.3",
     "pint>=0.19.2",
-    "pyfai>=2023.9.0",
+    "pydantic>=2.11.5",
+    "pyfai>=2023.9.0,<2024.10",
     "pyxray>=1.7.0",
     "requests>=2.31.0",
     "rich>=13.6.0",
@@ -61,6 +62,8 @@ difftegrate = "xtl.cli.cli_difftegrate:app"
 h5peek = "xtl.cli.cli_h5peek:app"
 "xtl.autoproc" = "xtl.cli.automate.cli_autoproc:app"
 "xtl.diffraction" = "xtl.cli.diffraction:app"
+"xtl.math" = "xtl.cli.math:app"
+"xtl.config_generate" = "xtl.cli.settings:app"
 
 [project.optional-dependencies]
 dev = [
