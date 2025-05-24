@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
+from enum import Enum
 import os
 from pathlib import Path
 import platform
 from types import NoneType
 from typing import Optional
-import sys
-if sys.version_info < (3, 11):
-    from enum import Enum
+
+from .compatibility import PY311_OR_LESS
+if PY311_OR_LESS:
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
