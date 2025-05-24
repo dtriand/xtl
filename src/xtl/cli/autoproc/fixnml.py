@@ -5,9 +5,10 @@ import re
 import f90nml
 import typer
 
+from xtl import settings
 from xtl.cli.cliio import Console, epilog
-from xtl.common.os import get_permissions_in_decimal
-from xtl.config import cfg
+from xtl.cli.utils import parser_permissions
+from xtl.common.os import get_permissions_in_decimal, FilePermissions
 
 
 app = typer.Typer()
@@ -26,10 +27,12 @@ def cli_autoproc_fixnml(
                                                                   'exists', rich_help_panel='Output options'),
         check: bool = typer.Option(False, '--check', help='Check if the updated path exists',
                                    rich_help_panel='Output options'),
-        chmod: bool = typer.Option(cfg['automate']['change_permissions'].value, '--chmod',
+        chmod: bool = typer.Option(settings.automate.permissions.update, '--chmod',
                                    help='Change permissions of the output directories', rich_help_panel='Localization'),
-        chmod_files: int = typer.Option(cfg['automate']['permissions_files'].value, '--chmod-files',
-                                        help='Permissions for files', rich_help_panel='Localization'),
+        chmod_files: FilePermissions = typer.Option(settings.automate.permissions.files.string, '--chmod-files',
+                                                    parser=parser_permissions, metavar='TEXT',
+                                                    help='Permissions for files',
+                                                    rich_help_panel='Localization'),
         verbose: int = typer.Option(0, '-v', '--verbose', count=True,
                                      help='Print additional information', rich_help_panel='Debugging'),
         debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',

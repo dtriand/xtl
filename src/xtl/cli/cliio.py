@@ -13,7 +13,7 @@ import rich.table
 import rich.text
 
 from xtl.common.os import get_permissions_in_decimal
-from xtl.config import cfg
+from xtl import settings
 
 
 epilog='</> with ❤️ by [i magenta]_dtriand[/]'
@@ -52,8 +52,8 @@ class CliIO:
 class Console(rich.console.Console):
 
     def __init__(self, verbose: int = 0, debug: bool = False, log_file: Optional[Path] = None,
-                 rich_output: bool = cfg['cli']['rich_output'].value,
-                 striped_table_rows: bool = cfg['cli']['striped_table_rows'].value,
+                 rich_output: bool = settings.cli.format.rich,
+                 striped_table_rows: bool = settings.cli.format.striped_tables,
                  **console_kwargs):
         self.verbose = verbose
         self.debug = debug

@@ -12,11 +12,12 @@ from rich.markup import escape
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn, TextColumn
 import typer
 
+from xtl import settings
+from xtl.automate import ComputeSite
 from xtl.cli.cliio import Console, epilog
-from xtl.cli.utils import typer_async
+from xtl.cli.utils import typer_async, parser_permissions
 import xtl.cli.autoproc.cli_utils as apu
-from xtl.common.os import get_permissions_in_decimal
-from xtl.config import cfg
+from xtl.common.os import get_permissions_in_decimal, FilePermissions
 from xtl.diffraction.automate.autoproc import AutoPROCWorkflowJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.exceptions.utils import Catcher
@@ -79,15 +80,17 @@ async def cli_autoproc_process_wf(
     # Localization
     modules: list[str] = typer.Option(None, '-m', '--module',
                                       help='Module to load before running the jobs', rich_help_panel='Localization'),
-    compute_site: apu.ComputeSite = typer.Option(cfg['automate']['compute_site'].value, '--compute-site',
-                                                 help='Computation site for configuring the job execution',
-                                                 rich_help_panel='Localization'),
-    chmod: bool = typer.Option(cfg['automate']['change_permissions'].value, '--chmod',
+    compute_site: ComputeSite = typer.Option(settings.automate.compute_site, '--compute-site',
+                                             help='Computation site for configuring the job execution',
+                                             rich_help_panel='Localization'),
+    chmod: bool = typer.Option(settings.automate.permissions.update, '--chmod', show_default=True,
                                help='Change permissions of the output directories', rich_help_panel='Localization'),
-    chmod_files: int = typer.Option(cfg['automate']['permissions_files'].value, '--chmod-files',
-                                    help='Permissions for files', rich_help_panel='Localization'),
-    chmod_dirs: int = typer.Option(cfg['automate']['permissions_directories'].value, '--chmod-dirs',
-                                   help='Permissions for directories', rich_help_panel='Localization'),
+    chmod_files: FilePermissions = typer.Option(settings.automate.permissions.files, '--chmod-files',
+                                                parser=parser_permissions, metavar='TEXT',
+                                                help='Permissions for files', rich_help_panel='Localization'),
+    chmod_dirs: FilePermissions = typer.Option(settings.automate.permissions.directories, '--chmod-dirs',
+                                               parser=parser_permissions, metavar='TEXT',
+                                               help='Permissions for directories', rich_help_panel='Localization'),
     # Debugging
     log_file: Path = typer.Option(None, '-l', '--log', help='Path to the log file',
                                   rich_help_panel='Debugging'),
@@ -103,8 +106,8 @@ async def cli_autoproc_process_wf(
     '''
     Execute multiple aP_wf_process jobs in parallel.
     '''
-    if log_file is None and cfg['cli']['log_file'].value:
-        log_file = Path(cfg['cli']['log_file'].value)
+    if log_file is None and settings.cli.autoproc.collect_logs:
+        log_file = Path(settings.cli.autoproc.logs_dir)
     log_filename = f'xtl.autoproc.process_wf_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     log_permissions = chmod_files if chmod else None
 
@@ -205,13 +208,13 @@ async def cli_autoproc_process_wf(
     if modules:
         sanitized_input['Modules'] = '\n'.join(modules)
 
-    if chmod != bool(cfg['automate']['change_permissions'].value):
+    if chmod != settings.automate.permissions.update:
         sanitized_input['Change permissions'] = 'enabled' if chmod else 'disabled'
 
-    if chmod_files != int(cfg['automate']['permissions_files'].value):
+    if chmod_files != settings.automate.permissions.files.decimal:
         sanitized_input['Permissions for files'] = chmod_files
 
-    if chmod_dirs != int(cfg['automate']['permissions_directories'].value):
+    if chmod_dirs != settings.automate.permissions.directories.decimal:
         sanitized_input['Permissions for directories'] = chmod_dirs
 
     if do_only:

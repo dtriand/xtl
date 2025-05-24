@@ -6,8 +6,12 @@ from typing import Callable, Optional
 import click
 import tabulate
 
+from xtl.common.os import FilePermissions
 from xtl.math import si_units
 
+
+def parser_permissions(value: str) -> FilePermissions:
+    return FilePermissions(value)
 
 
 def typer_async(func):
