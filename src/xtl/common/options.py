@@ -17,7 +17,7 @@ from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
                       BeforeValidator, AfterValidator, ModelWrapValidatorHandler,
-                      model_serializer, SerializerFunctionWrapHandler)
+                      model_serializer, SerializerFunctionWrapHandler, SerializationInfo)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict
 from pydantic.fields import _Unset, Deprecated, FieldInfo
@@ -486,43 +486,52 @@ class Options(BaseModel):
         return validated_self
 
     @model_serializer(mode='wrap')
-    def _custom_serialization(self, handler: SerializerFunctionWrapHandler) \
-            -> dict[str, Any]:
+    def _custom_serialization(self, handler: SerializerFunctionWrapHandler,
+                              info: SerializationInfo) -> dict[str, Any]:
         # Get custom serializers
         serializers = self._get_custom_serializers()
 
-        # Perform standard pydantic serialization
+        # Perform standard Pydantic serialization
         data = handler(self)
 
+        # Determine which keys to skip
+        skippable = set()
+        if self.__pydantic_extra__:
+            skippable |= set(self.__pydantic_extra__.keys())
+        if self.__pydantic_private__:
+            skippable |= set(self.__pydantic_private__.keys())
+
+        # Apply custom formatters
+        poppable = set()
         aliased = set()
-        data_aliased = {}
-        for name in data:
-            # Get the original value, not the pydantic serialized one
-            value = getattr(self, name)
+        for key in data:
+            # Pydantic serializes any extra attributes by default
+            if key in skippable:
+                poppable.add(key)
+                continue
 
-            # Apply custom serializer
-            if name in serializers:
-                serializer = serializers[name]
-                value = serializer(value)
+            # Delay serialization of aliased fields
+            if info.by_alias:
+                for name, field in self.__pydantic_fields__.items():
+                    if field.serialization_alias == key:
+                        aliased.add((key, name))  # (alias, original)
+                        break
 
-            # Ensure serialization_alias is used regardless of custom serializers
-            alias = self.__pydantic_fields__[name].serialization_alias
-            if alias:
-                # Store aliased values separately to prevent changing keys during
-                #  iteration
-                aliased.add(name)
-                data_aliased[alias] = value
-            else:
-                # If no alias is set, just update the value
-                data[name] = value
+            # Serialize non-aliased fields
+            serializer = serializers.get(key, None)
+            if serializer is not None:
+                data[key] = serializer(getattr(self, key))
 
-        if aliased:
-            # Remove aliased fields from the original data
-            for name in aliased:
-                data.pop(name)
+        # Serialize aliased fields
+        for alias, original in aliased:
+            serializer = serializers.get(original, None)
+            if serializer is not None:
+                data[alias] = serializer(getattr(self, original))
 
-            # Update the data with aliased fields
-            data.update(data_aliased)
+        # Remove skippable keys
+        if poppable:
+            for key in poppable:
+                data.pop(key)
 
         return data
 
@@ -558,14 +567,15 @@ class Options(BaseModel):
         except ValidationError as e:
             raise e
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, by_alias: bool = True) -> dict[str, Any]:
         """
         Convert the |Options| to a dictionary. Nested |Options| objects will be
         converted to nested dictionaries.
 
+        :param by_alias: Whether to use field aliases in the output dictionary.
         :return: A dictionary representation of the |Options|.
         """
-        return self.model_dump()
+        return self.model_dump(by_alias=by_alias)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
@@ -579,7 +589,8 @@ class Options(BaseModel):
         return cls(**data)
 
     def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
-                keep_file_ext: bool = False, indent: Optional[int] = 4) -> str | Path:
+                keep_file_ext: bool = False, indent: Optional[int] = 4,
+                by_alias: bool = True) -> str | Path:
         """
         Write the |Options| to a JSON file. If ``filename`` is not provided, then the
         JSON will be returned as a string.
@@ -590,12 +601,13 @@ class Options(BaseModel):
         :param keep_file_ext: Keep the file extension if ``filename`` is provided.
         :param indent: Indentation level for the JSON string. If ``None``, then the JSON
             will be compact.
+        :param by_alias: Whether to use field aliases in the output JSON.
         :return: Either the JSON string or the output path.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
         # If no filename is provided, then return a JSON string
         if filename is None:
-            return self.model_dump_json(indent=indent)
+            return self.model_dump_json(indent=indent, by_alias=by_alias)
 
         # If a filename is provided, then write to a file
         filename = Path(filename)
@@ -606,7 +618,7 @@ class Options(BaseModel):
         if filename.suffix != '.json' and not keep_file_ext:
             filename = filename.with_suffix('.json')
 
-        filename.write_text(self.model_dump_json(indent=indent))
+        filename.write_text(self.model_dump_json(indent=indent, by_alias=by_alias))
         return filename
 
     @classmethod

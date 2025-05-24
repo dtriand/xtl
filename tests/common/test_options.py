@@ -98,7 +98,7 @@ class TestOptions:
         m = MyFormatModel(name='Alice', age='2', double_this=3, field=1.5, aliased='a')
         assert m.age == 2  # that is cast as an int
         assert isinstance(m.age, int)
-        assert m.model_dump() == {
+        assert m.to_dict() == {
             'name': 'Alice',
             'age': 2.,  # but is dumped as a float
             'double_this': 6,
@@ -212,9 +212,9 @@ class TestOptions:
 
     def test_json(self):
         c0 = self.ComplexModel(name='Alice', age=2)
-        assert c0.to_json(indent=None) == ('{"age":2,'
+        assert c0.to_json(indent=None) == ('{"first_name":"Alice",'
+                                           '"age":2,'
                                            '"env":"${XTLMAGIC}",'
-                                           '"first_name":"Alice",'
                                            '"formatted_env":"${XTLMAGIC}"}')
 
         c1 = self.ComplexModel.from_json(c0.to_json())
@@ -222,9 +222,9 @@ class TestOptions:
 
         os.environ['XTLMAGIC'] = 'magic'
         c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
-        assert c0.to_json(indent=None) == ('{"age":2,'
+        assert c0.to_json(indent=None) == ('{"first_name":"Alice",'
+                                           '"age":2,'
                                            '"env":"magic",'
-                                           '"first_name":"Alice",'
                                            '"formatted_env":"MAGIC"}')
 
         c1 = self.ComplexModel.from_json(c0.to_json())
