@@ -91,6 +91,13 @@ class VersionInfo:
         h |= int(self.major) * 1 << 24
         return f'0x{h:08x}'
 
+    def __str__(self) -> str:
+        return self.string
+
+    def __repr__(self) -> str:
+        return (f'{self.__class__.__name__}("{self.string}", hex="{self.hex}", '
+                f'date="{self.release_date}")')
+
 
 def version_from_str(version_str: str, date_str: str = None) -> VersionInfo:
     """

@@ -11,8 +11,8 @@ from typing import ClassVar, Optional
 from pydantic import PrivateAttr
 
 from xtl import version as current_version
-from xtl.version import version_from_str
 from xtl.automate import ComputeSite
+from xtl.config.version import version_from_str
 from xtl.common.os import FilePermissions
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal

@@ -11,7 +11,7 @@ src/xtl/plots
 ### Temporary
 docs_/
 assets/
-src/xtl/xtl.cfg
+src/xtl/xtl.toml
 
 
 ### IDE

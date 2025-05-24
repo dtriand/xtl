@@ -16,3 +16,4 @@ Submodules
    :maxdepth: 3
 
    xtl.config.settings
+   xtl.config.version

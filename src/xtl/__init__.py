@@ -1,21 +1,27 @@
 __all__ = [
     'version', '__version__', '__version_tuple__', '__version_hex__', '__date__',
-    'cfg'
+    'settings'
 ]
 
-from .version import version
+from .config.version import version as _version
+
+
+version: 'xtl.config.version.VersionInfo' = _version
+"""
+Version information for XTL.
+"""
 
 __version__ = version.string
 __version_tuple__ = version.tuple_safe
 __version_hex__ = version.hex
 __date__ = version.date
 
-# Workaround for missing package when checking for __version__ during building
-try:
-    from .config import cfg
-except ModuleNotFoundError as e:
-    import sys
-    if not any(arg.startswith('setuptools') for arg in sys.argv):
-        pass
-    else:
-        raise e
+
+from .config.settings import XTLSettings
+
+settings: XTLSettings = XTLSettings.initialize()
+"""
+Shared settings across XTL, initialized from ``xtl.toml``.
+
+:meta hide-value:
+"""
