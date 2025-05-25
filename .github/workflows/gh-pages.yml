@@ -16,7 +16,7 @@ jobs:
           pip install sphinx sphinx-book-theme myst_parser
       - name: Install XTL
         run: |
-          pip install -e .
+          pip install -e .[dev]
       - name: Sphinx build
         run: |
           sphinx-build docs/source docs/build
