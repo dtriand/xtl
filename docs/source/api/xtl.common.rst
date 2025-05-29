@@ -19,3 +19,4 @@ Submodules
    xtl.common.options
    xtl.common.validators
    xtl.common.serializers
+   xtl.common.tables

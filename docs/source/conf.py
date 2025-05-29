@@ -46,7 +46,10 @@ autodoc_pydantic_model_show_json = False
 
 # Documentation for third party packages
 intersphinx_mapping = {
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
     'pydantic': ('https://docs.pydantic.dev/latest/', None),
+    'rich': ('https://rich.readthedocs.io/en/stable/', None),
 }
 
 # -- Options for HTML output -------------------------------------------------

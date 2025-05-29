@@ -8,3 +8,4 @@ Shared utilities across XTL
    :caption: Contents:
 
    options.rst
+   tables.rst
