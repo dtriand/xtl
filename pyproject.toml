@@ -69,6 +69,7 @@ h5peek = "xtl.cli.cli_h5peek:app"
 dev = [
     "autodoc_pydantic>=2.2.0",
     "pytest>=7.2.0",
+    "pytest-asyncio>=0.24.0",
     "pytest-mock>=3.10.0",
     "sphinx>=8.1.3",
     "sphinx-book-theme>=1.1.3",
@@ -81,3 +82,42 @@ version = {attr = "xtl.__version__"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.tox]
+min_version = "4.0"
+env_list = ["py310", "py311", "py312", "py313"]
+
+[tool.tox.env.py310]
+description = "Python 3.10"
+python = "3.10"
+extras = ["dev"]
+change_dir = "tests"
+commands = [["pytest", "-xvs", "{posargs}"]]
+
+[tool.tox.env.py311]
+description = "Python 3.11"
+python = "3.11"
+extras = ["dev"]
+change_dir = "tests"
+commands = [["pytest", "-xvs", "{posargs}"]]
+
+[tool.tox.env.py312]
+description = "Python 3.12"
+python = "3.12"
+extras = ["dev"]
+change_dir = "tests"
+commands = [["pytest", "-xvs", "{posargs}"]]
+
+[tool.tox.env.py313]
+description = "Python 3.13"
+python = "3.13"
+extras = ["dev"]
+change_dir = "tests"
+commands = [["pytest", "-xvs", "{posargs}"]]
+
+[tool.pytest.ini_options]
+markers = [
+    "requires_network: Tests requiring a network connection",
+    "make_temp_files: Tests that create temporary files"
+]
+tmp_path_retention_policy = "failed"
+asyncio_default_fixture_loop_scope = "session"

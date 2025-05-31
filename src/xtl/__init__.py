@@ -19,7 +19,7 @@ __date__ = version.date
 
 # Import guard for build tools
 import sys
-if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel']
+if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel', 'tox']
        for arg in sys.argv):
     # Skip imports if running any build tools because no dependencies are available
     pass
