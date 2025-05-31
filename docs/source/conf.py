@@ -70,6 +70,10 @@ favicons = [
     'favicon-16x16.png',
 ]
 
+# Add custom JavaScript to all pages
+html_js_files = [
+    'js/version-selector.js',
+]
 
 def setup(sphinx):
     """
