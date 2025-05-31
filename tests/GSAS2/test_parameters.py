@@ -4,7 +4,8 @@ import random
 import pytest
 from pyxray import NotFound
 
-from xtl.GSAS2.parameters import InstrumentalParameters
+# NOTE: Deprecated, GSAS2 is no longer supported.
+# from xtl.GSAS2.parameters import InstrumentalParameters
 from xtl.exceptions import InvalidArgument, FileError
 # from ..conftest import CACHE_DIR
 

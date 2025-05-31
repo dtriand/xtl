@@ -3,7 +3,21 @@ from pathlib import Path
 
 import pytest
 
-from xtl.GSAS2.GSAS2Interface import settings
+
+def pytest_collection_modifyitems(items):
+    """Skip all tests in this directory."""
+    for item in items:
+        if item.path.parent.is_relative_to(item.session.fspath / 'tests' / 'GSAS2'):
+            # Skip all tests in the GSAS2 directory
+            item.add_marker(
+                pytest.mark.skip(
+                    reason='Deprecated: GSAS2 is no longer supported.'
+                )
+            )
+
+
+# NOTE: Deprecated: GSAS2 is no longer supported.
+# from xtl.GSAS2.GSAS2Interface import settings
 from ..conftest import CACHE_DIR
 
 iparam_synchrotron = """#GSAS-II instrument parameter file
