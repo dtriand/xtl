@@ -33,7 +33,7 @@ class CrystallizationExperiment:
             raise TypeError('Invalid shape type, must be int or tuple')
 
         # Initialize arrays
-        self._pH = np.full(self.size, np.nan)
+        self._pH = np.full(self.shape, np.nan)
 
 
     @property

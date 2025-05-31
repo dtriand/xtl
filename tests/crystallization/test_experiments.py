@@ -1,9 +1,15 @@
 import pytest
 
+from pathlib import Path
+
 import numpy as np
 
 from xtl.crystallization.experiments import CrystallizationExperiment
 from xtl.files.npx import npx_load
+
+
+DATA = Path(__file__).parent / 'data'
+
 
 class TestCrystallizationExperiment:
 
@@ -118,9 +124,9 @@ class TestCrystallizationExperiment:
         assert np.array_equal(location_map, expected_map.reshape(shape), equal_nan=True)
         assert np.array_equal(mask, expected_mask, equal_nan=True)
 
-    @pytest.mark.parametrize('npx_file', ['data/reshape_data_ex1.npx',
-                                          'data/reshape_data_ex2.npx',
-                                          'data/reshape_data_ex3.npx'])
+    @pytest.mark.parametrize('npx_file', [DATA / 'reshape_data_ex1.npx',
+                                          DATA / 'reshape_data_ex2.npx',
+                                          DATA / 'reshape_data_ex3.npx'])
     def test_reshape_data(self, npx_file):
         npx = npx_load(npx_file)
         shape = tuple(npx.data['shape'])
@@ -137,9 +143,9 @@ class TestCrystallizationExperiment:
         assert np.array_equal(mask_reshaped, mask_reshaped_expected, equal_nan=True)
 
 
-    @pytest.mark.parametrize('npx_file', ['data/reshape_data_ex1.npx',
-                                          'data/reshape_data_ex2.npx',
-                                          'data/reshape_data_ex3.npx'])
+    @pytest.mark.parametrize('npx_file', [DATA / 'reshape_data_ex1.npx',
+                                          DATA / 'reshape_data_ex2.npx',
+                                          DATA / 'reshape_data_ex3.npx'])
     def test_reshape_data_without_mask(self, npx_file):
         npx = npx_load(npx_file)
         shape = tuple(npx.data['shape'])

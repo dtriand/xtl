@@ -9,6 +9,7 @@ from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.shells import Shell, DefaultShell, BashShell, PowerShell, CmdShell, WslShell
 from xtl.automate.batchfile import BatchFile
 from xtl.automate.jobs import Job, limited_concurrency
+from xtl.exceptions.warnings import IncompatibleShellWarning
 
 
 class TestLimitedConcurrency:
@@ -59,11 +60,11 @@ class TestJob:
         # No shell but compute_site requirements -> compute_site defaults
         assert j._determine_shell_and_site(shell=None, compute_site=BiotixHPC()) == (BashShell, BiotixHPC())
         # Shell incompatible with compute_site -> shell but raise warning
-        with pytest.warns(UserWarning, match='Shell \'powershell\' is not compatible with compute_site \'BiotixHPC\''):
+        with pytest.warns(IncompatibleShellWarning, match='Shell \'powershell\' is not compatible with compute_site \'BiotixHPC\''):
             assert j._determine_shell_and_site(shell=PowerShell, compute_site=BiotixHPC()) == (PowerShell, BiotixHPC())
         # Shell incompatible with job -> shell but raise warning
         j._supported_shells = [CmdShell, BashShell]
-        with pytest.warns(UserWarning, match='Shell \'powershell\' is not compatible with job \'Job\''):
+        with pytest.warns(IncompatibleShellWarning, match='Shell \'powershell\' is not compatible with job \'Job\''):
             assert j._determine_shell_and_site(shell=PowerShell, compute_site=LocalSite()) == (PowerShell, LocalSite())
         # No shell but both job and compute_site requirements -> multiple compatible shells -> job default
         cs = LocalSite()
