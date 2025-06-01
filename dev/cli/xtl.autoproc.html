@@ -44,7 +44,7 @@
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'cli/xtl.autoproc';</script>
-    <script src="../_static/js/version-selector.js?v=47652f41"></script>
+    <script src="../_static/js/version-selector.js?v=0a9e6b73"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="API documentation" href="../api/modules.html" />
@@ -1052,7 +1052,6 @@ By Dimitris P. Triandafillidis
     <div class="version-selector">
         <label for="version-dropdown">Documentation Version:</label>
         <select id="version-dropdown" onchange="if(this.value) window.location.href=this.value">
-            <option value="">Select Version</option>
             <option value="./latest/">Latest Stable</option>
             <option value="./dev/">Development</option>
         </select>
@@ -1071,7 +1070,6 @@ By Dimitris P. Triandafillidis
             versionSelector.className = 'version-selector-nav';
             versionSelector.innerHTML = '<select id="nav-version-dropdown" title="Documentation Version" ' +
                 'onchange="if(this.value) window.location.href=this.value">' +
-                '<option value="">Version</option>' +
                 '<option value="./latest/">Latest</option>' +
                 '<option value="./dev/">Dev</option></select>';
 
