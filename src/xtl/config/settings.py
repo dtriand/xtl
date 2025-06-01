@@ -216,6 +216,12 @@ class XTLSettings(Settings):
         else:
             print(f'No local or global {cls._toml} found, initializing with defaults.')
             _settings = cls()
+            try:
+                _settings.to_toml(filename=cls.global_config, comments=True)
+                print(f'Saved as global config: {cls.global_config}')
+            except Exception as e:
+                raise Exception(f'Failed to save global config: '
+                                f'{cls.global_config}') from e
 
         # Check settings version
         _v = version_from_str(_settings.version)
