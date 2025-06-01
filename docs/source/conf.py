@@ -5,6 +5,7 @@
 import importlib
 import inspect
 import os
+from pathlib import Path
 import sys
 
 sys.path.insert(0, os.path.abspath('.'))  # for custom lexers
@@ -75,6 +76,7 @@ html_js_files = [
     'js/version-selector.js',
 ]
 
+
 def setup(sphinx):
     """
     Register custom lexers
@@ -88,6 +90,9 @@ provider = 'https://github.com'
 user = 'dtriand'
 repo = 'xtl'
 branch = 'master'
+
+# Get project root (two directories up from docs/source)
+project_root = Path(__file__).resolve().parent.parent.parent
 
 
 def linkcode_resolve(domain, info):
@@ -112,7 +117,7 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, attr_name)
         except AttributeError:
             # Object is an attribute of a class
-            print('AttributeError raised')
+            print('\tAttributeError raised')
             return None
     else:
         # Handle top-level attributes (e.g. my_function())
@@ -121,16 +126,26 @@ def linkcode_resolve(domain, info):
     # Extract the file name and lines of code
     try:
         file = inspect.getsourcefile(obj)
+        if file is None:
+            return None
         lines = inspect.getsourcelines(obj)
     except TypeError:
-        print(f'TypeError raised')
+        print(f'\tTypeError raised')
         return None
 
-    # Get the relative path to the file with respect to the source directory
-    filepath = os.path.relpath(file, os.path.abspath('..'))
-    filepath = filepath.replace('\\', '/')  # for Windows compatibility
-    if not filepath.startswith('src'):
-        # Add source code links only to project files
+    file_path = Path(file).resolve()
+    try:
+        # Get the relative path from the project root
+        rel_path = file_path.relative_to(project_root)
+        # Convert to POSIX path for URLs (always uses forward slashes)
+        filepath = rel_path.as_posix()
+
+        # Only link to source files within the project
+        if not str(filepath).startswith('src'):
+            return None
+    except ValueError:
+        # This happens when the file is not within the project directory
+        print(f'\tValueError: {file_path} is not relative to {project_root}')
         return None
 
     # Get the first and last line numbers
@@ -141,5 +156,5 @@ def linkcode_resolve(domain, info):
 
     # Create the URL
     result = f'{provider}/{user}/{repo}/blob/{branch}/{filepath}{anchor}'
-    print(f'Link -> {result}')
+    print(f'\tLink -> {result}')
     return result
