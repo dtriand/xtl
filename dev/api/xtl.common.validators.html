@@ -253,64 +253,47 @@
 
 
 
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
   </button>
   <ul class="dropdown-menu">
       
       
       
-      <li><a href="../_sources/api/xtl.common.validators.rst" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
    data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file"></i>
+  <i class="fab fa-github"></i>
   </span>
-<span class="btn__text-container">.rst</span>
+<span class="btn__text-container">Repository</span>
 </a>
 </li>
       
       
       
       
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.common.validators.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
+  <i class="fas fa-lightbulb"></i>
   </span>
-<span class="btn__text-container">.pdf</span>
-</button>
+<span class="btn__text-container">Open issue</span>
+</a>
 </li>
       
   </ul>
 </div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
 
 
 
@@ -380,57 +363,111 @@ document.write(`
 <p>This modules defines custom validators to be used with <cite>Pydantic</cite> models.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.CastAsNoneIfEmpty">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsNoneIfEmpty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><span class="pre">BeforeValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L161-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsNoneIfEmpty" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsNoneIfEmpty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L161-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsNoneIfEmpty" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to cast a value to <code class="docutils literal notranslate"><span class="pre">None</span></code> if it is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><em>BeforeValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.CastAsPathOrNone">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsPathOrNone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><span class="pre">BeforeValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L168-L173"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsPathOrNone" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsPathOrNone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L168-L173"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsPathOrNone" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to cast a value to a <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> or return <code class="docutils literal notranslate"><span class="pre">None</span></code> if the
 value is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><em>BeforeValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.CastAsValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><span class="pre">BeforeValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L154-L158"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">CastAsValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L154-L158"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.CastAsValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to cast a value to the specified type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>type_</strong> (<em>type</em><em> | </em><em>Callable</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><em>BeforeValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.ChoicesValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">ChoicesValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">choices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L119-L123"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.ChoicesValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">ChoicesValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">choices</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L119-L123"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.ChoicesValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if a value is in the provided choices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>choices</strong> (<em>str</em><em> | </em><em>tuple</em><em>[</em><em>Any</em><em>, </em><em>...</em><em>]</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.LengthValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">LengthValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L112-L116"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.LengthValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">LengthValidator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">length</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L112-L116"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.LengthValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if the length of a value is equal to the provided length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>length</strong> (<em>int</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.PathExistsValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathExistsValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L126-L130"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathExistsValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathExistsValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L126-L130"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathExistsValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if a path exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.PathIsAbsoluteValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsAbsoluteValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L147-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsAbsoluteValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsAbsoluteValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L147-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsAbsoluteValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if a path is absolute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.PathIsDirValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsDirValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L140-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsDirValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsDirValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L140-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsDirValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if a path is a directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.validators.PathIsFileValidator">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsFileValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><span class="pre">AfterValidator</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L133-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsFileValidator" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.validators.</span></span><span class="sig-name descname"><span class="pre">PathIsFileValidator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/validators.py#L133-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.validators.PathIsFileValidator" title="Link to this definition">#</a></dt>
 <dd><p><cite>Pydantic</cite> validator to check if a path is a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><em>AfterValidator</em></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -526,6 +563,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>

@@ -249,18 +249,49 @@
 
 
 
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
+  <i class="fab fa-github"></i>
   </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fgenindex.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
 
-</button>
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
 
 
 
@@ -311,7 +342,8 @@ document.write(`
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#A"><strong>A</strong></a>
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
@@ -332,6 +364,28 @@ document.write(`
  | <a href="#X"><strong>X</strong></a>
  
 </div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.__init__">__init__() (xtl.common.options.Options method)</a>
+
+      <ul>
+        <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValue.__init__">(xtl.common.tables.MissingValue method)</a>
+</li>
+        <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.__init__">(xtl.common.tables.MissingValueConfig method)</a>
+</li>
+        <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.__init__">(xtl.common.tables.Table method)</a>
+</li>
+        <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.__init__">(xtl.config.version.VersionInfo method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.__new__">__new__() (xtl.config.version.ReleaseLevel method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -856,6 +910,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>

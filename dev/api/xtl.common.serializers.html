@@ -253,64 +253,47 @@
 
 
 
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
   </button>
   <ul class="dropdown-menu">
       
       
       
-      <li><a href="../_sources/api/xtl.common.serializers.rst" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
    data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file"></i>
+  <i class="fab fa-github"></i>
   </span>
-<span class="btn__text-container">.rst</span>
+<span class="btn__text-container">Repository</span>
 </a>
 </li>
       
       
       
       
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.common.serializers.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
+  <i class="fas fa-lightbulb"></i>
   </span>
-<span class="btn__text-container">.pdf</span>
-</button>
+<span class="btn__text-container">Open issue</span>
+</a>
 </li>
       
   </ul>
 </div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
 
 
 
@@ -372,14 +355,17 @@ document.write(`
 <p>This module defines custom serializers for use with <cite>Pydantic</cite> models.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.common.serializers.PermissionOctal">
-<span class="sig-prename descclassname"><span class="pre">xtl.common.serializers.</span></span><span class="sig-name descname"><span class="pre">PermissionOctal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePermissions</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/serializers.py#L12-L19"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.serializers.PermissionOctal" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.common.serializers.</span></span><span class="sig-name descname"><span class="pre">PermissionOctal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/serializers.py#L12-L19"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.serializers.PermissionOctal" title="Link to this definition">#</a></dt>
 <dd><p>Serializes an <code class="xref py py-class docutils literal notranslate"><span class="pre">FilePermissions</span></code> instance to an octal string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> – <code class="xref py py-class docutils literal notranslate"><span class="pre">FilePermissions</span></code> instance</p>
+<dd class="field-odd"><p><strong>x</strong> (<em>FilePermissions</em>) – <code class="xref py py-class docutils literal notranslate"><span class="pre">FilePermissions</span></code> instance</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Octal string representation of the permissions</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -469,6 +455,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>

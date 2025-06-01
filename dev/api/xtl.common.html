@@ -253,64 +253,47 @@
 
 
 
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
   </button>
   <ul class="dropdown-menu">
       
       
       
-      <li><a href="../_sources/api/xtl.common.rst" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
    data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file"></i>
+  <i class="fab fa-github"></i>
   </span>
-<span class="btn__text-container">.rst</span>
+<span class="btn__text-container">Repository</span>
 </a>
 </li>
       
       
       
       
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.common.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
+  <i class="fas fa-lightbulb"></i>
   </span>
-<span class="btn__text-container">.pdf</span>
-</button>
+<span class="btn__text-container">Open issue</span>
+</a>
 </li>
       
   </ul>
 </div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
 
 
 
@@ -392,6 +375,7 @@ document.write(`
 <li class="toctree-l1"><a class="reference internal" href="xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Option"><code class="docutils literal notranslate"><span class="pre">Option()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options"><code class="docutils literal notranslate"><span class="pre">Options</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.__init__"><code class="docutils literal notranslate"><span class="pre">Options.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_dict"><code class="docutils literal notranslate"><span class="pre">Options.from_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_json"><code class="docutils literal notranslate"><span class="pre">Options.from_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_toml"><code class="docutils literal notranslate"><span class="pre">Options.from_toml()</span></code></a></li>
@@ -420,10 +404,12 @@ document.write(`
 </li>
 <li class="toctree-l1"><a class="reference internal" href="xtl.common.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.tables</span></code> module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValue"><code class="docutils literal notranslate"><span class="pre">MissingValue</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValue.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValue.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValue.value"><code class="docutils literal notranslate"><span class="pre">MissingValue.value</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValueConfig"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValueConfig.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValueConfig.checker"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.checker</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValueConfig.repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.repr</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.MissingValueConfig.to_repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.to_repr()</span></code></a></li>
@@ -431,6 +417,7 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table"><code class="docutils literal notranslate"><span class="pre">Table</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.__init__"><code class="docutils literal notranslate"><span class="pre">Table.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.add_col"><code class="docutils literal notranslate"><span class="pre">Table.add_col()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.add_row"><code class="docutils literal notranslate"><span class="pre">Table.add_row()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.data"><code class="docutils literal notranslate"><span class="pre">Table.data</span></code></a></li>
@@ -551,6 +538,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>

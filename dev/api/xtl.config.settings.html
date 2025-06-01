@@ -253,64 +253,47 @@
 
 
 
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
   </button>
   <ul class="dropdown-menu">
       
       
       
-      <li><a href="../_sources/api/xtl.config.settings.rst" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
    data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file"></i>
+  <i class="fab fa-github"></i>
   </span>
-<span class="btn__text-container">.rst</span>
+<span class="btn__text-container">Repository</span>
 </a>
 </li>
       
       
       
       
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.config.settings.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
+  <i class="fas fa-lightbulb"></i>
   </span>
-<span class="btn__text-container">.pdf</span>
-</button>
+<span class="btn__text-container">Open issue</span>
+</a>
 </li>
       
   </ul>
 </div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
 
 
 
@@ -963,7 +946,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.initialize">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><span class="pre">XTLSettings</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L195-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L195-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
 <dd><p>Initialize by reading an <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> file. Determines whether to load a
 local or global configuration file, and initializes the settings accordingly.
 If neither file exists, it initializes with default values.</p>
@@ -971,6 +954,9 @@ If neither file exists, it initializes with default values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>An instance of <a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><em>XTLSettings</em></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1129,6 +1115,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>

@@ -253,64 +253,47 @@
 
 
 
-<div class="dropdown dropdown-download-buttons">
-  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
-    <i class="fas fa-download"></i>
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
   </button>
   <ul class="dropdown-menu">
       
       
       
-      <li><a href="../_sources/api/xtl.common.tables.rst" target="_blank"
-   class="btn btn-sm btn-download-source-button dropdown-item"
-   title="Download source file"
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
    data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file"></i>
+  <i class="fab fa-github"></i>
   </span>
-<span class="btn__text-container">.rst</span>
+<span class="btn__text-container">Repository</span>
 </a>
 </li>
       
       
       
       
-      <li>
-<button onclick="window.print()"
-  class="btn btn-sm btn-download-pdf-button dropdown-item"
-  title="Print to PDF"
-  data-bs-placement="left" data-bs-toggle="tooltip"
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.common.tables.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
 >
   
 
 <span class="btn__icon-container">
-  <i class="fas fa-file-pdf"></i>
+  <i class="fas fa-lightbulb"></i>
   </span>
-<span class="btn__text-container">.pdf</span>
-</button>
+<span class="btn__text-container">Open issue</span>
+</a>
 </li>
       
   </ul>
 </div>
-
-
-
-
-<button onclick="toggleFullScreen()"
-  class="btn btn-sm btn-fullscreen-button"
-  title="Fullscreen mode"
-  data-bs-placement="bottom" data-bs-toggle="tooltip"
->
-  
-
-<span class="btn__icon-container">
-  <i class="fas fa-expand"></i>
-  </span>
-
-</button>
 
 
 
@@ -356,10 +339,12 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue"><code class="docutils literal notranslate"><span class="pre">MissingValue</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValue.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue.value"><code class="docutils literal notranslate"><span class="pre">MissingValue.value</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.checker"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.checker</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.repr</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.to_repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.to_repr()</span></code></a></li>
@@ -367,6 +352,7 @@ document.write(`
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table"><code class="docutils literal notranslate"><span class="pre">Table</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.__init__"><code class="docutils literal notranslate"><span class="pre">Table.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.add_col"><code class="docutils literal notranslate"><span class="pre">Table.add_col()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.add_row"><code class="docutils literal notranslate"><span class="pre">Table.add_row()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.data"><code class="docutils literal notranslate"><span class="pre">Table.data</span></code></a></li>
@@ -411,7 +397,7 @@ document.write(`
 <span id="xtl-common-tables-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.common.tables</span></code> module<a class="headerlink" href="#module-xtl.common.tables" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.tables.MissingValue">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">MissingValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L10-L22"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.MissingValue" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">MissingValue</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L10-L22"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.MissingValue" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Represents a missing value.</p>
 <dl class="field-list simple">
@@ -419,6 +405,19 @@ document.write(`
 <dd class="field-odd"><p><strong>value</strong> – The original value</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.common.tables.MissingValue.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl.common.tables.MissingValue.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>Any</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.common.tables.MissingValue.value">
 <span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span></em><a class="headerlink" href="#xtl.common.tables.MissingValue.value" title="Link to this definition">#</a></dt>
@@ -428,7 +427,7 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.tables.MissingValueConfig">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">MissingValueConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L25-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.MissingValueConfig" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">MissingValueConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L25-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.MissingValueConfig" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Defines which values should be treated as missing and how they should be
 represented.</p>
@@ -441,6 +440,20 @@ represented.</p>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.common.tables.MissingValueConfig.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L38-L58"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.MissingValueConfig.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>Any</em>)</p></li>
+<li><p><strong>repr</strong> (<em>Any</em>)</p></li>
+<li><p><strong>checker</strong> (<em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><em>bool</em><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.common.tables.MissingValueConfig.checker">
 <span class="sig-name descname"><span class="pre">checker</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#xtl.common.tables.MissingValueConfig.checker" title="Link to this definition">#</a></dt>
@@ -474,17 +487,33 @@ represented.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.tables.Table">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">Table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><span class="pre">MissingValueConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L83-L1238"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.common.tables.</span></span><span class="sig-name descname"><span class="pre">Table</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L83-L1238"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="xtl.common.tables.Table.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L84-L106"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize a Table object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>Any</em><em>]</em><em>] </em><em>| </em><em>None</em>) – Optional data as a list of rows</p></li>
+<li><p><strong>headers</strong> (<em>List</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – Optional list of column names</p></li>
+<li><p><strong>missing_values</strong> (<a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><em>MissingValueConfig</em></a><em> | </em><em>Any</em>) – Values to consider as missing</p></li>
+<li><p><strong>missing_value_repr</strong> (<em>Any</em><em> | </em><em>None</em>) – Value to use for missing data when outputting</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.add_col">
-<span class="sig-name descname"><span class="pre">add_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L287-L328"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.add_col" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L287-L328"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.add_col" title="Link to this definition">#</a></dt>
 <dd><p>Append a new column to the table.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – The column data to append</p></li>
-<li><p><strong>col_name</strong> – The name of the new column</p></li>
+<li><p><strong>data</strong> (<em>List</em><em>[</em><em>Any</em><em>] </em><em>| </em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>] </em><em>| </em><em>str</em><em> | </em><em>None</em>) – The column data to append</p></li>
+<li><p><strong>col_name</strong> (<em>str</em><em> | </em><em>None</em>) – The name of the new column</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -498,11 +527,11 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.add_row">
-<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L238-L285"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.add_row" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L238-L285"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.add_row" title="Link to this definition">#</a></dt>
 <dd><p>Append a new row to the table.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>data</strong> – The row data to append. Can be either:
+<dd class="field-odd"><p><strong>data</strong> (<em>List</em><em>[</em><em>Any</em><em>] </em><em>| </em><em>Dict</em><em>[</em><em>str</em><em> | </em><em>int</em><em>, </em><em>Any</em><em>]</em>) – The row data to append. Can be either:
 - A list of values in column order
 - A dictionary mapping column names/indices to values</p>
 </dd>
@@ -529,11 +558,11 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.del_col">
-<span class="sig-name descname"><span class="pre">del_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L1116-L1144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.del_col" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">del_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L1116-L1144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.del_col" title="Link to this definition">#</a></dt>
 <dd><p>Remove a column by name or index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>idx</strong> – The column name or index to remove</p>
+<dd class="field-odd"><p><strong>idx</strong> (<em>str</em><em> | </em><em>int</em>) – The column name or index to remove</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -546,11 +575,11 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.del_row">
-<span class="sig-name descname"><span class="pre">del_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L1098-L1114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.del_row" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">del_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L1098-L1114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.del_row" title="Link to this definition">#</a></dt>
 <dd><p>Remove a row at the given index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>idx</strong> – The row index to remove</p>
+<dd class="field-odd"><p><strong>idx</strong> (<em>int</em>) – The row index to remove</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>IndexError</strong> – If the row index is out of range</p>
@@ -560,33 +589,37 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.from_csv">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'\n'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><span class="pre">Table</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L606-L659"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_csv" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_line</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\n'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_line</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_char</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L606-L659"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_csv" title="Link to this definition">#</a></dt>
 <dd><p>Create a Table from a CSV file or string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>s</strong> – Path to CSV file or CSV string content</p></li>
-<li><p><strong>delimiter</strong> – Delimiter used in the CSV (default: ‘,’)</p></li>
-<li><p><strong>header_line</strong> – Line that contains headers (default: None)</p></li>
-<li><p><strong>header_char</strong> – Character that might prefix the header line (e.g., ‘#’)</p></li>
+<li><p><strong>s</strong> (<em>str</em><em> | </em><em>Path</em>) – Path to CSV file or CSV string content</p></li>
+<li><p><strong>delimiter</strong> (<em>str</em>) – Delimiter used in the CSV (default: ‘,’)</p></li>
+<li><p><strong>header_line</strong> (<em>int</em><em> | </em><em>None</em>) – Line that contains headers (default: None)</p></li>
+<li><p><strong>header_char</strong> (<em>str</em>) – Character that might prefix the header line (e.g., ‘#’)</p></li>
+<li><p><strong>new_line</strong> (<em>str</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A new Table instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><em>Table</em></a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.from_dict">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><span class="pre">MissingValueConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><span class="pre">Table</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L519-L551"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_dict" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L519-L551"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_dict" title="Link to this definition">#</a></dt>
 <dd><p>Create a Table from a dictionary of columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – Dictionary with column names as keys and column data as values</p></li>
-<li><p><strong>missing_values</strong> – Values to consider as missing</p></li>
-<li><p><strong>missing_value_repr</strong> – Value to use for missing data when outputting</p></li>
+<li><p><strong>data</strong> (<em>Dict</em><em>[</em><em>str</em><em> | </em><em>int</em><em>, </em><em>List</em><em>[</em><em>Any</em><em>]</em><em>]</em>) – Dictionary with column names as keys and column data as values</p></li>
+<li><p><strong>missing_values</strong> (<a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><em>MissingValueConfig</em></a><em> | </em><em>Any</em>) – Values to consider as missing</p></li>
+<li><p><strong>missing_value_repr</strong> (<em>Any</em><em> | </em><em>None</em>) – Value to use for missing data when outputting</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -595,20 +628,23 @@ represented.</p>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – If the columns are not of equal length</p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><em>Table</em></a></p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.from_numpy">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><span class="pre">MissingValueConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><span class="pre">Table</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L553-L580"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_numpy" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L553-L580"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_numpy" title="Link to this definition">#</a></dt>
 <dd><p>Create a Table from a numpy ndarray.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>array</strong> – 2D numpy array</p></li>
-<li><p><strong>headers</strong> – Optional list of column names</p></li>
-<li><p><strong>missing_values</strong> – Values to consider as missing</p></li>
-<li><p><strong>missing_value_repr</strong> – Value to use for missing data when outputting</p></li>
+<li><p><strong>array</strong> (<em>np.ndarray</em>) – 2D numpy array</p></li>
+<li><p><strong>headers</strong> (<em>List</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – Optional list of column names</p></li>
+<li><p><strong>missing_values</strong> (<a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><em>MissingValueConfig</em></a><em> | </em><em>Any</em>) – Values to consider as missing</p></li>
+<li><p><strong>missing_value_repr</strong> (<em>Any</em>) – Value to use for missing data when outputting</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -620,19 +656,22 @@ represented.</p>
 <li><p><strong>ValueError</strong> – If the array is not 2D</p></li>
 </ul>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table">Table</a></p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.from_pandas">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pandas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><span class="pre">MissingValueConfig</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table"><span class="pre">Table</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L582-L604"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_pandas" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pandas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">XTLUndefined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_repr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L582-L604"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.from_pandas" title="Link to this definition">#</a></dt>
 <dd><p>Create a Table from a pandas DataFrame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> – pandas DataFrame</p></li>
-<li><p><strong>missing_values</strong> – Values to consider as missing</p></li>
-<li><p><strong>missing_value_repr</strong> – Value to use for missing data when outputting</p></li>
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – pandas DataFrame</p></li>
+<li><p><strong>missing_values</strong> (<a class="reference internal" href="#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><em>MissingValueConfig</em></a><em> | </em><em>Any</em>) – Values to consider as missing</p></li>
+<li><p><strong>missing_value_repr</strong> (<em>Any</em>) – Value to use for missing data when outputting</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -641,16 +680,19 @@ represented.</p>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ImportError</strong> – If pandas is not installed</p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#xtl.common.tables.Table" title="xtl.common.tables.Table">Table</a></p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.get_col">
-<span class="sig-name descname"><span class="pre">get_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L337-L360"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.get_col" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L337-L360"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.get_col" title="Link to this definition">#</a></dt>
 <dd><p>Get a column by name or index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>idx</strong> – The column name or index</p>
+<dd class="field-odd"><p><strong>idx</strong> (<em>str</em><em> | </em><em>int</em>) – The column name or index</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -658,16 +700,22 @@ represented.</p>
 <li><p><strong>IndexError</strong> – If the column index is out of range</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>List</em>[<em>Any</em>]</p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.get_row">
-<span class="sig-name descname"><span class="pre">get_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L330-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.get_row" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L330-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.get_row" title="Link to this definition">#</a></dt>
 <dd><p>Get a row by index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>idx</strong> – The row index</p>
+<dd class="field-odd"><p><strong>idx</strong> (<em>int</em>) – The row index</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>Any</em>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -696,8 +744,13 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.items">
-<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L963-L966"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.items" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L963-L966"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.items" title="Link to this definition">#</a></dt>
 <dd><p>Iterate over columns as (name, values) pairs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Iterator</em>[<em>Tuple</em>[str, <em>List</em>[<em>Any</em>]]]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -735,13 +788,13 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.set_col">
-<span class="sig-name descname"><span class="pre">set_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L374-L399"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.set_col" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L374-L399"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.set_col" title="Link to this definition">#</a></dt>
 <dd><p>Set the data for a column by name or index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>idx</strong> – The column name or index</p></li>
-<li><p><strong>values</strong> – The new column data</p></li>
+<li><p><strong>idx</strong> (<em>str</em><em> | </em><em>int</em>) – The column name or index</p></li>
+<li><p><strong>values</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – The new column data</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -756,13 +809,13 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.set_row">
-<span class="sig-name descname"><span class="pre">set_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L362-L372"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.set_row" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">set_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L362-L372"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.set_row" title="Link to this definition">#</a></dt>
 <dd><p>Set the data for a row at a given index.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>idx</strong> – The row index</p></li>
-<li><p><strong>row</strong> – The new row data</p></li>
+<li><p><strong>idx</strong> (<em>int</em>) – The row index</p></li>
+<li><p><strong>row</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – The new row data</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -795,18 +848,18 @@ represented.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_csv">
-<span class="sig-name descname"><span class="pre">to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'\n'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_file_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L475-L517"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_csv" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_line</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\n'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_char</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_file_ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L475-L517"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_csv" title="Link to this definition">#</a></dt>
 <dd><p>Write the table to a CSV file. If <code class="docutils literal notranslate"><span class="pre">filename</span></code> is not provided, then the
 CSV will be returned as a string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> – Optional output path for the CSV file.</p></li>
-<li><p><strong>delimiter</strong> – Delimiter to use in the CSV.</p></li>
-<li><p><strong>new_line</strong> – Newline character to use in the CSV.</p></li>
-<li><p><strong>header_char</strong> – Character to prepend to the header line (e.g., ‘#’).</p></li>
-<li><p><strong>overwrite</strong> – Overwrite the file if it already exists.</p></li>
-<li><p><strong>keep_file_ext</strong> – Keep the file extension if <code class="docutils literal notranslate"><span class="pre">filename</span></code> is provided.</p></li>
+<li><p><strong>filename</strong> (<em>str</em><em> | </em><em>Path</em><em> | </em><em>None</em>) – Optional output path for the CSV file.</p></li>
+<li><p><strong>delimiter</strong> (<em>str</em>) – Delimiter to use in the CSV.</p></li>
+<li><p><strong>new_line</strong> (<em>str</em>) – Newline character to use in the CSV.</p></li>
+<li><p><strong>header_char</strong> (<em>str</em>) – Character to prepend to the header line (e.g., ‘#’).</p></li>
+<li><p><strong>overwrite</strong> (<em>bool</em>) – Overwrite the file if it already exists.</p></li>
+<li><p><strong>keep_file_ext</strong> (<em>bool</em>) – Keep the file extension if <code class="docutils literal notranslate"><span class="pre">filename</span></code> is provided.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -815,64 +868,82 @@ CSV will be returned as a string.</p>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>FileExistsError</strong> – If the file already exists and <code class="docutils literal notranslate"><span class="pre">overwrite</span></code> is False</p>
 </dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str | <em>Path</em></p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_dict">
-<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L416-L424"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_dict" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L416-L424"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_dict" title="Link to this definition">#</a></dt>
 <dd><p>Convert the table to a dictionary with column names as keys.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The table data as a dictionary</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Dict</em>[str | int, <em>List</em>[<em>Any</em>]]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_list">
-<span class="sig-name descname"><span class="pre">to_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L409-L414"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_list" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L409-L414"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_list" title="Link to this definition">#</a></dt>
 <dd><p>Convert the table to a flattened list</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The table data as a list</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>List</em>[<em>Any</em>]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_numpy">
-<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L426-L436"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_numpy" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L426-L436"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_numpy" title="Link to this definition">#</a></dt>
 <dd><p>Convert the table to a numpy ndarray. Requires numpy to be installed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The table as a numpy array</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_pandas">
-<span class="sig-name descname"><span class="pre">to_pandas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><span class="pre">pandas.DataFrame</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L438-L448"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_pandas" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_pandas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L438-L448"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_pandas" title="Link to this definition">#</a></dt>
 <dd><p>Convert the table to a pandas DataFrame. Requires pandas to be installed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The table as a DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.tables.Table.to_rich">
-<span class="sig-name descname"><span class="pre">to_rich</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cast_as</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://rich.readthedocs.io/en/stable/reference/table.html#rich.table.Table" title="(in Rich)"><span class="pre">rich.table.Table</span></a></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L450-L473"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_rich" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_rich</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cast_as</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/tables.py#L450-L473"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.tables.Table.to_rich" title="Link to this definition">#</a></dt>
 <dd><p>Convert the table to a rich.Table for pretty console output. Requires rich to
 be installed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cast_as</strong> – Optional function to cast values before adding to the rich table</p>
+<dd class="field-odd"><p><strong>cast_as</strong> (<em>Callable</em>) – Optional function to cast values before adding to the rich table</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The table as a rich Table object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://rich.readthedocs.io/en/stable/reference/table.html#rich.table.Table" title="(in Rich)">rich.table.Table</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -927,10 +998,12 @@ be installed.</p>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue"><code class="docutils literal notranslate"><span class="pre">MissingValue</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValue.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValue.value"><code class="docutils literal notranslate"><span class="pre">MissingValue.value</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.__init__"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.checker"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.checker</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.repr</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.MissingValueConfig.to_repr"><code class="docutils literal notranslate"><span class="pre">MissingValueConfig.to_repr()</span></code></a></li>
@@ -938,6 +1011,7 @@ be installed.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table"><code class="docutils literal notranslate"><span class="pre">Table</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.__init__"><code class="docutils literal notranslate"><span class="pre">Table.__init__()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.add_col"><code class="docutils literal notranslate"><span class="pre">Table.add_col()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.add_row"><code class="docutils literal notranslate"><span class="pre">Table.add_row()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.tables.Table.data"><code class="docutils literal notranslate"><span class="pre">Table.data</span></code></a></li>
@@ -1004,6 +1078,9 @@ By Dimitris P. Triandafillidis
   
   <div class="footer-item">
     
+<div class="extra_footer">
+  XTL v0.1.0dev0 (Jun 01, 2025)
+</div>
   </div>
   
 </div>
