@@ -43,7 +43,7 @@
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.common.tables';</script>
-    <script src="../_static/js/version-selector.js?v=b6cbbe33"></script>
+    <script src="../_static/js/version-selector.js?v=8c5de238"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="xtl.config package" href="xtl.config.html" />
@@ -1025,85 +1025,70 @@ By Dimitris P. Triandafillidis
     <script>
         const versionsJson = '[]';
 
-        // Function to switch version while preserving the current page path
+        // Utility functions for URL handling
+        const urlUtils = {
+            // Get GitHub Pages info (if applicable)
+            getGitHubInfo: function() {
+                const isGitHubPages = window.location.hostname.includes('github.io');
+                let repoName = '';
+
+                if (isGitHubPages && window.location.pathname.split('/').length > 1) {
+                    repoName = window.location.pathname.split('/')[1];
+                }
+
+                return { isGitHubPages, repoName };
+            },
+
+            // Extract path information from current URL
+            getPathInfo: function() {
+                const currentPath = window.location.pathname;
+                const pathParts = currentPath.split('/');
+                const { isGitHubPages, repoName } = this.getGitHubInfo();
+
+                let currentVersion = '';
+                let pathAfterVersion = '';
+                const startIndex = isGitHubPages ? 2 : 1; // Skip repo name if on GitHub Pages
+
+                // Find version segment in path
+                for (let i = startIndex; i < pathParts.length; i++) {
+                    if (pathParts[i] === 'latest' ||
+                        pathParts[i] === 'dev' ||
+                        /^v?\d+(\.\d+)*$/.test(pathParts[i])) {
+                        currentVersion = pathParts[i];
+                        pathAfterVersion = pathParts.slice(i + 1).join('/');
+                        break;
+                    }
+                }
+
+                return { currentVersion, pathAfterVersion, repoName, isGitHubPages };
+            },
+
+            // Create a URL for a specific version
+            createVersionUrl: function(version, pathAfterVersion) {
+                const { isGitHubPages, repoName } = this.getGitHubInfo();
+                const origin = window.location.origin;
+                const basePath = isGitHubPages && repoName ? '/' + repoName + '/' : '/';
+
+                return origin + basePath + version + '/' + (pathAfterVersion || '');
+            }
+        };
+
+        // Switch to a different documentation version
         function switchVersion(version) {
             if (!version) return;
 
-            const currentPath = window.location.pathname;
+            const { currentVersion, pathAfterVersion, repoName, isGitHubPages } = urlUtils.getPathInfo();
 
-            // Extract repository name and version from the path for GitHub Pages
-            const pathParts = currentPath.split('/');
-            let repoName = '';
-            let currentVersion = '';
-            let pathAfterVersion = '';
-
-            // Handle GitHub Pages URLs (user.github.io/repo/version/path)
-            const isGitHubPages = window.location.hostname.includes('github.io');
-
-            if (isGitHubPages) {
-                // GitHub Pages URL format: user.github.io/repo/version/path/to/page
-                // Find repo name (should be right after the domain)
-                if (pathParts.length > 1) {
-                    repoName = pathParts[1];
-                }
-
-                // Then look for version (could be at index 2 if repo exists)
-                for (let i = 1; i < pathParts.length; i++) {
-                    if (pathParts[i] === 'latest' || pathParts[i] === 'dev' || /^v?\d+(\.\d+)*$/.test(pathParts[i])) {
-                        currentVersion = pathParts[i];
-                        // Everything after the version is the path we want to preserve
-                        pathAfterVersion = pathParts.slice(i + 1).join('/');
-                        break;
-                    }
-                }
-            } else {
-                // Standard URL format (like readthedocs): domain/version/path/to/page
-                for (let i = 1; i < pathParts.length; i++) {
-                    if (pathParts[i] === 'latest' || pathParts[i] === 'dev' || /^v?\d+(\.\d+)*$/.test(pathParts[i])) {
-                        currentVersion = pathParts[i];
-                        pathAfterVersion = pathParts.slice(i + 1).join('/');
-                        break;
-                    }
-                }
-            }
-
-            // If we couldn't detect a version in the path, just go to the version's root
+            // If we couldn't detect a version in the path, go to the version's root
             if (!currentVersion) {
-                if (isGitHubPages && repoName) {
-                    window.location.href = '/' + repoName + '/' + version + '/';
-                } else {
-                    window.location.href = '/' + version + '/';
-                }
+                const basePath = isGitHubPages && repoName ? '/' + repoName + '/' : '/';
+                window.location.href = basePath + version + '/';
                 return;
             }
 
             // Construct the new URL with the selected version but same page path
-            let newPath;
-            if (isGitHubPages && repoName) {
-                newPath = '/' + repoName + '/' + version + '/' + pathAfterVersion;
-            } else {
-                newPath = '/' + version + '/' + pathAfterVersion;
-            }
-
-            window.location.href = newPath;
-        }
-
-        // Function to create tooltip text for version options
-        function createTooltipText(version, pathAfterVersion) {
-            const origin = window.location.origin;
-            const currentPath = window.location.pathname;
-            const pathParts = currentPath.split('/');
-
-            // Check if we're on GitHub Pages
-            const isGitHubPages = window.location.hostname.includes('github.io');
-            let repoName = '';
-
-            if (isGitHubPages && pathParts.length > 1) {
-                repoName = pathParts[1];
-                return origin + '/' + repoName + '/' + version + '/' + (pathAfterVersion || '');
-            } else {
-                return origin + '/' + version + '/' + (pathAfterVersion || '');
-            }
+            const basePath = isGitHubPages && repoName ? '/' + repoName + '/' : '/';
+            window.location.href = basePath + version + '/' + pathAfterVersion;
         }
 
         // Add version selector to header buttons
@@ -1111,29 +1096,8 @@ By Dimitris P. Triandafillidis
             const headerButtons = document.querySelector('.article-header-buttons');
             if (!headerButtons) return;
 
-            // Get current path information for tooltips
-            const currentPath = window.location.pathname;
-            const pathParts = currentPath.split('/');
-            let currentVersion = '';
-            let pathAfterVersion = '';
-
-            // Check if we're on GitHub Pages
-            const isGitHubPages = window.location.hostname.includes('github.io');
-            let repoName = '';
-            let startIndex = 1;
-
-            if (isGitHubPages && pathParts.length > 1) {
-                repoName = pathParts[1];
-                startIndex = 2; // Skip repo name if on GitHub Pages
-            }
-
-            for (let i = startIndex; i < pathParts.length; i++) {
-                if (pathParts[i] === 'latest' || pathParts[i] === 'dev' || /^v?\d+(\.\d+)*$/.test(pathParts[i])) {
-                    currentVersion = pathParts[i];
-                    pathAfterVersion = pathParts.slice(i + 1).join('/');
-                    break;
-                }
-            }
+            // Get current path information
+            const { pathAfterVersion } = urlUtils.getPathInfo();
 
             // Create and insert version selector
             const versionSelector = document.createElement('div');
@@ -1141,8 +1105,8 @@ By Dimitris P. Triandafillidis
 
             versionSelector.innerHTML = '<select id="nav-version-dropdown" title="Version" ' +
                 'onchange="switchVersion(this.value)">' +
-                '<option value="latest" title="' + createTooltipText('latest', pathAfterVersion) + '">Latest</option>' +
-                '<option value="dev" title="' + createTooltipText('dev', pathAfterVersion) + '">Dev</option></select>';
+                '<option value="latest" title="' + urlUtils.createVersionUrl('latest', pathAfterVersion) + '">Latest</option>' +
+                '<option value="dev" title="' + urlUtils.createVersionUrl('dev', pathAfterVersion) + '">Dev</option></select>';
 
             headerButtons.insertBefore(versionSelector, headerButtons.firstChild);
 
@@ -1150,51 +1114,17 @@ By Dimitris P. Triandafillidis
             const navDropdown = document.getElementById('nav-version-dropdown');
             if (!navDropdown) return;
 
-            // Detect current version based on URL path
-            const detectCurrentVersion = function() {
-                const path = window.location.pathname;
-                const isLatest = path.includes('/latest/');
-                const isDev = path.includes('/dev/');
+            // Set the current version in the dropdown
+            const { currentVersion, isGitHubPages } = urlUtils.getPathInfo();
+            const path = window.location.pathname;
 
-                // Look through all options to find matching ones
-                return function(select) {
-                    let found = false;
-                    Array.from(select.options).forEach(function(option) {
-                        if ((isLatest && option.value === 'latest') ||
-                            (isDev && option.value === 'dev')) {
-                            option.selected = true;
-                            found = true;
-                        } else if (path.includes('/' + option.value + '/')) {
-                            // Check for version number matches (e.g., v1.2.3)
-                            option.selected = true;
-                            found = true;
-                        }
-                    });
-
-                    // If no version detected in URL, try to find version in path
-                    if (!found && path) {
-                        const pathParts = path.split('/');
-                        const startIdx = isGitHubPages ? 2 : 1; // Skip repo name if on GitHub Pages
-
-                        for (let i = startIdx; i < pathParts.length; i++) {
-                            const part = pathParts[i];
-                            // Check for version strings like latest, dev, or v1.2.3
-                            if (part === 'latest' || part === 'dev' || /^v?\d+(\.\d+)*$/.test(part)) {
-                                Array.from(select.options).forEach(function(option) {
-                                    if (option.value === part) {
-                                        option.selected = true;
-                                    }
-                                });
-                                break;
-                            }
-                        }
-                    }
-                };
-            };
-
-            // Set current version in dropdown
-            const setCurrentVersion = detectCurrentVersion();
-            setCurrentVersion(navDropdown);
+            Array.from(navDropdown.options).forEach(option => {
+                if ((path.includes('/latest/') && option.value === 'latest') ||
+                    (path.includes('/dev/') && option.value === 'dev') ||
+                    (path.includes('/' + option.value + '/'))) {
+                    option.selected = true;
+                }
+            });
         });
     </script>
     <script src="../_static/js/version-selector.js"></script>
