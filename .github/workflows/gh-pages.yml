@@ -133,6 +133,10 @@ jobs:
           destination_dir: dev
           force_orphan: false
           keep_files: true
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: update dev docs from ${{ github.ref_name }}'
 
       - name: Deploy to GitHub Pages (version specific)
         uses: peaceiris/actions-gh-pages@v3
@@ -144,6 +148,10 @@ jobs:
           destination_dir: v${{ env.PACKAGE_VERSION }}
           force_orphan: false
           keep_files: true
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: update v${{ env.PACKAGE_VERSION }} docs from tag ${{ github.ref_name }}'
 
       - name: Deploy to GitHub Pages (latest stable)
         uses: peaceiris/actions-gh-pages@v3
@@ -155,6 +163,10 @@ jobs:
           destination_dir: latest
           force_orphan: false
           keep_files: true
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: update latest docs from ${{ github.ref_name }}'
 
       # Generate root index page
       - name: Prepare root files
@@ -181,3 +193,7 @@ jobs:
           destination_dir: ./
           force_orphan: false
           keep_files: true
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: update root files from ${{ github.ref_name }}'
