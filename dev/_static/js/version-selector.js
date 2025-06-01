@@ -28,10 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add specific versions to dropdown
         versions.forEach(function(ver) {
             const option = document.createElement('option');
-            option.value = '/' + ver.path;
+            option.value = './' + ver.path;  // Use relative path with './'
             option.textContent = 'v' + ver.version;
 
-            // Set as selected if we're on this version
+            // Set as selected if we're on this version (check both absolute and relative paths)
             if (currentPath.includes('/' + ver.path)) {
                 option.selected = true;
             }

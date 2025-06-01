@@ -43,7 +43,7 @@
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'common/options';</script>
-    <script src="../_static/js/version-selector.js?v=0a9e6b73"></script>
+    <script src="../_static/js/version-selector.js?v=47652f41"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Tables" href="tables.html" />
@@ -53,34 +53,39 @@
   <meta name="docsearch:language" content="en"/>
     <style>
         /* Version selector styles */
-        .version-selector {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 10px;
-            border: 1px solid #ddd;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
         }
-
-        .version-selector select {
-            padding: 8px;
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
             border-radius: 4px;
-            border: 1px solid #ccc;
-            background-color: #f8f8f8;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
             font-size: 14px;
-            width: 100%;
-            min-width: 200px;
         }
 
-        .version-selector label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 14px;
+        /* Original version selector (hidden on desktop, visible on mobile) */
+        .version-selector { display: none; }
+
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .version-selector-nav { display: none; }
+            .version-selector {
+                display: block;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1000;
+                background-color: var(--pst-color-background-offset, var(--pst-color-background, #fff));
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                padding: 10px;
+                border: 1px solid var(--pst-color-border, #ddd);
+            }
         }
     </style>
 
@@ -92,6 +97,7 @@
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+    
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -855,6 +861,7 @@ By Dimitris P. Triandafillidis
   <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
 <script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
 
+
     
   <footer class="bd-footer">
   </footer>
@@ -862,16 +869,146 @@ By Dimitris P. Triandafillidis
         <label for="version-dropdown">Documentation Version:</label>
         <select id="version-dropdown" onchange="if(this.value) window.location.href=this.value">
             <option value="">Select Version</option>
-            <option value="/latest/">Latest Stable</option>
-            <option value="/dev/">Development</option>
-            <!-- Additional versions will be added by JavaScript -->
+            <option value="./latest/">Latest Stable</option>
+            <option value="./dev/">Development</option>
         </select>
     </div>
 
     <script>
         const versionsJson = '[]';
+
+        // Add version selector to header buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const headerButtons = document.querySelector('.article-header-buttons');
+            if (!headerButtons) return;
+
+            // Create and insert version selector
+            const versionSelector = document.createElement('div');
+            versionSelector.className = 'version-selector-nav';
+            versionSelector.innerHTML = '<select id="nav-version-dropdown" title="Documentation Version" ' +
+                'onchange="if(this.value) window.location.href=this.value">' +
+                '<option value="">Version</option>' +
+                '<option value="./latest/">Latest</option>' +
+                '<option value="./dev/">Dev</option></select>';
+
+            headerButtons.insertBefore(versionSelector, headerButtons.firstChild);
+
+            // Synchronize with main dropdown
+            const mainDropdown = document.getElementById('version-dropdown');
+            const navDropdown = document.getElementById('nav-version-dropdown');
+            if (!mainDropdown || !navDropdown) return;
+
+            // Detect current version based on URL path
+            const detectCurrentVersion = function() {
+                const path = window.location.pathname;
+                const isLatest = path.includes('/latest/');
+                const isDev = path.includes('/dev/');
+
+                // Look through all options to find matching ones
+                return function(select) {
+                    let found = false;
+                    Array.from(select.options).forEach(function(option) {
+                        if ((isLatest && option.value.includes('latest')) ||
+                            (isDev && option.value.includes('dev'))) {
+                            option.selected = true;
+                            found = true;
+                        }
+                    });
+
+                    // If no version detected in URL, try to find exact path match
+                    if (!found && path) {
+                        Array.from(select.options).forEach(function(option) {
+                            if (option.value && path.endsWith(option.value.replace('./', '/'))) {
+                                option.selected = true;
+                            }
+                        });
+                    }
+                };
+            };
+
+            // Ensure all paths use relative URLs
+            const makePathsRelative = function(select) {
+                Array.from(select.options).forEach(function(option) {
+                    if (option.value && option.value.startsWith('/')) {
+                        option.value = '.' + option.value;
+                    }
+                });
+            };
+
+            makePathsRelative(mainDropdown);
+            makePathsRelative(navDropdown);
+
+            // Set current version in both dropdowns
+            const setCurrentVersion = detectCurrentVersion();
+            setCurrentVersion(mainDropdown);
+            setCurrentVersion(navDropdown);
+
+            // Watch for changes to the main dropdown
+            new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        let newOptionsAdded = false;
+
+                        Array.from(mutation.addedNodes).forEach(function(node) {
+                            if (node.nodeName === 'OPTION' && node.value &&
+                                !navDropdown.querySelector(`option[value="${node.value}"]`)) {
+                                const clone = node.cloneNode(true);
+
+                                // Make sure path is relative
+                                if (clone.value.startsWith('/')) {
+                                    clone.value = '.' + clone.value;
+                                }
+
+                                // Make the label shorter
+                                if (clone.textContent.includes('v')) {
+                                    clone.textContent = clone.textContent.trim();
+                                }
+
+                                navDropdown.appendChild(clone);
+                                newOptionsAdded = true;
+                            }
+                        });
+
+                        // If new options were added, reapply version detection
+                        if (newOptionsAdded) {
+                            setCurrentVersion(navDropdown);
+
+                            // If main dropdown has a selection, match it
+                            if (mainDropdown.selectedIndex > 0) {
+                                navDropdown.value = mainDropdown.value;
+                            }
+                        }
+                    }
+                });
+            }).observe(mainDropdown, { childList: true });
+        });
     </script>
     <script src="../_static/js/version-selector.js"></script>
+
+    <!-- Fix absolute paths in version-selector.js -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Override the version-selector.js behavior for path creation
+            const originalAppendChild = HTMLSelectElement.prototype.appendChild;
+            HTMLSelectElement.prototype.appendChild = function(element) {
+                if (this.id === 'version-dropdown' || this.id === 'nav-version-dropdown') {
+                    if (element.nodeName === 'OPTION' && element.value && element.value.startsWith('/')) {
+                        element.value = '.' + element.value;
+                    }
+
+                    // Check if this option should be selected based on the current URL
+                    if (element.nodeName === 'OPTION' && element.value) {
+                        const path = window.location.pathname;
+                        const versionPath = element.value.replace('./', '/');
+                        if (path.includes(versionPath)) {
+                            element.selected = true;
+                        }
+                    }
+                }
+                return originalAppendChild.call(this, element);
+            };
+        });
+    </script>
 
   </body>
 </html>
