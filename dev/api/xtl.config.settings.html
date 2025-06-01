@@ -1170,8 +1170,8 @@ By Dimitris P. Triandafillidis
     <div class="version-selector">
         <label for="version-dropdown">Documentation Version:</label>
         <select id="version-dropdown" onchange="if(this.value) window.location.href=this.value">
-            <option value="./latest/">Latest Stable</option>
-            <option value="./dev/">Development</option>
+            <option value="/latest/">Latest Stable</option>
+            <option value="/dev/">Development</option>
         </select>
     </div>
 
@@ -1188,8 +1188,8 @@ By Dimitris P. Triandafillidis
             versionSelector.className = 'version-selector-nav';
             versionSelector.innerHTML = '<select id="nav-version-dropdown" title="Documentation Version" ' +
                 'onchange="if(this.value) window.location.href=this.value">' +
-                '<option value="./latest/">Latest</option>' +
-                '<option value="./dev/">Dev</option></select>';
+                '<option value="/latest/">Latest</option>' +
+                '<option value="/dev/">Dev</option></select>';
 
             headerButtons.insertBefore(versionSelector, headerButtons.firstChild);
 
