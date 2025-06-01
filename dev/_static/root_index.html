@@ -4,59 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XTL Documentation</title>
-    <script>
-        // Auto-redirect script - check if latest or dev versions exist and redirect
-        document.addEventListener('DOMContentLoaded', function() {
-            // Try to redirect to latest first, then fall back to dev
-            function tryRedirect() {
-                // Get base URL for GitHub Pages compatibility
-                const isGitHubPages = window.location.hostname.includes('github.io');
-                let basePath = './';
-
-                if (isGitHubPages) {
-                    const pathParts = window.location.pathname.split('/');
-                    if (pathParts.length > 1) {
-                        const repoName = pathParts[1];
-                        if (repoName) {
-                            basePath = '/' + repoName + '/';
-                        }
-                    }
-                }
-
-                // First try to fetch the latest version
-                fetch(basePath + 'latest/index.html', { method: 'HEAD' })
-                    .then(response => {
-                        if (response.ok) {
-                            // Latest version exists, redirect
-                            window.location.href = basePath + 'latest/';
-                        } else {
-                            // Try dev version
-                            return fetch(basePath + 'dev/index.html', { method: 'HEAD' });
-                        }
-                    })
-                    .then(response => {
-                        if (response && response.ok) {
-                            // Dev version exists, redirect
-                            window.location.href = basePath + 'dev/';
-                        }
-                        // If we get here, neither version exists, so stay on the current page
-                    })
-                    .catch(error => {
-                        // Error occurred, stay on the current page
-                        console.error('Error checking documentation versions:', error);
-                    });
-            }
-
-            // Add a small delay to allow the page to load first
-            setTimeout(tryRedirect, 50);
-        });
-    </script>
+    <script src="./version-selector.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             text-align: center;
             padding: 50px;
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             line-height: 1.6;
         }
@@ -73,14 +27,30 @@
         a:hover {
             text-decoration: underline;
         }
+        .version-group {
+            margin: 10px 0;
+        }
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #eaecef;
+        }
     </style>
+    <script>
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add a small delay to allow the page to load first
+            setTimeout(fetchVersionsAndRedirect, 50);
+        });
+    </script>
 </head>
 <body>
     <h1>XTL Documentation</h1>
     <p>Redirecting to documentation...</p>
-    <p>If you are not redirected automatically, please choose a version:
+    <p>If you are not redirected automatically, please choose a version:</p>
+    <div id="version-links">
         <a href="./latest/">Latest Version</a> |
         <a href="./dev/">Development Version</a>
-    </p>
+    </div>
 </body>
 </html>
