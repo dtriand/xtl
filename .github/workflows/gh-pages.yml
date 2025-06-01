@@ -104,6 +104,10 @@ jobs:
           # Save for root index page
           echo "$VERSIONS_JSON" > versions.json
           
+          # Also save versions.json to the docs/build directory so it's deployed with the documentation
+          mkdir -p docs/build
+          echo "$VERSIONS_JSON" > docs/build/versions.json
+          
           # Clean up
           rm -rf gh-pages-clone
 
