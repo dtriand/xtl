@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl.config.version module &#8212; xtl 0.1.0dev0 documentation</title>
+    <title>xtl.config.version module &#8212; xtl 0.1.0rc1 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=a4c74b72"></script>
+    <script src="../_static/documentation_options.js?v=370c4a40"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -159,8 +159,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0dev0 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0dev0 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -383,38 +383,44 @@ document.write(`
 <span id="xtl-config-version-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module<a class="headerlink" href="#module-xtl.config.version" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">ReleaseLevel</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L7-L16"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.ReleaseLevel" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">ReleaseLevel</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L7-L22"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.ReleaseLevel" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
 <p>Enum to represent the version release level.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.ALPHA">
 <span class="sig-name descname"><span class="pre">ALPHA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.ALPHA" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Alpha version, early testing phase.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.BETA">
 <span class="sig-name descname"><span class="pre">BETA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.BETA" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Beta version, feature complete but may have bugs.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.DEV">
 <span class="sig-name descname"><span class="pre">DEV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.DEV" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Development version, not released yet.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.FINAL">
 <span class="sig-name descname"><span class="pre">FINAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.FINAL" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Final version, ready for production use.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.GAMMA">
 <span class="sig-name descname"><span class="pre">GAMMA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">12</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.GAMMA" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Gamma version, stable but not final.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.RC">
 <span class="sig-name descname"><span class="pre">RC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#xtl.config.version.ReleaseLevel.RC" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Release Candidate, ready for final testing.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel.__new__">
@@ -425,7 +431,7 @@ document.write(`
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L19-L99"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L25-L111"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Dataclass to hold version information.</p>
 <dl class="py method">
@@ -451,7 +457,8 @@ document.write(`
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.date">
 <span class="sig-name descname"><span class="pre">date</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#xtl.config.version.VersionInfo.date" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Release date of the version, if available. This is optional and can be None.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.hex">
@@ -462,22 +469,26 @@ document.write(`
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.level">
 <span class="sig-name descname"><span class="pre">level</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.version.ReleaseLevel" title="xtl.config.version.ReleaseLevel"><span class="pre">ReleaseLevel</span></a></em><a class="headerlink" href="#xtl.config.version.VersionInfo.level" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Release level of the version, indicating the stability and readiness for release.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.major">
 <span class="sig-name descname"><span class="pre">major</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#xtl.config.version.VersionInfo.major" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Major version number, incremented for incompatible changes.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.micro">
 <span class="sig-name descname"><span class="pre">micro</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#xtl.config.version.VersionInfo.micro" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Micro version number, incremented for bug fixes.</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.minor">
 <span class="sig-name descname"><span class="pre">minor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#xtl.config.version.VersionInfo.minor" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Minor version number, incremented for new features.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.release_date">
@@ -494,7 +505,8 @@ document.write(`
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.serial">
 <span class="sig-name descname"><span class="pre">serial</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#xtl.config.version.VersionInfo.serial" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Serial number for the release level, used to differentiate between multiple releases of the same level.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.string">
@@ -526,13 +538,13 @@ micro levels (e.g., (1, 2, 3)).</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="xtl.config.version.version">
-<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">VersionInfo(&quot;0.1.0dev0&quot;,</span> <span class="pre">hex=&quot;0x00010000&quot;,</span> <span class="pre">date=&quot;01/06/2025&quot;)</span></em><a class="headerlink" href="#xtl.config.version.version" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">VersionInfo(&quot;0.1.0rc1&quot;,</span> <span class="pre">hex=&quot;0x000100d1&quot;,</span> <span class="pre">date=&quot;01/06/2025&quot;)</span></em><a class="headerlink" href="#xtl.config.version.version" title="Link to this definition">#</a></dt>
 <dd><p>XTL version information</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.config.version.version_from_hex">
-<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version_from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L145-L160"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.version_from_hex" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version_from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L157-L172"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.version_from_hex" title="Link to this definition">#</a></dt>
 <dd><p>Create a VersionInfo object from a 32-bit hexadecimal string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -549,7 +561,7 @@ micro levels (e.g., (1, 2, 3)).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xtl.config.version.version_from_str">
-<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version_from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L102-L142"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.version_from_str" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">version_from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L114-L154"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.version_from_str" title="Link to this definition">#</a></dt>
 <dd><p>Create a VersionInfo object from a version string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -670,7 +682,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0dev0 (Jun 01, 2025)
+  XTL v0.1.0rc1 (Jun 01, 2025)
 </div>
   </div>
   
