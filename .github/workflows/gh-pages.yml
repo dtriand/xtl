@@ -63,8 +63,8 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
           echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
-      # Generate versions information
-      - name: Generate versions JSON
+      # Generate versions information (only for deployments)
+      - name: Generate versions.json
         if: |
           github.event_name == 'push' && 
           (github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/'))
@@ -76,6 +76,13 @@ jobs:
             
             for dir in $dirs; do
               VERSION=$(basename "$dir")
+          
+              # Check if .versionignore file exists in this version directory
+              if [ -f "$dir/.versionignore" ]; then
+                echo "Skipping $VERSION (has .versionignore file)"
+                continue
+              fi
+              
               # Extract numeric version without 'v' prefix
               NUM_VERSION=${VERSION#v}
               
@@ -98,26 +105,18 @@ jobs:
           # Generate JSON
           VERSIONS_JSON=$(generate_versions_json "$VERSION_DIRS")
           
-          # Update template
-          sed -i "s|__VERSIONS_JSON__|$VERSIONS_JSON|g" docs/source/_templates/layout.html
-          
-          # Save for root index page
+          # Save versions.json for later use in the workflow
           echo "$VERSIONS_JSON" > versions.json
           
-          # Also save versions.json to the docs/build directory so it's deployed with the documentation
-          mkdir -p docs/build
-          echo "$VERSIONS_JSON" > docs/build/versions.json
+          # Create directories for files to be deployed to the root of gh-pages
+          mkdir -p root_files
+          
+          # Copy shared files to root deployment directory
+          cp versions.json root_files/
+          cp docs/source/_static/js/version-selector.js root_files/
           
           # Clean up
           rm -rf gh-pages-clone
-
-      # For PRs and other non-deploy events, just use empty JSON
-      - name: Set empty versions JSON for non-deploy builds
-        if: |
-          github.event_name != 'push' || 
-          (github.ref != 'refs/heads/dev' && !startsWith(github.ref, 'refs/tags/'))
-        run: |
-          sed -i "s|__VERSIONS_JSON__|[]|g" docs/source/_templates/layout.html
 
       # Build documentation
       - name: Build Sphinx documentation
@@ -157,25 +156,20 @@ jobs:
           force_orphan: false
           keep_files: true
 
-      # Generate and deploy root index page
-      - name: Generate root index page
+      # Generate root index page
+      - name: Prepare root files
         if: |
           github.event_name == 'push' && 
           (github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/'))
         run: |
-          # Create temporary directory for root content
-          mkdir -p temp_root
+          # Create directory for root content
+          mkdir -p root_files
           
           # Copy root index template
-          cp docs/source/_static/root_index.html temp_root/index.html
-          
-          # Use the JSON we generated earlier
-          VERSIONS_JSON=$(cat versions.json)
-          
-          # Update index.html with versions JSON
-          sed -i "s|__VERSIONS_JSON__|$VERSIONS_JSON|g" temp_root/index.html
+          cp docs/source/_static/root_index.html root_files/index.html
 
-      - name: Deploy root index
+      # Deploy all files to root of gh-pages
+      - name: Deploy files to gh-pages root
         uses: peaceiris/actions-gh-pages@v3
         if: |
           github.event_name == 'push' && 
@@ -183,7 +177,7 @@ jobs:
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: temp_root/
+          publish_dir: root_files/
           destination_dir: ./
           force_orphan: false
           keep_files: true
