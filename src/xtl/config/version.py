@@ -9,11 +9,17 @@ class ReleaseLevel(IntEnum):
     Enum to represent the version release level.
     """
     DEV = 0     # 0x0 in hex
+    """Development version, not released yet."""
     ALPHA = 10  # 0xa
+    """Alpha version, early testing phase."""
     BETA = 11   # 0xb
+    """Beta version, feature complete but may have bugs."""
     GAMMA = 12  # 0xc
+    """Gamma version, stable but not final."""
     RC = 13     # 0xd
+    """Release Candidate, ready for final testing."""
     FINAL = 15  # 0xf
+    """Final version, ready for production use."""
 
 
 @dataclass
@@ -23,11 +29,17 @@ class VersionInfo:
     """
 
     major: int
+    """Major version number, incremented for incompatible changes."""
     minor: int
+    """Minor version number, incremented for new features."""
     micro: int
+    """Micro version number, incremented for bug fixes."""
     level: ReleaseLevel
+    """Release level of the version, indicating the stability and readiness for release."""
     serial: int
+    """Serial number for the release level, used to differentiate between multiple releases of the same level."""
     date: Optional[datetime] = None
+    """Release date of the version, if available. This is optional and can be None."""
 
     @property
     def release_level(self) -> str:
@@ -165,8 +177,8 @@ version = VersionInfo(
     major=0,
     minor=1,
     micro=0,
-    level=ReleaseLevel.DEV,
-    serial=0,  # < 16
+    level=ReleaseLevel.RC,
+    serial=1,  # < 16
     date=datetime(year=2025, month=6, day=1),
 )
 """XTL version information"""
