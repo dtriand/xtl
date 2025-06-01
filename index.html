@@ -44,7 +44,70 @@
             background-color: #f6f8fa;
             border: 1px solid #d1d5da;
         }
+
+        /* Floating version selector styles */
+        #version-selector {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        #version-selector select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #f8f8f8;
+            font-size: 14px;
+            width: 100%;
+            min-width: 200px;
+        }
+
+        #version-selector label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
     </style>
+    <script>
+        // Auto-redirect script - check if latest or dev versions exist and redirect
+        document.addEventListener('DOMContentLoaded', function() {
+            // Try to redirect to latest first, then fall back to dev
+            function tryRedirect() {
+                // First try to fetch the latest version
+                fetch('./latest/index.html', { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            // Latest version exists, redirect
+                            window.location.href = './latest/';
+                        } else {
+                            // Try dev version
+                            return fetch('./dev/index.html', { method: 'HEAD' });
+                        }
+                    })
+                    .then(response => {
+                        if (response && response.ok) {
+                            // Dev version exists, redirect
+                            window.location.href = './dev/';
+                        }
+                        // If we get here, neither version exists, so stay on the current page
+                    })
+                    .catch(error => {
+                        // Error occurred, stay on the current page
+                        console.error('Error checking documentation versions:', error);
+                    });
+            }
+
+            // Add a small delay to allow the page to load first
+            setTimeout(tryRedirect, 300);
+        });
+    </script>
 </head>
 <body>
     <h1>XTL Documentation</h1>
@@ -64,33 +127,54 @@
             <p>The latest development version from the dev branch. May contain experimental features.</p>
         </div>
 
-        <div id="version-list">
-            <!-- This section will be populated by JavaScript with available versions -->
-            <p>Loading available versions...</p>
+        <div id="specific-versions">
+            <!-- This section will be populated with available versions -->
         </div>
     </div>
 
-    <script>
-        // This script will be updated by the GitHub Action to list all available versions
-        document.addEventListener('DOMContentLoaded', function() {
-            const versions = [
-                []
-                // Format: {version: "1.0.0", path: "./v1.0.0/"}
-            ];
+    <!-- Floating version selector -->
+    <div id="version-selector">
+        <label for="version-dropdown">Documentation Version:</label>
+        <select id="version-dropdown" onchange="if(this.value) window.location.href=this.value">
+            <option value="">Select Version</option>
+            <option value="./latest/">Latest Stable</option>
+            <option value="./dev/">Development</option>
+            <!-- Additional versions will be added by JavaScript -->
+        </select>
+    </div>
 
-            const versionList = document.getElementById('version-list');
-            versionList.innerHTML = '';
+    <script>
+        // Parse versions from a JSON string (will be replaced by GitHub Actions)
+        const versionsJson = `[]`;
+
+        function initVersions() {
+            let versions = [];
+
+            // Try to parse the versions JSON
+            try {
+                if (versionsJson && versionsJson !== "[]") {
+                    versions = JSON.parse(versionsJson);
+                }
+            } catch (e) {
+                console.error("Failed to parse versions JSON", e);
+            }
+
+            const specificVersions = document.getElementById('specific-versions');
+            const versionDropdown = document.getElementById('version-dropdown');
 
             if (versions.length === 0) {
-                versionList.innerHTML = '<p>No specific versions available yet.</p>';
+                specificVersions.innerHTML = '<p>No specific versions available yet.</p>';
                 return;
             }
 
+            // Add header for specific versions
             const header = document.createElement('h2');
             header.textContent = 'Specific Versions';
-            versionList.appendChild(header);
+            specificVersions.appendChild(header);
 
+            // Add each version to both the list and dropdown
             versions.forEach(function(ver) {
+                // Add to the main list
                 const div = document.createElement('div');
                 div.className = 'version-item archived';
 
@@ -99,11 +183,19 @@
                 a.href = ver.path;
                 a.textContent = 'Version ' + ver.version;
                 h3.appendChild(a);
-
                 div.appendChild(h3);
-                versionList.appendChild(div);
+                specificVersions.appendChild(div);
+
+                // Add to the dropdown
+                const option = document.createElement('option');
+                option.value = ver.path;
+                option.textContent = 'v' + ver.version;
+                versionDropdown.appendChild(option);
             });
-        });
+        }
+
+        // Initialize when the document is loaded
+        document.addEventListener('DOMContentLoaded', initVersions);
     </script>
 </body>
 </html>
