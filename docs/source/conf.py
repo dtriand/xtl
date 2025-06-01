@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.abspath('.'))  # for custom lexers
 sys.path.insert(0, os.path.abspath('../../src'))  # for xtl
 
-from xtl import __version__
+import xtl
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -19,7 +19,13 @@ from xtl import __version__
 project = 'xtl'
 copyright = '2020-%Y, Dimitris P. Triandafillidis'
 author = 'Dimitris P. Triandafillidis'
-release = __version__
+version = xtl.version.string_safe
+release = xtl.version.string
+
+provider = 'https://github.com'
+user = 'dtriand'
+repo = 'xtl'
+branch = 'master'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -41,6 +47,8 @@ autodoc_default_options = {
     'undoc-members': False,
     'inherited-members': False
 }
+autodoc_typehints = 'description'  # API type hints are shown in the description
+autodoc_class_signature = 'separated'  # Only show class name, not the full signature
 
 # Pydantic autodoc options
 autodoc_pydantic_model_show_json = False
@@ -62,7 +70,15 @@ html_theme_options = {
     'logo': {
         'image_light': '_static/icon.png',
         'image_dark': '_static/icon.png',
-    }
+    },
+    'repository_url': f'{provider}/{user}/{repo}',
+    'repository_branch': branch,
+    'use_repository_button': True,
+    'use_issues_button': True,
+    'use_fullscreen_button': False,
+    'use_download_button': False,
+    'extra_footer': f'XTL v{xtl.version.string} '
+                    f'({xtl.version.date.strftime("%b %d, %Y")})'
 }
 
 html_static_path = ['_static']
@@ -86,10 +102,6 @@ def setup(sphinx):
 
 
 # -- Options for linkcode extension ----------------------------------------
-provider = 'https://github.com'
-user = 'dtriand'
-repo = 'xtl'
-branch = 'master'
 
 # Get project root (two directories up from docs/source)
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -129,8 +141,8 @@ def linkcode_resolve(domain, info):
         if file is None:
             return None
         lines = inspect.getsourcelines(obj)
-    except TypeError:
-        print(f'\tTypeError raised')
+    except (TypeError, OSError) as e:
+        print(f'\t{type(e).__name__} raised')
         return None
 
     file_path = Path(file).resolve()
