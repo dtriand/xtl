@@ -165,7 +165,7 @@ BashShell = Shell(name='bash',
                   file_ext='.sh',
                   is_posix=True,
                   executable='/bin/bash',
-                  batch_command='{executable} -c {batch_file} {batch_arguments}')
+                  batch_command='{executable} {batch_file} {batch_arguments}')
 
 CmdShell = Shell(name='cmd',
                  shebang='',

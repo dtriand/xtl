@@ -8,13 +8,13 @@ class TestShell:
 
     @pytest.mark.parametrize(
         'shell,      batch_file, batch_arguments,   as_list, expected', [
-        (BashShell,  'test.sh',  [1, 2],            False,   r'/bin/bash -c test.sh 1 2'),
-        (BashShell,  'test.sh',  [1, 2],            True,    ['/bin/bash', '-c', 'test.sh', '1', '2']),
+        (BashShell,  'test.sh',  [1, 2],            False,   r'/bin/bash test.sh 1 2'),
+        (BashShell,  'test.sh',  [1, 2],            True,    ['/bin/bash', 'test.sh', '1', '2']),
         (CmdShell,   'test.bat', [1, 2],            False,   r'C:\Windows\System32\cmd.exe /Q /C test.bat 1 2'),
         (CmdShell,   'test.bat', [1, 2],            True,    [r'C:\Windows\System32\cmd.exe', '/Q', '/C', 'test.bat', '1', '2']),
         (PowerShell, 'test.ps1', [1, 2],            False,   r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -File test.ps1 1 2'),
         (PowerShell, 'test.ps1', [1, 2],            True,    [r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', '-File', 'test.ps1', '1', '2']),
-        (BashShell,  'test.sh',  None,              False,   r'/bin/bash -c test.sh'),
+        (BashShell,  'test.sh',  None,              False,   r'/bin/bash test.sh'),
         (CmdShell,   'test.bat', ['a test string'], False,   r"C:\Windows\System32\cmd.exe /Q /C test.bat 'a test string'"),
         (PowerShell, 'test.ps1', ['a test string'], True,    [r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', '-File', 'test.ps1', "'a test string'"]),
         ]
@@ -53,19 +53,19 @@ class TestWslShell:
         assert wsl.executable == r'C:\Windows\System32\wsl.exe'
         assert wsl.batch_command == r'{wsl_executable} -d {distro} -- {batch_command}'
         assert wsl.shell.batch_command == (fr'C:\Windows\System32\wsl.exe -d {distro} -- '
-                                           fr'{{executable}} -c "{{batch_file}} {{batch_arguments}}"')
+                                           fr'{{executable}} "{{batch_file}} {{batch_arguments}}"')
 
         assert (wsl.get_batch_command(batch_file='test.sh', batch_arguments=[1, 2]) ==
-                fr'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash -c "test.sh 1 2"')
+                fr'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash "test.sh 1 2"')
 
     @pytest.mark.parametrize('distro', supported_distros)
     @pytest.mark.parametrize(
         'batch_file, batch_arguments,   as_list, expected', [
-        ('test.sh',  [1, 2],            False,   r'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash -c "test.sh 1 2"'),
-        ('test.sh',  [1, 2],            True,    [r'C:\Windows\System32\wsl.exe', '-d', '{distro}', '--', '/bin/bash', '-c', 'test.sh 1 2']),
-        ('test.sh',  None,              False,   r'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash -c "test.sh"'),
-        ('test.bat', ['a test string'], False,   r'''C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash -c "test.bat 'a test string'"'''),
-        ('test.ps1', ['a test string'], True,    [r'C:\Windows\System32\wsl.exe', '-d', '{distro}', '--', '/bin/bash', '-c', "test.ps1 'a test string'"]),
+        ('test.sh',  [1, 2],            False,   r'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash "test.sh 1 2"'),
+        ('test.sh',  [1, 2],            True,    [r'C:\Windows\System32\wsl.exe', '-d', '{distro}', '--', '/bin/bash', 'test.sh 1 2']),
+        ('test.sh',  None,              False,   r'C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash "test.sh"'),
+        ('test.bat', ['a test string'], False,   r'''C:\Windows\System32\wsl.exe -d {distro} -- /bin/bash "test.bat 'a test string'"'''),
+        ('test.ps1', ['a test string'], True,    [r'C:\Windows\System32\wsl.exe', '-d', '{distro}', '--', '/bin/bash', "test.ps1 'a test string'"]),
     ])
     def test_get_batch_command(self, distro, batch_file, batch_arguments, as_list, expected):
         if not wsl_distro_exists(distro):

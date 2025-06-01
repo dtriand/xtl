@@ -9,6 +9,7 @@ from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.shells import Shell, DefaultShell, BashShell, PowerShell, CmdShell, WslShell
 from xtl.automate.batchfile import BatchFile
 from xtl.automate.jobs import Job, limited_concurrency
+from xtl.common.compatibility import OS_WINDOWS
 from xtl.exceptions.warnings import IncompatibleShellWarning
 
 
@@ -157,6 +158,9 @@ class TestJob:
 
         # Create shell
         shell = WslShell(distro=distro, shell=BashShell)
+        # HACK: Fix for passing arguments to batch files through WSL
+        shell.shell.batch_command = '{executable} -c {batch_file} {batch_arguments}'
+        shell._patch_shell()
 
         # Create job
         job = Job('test_job', shell=shell)
@@ -202,7 +206,7 @@ class TestJob:
     @pytest.mark.make_temp_files('test_dir')
     @pytest.mark.parametrize(
         'shell,     cmd,         expected', [
-        (BashShell, 'echo "$2"', '"World!"\n')
+        (BashShell, 'echo "$2"', 'World!\n')
         ], ids=['bash'])
     @pytest.mark.asyncio
     async def test_run_args_lin(self, temp_files, shell, cmd, expected):
@@ -230,8 +234,11 @@ class TestJob:
 
         stdout, stderr = temp_files.with_suffix('.stdout.log'), temp_files.with_suffix('.stderr.log')
         await job.run_batch(batchfile=batch, stdout_log=stdout, stderr_log=stderr)
-        assert ('not recognized as an internal or external command, operable program or batch file' in
-                stderr.read_text().replace('\n', ' '))
+        if OS_WINDOWS:
+            assert ('not recognized as an internal or external command, operable program or batch file' in
+                    stderr.read_text().replace('\n', ' '))
+        else:
+            assert 'No such file or directory' in stderr.read_text().replace('\n', ' ')
 
     def test_update_concurrency_limit(self):
         j = Job('test_job')

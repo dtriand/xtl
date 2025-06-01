@@ -55,7 +55,7 @@ class TestBatchFile:
 
         # Create batch file
         b = BatchFile(filename=script, shell=WslShell(distro=distro, shell=BashShell))
-        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash -c "/tmp/pytest/test.sh"'
+        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash "/tmp/pytest/test.sh"'
 
         # Delete test script
         script.unlink()
@@ -74,7 +74,7 @@ class TestBatchFile:
     def test_execute_command(self):
         b = BatchFile(filename='test', shell=BashShell)
         assert b.file.suffix == '.sh'
-        assert b.get_execute_command() == r'/bin/bash -c test.sh'
+        assert b.get_execute_command() == r'/bin/bash test.sh'
 
         b = BatchFile(filename='test', shell=CmdShell)
         assert b.file.suffix == '.bat'

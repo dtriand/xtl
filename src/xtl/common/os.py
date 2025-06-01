@@ -24,6 +24,16 @@ def get_os_name_and_version() -> str:
         return f'{platform.system()} {platform.version()}'
 
 
+def get_username() -> str:
+    try:
+        return os.getlogin()
+    except OSError:
+        # Fallback for CI/CD environments where `os.getlogin()` fails
+        import getpass
+        return getpass.getuser()
+
+
+
 class FileType(StrEnum):
     """
     POSIX file type representation.
