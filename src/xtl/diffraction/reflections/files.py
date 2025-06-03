@@ -4,6 +4,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import gemmi
+
 from xtl.common.compatibility import PY310_OR_LESS
 from xtl.diffraction.reflections import ReflectionsCollection
 from xtl.files.meta import FileContainer, FileReaderMeta
@@ -102,6 +104,9 @@ class MTZReflectionsFile(ReflectionsFile):
 
     @staticmethod
     def _parse_mtz(file: str | Path) -> bool:
+        """
+        Experimental and incomplete byte-level parser for MTZ files.
+        """
         warnings.warn('This is an experimental MTZ parser, your mileage may vary...')
         import struct
 
@@ -168,10 +173,8 @@ class MTZReflectionsFile(ReflectionsFile):
         """
         Read the MTZ file using gemmi.
         """
-        # gemmi.read_mtz_file -> gemmi.Mtz
-        # rs.from_gemmi -> rs.DataSet
-        # ReflectionsCollection.from_rs -> ReflectionsCollection
-        return ReflectionsCollection.from_mtz(mtz_file=self.file)
+        mtz = gemmi.read_mtz_file(str(self.file))
+        return ReflectionsCollection(data=mtz)
 
 
 class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
