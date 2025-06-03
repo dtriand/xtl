@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 from pathlib import Path
 from typing import Optional, Iterable
 
@@ -9,7 +10,8 @@ import pandas as pd
 from pandas._typing import Dtype, ArrayLike
 
 
-from .mtz_types import mtz_types as _mtz_types
+from xtl.diffraction.reflections.mtz_types import mtz_types as _mtz_types
+from xtl.diffraction.reflections.metadata import *
 
 
 class Reflection:
@@ -302,11 +304,14 @@ class ReflectionsCollection:
         space_group: Optional[gemmi.SpaceGroup] = None,
         unit_cell: Optional[gemmi.UnitCell] = None,
         merged: Optional[bool] = None,
+        # XTL arguments
+        metadata: Optional[ReflectionsMetadataType] = None,
     ):
         # Extract space group and unit-cell from gemmi.Mtz if not provided
         if isinstance(data, gemmi.Mtz):
             space_group = space_group or data.spacegroup
             unit_cell = unit_cell or data.cell
+            metadata = metadata or MTZReflectionsMetadata.from_gemmi(data)
         self._rs = rs.DataSet(
             data=data,
             index=index,
@@ -318,9 +323,24 @@ class ReflectionsCollection:
             merged=merged,
         )
 
+        # Store metadata
+        if metadata:
+            if not isinstance(metadata, ReflectionsMetadata):
+                raise TypeError(f'Expected {ReflectionsMetadata.__class__.__name__}, got {type(metadata)}')
+            self._metadata = metadata
+        else:
+            self._metadata = None
+
         # Set dtypes
         if dtypes is not None:
             self.as_dtype(dtypes)
+
+    @property
+    def metadata(self) -> Optional[ReflectionsMetadataType]:
+        """
+        Metadata associated with the reflections when instantiated from a file.
+        """
+        return self._metadata
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -452,14 +472,14 @@ class ReflectionsCollection:
         self._rs.cell = unit_cell
 
     @property
-    def merged(self) -> bool:
+    def is_merged(self) -> bool:
         """
         The merged status of the ReflectionsCollection
         """
         return self._rs.merged
 
-    @merged.setter
-    def merged(self, merged: bool):
+    @is_merged.setter
+    def is_merged(self, merged: bool):
         """
         Set the merged status of the ReflectionsCollection
         """
@@ -482,6 +502,7 @@ class ReflectionsCollection:
         space_group: Optional[gemmi.SpaceGroup | str | int] = None,
         unit_cell: Optional[gemmi.UnitCell | np.ndarray | list[float | int] | tuple[float | int]] = None,
         merged: Optional[bool] = None,
+        metadata: Optional[ReflectionsMetadataType] = None,
     ):
         """
         Create a ReflectionsCollection from a reciprocalspaceship DataSet.
@@ -489,12 +510,9 @@ class ReflectionsCollection:
         if not isinstance(dataset, rs.DataSet):
             raise TypeError(f'Expected reciprocalspaceship.DataSet, got {type(dataset)}')
         # Extract space group, unit-cell and merged from rs.DataSet if not provided
-        if space_group is None:
-            space_group = dataset.spacegroup
-        if unit_cell is None:
-            unit_cell = dataset.cell
-        if merged is None:
-            merged = dataset.merged
+        space_group = space_group or dataset.spacegroup
+        unit_cell = unit_cell or dataset.cell
+        merged = merged or dataset.merged
 
         if labels is not None:
             # Check if labels are present in dataset
@@ -519,6 +537,7 @@ class ReflectionsCollection:
             space_group=space_group,
             unit_cell=unit_cell,
             merged=merged,
+            metadata=metadata,
         )
 
     @classmethod
@@ -531,6 +550,7 @@ class ReflectionsCollection:
         space_group: Optional[gemmi.SpaceGroup | str | int] = None,
         unit_cell: Optional[gemmi.UnitCell | np.ndarray | list[float | int] | tuple[float | int]] = None,
         merged: Optional[bool] = None,
+        metadata: Optional[ReflectionsMetadataType] = None,
     ):
         """
         Create a ReflectionsCollection from a reciprocalspaceship reader function.
@@ -541,7 +561,14 @@ class ReflectionsCollection:
             raise FileNotFoundError(f'{file_type} file {file} not found')
         # Read the file
         dataset: rs.DataSet = file_reader(str(file))
-        return cls.from_rs(dataset=dataset, labels=labels, space_group=space_group, unit_cell=unit_cell, merged=merged)
+        return cls.from_rs(
+            dataset=dataset,
+            labels=labels,
+            space_group=space_group,
+            unit_cell=unit_cell,
+            merged=merged,
+            metadata=metadata,
+        )
 
     @classmethod
     def from_mtz(
@@ -551,6 +578,7 @@ class ReflectionsCollection:
         space_group: Optional[gemmi.SpaceGroup | str | int] = None,
         unit_cell: Optional[gemmi.UnitCell | np.ndarray | list[float | int] | tuple[float | int]] = None,
         merged: Optional[bool] = None,
+        metadata: Optional[ReflectionsMetadataType] = None,
     ):
         """
         Create a ReflectionsCollection from an MTZ file and a column label.
@@ -563,6 +591,7 @@ class ReflectionsCollection:
             space_group=space_group,
             unit_cell=unit_cell,
             merged=merged,
+            metadata=metadata,
         )
 
     @classmethod
@@ -573,6 +602,7 @@ class ReflectionsCollection:
         space_group: Optional[gemmi.SpaceGroup | str | int] = None,
         unit_cell: Optional[gemmi.UnitCell | np.ndarray | list[float | int] | tuple[float | int]] = None,
         merged: Optional[bool] = None,
+        metadata: Optional[ReflectionsMetadataType] = None,
     ):
         """
         Create a ReflectionsCollection from an CIF file and a column label.
@@ -585,4 +615,5 @@ class ReflectionsCollection:
             space_group=space_group,
             unit_cell=unit_cell,
             merged=merged,
+            metadata=metadata,
         )
