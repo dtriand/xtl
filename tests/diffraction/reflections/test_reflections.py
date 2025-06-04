@@ -11,7 +11,6 @@ from xtl.diffraction.reflections.reflections import (
     ReflectionsCollection,
     MTZ_DTYPES
 )
-from xtl.diffraction.reflections.metadata import ReflectionsMetadata
 
 
 class TestReflectionsBase:
