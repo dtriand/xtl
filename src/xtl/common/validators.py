@@ -32,7 +32,7 @@ def validate_length(value: Any, length: int) -> Any:
     return value
 
 
-def validate_choices(value: Any, choices: str | tuple[Any]) -> Any:
+def validate_choices(value: Any, choices: Iterable[Any]) -> Any:
     """
     Check if the value is contained in the provided choices.
     """
@@ -116,7 +116,7 @@ def LengthValidator(length: int) -> AfterValidator:
     return AfterValidator(partial(validate_length, length=length))
 
 
-def ChoicesValidator(choices: str | tuple[Any, ...]) -> AfterValidator:
+def ChoicesValidator(choices: Iterable[Any]) -> AfterValidator:
     """
     `Pydantic` validator to check if a value is in the provided choices.
     """

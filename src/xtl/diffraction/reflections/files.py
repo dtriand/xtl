@@ -2,7 +2,7 @@ import abc
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any, Sequence, Type, TYPE_CHECKING
 
 import gemmi
 import reciprocalspaceship as rs
@@ -241,26 +241,33 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
             # No reflection data found :(
             return False
 
-    def read(self, block_id: int | str = 0) -> 'ReflectionsCollection':
+    def read(self, block_id: int | str = 0,
+             spec_lines: Sequence[str | Type['GemmiCIF2MTZSpec']] = None) -> \
+            'ReflectionsCollection':
         """
         Read the CIF file and return a ReflectionsCollection. If multiple data blocks
         are present in the CIF file, the `block_id` parameter can be used to select
-        a specific one.
+        a specific one. Internally, the CIF data are converted to MTZ format using
+        gemmi. The conversion can be customized by providing specification lines.
 
         :param block_id: Index or name of the data block to read (default: 0).
+        :param spec_lines: Sequence of GemmiCIF2MTZSpec or strings to specify how to
+            convert CIF data to MTZ. If not provided, the default specifications
+            will be used.
         :raise IndexError: If the specified `block_id` does not exist in the CIF file.
         :raise TypeError: If `block_id` is not an int or str.
         """
         import gemmi
         import reciprocalspaceship as rs
         from xtl.diffraction.reflections import ReflectionsCollection
+        from xtl.diffraction.reflections.metadata import CIFReflectionsMetadata
 
         cif = gemmi.cif.read(str(self.file))
-        blocks = gemmi.as_refln_blocks(cif)
+        rblocks: gemmi.ReflnBlocks = gemmi.as_refln_blocks(cif)
 
         if isinstance(block_id, str):
             # Get the index of the block by name
-            block_names = [block.block.name for block in blocks]
+            block_names = [rblock.block.name for rblock in rblocks]
             if block_id not in block_names:
                 raise IndexError(f'Block {block_id!r} not found in CIF file. '
                                  f'Available blocks: {block_names}')
@@ -269,20 +276,54 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
             raise TypeError(f'\'block_id\' must be an int or str, got {type(block_id)}')
 
         # Check if the block_id is within the range of available blocks
-        if block_id >= len(blocks):
-            raise IndexError(f'File {self.file} has only {len(blocks)} blocks, '
+        if block_id < 0 or block_id >= len(rblocks):
+            raise IndexError(f'File {self.file} has only {len(rblocks)} blocks, '
                              f'but {block_id=} was requested.')
 
-        block = blocks[block_id]
-        mtz = gemmi.CifToMtz().convert_block_to_mtz(block)
+        rblock = rblocks[block_id]
+        # Check if the block contains reflections
+        if not rblock.default_loop:
+            raise ValueError(f'Block {block_id} in CIF file {self.file} '
+                             f'does not contain any reflections.')
+
+        if not spec_lines:
+            # Get default spec_lines
+            if rblock.is_merged():
+                spec_lines = GemmiSpecs.CIF2MTZ.merged
+            else:
+                spec_lines = GemmiSpecs.CIF2MTZ.unmerged
+        else:
+            # Cast provided spec_lines
+            lines = []
+            for spec in spec_lines:
+                if isinstance(spec, str):
+                    lines.append(GemmiCIF2MTZSpec.from_line(spec))
+                elif isinstance(spec, GemmiCIF2MTZSpec):
+                    lines.append(spec)
+                else:
+                    raise TypeError(f'Invalid spec type: {type(spec)}. Expected str or '
+                                    f'{GemmiCIF2MTZSpec.__class__.__name__}.')
+            spec_lines = tuple(lines)
+
+        # Convert the CIF block to MTZ
+        converter = gemmi.CifToMtz()
+        converter.spec_lines = [spec.line for spec in spec_lines]
+        mtz = converter.convert_block_to_mtz(rblock)
+
+        # Convert gemmi.Mtz to rs.DataSet
         ds = rs.io.from_gemmi(mtz)
 
-        return ReflectionsCollection.from_rs(dataset=ds)
+        # Create metadata
+        metadata = CIFReflectionsMetadata.from_gemmi(rblock, spec_lines=spec_lines)
+
+        return ReflectionsCollection.from_rs(dataset=ds, metadata=metadata)
+
 
 _mtz_summary = rs.summarize_mtz_dtypes(print_summary=False)
 MTZ_DTYPES = {_mtz_summary['MTZ Code'][i]: getattr(rs.dtypes, _mtz_summary['Class'][i])
               for i in range(_mtz_summary.shape[0])}
 """Dictionary of MTZ column types to their corresponding ``rs.MTZDtype class``"""
+
 
 MTZ_COLUMN_TYPES = set(MTZ_DTYPES)
 """Set of valid column types according to the MTZ specification."""
