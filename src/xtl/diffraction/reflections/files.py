@@ -6,6 +6,7 @@ from typing import Any, Sequence, Type, TYPE_CHECKING
 
 import gemmi
 import reciprocalspaceship as rs
+from reciprocalspaceship.dtypes.base import MTZDtype
 
 from xtl.common.compatibility import PY310_OR_LESS
 from xtl.common.options import Option, Options
@@ -319,9 +320,11 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
         return ReflectionsCollection.from_rs(dataset=ds, metadata=metadata)
 
 
-_mtz_summary = rs.summarize_mtz_dtypes(print_summary=False)
-MTZ_DTYPES = {_mtz_summary['MTZ Code'][i]: getattr(rs.dtypes, _mtz_summary['Class'][i])
-              for i in range(_mtz_summary.shape[0])}
+_mtz_summary: 'pandas.DataFrame' = rs.summarize_mtz_dtypes(print_summary=False)
+
+MTZ_DTYPES: dict[str, MTZDtype] = \
+    {_mtz_summary['MTZ Code'][i]: getattr(rs.dtypes, _mtz_summary['Class'][i])()
+     for i in range(_mtz_summary.shape[0])}
 """Dictionary of MTZ column types to their corresponding ``rs.MTZDtype class``"""
 
 
