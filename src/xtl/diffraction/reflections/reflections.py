@@ -14,6 +14,7 @@ from pandas._typing import Dtype, ArrayLike, NpDtype
 
 from xtl.diffraction.reflections.files import MTZ_COLUMN_TYPES, MTZ_DTYPES
 from xtl.diffraction.reflections.metadata import *
+from xtl.math.crystallography import radial_converters, unit_converters
 
 
 class Reflection:
@@ -314,6 +315,72 @@ class _ReflectionsBase:
         The HKL indices of the reflection with the highest resolution.
         """
         return self.hkls[np.argmin(self.get_array_d())]
+
+    @property
+    def min_q(self) -> np.float64:
+        """
+        The minimum q value of the reflections, in 1/Angstroms.
+        """
+        return np.min(self.get_array_q())
+
+    @property
+    def max_q(self) -> np.float64:
+        """
+        The maximum q value of the reflections, in 1/Angstroms.
+        """
+        return np.max(self.get_array_q())
+
+    @property
+    def range_q(self) -> tuple[np.float64, np.float64]:
+        """
+        The q range of the reflections, in 1/Angstroms, as a (min, max) tuple.
+
+        Ranges are always returned from low to high scattering angle.
+        """
+        q = self.get_array_q()
+        return np.min(q), np.max(q)
+
+    def get_array_q(self) -> NDArray[np.float64]:  # shape: (n,)
+        """
+        Calculate the q = 2 * pi / d value for all reflections, in 1/Angstroms.
+        """
+        return radial_converters['d']['q'](self.get_array_d(), None)
+
+    @property
+    def min_q_nm(self):
+        """
+        The minimum q value of the reflections, in 1/nm.
+        """
+        return unit_converters['1/A']['1/nm'](self.min_q)
+
+    @property
+    def max_q_nm(self):
+        """
+        The maximum q value of the reflections, in 1/nm.
+        """
+        return unit_converters['1/A']['1/nm'](self.max_q)
+
+    @property
+    def range_q_nm(self) -> tuple[np.float64, np.float64]:
+        """
+        The q range of the reflections, in 1/nm, as a (min, max) tuple.
+
+        Ranges are always returned from low to high scattering angle.
+        """
+        q = self.get_array_q_nm()
+        return np.min(q), np.max(q)
+
+    def get_array_q_nm(self) -> NDArray[np.float64]:  # shape: (n,)
+        """
+        Calculate the q = 2 * pi / d value for all reflections, in 1/nm.
+        """
+        return unit_converters['1/A']['1/nm'](self.get_array_q())
+
+    def get_array_2theta(self, wavelength: int | float) -> NDArray[np.float64]:  # shape: (n,)
+        """
+        Calculate the 2theta value for all reflections, in degrees.
+        """
+        return radial_converters['d']['2theta'](self.get_array_d(), wavelength)
 
 
 class ReflectionsData(_ReflectionsBase):
