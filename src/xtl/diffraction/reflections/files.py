@@ -2,13 +2,17 @@ import abc
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import gemmi
+import reciprocalspaceship as rs
 
 from xtl.common.compatibility import PY310_OR_LESS
-from xtl.diffraction.reflections import ReflectionsCollection
+from xtl.common.options import Option, Options
 from xtl.files.meta import FileContainer, FileReaderMeta
+
+if TYPE_CHECKING:
+    from xtl.diffraction.reflections import ReflectionsCollection
 
 if PY310_OR_LESS:
     class StrEnum(str, Enum): ...
@@ -25,7 +29,7 @@ class ReflectionsFileType(StrEnum):
     XDS_ASCII = 'xds_ascii'
 
 
-class ReflectionsFile(FileContainer[ReflectionsFileType, ReflectionsCollection],
+class ReflectionsFile(FileContainer[ReflectionsFileType, 'ReflectionsCollection'],
                       abc.ABC):
     """
     Base class for reading diffraction reflections files.
@@ -35,7 +39,7 @@ class ReflectionsFile(FileContainer[ReflectionsFileType, ReflectionsCollection],
 
 
 class ReflectionsFileReaders(FileReaderMeta[ReflectionsFileType, ReflectionsFile,
-                                            ReflectionsCollection]):
+                                            'ReflectionsCollection']):
     """
     Metaclass for registering diffraction reflections file types.
     This allows for dynamic registration of new file types.
@@ -52,7 +56,7 @@ read_reflections = ReflectionsFileReaders.read_file
 """Generic reader for diffraction reflections files."""
 
 
-class MTZReflectionsFile(ReflectionsFile):
+class MTZReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
     """
     Class for reading MTZ reflections files.
     """
@@ -169,10 +173,12 @@ class MTZReflectionsFile(ReflectionsFile):
                 return False
         return True
 
-    def read(self) -> ReflectionsCollection:
+    def read(self) -> 'ReflectionsCollection':
         """
         Read the MTZ file using gemmi.
         """
+        from xtl.diffraction.reflections import ReflectionsCollection
+
         mtz = gemmi.read_mtz_file(str(self.file))
         return ReflectionsCollection(data=mtz)
 
@@ -235,7 +241,7 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
             # No reflection data found :(
             return False
 
-    def read(self, block_id: int | str = 0) -> ReflectionsCollection:
+    def read(self, block_id: int | str = 0) -> 'ReflectionsCollection':
         """
         Read the CIF file and return a ReflectionsCollection. If multiple data blocks
         are present in the CIF file, the `block_id` parameter can be used to select
@@ -247,6 +253,7 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
         """
         import gemmi
         import reciprocalspaceship as rs
+        from xtl.diffraction.reflections import ReflectionsCollection
 
         cif = gemmi.cif.read(str(self.file))
         blocks = gemmi.as_refln_blocks(cif)
@@ -271,3 +278,240 @@ class CIFReflectionsFile(ReflectionsFile, metaclass=ReflectionsFileReaders):
         ds = rs.io.from_gemmi(mtz)
 
         return ReflectionsCollection.from_rs(dataset=ds)
+
+_mtz_summary = rs.summarize_mtz_dtypes(print_summary=False)
+MTZ_DTYPES = {_mtz_summary['MTZ Code'][i]: getattr(rs.dtypes, _mtz_summary['Class'][i])
+              for i in range(_mtz_summary.shape[0])}
+"""Dictionary of MTZ column types to their corresponding ``rs.MTZDtype class``"""
+
+MTZ_COLUMN_TYPES = set(MTZ_DTYPES)
+"""Set of valid column types according to the MTZ specification."""
+
+
+class GemmiCIF2MTZSpec(Options):
+    """
+    Specification for converting CIF to MTZ using Gemmi.
+    """
+    # https://github.com/project-gemmi/gemmi/blob/master/include/gemmi/cif2mtz.hpp#L146
+    tag: str = Option(default=None, desc='CIF tag without category')
+    column_label: str = Option(default=None, desc='MTZ column label')
+    column_type: str = Option(default=None, choices=MTZ_COLUMN_TYPES,
+                              desc='MTZ column type')
+    dataset_id: int | None = Option(default=None, ge=0, le=1, desc='Dataset ID')
+    map_fmt: str | None = Option(default=None, desc='Mapping instructions between '
+                                                    'mmCIF symbols and MTZ numbers')
+
+    @property
+    def line(self) -> str:
+        """
+        Returns the specification line as a string.
+        """
+        l = f'{self.tag} {self.column_label} {self.column_type} {self.dataset_id}'
+        if self.map_fmt:
+            l += f' {self.map_fmt}'
+        return l
+
+    @classmethod
+    def from_line(cls, line: str):
+        """
+        Create a spec from a string.
+        """
+        parts = line.split()
+        if len(parts) == 4:
+            tag, column_label, column_type, dataset_id = parts
+            map_fmt = None
+        elif len(parts) == 5:
+            tag, column_label, column_type, dataset_id, map_fmt = parts
+        else:
+            raise ValueError(f'Invalid spec line: {line!r}, expected 4 or 5 parts, '
+                             f'got {len(parts)}')
+        return cls(
+            tag=tag,
+            column_label=column_label,
+            column_type=column_type,
+            dataset_id=int(dataset_id),
+            map_fmt=map_fmt
+        )
+
+
+class GemmiMTZ2CIFSpec(Options):
+    """
+    Specification for converting MTZ to CIF using Gemmi.
+    """
+    # https://github.com/project-gemmi/gemmi/blob/master/include/gemmi/mtz2cif.hpp#L43
+    column_label: str | None = Option(default=None, desc='MTZ column label')
+    column_type: str | None = Option(default=None,
+                                     choices=MTZ_COLUMN_TYPES | {'*', None},
+                                     desc='MTZ column type')
+    tag: str = Option(default=None, desc='CIF tag without category')
+    flag: str | None = Option(default=None, choices=('?', '&', None),
+                              desc='?: Ignore if column label not found,'
+                                   '&: Ignore if previous the previous line was '
+                                   'ignored')
+    fmt: str | None = Option(default=None, regex=r'([#_+-]?\d*(\.\d+)?[fFgGeEc])|S',
+                             desc='Float formatting string, similar to Python\'s '
+                                  'format strings')
+    special: str | None = Option(default=None, choices=('$counter', '$dataset',
+                                                        '$image', '$.', '$?', None),
+                                 desc='Special variables')
+
+    @property
+    def line(self) -> str:
+        """
+        Returns the specification line as a string.
+        """
+        if self.special is not None:
+            return f'{self.special} {self.tag}'
+        else:
+            l = f'{self.column_label} {self.column_type} {self.tag}'
+            if self.flag:
+                l = f'{self.flag} {l}'
+            if self.fmt:
+                l += f' {self.fmt}'
+            return l
+
+    @classmethod
+    def from_line(cls, line: str):
+        """
+        Create a spec from a string.
+        """
+        parts = line.split()
+        column_label, column_type, tag = None, None, None
+        flag, fmt, special = None, None, None
+        if len(parts) == 2:
+            special, tag = parts
+        elif len(parts) == 3:
+            column_label, column_type, tag = parts
+        elif len(parts) == 4:
+            if parts[0] in '&?':
+                flag, column_label, column_type, tag = parts
+            else:
+                column_label, column_type, tag, fmt = parts
+        elif len(parts) == 5:
+            flag, column_label, column_type, tag, fmt = parts
+        else:
+            raise ValueError(f'Invalid spec line: {line!r}, expected 2-5 parts, '
+                             f'got {len(parts)}')
+        return cls(
+            column_label=column_label,
+            column_type=column_type,
+            tag=tag,
+            flag=flag,
+            fmt=fmt,
+            special=special
+        )
+
+
+class GemmiSpecs:
+    """
+    Class to hold the specifications for converting CIF to MTZ using Gemmi.
+    """
+
+    class CIF2MTZ:
+        """
+        Specifications for converting CIF to MTZ.
+
+        Note that conversion of H, K, L, M/ISYM and BATCH is hardcoded and not part of
+        the spec.
+        """
+
+        merged: tuple[GemmiCIF2MTZSpec, ...] = (
+            GemmiCIF2MTZSpec.from_line('pdbx_r_free_flag FreeR_flag I 0'),
+            GemmiCIF2MTZSpec.from_line('status FreeR_flag I 0 o=1,f=0'),
+            GemmiCIF2MTZSpec.from_line('intensity_meas IMEAN J 1'),
+            GemmiCIF2MTZSpec.from_line('F_squared_meas IMEAN J 1'),
+            GemmiCIF2MTZSpec.from_line('intensity_sigma SIGIMEAN Q 1'),
+            GemmiCIF2MTZSpec.from_line('F_squared_sigma SIGIMEAN Q 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_I_plus I(+) K 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_I_plus_sigma SIGI(+) M 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_I_minus I(-) K 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_I_minus_sigma SIGI(-) M 1'),
+            GemmiCIF2MTZSpec.from_line('F_meas FP F 1'),
+            GemmiCIF2MTZSpec.from_line('F_meas_au FP F 1'),
+            GemmiCIF2MTZSpec.from_line('F_meas_sigma SIGFP Q 1'),
+            GemmiCIF2MTZSpec.from_line('F_meas_sigma_au SIGFP Q 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_F_plus F(+) G 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_F_plus_sigma SIGF(+) L 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_F_minus F(-) G 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_F_minus_sigma SIGF(-) L 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_anom_difference DP D 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_anom_difference_sigma SIGDP Q 1'),
+            GemmiCIF2MTZSpec.from_line('F_calc FC F 1'),
+            GemmiCIF2MTZSpec.from_line('F_calc_au FC F 1'),
+            GemmiCIF2MTZSpec.from_line('phase_calc PHIC P 1'),
+            GemmiCIF2MTZSpec.from_line('fom FOM W 1'),
+            GemmiCIF2MTZSpec.from_line('weight FOM W 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_HL_A_iso HLA A 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_HL_B_iso HLB A 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_HL_C_iso HLC A 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_HL_D_iso HLD A 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_FWT FWT F 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_PHWT PHWT P 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_DELFWT DELFWT F 1'),
+            GemmiCIF2MTZSpec.from_line('pdbx_DELPHWT PHDELWT P 1')
+        )
+        """Specifications for merged data."""
+
+        unmerged: tuple[GemmiCIF2MTZSpec, ...] = (
+            GemmiCIF2MTZSpec.from_line('intensity_meas I J 0'),
+            GemmiCIF2MTZSpec.from_line('intensity_net I J 0'),
+            GemmiCIF2MTZSpec.from_line('intensity_sigma SIGI Q 0'),
+            GemmiCIF2MTZSpec.from_line('pdbx_detector_x XDET R 0'),
+            GemmiCIF2MTZSpec.from_line('pdbx_detector_y YDET R 0'),
+            GemmiCIF2MTZSpec.from_line('pdbx_scan_angle ROT R 0')
+        )
+        """Specifications for unmerged data."""
+
+
+    class MTZ2CIF:
+        """
+        Specifications for converting MTZ to CIF.
+        """
+
+        merged: tuple[GemmiMTZ2CIFSpec, ...]  = (
+            GemmiMTZ2CIFSpec.from_line('H H index_h'),
+            GemmiMTZ2CIFSpec.from_line('K H index_k'),
+            GemmiMTZ2CIFSpec.from_line('L H index_l'),
+            GemmiMTZ2CIFSpec.from_line('? FREE|RFREE|FREER|FreeR_flag|R-free-flags|'
+                                       'FreeRflag I status S'),  # `S` -> status col
+            GemmiMTZ2CIFSpec.from_line('? IMEAN|I|IOBS|I-obs J intensity_meas'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} Q intensity_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? I(+)|IOBS(+)|I-obs(+)|Iplus K pdbx_I_plus'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} M pdbx_I_plus_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? I(-)|IOBS(-)|I-obs(-)|Iminus K pdbx_I_minus'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} M pdbx_I_minus_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? F|FP|FOBS|F-obs F F_meas_au'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} Q F_meas_sigma_au'),
+            GemmiMTZ2CIFSpec.from_line('? F(+)|FOBS(+)|F-obs(+)|Fplus G pdbx_F_plus'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} L pdbx_F_plus_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? F(-)|FOBS(-)|F-obs(-)|Fminus G pdbx_F_minus'),
+            GemmiMTZ2CIFSpec.from_line('& SIG{prev} L pdbx_F_minus_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? DP D pdbx_anom_difference'),
+            GemmiMTZ2CIFSpec.from_line('& SIGDP Q pdbx_anom_difference_sigma'),
+            GemmiMTZ2CIFSpec.from_line('? FC F F_calc'),
+            GemmiMTZ2CIFSpec.from_line('? PHIC P phase_calc'),
+            GemmiMTZ2CIFSpec.from_line('? FOM W fom'),
+            GemmiMTZ2CIFSpec.from_line('? HLA A pdbx_HL_A_iso'),
+            GemmiMTZ2CIFSpec.from_line('& HLB A pdbx_HL_B_iso'),
+            GemmiMTZ2CIFSpec.from_line('& HLC A pdbx_HL_C_iso'),
+            GemmiMTZ2CIFSpec.from_line('& HLD A pdbx_HL_D_iso'),
+            GemmiMTZ2CIFSpec.from_line('? FWT|2FOFCWT F pdbx_FWT'),
+            GemmiMTZ2CIFSpec.from_line('& PHWT|PH2FOFCWT P pdbx_PHWT .3f'),
+            GemmiMTZ2CIFSpec.from_line('? DELFWT|FOFCWT F pdbx_DELFWT'),
+            GemmiMTZ2CIFSpec.from_line('& DELPHWT|PHDELWT|PHFOFCWT P pdbx_DELPHWT .3f')
+        )
+        """Specifications for merged data."""
+
+        unmerged: tuple[GemmiMTZ2CIFSpec, ...] = (
+            GemmiMTZ2CIFSpec.from_line('$dataset diffrn_id'),
+            GemmiMTZ2CIFSpec.from_line('$counter id'),
+            GemmiMTZ2CIFSpec.from_line('H H index_h'),
+            GemmiMTZ2CIFSpec.from_line('K H index_k'),
+            GemmiMTZ2CIFSpec.from_line('L H index_l'),
+            GemmiMTZ2CIFSpec.from_line('? I J intensity_net'),
+            GemmiMTZ2CIFSpec.from_line('& SIGI Q intensity_sigma .5g'),
+            GemmiMTZ2CIFSpec.from_line('? ROT R pdbx_scan_angle'),
+            GemmiMTZ2CIFSpec.from_line('$image pdbx_image_id'),
+        )
+        """Specifications for unmerged data."""
+
