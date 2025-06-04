@@ -49,7 +49,7 @@ def Option(
         deprecated: Deprecated | str | bool | None = _Unset,  # deprecation message
         # Validation
         validate_default: bool | None = _Unset,  # validate default value
-        choices: str | tuple[Any, ...] | None = _Unset,  # iterable of choices
+        choices: str | tuple[Any, ...] | list[Any] | set[Any] | None = _Unset,  # iterable of choices
         #  for numbers
         gt: SupportsGt | None = _Unset,  # greater than
         ge: SupportsGe | None = _Unset,  # greater than or equal to

@@ -9,7 +9,7 @@ import pandas as pd
 from pandas._typing import Dtype, ArrayLike
 
 
-from xtl.diffraction.reflections.mtz_types import mtz_types as _mtz_types
+from xtl.diffraction.reflections.files import MTZ_COLUMN_TYPES, MTZ_DTYPES
 from xtl.diffraction.reflections.metadata import *
 
 
@@ -98,10 +98,10 @@ class ReflectionsData:
         """
         Convert the ReflectionsData to a different MTZ data type.
         """
-        if mtz_type not in _mtz_types.keys():
+        if mtz_type not in MTZ_COLUMN_TYPES:
             raise ValueError(f'Invalid MTZ type {mtz_type!r}. '
-                             f'Choose one from: {", ".join(list(_mtz_types.keys()))}')
-        self.as_dtype(_mtz_types[mtz_type](), copy=copy)
+                             f'Choose one from: {", ".join(MTZ_COLUMN_TYPES)}')
+        self.as_dtype(MTZ_DTYPES[mtz_type](), copy=copy)
 
     @property
     def column(self) -> pd.Index:
@@ -372,10 +372,10 @@ class ReflectionsCollection:
                              f'got {len(mtz_types)}')
         dtypes = []
         for i, mtz_type in enumerate(mtz_types):
-            if mtz_type not in _mtz_types.keys():
+            if mtz_type not in MTZ_COLUMN_TYPES:
                 raise ValueError(f'Invalid MTZ type {mtz_type!r} for item {i}. '
-                                 f'Choose one from: {", ".join(list(_mtz_types.keys()))}')
-            dtypes.append(_mtz_types[mtz_type]())
+                                 f'Choose one from: {", ".join(MTZ_COLUMN_TYPES)}')
+            dtypes.append(MTZ_DTYPES[mtz_type]())
         self.as_dtype(dtypes=dtypes, copy=copy)
 
     @property
