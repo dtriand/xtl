@@ -4,7 +4,7 @@ defusedxml==0.7.1
 distro==1.9.0
 fabio==2023.6.0
 f90nml==1.4.4
-gemmi==0.5.8
+gemmi==0.7.1
 hdf5plugin==4.2.0
 matplotlib==3.8.0
 numpy==1.26.0
@@ -13,7 +13,7 @@ pint==0.19.2
 pydantic==2.11.5
 pyfai==2023.9.0
 pyxray==1.7.0
-reciprocalspaceship==1.0.3
+reciprocalspaceship==1.0.4
 requests==2.31.0
 rich==13.9.4
 sphinx==8.1.3

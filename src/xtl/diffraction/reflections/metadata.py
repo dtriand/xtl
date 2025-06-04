@@ -1,10 +1,20 @@
-from typing import Any
+__all__ = [
+    'ReflectionsMetadata',
+    'MTZBatchMetadata',
+    'MTZDatasetMetadata',
+    'MTZReflectionsMetadata',
+    'CIFReflectionsMetadata',
+    'ReflectionsMetadataType'
+]
+
+from typing import Any, Sequence, overload
 
 import gemmi
+from pydantic import computed_field
 
 from xtl.common.options import Option, Options
 from xtl.common.serializers import GemmiUnitCell, GemmiSpaceGroup, GemmiMat33
-from xtl.diffraction.reflections.files import ReflectionsFileType
+from xtl.diffraction.reflections.files import ReflectionsFileType, GemmiCIF2MTZSpec
 
 
 class ReflectionsMetadata(Options):
@@ -151,7 +161,7 @@ class MTZReflectionsMetadata(ReflectionsMetadata):
                                                           'missing values (VALM)')
     history: tuple[str, ...] | None = Option(default=None, desc='History lines')
 
-    @property
+    @computed_field(description='Whether the reflections are merged or unmerged')
     def is_merged(self) -> bool | None:
         """
         Check if the reflections are merged or unmerged. The presence of batches in the
@@ -185,23 +195,79 @@ class MTZReflectionsMetadata(ReflectionsMetadata):
         )
 
 
-class CIFDatasetMetadata(Options):
-    wavelength: float | None = Option(default=None, gt=0.0,
-                                      desc='Wavelength in Angstroms')
-    unit_cell: gemmi.UnitCell | None = Option(default=None, formatter=GemmiUnitCell,
-                                              desc='Unit cell parameters in '
-                                                   'Angstroms/degrees')
-
-
 class CIFReflectionsMetadata(ReflectionsMetadata):
-    origin_file_type: ReflectionsFileType = Option(default=ReflectionsFileType.CIF)
-    datasets: list[CIFDatasetMetadata] | None = Option(default=None)
-    title: str | None = Option(default=None, max_length=64,
-                               desc='Title of the CIF file')
-    spec_lines: list[str] | None = Option(default=None,
-                                          desc='List of specification lines')
-    history: list[str] | None = Option(default=None,
-                                       desc='History of the CIF file')
+    """
+    Metadata for reflections extracted from a CIF file.
+    """
+
+    origin_file_type: ReflectionsFileType = Option(default=ReflectionsFileType.CIF,
+                                                   desc='Type of the file where the '
+                                                        'reflections originated from')
+    entry_id: str | None = Option(default=None, desc='Entry ID of the CIF block')
+    is_merged: bool | None = Option(default=None, desc='Whether the reflections are '
+                                                       'merged or unmerged')
+    spec_lines: tuple[GemmiCIF2MTZSpec, ...] | None = \
+        Option(default_factory=tuple,
+               formatter=lambda x: tuple(l.line for l in x),
+               desc='List of specification lines used during CIF to MTZ conversion')
+
+    @computed_field(description='Column types inferred from the column labels using '
+                                'the specification lines, if available')
+    def column_types_inferred(self) -> tuple[str | None, ...] | None:
+        """
+        Infer the column types from the column labels using the specification lines,
+        if available.
+        """
+        column_types = []
+        if not self.column_labels or not self.spec_lines:
+            return None
+
+        specs = list(self.spec_lines) + \
+                [GemmiCIF2MTZSpec.from_line(l) for l in
+                 ['index_h H H 0', 'index_k K H 0', 'index_l L H 0']]
+        for label in self.column_labels:
+            inferred = False
+            for spec in specs:
+                if label == spec.tag:
+                    column_types.append(spec.column_type)
+                    inferred = True
+                    break
+            if not inferred:
+                column_types.append(None)
+
+        return tuple(column_types)
+
+    @classmethod
+    def from_gemmi(cls, rblock: gemmi.ReflnBlock,
+                   spec_lines: Sequence[str | GemmiCIF2MTZSpec] = None):
+        """
+        Create an instance from a ``gemmi.ReflnBlock`` object.
+        """
+        if not isinstance(rblock, gemmi.ReflnBlock):
+            raise TypeError(f'Expected gemmi.ReflnBlock, got {type(rblock).__name__}')
+
+        resolution_high = rblock.block.find_value('_reflns.d_resolution_high')
+        resolution_low = rblock.block.find_value('_reflns.d_resolution_low')
+        n_obs = rblock.block.find_value('_reflns.number_obs')
+        resolution_high = float(resolution_high) if resolution_high else None
+        resolution_low = float(resolution_low) if resolution_low else None
+        n_obs = int(n_obs) if n_obs else None
+
+        return cls(
+            origin_file_type=ReflectionsFileType.CIF,
+            name=rblock.block.name,
+            entry_id=rblock.entry_id,
+            unit_cell=rblock.cell,
+            space_group=rblock.spacegroup,
+            wavelength=rblock.wavelength,
+            resolution_high=resolution_high,
+            resolution_low=resolution_low,
+            no_reflections=n_obs,
+            is_merged=rblock.is_merged(),
+            column_labels=tuple(rblock.column_labels()),
+            spec_lines=spec_lines or tuple()
+        )
+
 
 
 ReflectionsMetadataType = ReflectionsMetadata | MTZReflectionsMetadata | \
