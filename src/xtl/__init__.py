@@ -1,10 +1,13 @@
 __all__ = [
     'version', '__version__', '__version_tuple__', '__version_hex__', '__date__',
-    'settings'
+    'settings', 'Logger'
 ]
 
-from .config.version import version
+from .logging import Logger
+logger = Logger(__name__)
 
+from .config.version import version
+logger.info(f'XTL version: {version} [{version.release_date}]')
 
 version: 'xtl.config.version.VersionInfo'
 """

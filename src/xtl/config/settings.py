@@ -10,6 +10,9 @@ from typing import ClassVar, Optional
 
 from pydantic import PrivateAttr
 
+from xtl import Logger
+logger = Logger(__name__)
+
 from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.config.version import version_from_str
@@ -203,40 +206,36 @@ class XTLSettings(Settings):
 
         :return: An instance of :class:`XTLSettings`
         """
-        # TODO: Change all print statements to use a proper logging system when
-        #  implemented
         if cls.local_config.exists():
-            print(f'Reading local config: {cls.local_config}')
+            logger.info('Reading local config: %(local_config)s',
+                        {'local_config': cls.local_config})
             _settings = cls.from_toml(cls.local_config)
             _settings._file = cls.local_config
         elif cls.global_config.exists():
-            print(f'Reading global config: {cls.global_config}')
+            logger.info('Reading global config: %(global_config)s',
+                        {'global_config': cls.global_config})
             _settings = cls.from_toml(cls.global_config)
             _settings._file = cls.global_config
         else:
-            print(f'No local or global {cls._toml} found, initializing with defaults.')
+            logger.info('Initializing with default settings (no %(toml)s was found)',
+                        {'toml': cls._toml})
             _settings = cls()
-            try:
-                _settings.to_toml(filename=cls.global_config, comments=True)
-                print(f'Saved as global config: {cls.global_config}')
-            except Exception as e:
-                raise Exception(f'Failed to save global config: '
-                                f'{cls.global_config}') from e
 
         # Check settings version
         _v = version_from_str(_settings.version)
         if _v.tuple_safe < current_version.tuple_safe:
-            print(f'Using settings from an older version of XTL ({_v.string}).')
+            logger.warn('Using settings from an older version of XTL %(version)s.',
+                        {'version': _v.string})
         elif _v.tuple_safe > current_version.tuple_safe:
-            print(f'Using settings from a future version of XTL ({_v.string}). '
-                  f'XTL might not behave as intended. Use at your own risk!')
+            logger.warn('Using settings from a newer version of XTL %(version)s. '
+                        'XTL might not behave as intended. Use at your own risk!',
+                        {'version': _v.string})
 
         # Check for extra keys in the nested Options
         extra = _settings.__pydantic_extra__ or dict()
         extra.update(_get_extra_keys(_settings))
         if extra:
-            print(f'Warning: Found unknown keys in the config file:')
-            pprint(extra)
-            print('These keys where ignored during initialization.')
+            logger.warng('Found and ignored unknown keys in the config file',
+                         extra=extra)
 
         return _settings
