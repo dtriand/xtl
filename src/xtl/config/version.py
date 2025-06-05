@@ -175,10 +175,10 @@ def version_from_hex(hex_str: str, date_str: str = None) -> VersionInfo:
 # Unique place for version definition
 version = VersionInfo(
     major=0,
-    minor=1,
+    minor=2,
     micro=0,
-    level=ReleaseLevel.RC,
-    serial=1,  # < 16
+    level=ReleaseLevel.DEV,
+    serial=0,  # < 16
     date=datetime(year=2025, month=6, day=1),
 )
 """XTL version information"""
