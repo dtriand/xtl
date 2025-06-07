@@ -87,6 +87,8 @@ class AutomateSettings(Settings):
     """
 
     # Model attributes
+    job_digits: int = Option(default=5, desc='Number of digits to use for generation'
+                                             'of random job IDs')
     compute_site: ComputeSite = Option(default=ComputeSite.LOCAL)
     permissions: AutomatePermissionsSettings = Option(
         default=AutomatePermissionsSettings())
