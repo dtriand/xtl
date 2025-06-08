@@ -1,18 +1,31 @@
 import abc
+import asyncio
 from dataclasses import dataclass
 import logging
-from pathlib import Path
-from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, get_args, Sequence
+from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
+    get_args, Iterable
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
 
 from xtl import settings, Logger
 from xtl.math.uuid import UUIDFactory
+from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
 
 
 uuid = UUIDFactory()
 logger_ = Logger(__name__)
+
+
+class _DummyPool:
+    """
+    A dummy context manager for job execution outside of a pool.
+    """
+    async def __aenter__(self):
+        return None
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return None
 
 
 @dataclass
@@ -23,10 +36,10 @@ class JobResults:
     job_id: str
     """The unique identifier of the job."""
 
-    data: Any | None
+    data: Any | None = None
     """Optional data returned by the job."""
 
-    error: Any | None
+    error: Any | None = None
     """Error that occured during job execution, if any."""
 
     @property
@@ -48,17 +61,6 @@ class JobConfig:
 JobConfigType = TypeVar('JobConfigType', bound=JobConfig)
 
 
-class _DummyPool:
-    """
-    A dummy context manager for job execution outside of a pool.
-    """
-    async def __aenter__(self):
-        return None
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return None
-
-
 class Job(abc.ABC, Generic[JobConfigType]):
     _registry: ClassVar[dict[str, 'Job']] = {}
     """Registry of all alive jobs of this class."""
@@ -69,9 +71,18 @@ class Job(abc.ABC, Generic[JobConfigType]):
     """The configuration class for this job type."""
 
     _logging_level: ClassVar[int] = logging.INFO
-    _logging_fmt: ClassVar[str] = '[%(name)s @ %(asctime)s]: %(message)s'
-    _logging_fmt_date: ClassVar[str] = '%H:%M:%S'
-    _logging_directory: ClassVar[Path] = Path.cwd()
+    _logging_config: ClassVar[LoggerConfig] = LoggerConfig(
+        level=_logging_level,
+        propagate=False,
+        handlers=[
+            StreamHandlerConfig(
+                format=LoggingFormat(
+                    format='[%(asctime)s.%(msecs)03d:%(name)s] %(message)s',
+                    datefmt='%H:%M:%S'
+                )
+            )
+        ]
+    )
 
     _job_prefix: ClassVar[str] = 'xtl_job'
 
@@ -89,7 +100,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             uuid.random(length=settings.automate.job_digits)
         while self._job_id in self._registry:
             # Regenerate if necessary
-            logger_.debug('Regenerating job ID: %s', self._job_id)
+            logger_.debug('Regenerating job_id: %s', self._job_id)
             self._job_id = uuid.random(length=settings.automate.job_digits)
 
         # Attach a logger
@@ -181,14 +192,14 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return job
 
     @classmethod
-    def map(cls, configs: Sequence[JobConfigType] | JobConfigType = None) -> \
+    def map(cls, configs: Iterable[JobConfigType] | JobConfigType = None) -> \
             tuple['Job[JobConfigType]', ...]:
         """
         Map a list of configurations to job instances.
         """
-        if not isinstance(configs, Sequence):
+        if not isinstance(configs, Iterable):
             if not isinstance(configs, cls._config_class):
-                raise TypeError(f'Expected a sequence of {cls._config_class.__name__}, '
+                raise TypeError(f'Expected a list of {cls._config_class.__name__}, '
                                 f'got {type(configs).__name__}')
             configs = (configs,)
         return tuple(cls.with_config(config) for config in configs)
@@ -246,27 +257,35 @@ class Job(abc.ABC, Generic[JobConfigType]):
         Run the job asynchronously.
         """
         if self._is_running:
-            self._logger.warning("Job %s is already running", self._job_id)
+            self._logger.warning("Job is already running")
             return None
 
         if self._is_complete:
-            self._logger.warning("Job %s has already completed", self._job_id)
+            self._logger.warning("Job has already completed")
             return None
 
         result = None
         try:
             self._is_running = True
-            self._logger.info('Launching job...')
+            self._logger.debug('Launching job')
             result = await self._execute()
             self._is_complete = True
-            self._logger.info('Job completed successfully')
+            self._logger.debug('Job completed successfully')
+        except asyncio.CancelledError as e:
+            self._error = e
+            if e.args:
+                self._logger.warning('Job cancellation requested with reason: %s',
+                                     e.args[0])
+            else:
+                self._logger.warning('Job was cancelled')
+            raise
         except Exception as e:
             self._error = e
-            self._logger.exception('Job failed due to an exception')
+            self._logger.error('Job failed due to an exception %s', e.args)
         finally:
             self._is_running = False
             if self._error:
-                self._logger.info('Job aborted successfully')
+                self._logger.debug('Job aborted successfully')
 
         return JobResults(job_id=self._job_id, data=result, error=self._error)
 
@@ -288,48 +307,30 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._logger
 
     @classmethod
-    def get_logger(cls, job_id: str, **kwargs) -> logging.Logger:
+    def get_logger(cls, job_id: str, config: LoggerConfig = None) -> logging.Logger:
         """
-        Get or create a logger for the job with the given ID.
+        Get or create a logger for the job with the given ID. If `config` is not
+        specified, the default configuration is chosen.
+
+        :param job_id: Unique identifier of the job.
+        :param config: Optional logging configuration.
         """
         # Recover existing loggers
         if job_id in cls._registry:
             return cls._registry[job_id].logger
 
+        # Cast job_id to string
+        if not isinstance(job_id, str):
+            job_id = str(job_id)
+
         # Create and configure new logger
         logger = logging.getLogger(job_id)
-        cls._configure_logger(logger, **kwargs)
+        if config is not None:
+            if not isinstance(config, LoggerConfig):
+                raise TypeError(f'Expected a {LoggerConfig.__name__} instance, '
+                                f'got {type(config).__name__}')
+            config.configure(logger)
+        else:
+            cls._logging_config.configure(logger)
 
         return logger
-
-    @classmethod
-    def _configure_logger(cls, logger: logging.Logger, level: int = None,
-                          fmt: str = None, datefmt: str = None, path: str | Path = None,
-                          stream_handler: bool = True,
-                          file_handler: bool = False) -> None:
-        """
-        Configure the logger for the job.
-        """
-        # Prevent propagation
-        logger.propagate = False
-
-        # Set log level
-        level = level or cls._logging_level
-        logger.setLevel(level)
-
-        # Create formatter
-        fmt = fmt or cls._logging_fmt
-        datefmt = datefmt or cls._logging_fmt_date
-        formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-
-        # Create and attach handlers
-        if stream_handler:
-            import sys
-            stream = logging.StreamHandler(stream=sys.stdout)
-            stream.setFormatter(formatter)
-            logger.addHandler(stream)
-        if file_handler:
-            log = path or cls._logging_directory / f'{cls._job_prefix}_{logger.name}.log'
-            file = logging.FileHandler(filename=log, mode='a', encoding='utf-8')
-            file.setFormatter(formatter)
-            logger.addHandler(file)
