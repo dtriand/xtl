@@ -5,7 +5,7 @@ from typing import Optional
 
 @dataclass
 class PrioritySystem(ABC):
-    _system_type: str
+    _system_type: str | None
 
     @abstractmethod
     def prepare_command(self, command: str) -> str:
@@ -63,3 +63,6 @@ class NicePrioritySystem(DefaultPrioritySystem):
     def prepare_command(self, command: str) -> str:
         command = super().prepare_command(command)
         return f'nice -n {self.nice_level} {command}'
+
+
+PrioritySystemType = DefaultPrioritySystem | NicePrioritySystem
