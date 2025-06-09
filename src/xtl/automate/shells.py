@@ -3,10 +3,11 @@ __all__ = ['Shell', 'DefaultShell', 'BashShell', 'CmdShell', 'PowerShell']
 import copy
 from dataclasses import dataclass
 import re
-import os
 from pathlib import Path
 import shlex
 from typing import Any, Sequence
+
+from xtl.common.compatibility import OS_WINDOWS
 
 
 @dataclass
@@ -183,4 +184,4 @@ PowerShell = Shell(name='powershell',
 
 
 # Set the default shell based on the OS
-DefaultShell = CmdShell if os.name == 'nt' else BashShell
+DefaultShell = CmdShell if OS_WINDOWS else BashShell

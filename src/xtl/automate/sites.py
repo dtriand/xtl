@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
-from xtl.automate.priority_system import PrioritySystem, DefaultPrioritySystem, NicePrioritySystem
+from xtl.automate.priority_system import PrioritySystemType, DefaultPrioritySystem, NicePrioritySystem
 from xtl.automate.shells import Shell, DefaultShell, BashShell
 
 
@@ -13,7 +13,7 @@ class ComputeSite(ABC):
     on a specific site.
     """
 
-    _priority_system: Optional[PrioritySystem] = None
+    _priority_system: Optional[PrioritySystemType] = None
     _default_shell: Optional[Shell] = None
     _supported_shells: Sequence[Shell] | None = None
 
@@ -26,7 +26,7 @@ class ComputeSite(ABC):
 
     @priority_system.setter
     def priority_system(self, value):
-        if not isinstance(value, PrioritySystem):
+        if not isinstance(value, PrioritySystemType):
             raise TypeError('\'priority_system\' must be an instance of PrioritySystem')
         self._priority_system = value
 
@@ -121,3 +121,6 @@ class BiotixHPC(ComputeSite):
 
     def purge_modules(self) -> str:
         return 'module purge'
+
+
+ComputeSiteType = LocalSite | BiotixHPC
