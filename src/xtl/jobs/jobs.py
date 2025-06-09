@@ -4,11 +4,13 @@ from dataclasses import dataclass
 import logging
 from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
     get_args, Iterable
+from pathlib import Path
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
 
 from xtl import settings, Logger
+from xtl.jobs.config import JobConfig
 from xtl.math.uuid import UUIDFactory
 from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
 
@@ -48,14 +50,6 @@ class JobResults:
         Whether the job completed successfully without errors.
         """
         return self.error is None
-
-
-@dataclass
-class JobConfig:
-    """
-    Base class for passing configuration to a job.
-    """
-    ...
 
 
 JobConfigType = TypeVar('JobConfigType', bound=JobConfig)
@@ -334,3 +328,141 @@ class Job(abc.ABC, Generic[JobConfigType]):
             cls._logging_config.configure(logger)
 
         return logger
+
+    async def _execute_batch(self, commands: list[str], filename: str = None,
+                           stdout_log: Path = None, stderr_log: Path = None) -> JobResults:
+        """
+        Execute a batch file with the specified commands.
+
+        This method creates a batch file with the provided commands and executes it using
+        the shell and compute site specified in the job's batch configuration.
+
+        :param commands: List of commands to include in the batch file
+        :param filename: Optional name for the batch file (without extension)
+        :param stdout_log: Optional path for stdout log file
+        :param stderr_log: Optional path for stderr log file
+        :return: The subprocesses STDOUT and STDERR logs as a JobResults object
+        :raises ValueError: If the job's configuration does not include batch settings
+        """
+        from xtl.automate.batchfile import BatchFile
+        import asyncio
+
+        # Check if batch configuration is available
+        if not self.config or not self.config.batch:
+            raise ValueError('Job configuration does not include batch settings')
+
+        # Override batch filename if provided
+        if filename:
+            original_filename = self.config.batch.filename
+            self.config.batch.filename = filename
+
+        # Create the batch directory if it doesn't exist
+        if not self.config.batch.directory.exists():
+            try:
+                self._logger.debug('Creating directory for batch file: %s',
+                                   self.config.batch.directory)
+                self.config.batch.directory.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                self._logger.error('Failed to create batch directory: %s',
+                                   self.config.batch.directory)
+                raise e
+
+        # Create batch file
+        self._logger.debug('Creating batch file in %s',
+                           self.config.batch.directory)
+        batch = BatchFile(
+            filename=self.config.batch.batch_file_path,
+            compute_site=self.config.batch.compute_site,
+            shell=self.config.batch.shell
+        )
+        batch.permissions = self.config.batch.permissions
+        batch.add_commands(commands)
+
+        # Save batch file
+        try:
+            batch.save(change_permissions=True)
+            self._logger.debug('Batch file created: %s', batch.file)
+        except OSError as e:
+            self._logger.error('Failed to save batch file: %s', batch.file)
+            raise e
+
+        # Set up log files
+        stdout = stdout_log or self.config.batch.stdout
+        stderr = stderr_log or self.config.batch.stderr
+
+        # Make sure log files exist
+        try:
+            stdout.touch(exist_ok=True)
+            stderr.touch(exist_ok=True)
+            self._logger.debug('Log files initialized: stdout=%s, stderr=%s',
+                               stdout, stderr)
+        except OSError as e:
+            self._logger.error('Failed to create log files: stdout=%s, stderr=%s',
+                               stdout, stderr)
+            raise e
+
+        # Execute the batch file
+        try:
+            executable, arguments = self._get_batch_execution_command(batch)
+
+            # Launch subprocess
+            #  Once the subprocess is launched, the main thread continues to the next
+            #  line.
+            self._logger.info('Executing batch file: %s', batch.file)
+            process = await asyncio.create_subprocess_exec(
+                executable, *arguments,
+                shell=False,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+
+            # Log streams to files
+            #  This keeps reading from the streams until the subprocess exits and the
+            #  streams are closed. This is where the main thread waits.
+            await asyncio.gather(
+                self._log_stream_to_file(process.stdout, stdout),
+                self._log_stream_to_file(process.stderr, stderr)
+            )
+        except asyncio.CancelledError as e:
+            process.terminate()
+            self.logger.error('Batch execution was cancelled by the user')
+            raise e
+
+        # Handle result
+        result = {'stdout': stdout.read_text(encoding='utf-8'),
+                  'stderr': stderr.read_text(encoding='utf-8')}
+
+        self.logger.debug('Batch execution completed successfully')
+
+        return JobResults(job_id=f'{self._job_id}.batch', data=result, error=None)
+
+    @staticmethod
+    def _get_batch_execution_command(batch: 'BatchFile', arguments: list[str] = None) \
+            -> tuple[str, list[str]]:
+        """
+        Get the command and arguments to execute the batch file.
+        """
+        command = batch.get_execute_command(arguments=arguments, as_list=True)
+        executable = command[0]
+        args = command[1:]
+        return executable, args
+
+    async def _log_stream_to_file(self, stream, log_file: Path):
+        """
+        Save data from a stream to a log file.
+
+        :param stream: The stream to read from
+        :param log_file: The file to write to
+        """
+        with open(log_file, 'wb', encoding='utf-8') as log:
+            while True:
+                # Read 4 KB of data from the stream
+                buffer = await stream.read(1024 * 4)
+
+                # If the buffer is empty, break the loop (process has exited)
+                if not buffer:
+                    break
+
+                # Write and flush the buffer to the log file
+                log.write(buffer)
+                log.flush()
