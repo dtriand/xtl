@@ -22,12 +22,7 @@ __date__ = version.date
 
 # Import guard for build tools
 import sys
-if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel', 'sdist',
-                                'tox']
-       for arg in sys.argv):
-    # Skip imports if running any build tools because no dependencies are available
-    pass
-else:
+try:
     from .config.settings import XTLSettings
 
     settings: XTLSettings = XTLSettings.initialize()
@@ -36,3 +31,11 @@ else:
 
     :meta hide-value:
     """
+except ModuleNotFoundError as e:
+    if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel',
+                                    'sdist', 'tox']
+           for arg in sys.argv):
+        # Skip imports if running any build tools because no dependencies are available
+        pass
+    else:
+        raise e
