@@ -340,8 +340,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         return logger
 
-    async def _execute_batch(self, commands: list[str], filename: str = None,
-                           stdout_log: Path = None, stderr_log: Path = None) -> JobResults:
+    async def _execute_batch(self, commands: list[str], args: list[str] = None,
+                             filename: str = None, stdout_log: Path = None,
+                             stderr_log: Path = None) -> JobResults:
         """
         Execute a batch file with the specified commands.
 
@@ -349,15 +350,13 @@ class Job(abc.ABC, Generic[JobConfigType]):
         the shell and compute site specified in the job's batch configuration.
 
         :param commands: List of commands to include in the batch file
+        :param args: Optional list of arguments to pass to the batch file
         :param filename: Optional name for the batch file (without extension)
         :param stdout_log: Optional path for stdout log file
         :param stderr_log: Optional path for stderr log file
         :return: The subprocesses STDOUT and STDERR logs as a JobResults object
         :raises ValueError: If the job's configuration does not include batch settings
         """
-        from xtl.automate.batchfile import BatchFile
-        import asyncio
-
         # Check if batch configuration is available
         if not self.config or not self.config.batch:
             raise ValueError('Job configuration does not include batch settings')
@@ -408,7 +407,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Execute the batch file
         try:
-            executable, arguments = self._get_batch_execution_command(self._batch)
+            executable, arguments = self._get_batch_execution_command(self._batch, args)
 
             # Launch subprocess
             #  Once the subprocess is launched, the main thread continues to the next

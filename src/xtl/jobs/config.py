@@ -10,6 +10,7 @@ from xtl.automate.shells import Shell, DefaultShell
 from xtl.automate.sites import ComputeSiteType, LocalSite, BiotixHPC
 from xtl.common.options import Option, Options
 from xtl.common.os import FilePermissions
+from xtl.common.serializers import PermissionOctal
 
 if TYPE_CHECKING:
     from xtl.automate.batchfile import BatchFile
@@ -24,11 +25,15 @@ class BatchConfig(Options):
     """
     filename: str = Option(default='batch_job', desc='Batch file name (without '
                                                      'extension)')
-    directory: Path = Option(default_factory=lambda: Path(tempfile.gettempdir()),
-                             desc='Directory for dumping batch file and logs')
-    permissions: FilePermissions = Option(default=FilePermissions(0o700),
-                                          desc='Permissions for the batch file in '
-                                               'octal format (e.g., 700)')
+    directory: Path | str = Option(default_factory=lambda: Path(tempfile.gettempdir()),
+                                   desc='Directory for dumping batch file and logs',
+                                   cast_as=Path)
+    permissions: FilePermissions | str | int = Option(default=FilePermissions(0o700),
+                                                      desc='Permissions for the batch '
+                                                           'file in octal format '
+                                                           '(e.g., 700)',
+                                                      cast_as=FilePermissions,
+                                                      formatter=PermissionOctal)
     compute_site: ComputeSiteType = Option(default=LocalSite(), desc='Compute site')
     default_shell: Optional[Shell] = Option(default=None,
                                             desc='Default shell to use for batch '
@@ -105,6 +110,15 @@ class BatchConfig(Options):
         """
         return self._shell
 
+    @shell.setter
+    def shell(self, value: Shell):
+        """
+        Sets the shell to be used for executing the batch file.
+        """
+        if not isinstance(value, Shell):
+            raise ValueError(f'Shell must be an instance of {Shell.__name__}')
+        self._shell = value
+
     def get_batch(self) -> 'BatchFile':
         """
         Returns a BatchFile instance configured with this BatchConfig.
@@ -136,18 +150,3 @@ class JobConfig(Options):
         if self.job_directory is not None and self.batch is not None:
             self.batch.directory = self.job_directory
         return self
-
-
-if __name__ == '__main__':
-    # Example usage
-    class TestConfig(JobConfig):
-        batch: BatchConfig = Option(
-            default_factory=BatchConfig,
-            desc='Configuration for the batch file execution'
-        )
-
-    config = TestConfig(job_directory=Path('/path/to/job'),
-                        batch=BatchConfig(filename='test_batch'))
-
-    from pprint import pprint
-    pprint(config)
