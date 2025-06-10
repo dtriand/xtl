@@ -1,8 +1,8 @@
 ### Development
 playground/
 utils/
+scripts/
 tests/cache
-src/xtl/scripts
 src/xtl/chemistry
 src/xtl/chemistry2
 src/xtl/crystallization2

@@ -1,15 +1,18 @@
 from pathlib import Path
-from typing import Optional, Type
+from typing import Optional
 import tempfile
+from typing import TYPE_CHECKING
 
-from pydantic import computed_field, PrivateAttr, model_validator, Field, \
-    field_validator
+from pydantic import computed_field, PrivateAttr, model_validator
 
 from xtl import Logger
 from xtl.automate.shells import Shell, DefaultShell
 from xtl.automate.sites import ComputeSiteType, LocalSite, BiotixHPC
 from xtl.common.options import Option, Options
 from xtl.common.os import FilePermissions
+
+if TYPE_CHECKING:
+    from xtl.automate.batchfile import BatchFile
 
 
 logger = Logger(__name__)
@@ -101,6 +104,17 @@ class BatchConfig(Options):
         Returns the shell that will be used to execute the batch file.
         """
         return self._shell
+
+    def get_batch(self) -> 'BatchFile':
+        """
+        Returns a BatchFile instance configured with this BatchConfig.
+        """
+        from xtl.automate.batchfile import BatchFile
+        batch = BatchFile(filename=self.directory/self.filename,
+                          compute_site=self.compute_site,
+                          shell=self.shell)
+        batch.permissions = self.permissions
+        return batch
 
 
 class JobConfig(Options):
