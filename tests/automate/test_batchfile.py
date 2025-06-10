@@ -149,7 +149,7 @@ class TestBatchFile:
     def test_write_file_permissions(self, temp_files):
         b = BatchFile(filename=temp_files)
         b.save(change_permissions=True)
-        assert stat.filemode(temp_files.stat().st_mode) == '-rwxrw----'
+        assert stat.filemode(temp_files.stat().st_mode) == '-rwx------'
 
         b.permissions = '0o777'
         b.save(change_permissions=True)
