@@ -9,7 +9,7 @@ class TestPermissions:
     @pytest.mark.parametrize(
         'value,   expected', [
         ('0o755', 493),
-        (777,     511),
+        pytest.param(777, None, marks=pytest.mark.xfail(raises=ValueError)),  # base 10 integer
         ('711',   457),
         pytest.param(755.,   None, marks=pytest.mark.xfail(raises=TypeError)),
         pytest.param('asdf', None, marks=pytest.mark.xfail(raises=ValueError)),
