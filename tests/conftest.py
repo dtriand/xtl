@@ -1,12 +1,13 @@
 from contextlib import contextmanager
 from functools import cache
 import random
-import os
 from pathlib import Path
 import shutil
 import subprocess
 
 import pytest
+
+from xtl.common.compatibility import OS_POSIX, OS_WINDOWS
 
 CACHE_DIR = Path(__file__).parent / 'cache'
 
@@ -66,8 +67,8 @@ def temp_files(request, tmp_path_factory):
     return temp_files
 
 
-skipif_not_windows = pytest.mark.skipif(os.name != 'nt', reason='Test only for Windows')
-skipif_not_linux = pytest.mark.skipif(os.name != 'posix', reason='Test only for Linux')
+skipif_not_windows = pytest.mark.skipif(not OS_WINDOWS, reason='Test only for Windows')
+skipif_not_linux = pytest.mark.skipif(not OS_POSIX, reason='Test only for Linux')
 skipif_not_wsl = pytest.mark.skipif(shutil.which("wsl") is None, reason='WSL not installed')
 
 supported_distros = ['Ubuntu-18.04', 'Ubuntu-22.04']
