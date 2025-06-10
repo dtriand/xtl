@@ -39,10 +39,10 @@ class AutoPROCConfig(GPhLConfig):
     autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
                                          default='autoproc', group='housekeeping')
     file_permissions: int = pfield(desc='File permissions for all the output files',
-                                   default=640, group='housekeeping',
+                                   default=int('0o600', 8), group='housekeeping',
                                    validator={'func': get_permissions_in_decimal})
     directory_permissions: int = pfield(desc='Directory permissions for all the output directories',
-                                        default=750, group='housekeeping',
+                                        default=int('0o700', 8), group='housekeeping',
                                         validator={'func': get_permissions_in_decimal})
     change_permissions: bool = pfield(desc='Change permissions of the output files and directories',
                                       default=False, group='housekeeping')

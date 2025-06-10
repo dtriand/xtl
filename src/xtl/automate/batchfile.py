@@ -6,7 +6,8 @@ from typing import Any, Sequence, Optional
 
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.shells import Shell, DefaultShell, WslShell
-from xtl.common.os import get_permissions_in_decimal
+from xtl.common.os import FilePermissions
+from xtl.common.compatibility import OS_POSIX
 
 
 class BatchFile:
@@ -44,8 +45,8 @@ class BatchFile:
         # List of lines of the batch file
         self._lines = []
 
-        # Set default permissions for the batch file to: user: rwx, group: rw (rwxrw---- or 760) but in DECIMAL repr
-        self._permissions = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP
+        # Set default permissions for the batch file to 700
+        self._permissions = FilePermissions('700')
 
     @property
     def file(self) -> Path:
@@ -73,14 +74,14 @@ class BatchFile:
         """
         Returns the permissions that will be set for the batch file in octal format.
         """
-        return oct(self._permissions)
+        return self._permissions.octal
 
     @permissions.setter
-    def permissions(self, value: int | str):
+    def permissions(self, value: int | str | FilePermissions):
         """
         Set the permissions that will be set for the batch file. Expects a 3-digit octal number.
         """
-        self._permissions = get_permissions_in_decimal(value)
+        self._permissions = FilePermissions(value)
 
     def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
         if self._wsl_filename:
@@ -165,5 +166,5 @@ class BatchFile:
         self._filename.write_text(text, encoding='utf-8', newline=self.shell.new_line_char)
 
         # Update permissions (user: read, write, execute; group: read, write)
-        if change_permissions:
-            self._filename.chmod(self._permissions)
+        if change_permissions and OS_POSIX:
+            self._filename.chmod(self._permissions.decimal)
