@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
 
 from xtl import settings, Logger
+from xtl.automate.batchfile import BatchFile
 from xtl.jobs.config import JobConfig
 from xtl.math.uuid import UUIDFactory
 from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
@@ -113,6 +114,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Initialize config
         self._config: JobConfigType | None = None
+
+        # Batch execution
+        self._batch: BatchFile | None = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -234,8 +238,15 @@ class Job(abc.ABC, Generic[JobConfigType]):
                             f'got {type(pool).__name__}')
         self._pool = pool
 
+    def clear(self) -> None:
+        """
+        Explicitly remove this job from the registry.
+        """
+        if self._job_id in self.__class__._registry:
+            del self.__class__._registry[self._job_id]
+
     def __del__(self) -> None:
-        del self.__class__._registry[self._job_id]
+        self.clear()
 
     @abc.abstractmethod
     async def _execute(self) -> Any | None:
@@ -353,7 +364,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Override batch filename if provided
         if filename:
-            original_filename = self.config.batch.filename
             self.config.batch.filename = filename
 
         # Create the batch directory if it doesn't exist
@@ -370,20 +380,15 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Create batch file
         self._logger.debug('Creating batch file in %s',
                            self.config.batch.directory)
-        batch = BatchFile(
-            filename=self.config.batch.batch_file_path,
-            compute_site=self.config.batch.compute_site,
-            shell=self.config.batch.shell
-        )
-        batch.permissions = self.config.batch.permissions
-        batch.add_commands(commands)
+        self._batch = self.config.batch.get_batch()
+        self._batch.add_commands(commands)
 
         # Save batch file
         try:
-            batch.save(change_permissions=True)
-            self._logger.debug('Batch file created: %s', batch.file)
+            self._batch.save(change_permissions=True)
+            self._logger.debug('Batch file created: %s', self._batch.file)
         except OSError as e:
-            self._logger.error('Failed to save batch file: %s', batch.file)
+            self._logger.error('Failed to save batch file: %s', self._batch.file)
             raise e
 
         # Set up log files
@@ -403,12 +408,12 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Execute the batch file
         try:
-            executable, arguments = self._get_batch_execution_command(batch)
+            executable, arguments = self._get_batch_execution_command(self._batch)
 
             # Launch subprocess
             #  Once the subprocess is launched, the main thread continues to the next
             #  line.
-            self._logger.info('Executing batch file: %s', batch.file)
+            self._logger.info('Executing batch file: %s', self._batch.file)
             process = await asyncio.create_subprocess_exec(
                 executable, *arguments,
                 shell=False,
@@ -454,7 +459,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         :param stream: The stream to read from
         :param log_file: The file to write to
         """
-        with open(log_file, 'wb', encoding='utf-8') as log:
+        with open(log_file, 'wb') as log:
             while True:
                 # Read 4 KB of data from the stream
                 buffer = await stream.read(1024 * 4)
