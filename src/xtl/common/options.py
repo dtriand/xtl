@@ -12,7 +12,7 @@ import inspect
 import os
 from pathlib import Path
 import re
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload
 from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
@@ -21,6 +21,7 @@ from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict
 from pydantic.fields import _Unset, Deprecated, FieldInfo
+from pydantic._internal._typing_extra import EllipsisType
 import toml
 from toml.decoder import CommentValue
 
@@ -29,14 +30,162 @@ from xtl.files.toml import ExtendedTomlEncoder
 
 
 _Validator = Union[BeforeValidator, AfterValidator]
+_T = TypeVar('_T')
 
+# Overload signatures for different initialization scenarios
+# Option(...)
+@overload
+def Option(
+        default: EllipsisType,
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> Any: ...
 
+# Option(default=_T)
+@overload
+def Option(
+        default: _T,
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> _T: ...
+
+# Option(default_factory=callable)
+@overload
 def Option(
         *,
+        default_factory: Callable[[], _T] | Callable[[dict[str, Any]], _T],
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> _T: ...
+
+# Option()
+@overload
+def Option(
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> Any: ...
+
+def Option(
+        default: Any = PydanticUndefined,
+        *,
         # Default value
-        default: Any | None = PydanticUndefined,
-        default_factory: Callable[[], Any] | Callable[
-            [dict[str, Any]], Any] | None = _Unset,
+        default_factory: Callable[[], Any] | Callable[[dict[str, Any]], Any] | \
+                         None = _Unset,
         # Metadata
         name: str | None = _Unset,
         desc: str | None = _Unset,
@@ -130,9 +279,6 @@ def Option(
         custom validation and metadata handling.
     :raises ValueError: If neither ``default`` nor ``default_factory`` is provided.
     """
-    if default is PydanticUndefined and default_factory is _Unset:
-        raise ValueError('Either \'default\' or \'default_factory\' must be provided')
-
     if extra is _Unset:
         extra = {}
 
@@ -140,7 +286,9 @@ def Option(
     if any([v is not _Unset for v in (length, choices, path_exists, path_is_file,
                                       path_is_dir, path_is_absolute, cast_as,
                                       validator)]):
-        extra['validators'] = []
+        # Ensure we don't overwrite existing validators
+        if not isinstance(extra.get('validators', None), list):
+            extra['validators'] = []
     # Before validators
     if cast_as is not _Unset:
         extra['validators'].append(CastAsValidator(cast_as))
@@ -149,14 +297,14 @@ def Option(
         extra['validators'].append(LengthValidator(length))
     if choices is not _Unset:
         extra['validators'].append(ChoicesValidator(choices))
-    if path_exists is not _Unset:
-        extra['validators'].append(PathExistsValidator)
-    if path_is_file is not _Unset:
-        extra['validators'].append(PathIsFileValidator)
-    if path_is_dir is not _Unset:
-        extra['validators'].append(PathIsDirValidator)
-    if path_is_absolute is not _Unset:
-        extra['validators'].append(PathIsAbsoluteValidator)
+    if path_exists is not _Unset and path_exists:
+        extra['validators'].append(PathExistsValidator())
+    if path_is_file is not _Unset and path_is_file:
+        extra['validators'].append(PathIsFileValidator())
+    if path_is_dir is not _Unset and path_is_dir:
+        extra['validators'].append(PathIsDirValidator())
+    if path_is_absolute is not _Unset and path_is_absolute:
+        extra['validators'].append(PathIsAbsoluteValidator())
     # Either before or after validators
     if validator is not _Unset:
         validators = []
