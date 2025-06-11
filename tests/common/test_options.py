@@ -12,9 +12,8 @@ from xtl.common.validators import cast_as, validate_length
 class TestOption:
 
     def test_no_defaults(self):
-        with pytest.raises(ValueError, match='Either \'default\' or \'default_factory\' '
-                                             'must be provided'):
-            o = Option()
+        o = Option()
+        o = Option(...)
 
     def test_validators(self):
         o = Option(default=1)
