@@ -41,39 +41,71 @@ def validate_choices(value: Any, choices: Iterable[Any]) -> Any:
     return value
 
 
-def validate_path_exists(value: Path) -> Path:
+def validate_path_exists(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path exists.
     """
-    if not value.exists():
-        raise ValueError(f'Path does not exist: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.exists():
+                raise ValueError(f'Path[{i}] does not exist: {v!r}') from None
+    else:
+        if not value.exists():
+            raise ValueError(f'Path does not exist: {value!r}') from None
     return value
 
 
-def validate_path_is_file(value: Path) -> Path:
+def validate_path_is_file(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if a path is a file.
     """
-    if not value.is_file():
-        raise ValueError(f'Path is not a file: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_file():
+                raise ValueError(f'Path[{i}] is not a file: {v!r}') from None
+    else:
+        if not value.is_file():
+            raise ValueError(f'Path is not a file: {value!r}') from None
     return value
 
 
-def validate_path_is_dir(value: Path) -> Path:
+def validate_path_is_dir(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path is a directory.
     """
-    if not value.is_dir():
-        raise ValueError(f'Path is not a directory: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_dir():
+                raise ValueError(f'Path[{i}] is not a directory: {v!r}') from None
+    else:
+        if not value.is_dir():
+                raise ValueError(f'Path is not a directory: {value!r}') from None
     return value
 
 
-def validate_path_is_absolute(value: Path) -> Path:
+def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path is absolute.
     """
-    if not value.is_absolute():
-        raise ValueError(f'Path is not absolute: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_file():
+                raise ValueError(f'Path[{i}] is not absolute: {v!r}') from None
+    else:
+        if not value.is_absolute():
+                raise ValueError(f'Path is not absolute: {value!r}') from None
     return value
 
 
