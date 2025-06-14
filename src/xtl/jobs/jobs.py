@@ -340,9 +340,10 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         return logger
 
-    async def _execute_batch(self, commands: list[str], args: list[str] = None,
-                             filename: str = None, stdout_log: Path = None,
-                             stderr_log: Path = None) -> JobResults:
+    async def _execute_batch(self, commands: str | Iterable[str],
+                             args: Iterable[str] = None, filename: str = None,
+                             stdout_log: Path = None, stderr_log: Path = None) -> \
+            JobResults:
         """
         Execute a batch file with the specified commands.
 

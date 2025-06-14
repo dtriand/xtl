@@ -108,7 +108,10 @@ class BatchFile:
         for dname, dep in settings.dependencies:
             if dname in self._dependencies:
                 deps.append(dep)
-            else:
+
+        # Report missing dependencies
+        for dname in self._dependencies:
+            if dname not in settings.dependencies.to_dict():
                 logger.warning('Dependency %(name)s not found in xtl.settings, '
                                'skipping', {'name': dname})
         return deps
@@ -148,6 +151,8 @@ class BatchFile:
         """
         if len(commands) == 1 and isinstance(commands[0], Iterable):  # unpack a list or tuple of commands
             commands = commands[0]
+        if isinstance(commands, str):
+            commands = [commands]
         for command in commands:
             if not isinstance(command, str):
                 raise TypeError(f'\'command\' must be a str, not {type(command)}')
