@@ -5,8 +5,7 @@ settings is :class:`XTLSettings`.
 """
 
 from pathlib import Path
-from pprint import pprint
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, TYPE_CHECKING
 
 from pydantic import PrivateAttr
 
@@ -100,14 +99,25 @@ class DependencySettings(Settings):
     """
 
     # Model attributes
-    path: Optional[Path] = Option(default=None,
-                                  desc='Directory containing binaries',
-                                  validator=CastAsNoneIfEmpty())
-    # TODO: Enable when ModuleSite is implemented
-    modules: Optional[list[str]] = Option(default=None,
-                                          desc='Modules that provide the dependency',
-                                          validator=CastAsNoneIfEmpty(),
-                                          exclude=True)
+    provides: set[str] = \
+        Option(
+            default_factory=set,
+            desc='List of executables provided by this dependency',
+            exclude=True
+        )
+
+    path: Optional[Path] = \
+        Option(
+            default=None,
+            desc='Directory containing binaries',
+            validator=CastAsNoneIfEmpty()
+        )
+
+    modules: set[str] = \
+        Option(
+            default_factory=set,
+            desc='Modules that provide the dependency'
+        )
 
 
 class DependenciesSettings(Settings):
@@ -116,7 +126,12 @@ class DependenciesSettings(Settings):
     """
 
     # Model attributes
-    autoproc: DependencySettings = Option(default=DependencySettings())
+    autoproc: DependencySettings = \
+        Option(
+            default=DependencySettings(
+                provides={'process', 'process_wf'}
+            )
+        )
 
 
 class CLIAutoprocSettings(Settings):

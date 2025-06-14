@@ -1,19 +1,25 @@
 __all__ = ['BatchFile']
 
 from pathlib import Path, PurePosixPath
-import stat
-from typing import Any, Sequence, Optional
+from typing import Any, Iterable, TYPE_CHECKING
 
+from xtl import Logger
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.shells import Shell, DefaultShell, WslShell
 from xtl.common.os import FilePermissions
 from xtl.common.compatibility import OS_POSIX
 
+if TYPE_CHECKING:
+    from xtl.config.settings import DependencySettings
+
+logger = Logger(__name__)
+
 
 class BatchFile:
 
-    def __init__(self, filename: str | Path, compute_site: Optional[ComputeSite] = None,
-                 shell: Shell | WslShell = DefaultShell):
+    def __init__(self, filename: str | Path, compute_site: ComputeSite = None,
+                 shell: Shell | WslShell = DefaultShell,
+                 dependencies: str | Iterable[str] = None):
         """
         A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
         instance.
@@ -41,6 +47,14 @@ class BatchFile:
         elif not isinstance(compute_site, ComputeSite):
             raise TypeError(f"compute_site must be an instance of ComputeSite, not {type(compute_site)}")
         self._compute_site = compute_site
+
+        # Set dependencies
+        if dependencies is None:
+            self._dependencies = set()
+        elif isinstance(dependencies, str):
+            self._dependencies = {dependencies}
+        elif isinstance(dependencies, Iterable):
+            self._dependencies = set(dependencies)
 
         # List of lines of the batch file
         self._lines = []
@@ -83,6 +97,22 @@ class BatchFile:
         """
         self._permissions = FilePermissions(value)
 
+    @property
+    def dependencies(self) -> list['DependencySettings']:
+        """
+        Returns a list of DependencySettings that are required by this batch file.
+        """
+        from xtl import settings
+        deps = list()
+
+        for dname, dep in settings.dependencies:
+            if dname in self._dependencies:
+                deps.append(dep)
+            else:
+                logger.warning('Dependency %(name)s not found in xtl.settings, '
+                               'skipping', {'name': dname})
+        return deps
+
     def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
         if self._wsl_filename:
             return self.shell.get_batch_command(batch_file=self._wsl_filename, batch_arguments=arguments, as_list=as_list)
@@ -112,11 +142,11 @@ class BatchFile:
         """
         self._add_line(command)
 
-    def add_commands(self, *commands: str | Sequence[str]) -> None:
+    def add_commands(self, *commands: str | Iterable[str]) -> None:
         """
         Add multiple commands to the batch file all at once.
         """
-        if len(commands) == 1 and isinstance(commands[0], Sequence):  # unpack a list or tuple of commands
+        if len(commands) == 1 and isinstance(commands[0], Iterable):  # unpack a list or tuple of commands
             commands = commands[0]
         for command in commands:
             if not isinstance(command, str):
@@ -129,17 +159,23 @@ class BatchFile:
         """
         self._add_line(f"{self.shell.comment_char} {comment}")
 
-    def load_modules(self, modules: str | Sequence[str]):
+    def load_modules(self, modules: str | Iterable[str]):
         """
         Add command for loading one or more modules on the compute site.
         """
+        # TODO: Remove when refactoring AutoPROCJob
         self.add_command(self.compute_site.load_modules(modules))
 
     def purge_modules(self):
         """
         Add command for purging all loaded modules on the compute site.
         """
+        # TODO: Remove when refactoring AutoPROCJob
         self.add_command(self.compute_site.purge_modules())
+
+    def get_preamble(self) -> list[str]:
+        return self.compute_site.get_preamble(dependencies=self.dependencies,
+                                              shell=self.shell)
 
     def assign_variable(self, variable: str, value: Any):
         """
@@ -161,9 +197,13 @@ class BatchFile:
         self._filename.unlink(missing_ok=True)
 
         # Write contents to file
-        text = self.shell.shebang + self.shell.new_line_char if self.shell.shebang else ''
-        text += self.shell.new_line_char.join(self._lines)
-        self._filename.write_text(text, encoding='utf-8', newline=self.shell.new_line_char)
+        nl = self.shell.new_line_char
+        preamble = self.get_preamble()
+        text = self.shell.shebang + nl if self.shell.shebang else ''
+        if preamble:
+            text += nl.join(self.get_preamble()) + nl
+        text += nl.join(self._lines)
+        self._filename.write_text(text, encoding='utf-8', newline=nl)
 
         # Update permissions (user: read, write, execute; group: read, write)
         if change_permissions and OS_POSIX:
