@@ -1,7 +1,7 @@
 import pytest
 
 from xtl.automate.priority_system import DefaultPrioritySystem, NicePrioritySystem
-from xtl.automate.shells import BashShell
+from xtl.automate.shells import BashShell, DefaultShell
 from xtl.automate.sites import ComputeSite, LocalSite, BiotixHPC
 
 
@@ -17,7 +17,7 @@ class TestLocalSite:
 
     def test_default_shell(self):
         cs = LocalSite()
-        assert cs.default_shell is None
+        assert cs.default_shell is DefaultShell
         assert cs.supported_shells is None
 
     def test_load_modules(self):
