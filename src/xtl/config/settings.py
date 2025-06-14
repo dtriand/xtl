@@ -126,6 +126,13 @@ class DependenciesSettings(Settings):
     """
 
     # Model attributes
+    atsas: DependencySettings = \
+        Option(
+            default=DependencySettings(
+                provides={'datcmp'}
+            )
+        )
+
     autoproc: DependencySettings = \
         Option(
             default=DependencySettings(

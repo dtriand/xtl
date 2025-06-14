@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 from pydantic import computed_field, PrivateAttr, model_validator
 
 from xtl import Logger
-from xtl.automate.shells import Shell, DefaultShell
-from xtl.automate.sites import ComputeSiteType, LocalSite, BiotixHPC
+from xtl.automate.shells import Shell, DefaultShell, WslShell
+from xtl.automate.sites import ComputeSiteType, LocalSite
 from xtl.common.options import Option, Options
 from xtl.common.os import FilePermissions
 from xtl.common.serializers import PermissionOctal
@@ -23,24 +23,43 @@ class BatchConfig(Options):
     """
     Configuration for execution of batch files.
     """
-    filename: str = Option(default='batch_job', desc='Batch file name (without '
-                                                     'extension)')
-    directory: Path | str = Option(default_factory=lambda: Path(tempfile.gettempdir()),
-                                   desc='Directory for dumping batch file and logs',
-                                   cast_as=Path)
-    permissions: FilePermissions | str | int = Option(default=FilePermissions(0o700),
-                                                      desc='Permissions for the batch '
-                                                           'file in octal format '
-                                                           '(e.g., 700)',
-                                                      cast_as=FilePermissions,
-                                                      formatter=PermissionOctal)
-    compute_site: ComputeSiteType = Option(default=LocalSite(), desc='Compute site')
-    default_shell: Optional[Shell] = Option(default=None,
-                                            desc='Default shell to use for batch '
-                                                 'execution.')
-    compatible_shells: set[Shell] = Option(default_factory=set,
-                                           desc='List of compatible shell types for '
-                                                'this batch job')
+    filename: str = \
+        Option(
+            default='batch_job',
+            desc='Batch file name (without extension)'
+        )
+    directory: Path = \
+        Option(
+            default_factory=lambda: Path(tempfile.mkdtemp()),
+            desc='Directory for dumping batch file and logs'
+        )
+    permissions: FilePermissions | str | int = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions for the batch file in octal format (e.g., 700)',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+    compute_site: ComputeSiteType = \
+        Option(
+            default=LocalSite(),
+            desc='Compute site'
+        )
+    default_shell: Optional[Shell] = \
+        Option(
+            default=None,
+            desc='Default shell to use for batch execution.'
+        )
+    compatible_shells: set[Shell] = \
+        Option(
+            default_factory=set,
+            desc='List of compatible shell types for this batch job'
+        )
+    dependencies: set[str] = \
+        Option(
+            default_factory=set,
+            desc='List of dependencies required for this batch job'
+        )
 
     _shell: Shell | None = PrivateAttr(None)
 
@@ -104,6 +123,7 @@ class BatchConfig(Options):
         return self.directory / f
 
     @computed_field
+    @property
     def shell(self) -> Shell:
         """
         Returns the shell that will be used to execute the batch file.
@@ -115,8 +135,8 @@ class BatchConfig(Options):
         """
         Sets the shell to be used for executing the batch file.
         """
-        if not isinstance(value, Shell):
-            raise ValueError(f'Shell must be an instance of {Shell.__name__}')
+        if not isinstance(value, (Shell, WslShell)):
+            raise ValueError(f'shell must be an instance of {Shell.__name__}')
         self._shell = value
 
     def get_batch(self) -> 'BatchFile':
@@ -126,7 +146,8 @@ class BatchConfig(Options):
         from xtl.automate.batchfile import BatchFile
         batch = BatchFile(filename=self.directory/self.filename,
                           compute_site=self.compute_site,
-                          shell=self.shell)
+                          shell=self.shell,
+                          dependencies=self.dependencies)
         batch.permissions = self.permissions
         return batch
 
