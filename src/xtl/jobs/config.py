@@ -62,6 +62,10 @@ class BatchConfig(Options):
         )
 
     _shell: Shell | None = PrivateAttr(None)
+    """The shell that will be used to execute the batch file."""
+
+    _strict_resolution: bool = PrivateAttr(True)
+    """Whether to skip unknown dependencies or pass them along to the compute site."""
 
     @model_validator(mode='after')
     def _determine_shell(self):
@@ -149,6 +153,8 @@ class BatchConfig(Options):
                           shell=self.shell,
                           dependencies=self.dependencies)
         batch.permissions = self.permissions
+        if not self._strict_resolution:
+            batch._strict_resolution = False
         return batch
 
 
@@ -162,6 +168,9 @@ class JobConfig(Options):
     batch: Optional[BatchConfig] = Option(default=None,
                                           desc='Configuration for execution of batch'
                                                'files')
+
+    _include_default_dependencies: bool = PrivateAttr(True)
+    """Whether to include the default dependencies in the job."""
 
     @model_validator(mode='after')
     def _propagate_job_directory(self):

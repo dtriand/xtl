@@ -66,6 +66,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
     """The configuration class for this job type."""
 
     _logging_level: ClassVar[int] = logging.INFO
+    """Logging level for jobs."""
+
     _logging_config: ClassVar[LoggerConfig] = LoggerConfig(
         level=_logging_level,
         propagate=False,
@@ -78,8 +80,13 @@ class Job(abc.ABC, Generic[JobConfigType]):
             )
         ]
     )
+    """Logging configuration for jobs."""
 
     _job_prefix: ClassVar[str] = 'xtl_job'
+    """Job prefix"""
+
+    _dependencies: ClassVar[set[str]] = set()
+    """"External dependencies required for batch execution."""
 
     def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None):
         """
@@ -186,6 +193,13 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Set configuration if provided
         if config is not None:
             job.configure(config)
+
+        # Propagate dependencies to batch configuration if available
+        include_default = kwargs.pop('include_default_dependencies',
+                                     job.config._include_default_dependencies)
+        job.config._include_default_dependencies = include_default
+        if include_default and hasattr(job.config, 'batch') and job.config.batch is not None:
+            job.config.batch.dependencies.update(cls._dependencies)
 
         return job
 
@@ -312,13 +326,16 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._logger
 
     @classmethod
-    def get_logger(cls, job_id: str, config: LoggerConfig = None) -> logging.Logger:
+    def get_logger(cls, job_id: str, config: LoggerConfig = None,
+                   update_config: bool = True) -> logging.Logger:
         """
         Get or create a logger for the job with the given ID. If `config` is not
         specified, the default configuration is chosen.
 
         :param job_id: Unique identifier of the job.
         :param config: Optional logging configuration.
+        :param update_config: If True, update the class-level logging configuration
+            with the provided config.
         """
         # Recover existing loggers
         if job_id in cls._registry:
@@ -335,6 +352,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, '
                                 f'got {type(config).__name__}')
             config.configure(logger)
+            if update_config:
+                # This is required for propagating log configs to subjobs
+                cls._logging_config = config
         else:
             cls._logging_config.configure(logger)
 
@@ -413,7 +433,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             # Launch subprocess
             #  Once the subprocess is launched, the main thread continues to the next
             #  line.
-            self._logger.info('Executing batch file: %s', self._batch.file)
+            self._logger.debug('Executing batch file: %s', self._batch.file)
             process = await asyncio.create_subprocess_exec(
                 executable, *arguments,
                 shell=False,

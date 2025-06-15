@@ -2,7 +2,7 @@ from enum import Enum
 import platform
 
 from xtl.common.compatibility import PY310_OR_LESS
-from .sites import LocalSite, BiotixHPC
+from .sites import LocalSite, ModulesSite, BiotixHPC
 from .sites import ComputeSite as _ComputeSite
 
 if PY310_OR_LESS:
@@ -18,7 +18,7 @@ _hostname = platform.node()
 class ComputeSite(StrEnum):
     # General purpose compute sites
     LOCAL = 'local'
-    # MODULES = 'modules'  # TODO: Enable when ModuleSite is implemented
+    MODULES = 'modules'
 
     # Specialized compute sites (available only on specific hosts)
     if _hostname.startswith('biotix'):
@@ -35,6 +35,8 @@ class ComputeSite(StrEnum):
         # NB: Comparison with string literals to avoid issues with conditional members
         if self == 'local':
             return LocalSite()
+        elif self == 'modules':
+            return ModulesSite()
         elif self == 'biotix':
             return BiotixHPC()
         else:
