@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Iterable, TYPE_CHECKING
+from typing import Optional, Iterable, TYPE_CHECKING, Union
 
 from xtl.automate.priority_system import PrioritySystemType, DefaultPrioritySystem, NicePrioritySystem
 from xtl.automate.shells import Shell, DefaultShell, BashShell, CmdShell, WslShell
@@ -131,8 +131,8 @@ class ModulesSite(ComputeSite):
             cmd = f'call {cmd}'
         return cmd
 
-    def get_preamble(self, dependencies: 'DependencySettings' |
-                                         Iterable['DependencySettings'],
+    def get_preamble(self, dependencies: Union['DependencySettings', str,
+                                         Iterable[Union['DependencySettings', str]]],
                      shell: Shell | WslShell = None) -> list[str]:
         if shell is None:
             shell = self._default_shell
@@ -141,7 +141,11 @@ class ModulesSite(ComputeSite):
 
         modules = []
         for dep in dependencies:
-            if dep.modules:
+            if isinstance(dep, str):
+                # If a string is passed, treat it as a single module name
+                modules.append(dep)
+            elif dep.modules:
+                # Otherwise, append the DependencySettings' modules
                 modules.extend(dep.modules)
 
         cmds = [self._purge_modules(shell=shell)]

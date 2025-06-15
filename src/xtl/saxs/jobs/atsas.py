@@ -45,6 +45,9 @@ class DatcmpJob(Job[DatcmpJobConfig]):
     Job to compare SAXS datasets using ATSAS datcmp.
     """
 
+    _job_prefix = 'datcmp'
+    _dependencies = {'atsas'}
+
     async def _execute(self):
         if self.config is None:
             self.logger.error('Job is not configured.')
