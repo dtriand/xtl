@@ -1,7 +1,7 @@
 __all__ = ['BatchFile']
 
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, TYPE_CHECKING
+from typing import Any, Iterable, Literal, TYPE_CHECKING, Union
 
 from xtl import Logger
 from xtl.automate.sites import ComputeSite, LocalSite
@@ -19,7 +19,8 @@ class BatchFile:
 
     def __init__(self, filename: str | Path, compute_site: ComputeSite = None,
                  shell: Shell | WslShell = DefaultShell,
-                 dependencies: str | Iterable[str] = None):
+                 dependencies: str | Iterable[str] = None,
+                 dependency_resolution: Literal['strict', 'loose'] = 'strict'):
         """
         A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
         instance.
@@ -27,6 +28,11 @@ class BatchFile:
         :param filename: The name of the batch file. The file extension will be automatically set based on the Shell.
         :param compute_site: The ComputeSite where the batch file will be executed
         :param shell: The Shell that will be used to execute the batch file
+        :param dependencies: A list of dependencies that are required by this batch
+            file. If a dependency is not found in xtl.settings, it will be skipped,
+            unless `dependency_resolution` is set to 'loose'.
+        :param dependency_resolution: If 'strict', unknown dependencies will be
+            skipped. If 'loose', they will be passed along to the `compute_site`
         """
         if not isinstance(shell, Shell | WslShell):
             raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
@@ -55,6 +61,7 @@ class BatchFile:
             self._dependencies = {dependencies}
         elif isinstance(dependencies, Iterable):
             self._dependencies = set(dependencies)
+        self._strict_resolution = True if dependency_resolution == 'strict' else False
 
         # List of lines of the batch file
         self._lines = []
@@ -98,7 +105,7 @@ class BatchFile:
         self._permissions = FilePermissions(value)
 
     @property
-    def dependencies(self) -> list['DependencySettings']:
+    def dependencies(self) -> list[Union['DependencySettings', str]]:
         """
         Returns a list of DependencySettings that are required by this batch file.
         """
@@ -112,8 +119,11 @@ class BatchFile:
         # Report missing dependencies
         for dname in self._dependencies:
             if dname not in settings.dependencies.to_dict():
-                logger.warning('Dependency %(name)s not found in xtl.settings, '
-                               'skipping', {'name': dname})
+                if self._strict_resolution:
+                    logger.warning('Dependency %(name)s not found in xtl.settings, '
+                                   'skipping', {'name': dname})
+                else:
+                    deps.append(dname)
         return deps
 
     def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
