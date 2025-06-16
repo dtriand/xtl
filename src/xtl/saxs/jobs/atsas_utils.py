@@ -1,6 +1,14 @@
+from enum import Enum
+
 from pydantic import PrivateAttr
 
 from xtl.common.options import Option, Options
+from xtl.common.compatibility import PY310_OR_LESS
+
+if PY310_OR_LESS:
+    class StrEnum(str, Enum): ...
+else:
+    from enum import StrEnum
 
 
 class ATSASOptions(Options):
@@ -24,29 +32,42 @@ class ATSASOptions(Options):
         return args
 
 
+class DatcmpMode(StrEnum):
+    PAIRWISE = 'PAIRWISE'
+    INDEPENDENT = 'INDEPENDENT'
+
+
+class DatcmpTest(StrEnum):
+    CORMAP = 'CORMAP'
+    CHI_SQUARE = 'CHI-SQUARE'
+    ANDERSON_DARLING = 'ANDERSON-DARLING'
+
+
+class DatcmpAdjustment(StrEnum):
+    FWER = 'FWER'
+    FDR = 'FDR'
+
+
 class DatcmpOptions(ATSASOptions):
     """
     Configuration for an ATSAS datcmp job.
     """
     _executable: str = PrivateAttr(default='datcmp')
 
-    mode: str | None = \
+    mode: DatcmpMode | None = \
         Option(
             default='PAIRWISE',
-            desc='Comparison mode',
-            choices={'PAIRWISE', 'INDEPENDENT', None}
+            desc='Comparison mode'
         )
-    test: str | None = \
+    test: DatcmpTest | None = \
         Option(
             default='CORMAP',
-            desc='Test name',
-            choices={'CORMAP', 'CHI-SQUARE', 'ANDERSON-DARLING', None}
+            desc='Test name'
         )
-    adjust: str | None = \
+    adjust: DatcmpAdjustment | None = \
         Option(
             default='FWER',
-            desc='Adjustment for multiple testing',
-            choices={'FWER', 'FDR', None}
+            desc='Adjustment for multiple testing'
         )
     alpha: float | None = \
         Option(
