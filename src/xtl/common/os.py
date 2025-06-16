@@ -401,6 +401,17 @@ class FilePermissions:
             file_type=file_type
         )
 
+    @classmethod
+    def from_string(cls, s: str) -> 'FilePermissions':
+        """
+        Create a `FilePermissions` object from a string representation of permissions.
+
+        :param s: The string representation of permissions, e.g., `'rwxr-xr--'` or
+            `'700'`.
+        :return: A `FilePermissions` object.
+        """
+        return cls(s)
+
 
 def get_permissions_in_decimal(value: int | str | FilePermissions) -> int:
     """
