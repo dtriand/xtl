@@ -66,6 +66,7 @@ h5peek = "xtl.cli.cli_h5peek:app"
 "xtl.autoproc" = "xtl.cli.autoproc:app"
 "xtl.diffraction" = "xtl.cli.diffraction:app"
 "xtl.math" = "xtl.cli.math:app"
+"xtl.saxs" = "xtl.cli.saxs:app"
 "xtl.config_generate" = "xtl.cli.settings:app"
 
 [project.optional-dependencies]

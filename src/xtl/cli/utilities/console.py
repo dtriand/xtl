@@ -9,6 +9,7 @@ from xtl.logging.config import LoggerConfig
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
+    from xtl.cli.utilities.common import AutomateOptions
 
 
 class ConsoleIO(rich.console.Console):
@@ -58,3 +59,17 @@ class ConsoleIO(rich.console.Console):
         self._setup_job_logging()
         return JobPool(max_jobs=max_jobs, logger_config=self.logger_config.JOB)
 
+    def report_automate(self, options: 'AutomateOptions') -> None:
+        if self.verbose:
+            from xtl.common.compatibility import OS_POSIX
+
+            self.print(f'Using compute site: [dim]{options.compute_site}[/]')
+            if options.permissions.update and OS_POSIX:
+                self.print(f'Updating permissions to: [dim]'
+                           f'{options.permissions.files.octal[2:]} (files) and '
+                           f'{options.permissions.directories.octal[2:]} (directories)',
+                           highlight=False)
+            if options.compute_site == 'modules' and options.modules:
+                self.print(f'Using modules: '
+                           f'[dim]{", ".join(options.modules)}[/]',
+                           highlight=False)

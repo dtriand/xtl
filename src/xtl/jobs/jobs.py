@@ -300,7 +300,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             raise
         except Exception as e:
             self._error = e
-            self._logger.error('Job failed due to an exception %s', e.args)
+            self._logger.error('Job failed due to an exception: %s', e.args[0])
         finally:
             self._is_running = False
             if self._error:
