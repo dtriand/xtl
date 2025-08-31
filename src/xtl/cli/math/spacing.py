@@ -2,7 +2,6 @@ import numpy as np
 import typer
 
 from xtl.cli.cliio import Console
-from xtl.exceptions.utils import Catcher
 from xtl.units.crystallography.radial import RadialUnitType, RadialValue, RadialUnit
 
 app = typer.Typer()
@@ -97,6 +96,8 @@ def cli_math_spacing(
     if to_type is None and wavelength is None:
         cli.print('Wavelength required to calculate all units', style='red')
         raise typer.Abort()
+
+    from xtl.exceptions.utils import Catcher
 
     r = RadialValue(value=value, type=from_type)
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback, silent=True) as catcher:
