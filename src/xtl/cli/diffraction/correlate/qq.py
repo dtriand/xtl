@@ -1,15 +1,9 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
 from xtl.cli.cliio import Console, epilog
-from xtl.cli.utils import Timer
-from xtl.cli.diffraction.cli_utils import get_image_frames, IntegrationErrorModel, IntegrationRadialUnits
-from xtl.diffraction.images.correlators import AzimuthalCrossCorrelatorQQ_1
-from xtl.exceptions.utils import Catcher
+from xtl.cli.diffraction.cli_utils import IntegrationErrorModel, IntegrationRadialUnits
 
 import warnings
 
@@ -56,7 +50,10 @@ def cli_diffraction_correlate_qq(
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
 
+    from xtl.exceptions.utils import Catcher
+
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
+        from xtl.cli.diffraction.cli_utils import get_image_frames
         images = get_image_frames(input_images)
     if catcher.raised:
         cli.print(f'Error: Failed to read all images', style='red')
@@ -83,6 +80,11 @@ def cli_diffraction_correlate_qq(
         'units_radial': units_radial.value,
         'error_model': error_model.value if error_model != IntegrationErrorModel.NONE else None,
     }
+
+    from xtl.cli.utils import Timer
+    from xtl.diffraction.images.correlators import AzimuthalCrossCorrelatorQQ_1
+    from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, \
+        MofNCompleteColumn
 
     with (Catcher(echo_func=cli.print, traceback_func=cli.print_traceback),
           Progress(SpinnerColumn(), *Progress.get_default_columns(),
@@ -115,7 +117,7 @@ def cli_diffraction_correlate_qq(
                 with warnings.catch_warnings():
                     warnings.filterwarnings('ignore')
                     accf.correlate(points_radial=points_radial, points_azimuthal=points_azimuthal,
-                                  units_radial=units_radial.value, method=0)
+                                   units_radial=units_radial.value, method=0)
 
             ccf_file = output_dir / f'{dataset_name}_ccf.npx'
             accf.save(ccf_file, overwrite=overwrite)
@@ -129,6 +131,9 @@ def cli_diffraction_correlate_qq(
                 progress.console.print(f'Saved 2D integration results to {ai2_file}')
 
             # Prepare plots
+            import matplotlib.pyplot as plt
+            import numpy as np
+
             fig = plt.figure('XCCA overview', figsize=(16 / 1.2, 9 / 1.2))
             gs0 = fig.add_gridspec(1, 2, wspace=0.2,
                                    width_ratios=[1.2, 2])  # outer grid (1x2)

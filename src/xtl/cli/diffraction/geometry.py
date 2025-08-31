@@ -1,8 +1,10 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from pyFAI.detectors import ALL_DETECTORS, Detector
-from pyFAI.geometry import Geometry
 import typer
+if TYPE_CHECKING:
+    from pyFAI.detectors import ALL_DETECTORS, Detector
+    from pyFAI.geometry import Geometry
 
 from xtl.cli.cliio import Console
 
@@ -10,7 +12,7 @@ from xtl.cli.cliio import Console
 app = typer.Typer()
 
 
-def get_detector_info(detector: Detector) -> dict:
+def get_detector_info(detector: 'Detector') -> dict:
     detector_info = {}
     detector_info['Detector name'] = detector.name
     if isinstance(detector.MANUFACTURER, list):
@@ -31,6 +33,8 @@ def get_detector_info(detector: Detector) -> dict:
 
 
 def get_detectors_list() -> dict:
+    from pyFAI.detectors import ALL_DETECTORS
+
     detectors = {}
     for alias, detector in ALL_DETECTORS.items():
         detector = detector()
@@ -50,7 +54,7 @@ def get_detectors_list() -> dict:
     return {k: v['info'] for k, v in detectors.items()}
 
 
-def get_geometry_info(geometry: Geometry) -> dict:
+def get_geometry_info(geometry: 'Geometry') -> dict:
     return {f'{k}': f'{v}' for k, v in geometry.get_config().items() if k not in ['poni_version', 'detector_config']}
 
 
@@ -63,15 +67,20 @@ def cli_diffraction_geometry():
     while detector is None:
         answer = typer.prompt('Enter detector name (? for list)').lower()
         if answer in ['detector', 'custom']:
+            from pyFAI.detectors import Detector
+
             cli.print('Initializing custom detector...')
             pixel1 = typer.prompt('Enter pixel size (horizontal) [pixel1 in \u03bcm]', default=50., type=float)
             pixel2 = typer.prompt('Enter pixel size (vertical) [pixel2 in \u03bcm]', default=50., type=float)
             shape1 = typer.prompt('Enter number of pixels (horizontal) [shape[1] in px]', default=1024, type=int)
             shape2 = typer.prompt('Enter number of pixels (vertical) [shape[0] in px', default=1024, type=int)
             detector = Detector(pixel1=pixel1/1e6, pixel2=pixel2/1e6, max_shape=(shape2, shape1))
-        elif answer in ALL_DETECTORS:
-            detector: Detector = ALL_DETECTORS[answer]()
         else:
+            from pyFAI.detectors import ALL_DETECTORS
+            if answer in ALL_DETECTORS:
+                detector: 'Detector' = ALL_DETECTORS[answer]()
+                continue
+
             detector_list = get_detectors_list()
             headers = list(list(detector_list.values())[0].keys())
             cli.print_table([d.values() for d in detector_list.values()], headers=headers,
@@ -89,6 +98,8 @@ def cli_diffraction_geometry():
             detector = None
 
     # Build Geometry object
+    from pyFAI.geometry import Geometry
+
     geometry = None
     while geometry is None:
         poni2 = typer.prompt('Enter point of normal incidence along horizontal (x) axis [poni2 in px]', default=0., type=float)

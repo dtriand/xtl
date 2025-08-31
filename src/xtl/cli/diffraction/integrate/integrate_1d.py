@@ -1,11 +1,10 @@
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
+from rich.progress import Progress
 import typer
 
 from xtl.cli.cliio import Console, epilog
-from xtl.cli.diffraction.cli_utils import get_image_frames, IntegrationErrorModel, IntegrationRadialUnits
+from xtl.cli.diffraction.cli_utils import IntegrationErrorModel, IntegrationRadialUnits
 
 
 app = typer.Typer()
@@ -48,6 +47,8 @@ def cli_diffraction_integrate_1d(
     input_images = images
 
     try:
+        from xtl.cli.diffraction.cli_utils import get_image_frames
+
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
@@ -77,6 +78,8 @@ def cli_diffraction_integrate_1d(
         'units_radial': units_radial.value,
         'error_model': error_model.value if error_model != IntegrationErrorModel.NONE else None,
     }
+
+    import matplotlib.pyplot as plt
 
     output_dir = output_dir.expanduser().resolve()
     fig, ax = plt.subplots()
