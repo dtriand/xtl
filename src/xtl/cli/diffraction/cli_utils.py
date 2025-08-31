@@ -1,12 +1,12 @@
 from enum import Enum
 import re
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from pyFAI.geometry import Geometry
-from pyFAI.detectors import Detector
+if TYPE_CHECKING:
+    from pyFAI.geometry import Geometry
 
-from xtl.diffraction.images.images import Image
-from xtl.units.crystallography.radial import RadialUnit, RadialUnitType
+    from xtl.diffraction.images.images import Image
+    from xtl.units.crystallography.radial import RadialUnit
 
 
 class ZScale(Enum):
@@ -26,7 +26,7 @@ class IntegrationRadialUnits(Enum):
     Q_NM = 'q_nm'
 
 
-def get_image_frames(images: list[str]) -> list[Image]:
+def get_image_frames(images: list[str]) -> list['Image']:
     opened_images = []
     for i, img in enumerate(images):
         parts = img.split(':')
@@ -42,6 +42,8 @@ def get_image_frames(images: list[str]) -> list[Image]:
         else:
             raise ValueError(f'Invalid image format for image [{i}]: {img!r}')
 
+        from xtl.diffraction.images.images import Image
+
         image = Image()
         try:
             image.open(file=file, frame=frame, is_eager=False)
@@ -52,11 +54,14 @@ def get_image_frames(images: list[str]) -> list[Image]:
     return opened_images
 
 
-def get_geometry_from_header(header: str) -> Geometry:
+def get_geometry_from_header(header: str) -> 'Geometry':
     """
     Return a pyFAI Geometry object from the header of an NPX file written by
     AzimuthalCrossCorrelatorQQ_1 or Integrator.
     """
+    from pyFAI.geometry import Geometry
+    from pyFAI.detectors import Detector
+
     lines = []
     for line in header.splitlines():
         if line.startswith('pyFAI.Geometry'):
@@ -89,7 +94,9 @@ def get_geometry_from_header(header: str) -> Geometry:
     return Geometry(**kwargs)
 
 
-def get_radial_units_from_header(header: str) -> Optional[RadialUnit]:
+def get_radial_units_from_header(header: str) -> Optional['RadialUnit']:
+    from xtl.units.crystallography.radial import RadialUnit, RadialUnitType
+
     for line in header.splitlines():
         if line.startswith('pyFAI.AzimuthalIntegrator.unit'):
             units = line.split(':')[-1].strip()

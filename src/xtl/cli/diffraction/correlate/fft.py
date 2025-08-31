@@ -1,17 +1,9 @@
-from functools import partial
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-import numpy as np
 import typer
 
 from xtl.cli.cliio import Console, epilog
-from xtl.cli.utils import Timer
-from xtl.cli.diffraction.cli_utils import get_geometry_from_header, get_radial_units_from_header, ZScale
-from xtl.exceptions.utils import Catcher
-from xtl.files.npx import NpxFile
-from xtl.units.crystallography.radial import RadialUnitType, RadialValue
+from xtl.cli.diffraction.cli_utils import ZScale
 
 
 app = typer.Typer()
@@ -60,12 +52,16 @@ def cli_diffraction_correlate_fft(
         cli.print('Select only one parameter to calculate FFT (--2theta, --q)', style='red')
         raise typer.Abort()
 
+    from xtl.units.crystallography.radial import RadialUnitType, RadialValue
     if selection_2theta is not None:
         selection = RadialValue(value=selection_2theta, type=RadialUnitType.TWOTHETA_DEG)
     else:
         selection = RadialValue(value=selection_q, type=RadialUnitType.Q_NM)
 
     # Load CCF data
+    from xtl.exceptions.utils import Catcher
+    from xtl.files.npx import NpxFile
+
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
         acc = NpxFile.load(ccf_file)
         for key in ['radial', 'delta', 'ccf']:
@@ -91,6 +87,8 @@ def cli_diffraction_correlate_fft(
             raise typer.Abort()
 
     # Get geometry from CCF file
+    from xtl.cli.diffraction.cli_utils import get_geometry_from_header, get_radial_units_from_header
+
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
         geometry = get_geometry_from_header(acc.header)
         if verbose > 2:
@@ -127,6 +125,9 @@ def cli_diffraction_correlate_fft(
         raise typer.Abort()
 
     # Get the radial index of the selection
+    import numpy as np
+    from xtl.cli.utils import Timer
+
     ccf_i = np.argmin(np.abs(acc.data['radial'] - selection.value))
 
     # Calculate the FFT of the CCF
@@ -154,6 +155,9 @@ def cli_diffraction_correlate_fft(
                 f'{d.name.latex}={d.value:.2f} {d.units.latex}')
 
     # Prepare plots
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+
     fig = plt.figure('XCCA overview', figsize=(16 / 1.2, 9 / 1.2))
     fig.suptitle(f'{ccf_file.name}\n{subtitle}')
     gs = fig.add_gridspec(2, 3, wspace=0.2,)
@@ -195,6 +199,8 @@ def cli_diffraction_correlate_fft(
             vmin = zmin
         if zmax is not None:
             vmax = zmax
+
+    from functools import partial
 
     if zscale == ZScale.LINEAR:
         norm = partial(Normalize, clip=False)

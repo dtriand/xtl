@@ -1,13 +1,10 @@
 import math
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import AxesGrid
-import numpy as np
 import typer
 
 from xtl.cli.cliio import Console, epilog
-from xtl.cli.diffraction.cli_utils import get_image_frames, ZScale
+from xtl.cli.diffraction.cli_utils import ZScale
 
 
 app = typer.Typer()
@@ -48,11 +45,17 @@ def cli_diffraction_plot_2d(
     input_images = images
 
     try:
+        from xtl.cli.diffraction.cli_utils import get_image_frames
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
         cli.print(f'Error: Failed to read all images', style='red')
         raise typer.Abort()
+
+    # Imports
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import AxesGrid
+    import numpy as np
 
     # Initialize figure
     fig = plt.figure()
