@@ -18,7 +18,7 @@ from xtl.cli.autoproc.cli_utils import stringify
 from xtl.cli.cliio import Console, epilog
 from xtl.cli.utils import typer_async, parser_permissions
 import xtl.cli.autoproc.cli_utils as apu
-from xtl.common.os import get_permissions_in_decimal, FilePermissions
+from xtl.common.os import get_permissions_in_decimal, FilePermissions, get_username
 from xtl.diffraction.automate.autoproc import AutoPROCJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.diffraction.images.datasets import DiffractionDataset
@@ -128,7 +128,7 @@ async def cli_autoproc_process(
     '''
     if log_file is None and settings.cli.autoproc.collect_logs:
         log_file = Path(settings.cli.autoproc.logs_dir)
-    log_filename = f'xtl.autoproc.process_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    log_filename = f'xtl.autoproc.process_{get_username()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     log_permissions = chmod_files if chmod else None
 
     cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename,
