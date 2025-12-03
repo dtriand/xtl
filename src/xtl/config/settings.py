@@ -262,18 +262,18 @@ class XTLSettings(Settings):
         # Check settings version
         _v = version_from_str(_settings.version)
         if _v.tuple_safe < current_version.tuple_safe:
-            logger.warn('Using settings from an older version of XTL %(version)s.',
-                        {'version': _v.string})
+            logger.warning('Using settings from an older version of XTL %(version)s.',
+                           {'version': _v.string})
         elif _v.tuple_safe > current_version.tuple_safe:
-            logger.warn('Using settings from a newer version of XTL %(version)s. '
-                        'XTL might not behave as intended. Use at your own risk!',
-                        {'version': _v.string})
+            logger.warning('Using settings from a newer version of XTL %(version)s. '
+                           'XTL might not behave as intended. Use at your own risk!',
+                           {'version': _v.string})
 
         # Check for extra keys in the nested Options
         extra = _settings.__pydantic_extra__ or dict()
         extra.update(_get_extra_keys(_settings))
         if extra:
-            logger.warng('Found and ignored unknown keys in the config file',
-                         extra=extra)
+            logger.warning('Found and ignored unknown keys in the config file',
+                           extra=extra)
 
         return _settings
