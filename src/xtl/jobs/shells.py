@@ -43,6 +43,25 @@ between |Shell| enum members and |BaseShell| instances directly.
 
     assert BashShell() is BashShell()  # True
     assert BashShell() == Shell.BASH  # True
+
+Implementing a new shell configuration involves subclassing |BaseShell| and overriding
+the default class variables to match the desired shell's properties.
+
+.. code-block:: python
+
+    from xtl.jobs.shells import BaseShell
+
+    class CshShell(BaseShell):
+        name: str = 'csh'
+        executable: str = '/bin/csh'
+        is_posix: bool = True
+        shebang: str = '#!/bin/csh'
+        comment_char: str = '#'
+        new_line_char: str = '\\n'
+        batch_extension: str = '.csh'
+        batch_command: str = '{executable} {batch_file} {batch_arguments}'
+
+    csh = CshShell()
 """
 
 from __future__ import annotations
@@ -61,7 +80,8 @@ else:
     from enum import StrEnum
 
 
-__all__ = ['Shell', 'ShellType', 'BashShell', 'CmdShell', 'PowerShell']
+__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell',
+           'DefaultShell']
 
 
 class Shell(StrEnum):
@@ -109,45 +129,35 @@ class BaseShell:
     Data container for different shell configurations. This dataclass is mainly used
     for configuring the generation of |BatchFile| and their execution.
 
-    This class should always be subclassed by overriding the default ``__init__`` method
-    to provide the specific shell configuration.
+    This class should always be subclassed by overriding the default class variables.
 
-    :param name: The name of the shell
-    :param executable: The path to the shell executable
-    :param is_posix: Whether the shell is POSIX compliant
-    :param shebang: The shebang line for the shell
-    :param comment_char: The character used to denote comments in the shell
-    :param new_line_char: The character used to denote new lines in the shell
-    :param batch_extension: The file extension for scripts
-    :param batch_command: The command used to execute the batch file. This is an
-        f-string that should contain the keys `executable`, `batch_file`, and
-        `batch_arguments`.
     :raises ValueError: If the `batch_command` f-string is invalid
     :raises TypeError: If attempting to instantiate the base class directly
     """
-    name: str
+    name: str = field(init=False)
     """The name of the shell"""
-    executable: str
+    executable: str = field(init=False)
     """The path to the shell executable"""
-    is_posix: bool
+    is_posix: bool = field(init=False)
     """Whether the shell is POSIX compliant"""
 
     # Shell syntax properties
-    shebang: str = field(repr=False)
+    shebang: str = field(init=False, repr=False)
     """The shebang line for the shell 
     (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_)"""
-    comment_char: str = field(repr=False)
+    comment_char: str = field(init=False, repr=False)
     """The character used to denote comments in the shell"""
-    new_line_char: str = field(repr=False)
+    new_line_char: str = field(init=False, repr=False)
     """The character used to denote new lines in the shell"""
 
     # Batch file properties
-    batch_extension: str = field(repr=False)
+    batch_extension: str = field(init=False, repr=False)
     """The file extension for scripts"""
-    batch_command: str = field(repr=False)
-    """The command used to execute the batch file"""
+    batch_command: str = field(init=False, repr=False)
+    """The command used to execute the batch file. This is an f-string that should 
+    contain the keys ``executable``, ``batch_file`` and ``batch_arguments``."""
     _batch_command_fstring_keys: frozenset[str] = \
-        field(repr=False, default_factory=lambda: frozenset(
+        field(init=False, repr=False, default_factory=lambda: frozenset(
             {'executable', 'batch_file', 'batch_arguments'}
         ))
 
@@ -165,7 +175,7 @@ class BaseShell:
         # Check that all required keys are present in the f-string
         for key in self._batch_command_fstring_keys:
             if f'{{{key}}}' not in self.batch_command:
-                raise ValueError(f'Invalid fstring for `batch_command`: '
+                raise ValueError(f'Invalid f-string for `batch_command`: '
                                  f'{self.batch_command}. Missing key: {key}')
 
         # Check that there are no extra keys in the f-string
@@ -246,18 +256,6 @@ class BashShell(BaseShell):
     batch_extension: str = '.sh'
     batch_command: str = '{executable} {batch_file} {batch_arguments}'
 
-    def __init__(self):
-        super().__init__(
-            name=self.name,
-            executable=self.executable,
-            is_posix=self.is_posix,
-            shebang=self.shebang,
-            comment_char=self.comment_char,
-            new_line_char=self.new_line_char,
-            batch_extension=self.batch_extension,
-            batch_command=self.batch_command
-        )
-
 
 class CmdShell(BaseShell):
     """
@@ -273,18 +271,6 @@ class CmdShell(BaseShell):
     batch_extension: str = '.bat'
     batch_command: str = r'{executable} /Q /C {batch_file} {batch_arguments}'
 
-    def __init__(self):
-        super().__init__(
-            name=self.name,
-            executable=self.executable,
-            is_posix=self.is_posix,
-            shebang=self.shebang,
-            comment_char=self.comment_char,
-            new_line_char=self.new_line_char,
-            batch_extension=self.batch_extension,
-            batch_command=self.batch_command
-        )
-
 
 class PowerShell(BaseShell):
     """
@@ -299,18 +285,6 @@ class PowerShell(BaseShell):
     new_line_char: str = '\n'
     batch_extension: str = '.ps1'
     batch_command: str = '{executable} -File {batch_file} {batch_arguments}'
-
-    def __init__(self):
-        super().__init__(
-            name=self.name,
-            executable=self.executable,
-            is_posix=self.is_posix,
-            shebang=self.shebang,
-            comment_char=self.comment_char,
-            new_line_char=self.new_line_char,
-            batch_extension=self.batch_extension,
-            batch_command=self.batch_command
-        )
 
 
 # Set the default shell based on the OS
