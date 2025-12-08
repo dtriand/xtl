@@ -16,4 +16,5 @@ Submodules
    :maxdepth: 3
 
    xtl.jobs.shells
+   xtl.jobs.policies
    xtl.jobs.batchfiles
