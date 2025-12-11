@@ -140,6 +140,15 @@ class DependenciesSettings(Settings):
     """
 
     # Model attributes
+    resolution: str = \
+        Option(
+            default='loose',
+            choices=('strict', 'loose'),
+            desc='Dependency resolution strategy. '
+                 'If "strict", jobs requiring missing dependencies will fail to run. '
+                 'If "loose", missing dependencies will be ignored.'
+        )
+
     atsas: DependencySettings = \
         Option(
             default=DependencySettings(

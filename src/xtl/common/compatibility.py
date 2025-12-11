@@ -1,8 +1,10 @@
 """
-Central location for various compatibility checks.
+Central location for various compatibility checks and environment variables.
 """
+import os
 import platform
 import sys
+
 
 #########################
 # Python version checks #
@@ -34,6 +36,7 @@ PY313_OR_LESS: bool = (PY_VERS < (3, 14))
 PY314_OR_LESS: bool = (PY_VERS < (3, 15))
 """Python version is 3.14 or less"""
 
+
 #############
 # OS checks #
 #############
@@ -48,3 +51,11 @@ OS_MACOS: bool = platform.system() == 'Darwin'
 
 OS_POSIX: bool = OS_LINUX or OS_MACOS
 """Operating system is POSIX compliant (Linux or macOS)"""
+
+
+#########################
+# Environment variables #
+#########################
+XTL_COMPUTE_SITE: str | None = os.getenv('XTL_COMPUTE_SITE', None)
+"""Environment variable 'XTL_COMPUTE_SITE'"""
+# Used to trigger specialized compute site configurations
