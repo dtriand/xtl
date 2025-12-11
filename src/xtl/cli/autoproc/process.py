@@ -505,7 +505,8 @@ async def cli_autoproc_process(
         message += f' in batches of {no_concurrent_jobs}'
     message += '?'
     cli.print(message, log_only=True)
-    cli.confirm(message, default=False)
+    if not cli.confirm(message, default=False):
+        raise typer.Abort()
 
     # Prepare output csv
     csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
