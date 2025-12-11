@@ -16,27 +16,31 @@ class TestBaseShell:
 
     def test_post_init(self):
         class CustomShell(BaseShell):
-            name: str = 'bash'
-            executable: str = '/bin/bash'
-            is_posix: bool = True
-            shebang: str = '#!/bin/bash'
-            comment_char: str = '#'
-            new_line_char: str = '\n'
-            batch_extension: str = 'sh'  # missing dot
-            batch_command: str = '{executable} {batch_file} {batch_arguments}'
+            name = 'bash'
+            executable = '/bin/bash'
+            is_posix = True
+            shebang = '#!/bin/bash'
+            comment_char = '#'
+            new_line_char = '\n'
+            batch_extension = 'sh'  # missing dot
+            batch_command = '{executable} {batch_file} {batch_arguments}'
+            dependency_command = 'which {dependency}'
+            execute_command = '{executable} -c {command}'
 
         shell = CustomShell()
         assert shell.batch_extension == '.sh'
 
         class WrongShell1(BaseShell):
-            name: str = 'bash'
-            executable: str = '/bin/bash'
-            is_posix: bool = True
-            shebang: str = '#!/bin/bash'
-            comment_char: str = '#'
-            new_line_char: str = '\n'
-            batch_extension: str = '.sh'
-            batch_command: str = '{executable} {batch_file}'  # missing {batch_arguments}
+            name = 'bash'
+            executable = '/bin/bash'
+            is_posix = True
+            shebang = '#!/bin/bash'
+            comment_char = '#'
+            new_line_char = '\n'
+            batch_extension = '.sh'
+            batch_command = '{executable} {batch_file}'  # missing {batch_arguments}
+            dependency_command = 'which {dependency}'
+            execute_command = '{executable} -c {command}'
 
         with pytest.raises(ValueError, match='Missing key'):
             WrongShell1()
@@ -51,6 +55,8 @@ class TestBaseShell:
             batch_extension: str = '.sh'
             batch_command: str = ('{executable} {batch_file} '
                                   '{batch_arguments} {whatever}')  # extra key
+            dependency_command = 'which {dependency}'
+            execute_command = '{executable} -c {command}'
 
         with pytest.raises(ValueError, match='Unexpected key'):
             WrongShell2()
