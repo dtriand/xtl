@@ -16,7 +16,8 @@ PY_VERS: tuple[int, int, int] = sys.version_info[:3]
 PY310_OR_LESS: bool = (PY_VERS < (3, 11))
 """Python version is 3.10 or less"""
 # Features missing in Python 3.10:
-# - ``enum.StrEnum`` (available in Python 3.11+)
+# - ``enum.StrEnum``
+# - ``asyncio.TaskGroup``
 
 # TODO: Remove when dropping support for Python 3.11 (EOL: 10/2027)
 PY311_OR_LESS: bool = (PY_VERS < (3, 12))

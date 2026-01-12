@@ -8,7 +8,7 @@ from xtl.common.compatibility import PY310_OR_LESS
 from xtl.common.os import FilePermissions
 from xtl.config.settings import DependencySettings
 from xtl.jobs.shells import ShellType, DefaultShell
-from xtl.jobs.sites import ComputeSiteType, LocalSite
+from xtl.jobs.sites import ComputeSiteType, LocalSite, SchedulerSite
 
 if PY310_OR_LESS:
     class StrEnum(str, Enum): ...
@@ -149,4 +149,22 @@ class BatchFile:
             self.file.chmod(self.permissions.decimal)
 
         self._saved = True
+
+    # Aliases for execution and cancellation
+    #  These methods provide an alternative API for interacting with batch files, rather
+    #  than going through the compute site directly.
+    async def execute(self, schedule: bool = False):
+        if not self._saved:
+            raise RuntimeError('Batch file has not been saved yet. '
+                               'Call `save()` before `execute()`.')
+        if schedule and isinstance(self.compute_site, SchedulerSite):
+            await self.compute_site.schedule_batch(self)
+        else:
+            await self.compute_site.execute_batch(self)
+
+    async def cancel(self):
+        await self.compute_site.cancel_batch(self)
+
+    # @classmethod
+    # def from_config(cls, config: 'BatchConfig' | dict) -> BatchFile: ...
 

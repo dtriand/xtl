@@ -1,14 +1,19 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
+import asyncio
 from enum import Enum
+from pathlib import Path
 import re
 import subprocess
 from typing import Optional, Iterable, Sequence
 
+import aiofiles
+
 from xtl import settings
 from xtl.config.settings import DependencySettings
 from xtl.common.compatibility import PY310_OR_LESS, XTL_COMPUTE_SITE
-from xtl.jobs.batchfiles import BatchFile
+from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType
 from xtl.logging import Logger
@@ -201,9 +206,6 @@ class LocalSite(BaseComputeSite):
     def prepare_postamble(self) -> str:
         return self.policy.intercept_postamble('') if self.policy else ''
 
-    async def execute_batch(self, batch: BatchFile, **kwargs):
-        raise NotImplementedError()
-
     def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
                                                | DependencySettings | str
                                                | None,
@@ -235,6 +237,122 @@ class LocalSite(BaseComputeSite):
         else:
             logger.debug('All dependencies are met.')
             return True
+
+    async def execute_batch(self, batch: BatchFile, stdout: Path = None,
+                            stderr: Path = None, **kwargs):
+        # Get command to execute the batch file
+        cmd = batch.shell.get_execute_batch_command(batch.file)
+
+        if PY310_OR_LESS:
+            # TODO: Update exception handling to asyncio.TaskGroup when we drop support
+            #  for Python 3.10
+            pass
+
+        # Initialize stream logging tasks
+        stdout_task, stderr_task = None, None
+        try:
+            # Start batch execution
+            batch._process = await asyncio.create_subprocess_exec(
+                *cmd,
+                shell=False,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            batch._status = BatchFileStatus.RUNNING
+
+            # Start logging of streams
+            stdout_task = asyncio.create_task(
+                self._log_stream_to_file(batch.process.stdout, stdout),
+                name='stdout_logger'
+            )
+            stderr_task = asyncio.create_task(
+                self._log_stream_to_file(batch.process.stderr, stderr),
+                name='stderr_logger'
+            )
+
+            # Wait for all tasks to complete. This is where the main thread waits.
+            await asyncio.gather(batch.process.wait(), stdout_task, stderr_task)
+
+            # Check if the batch was cancelled by .cancel_batch()
+            if batch.status != BatchFileStatus.CANCELLED:
+                batch._status = BatchFileStatus.COMPLETED
+        except asyncio.CancelledError as e:
+            # Raise cancellation up the stack after marking the batch as cancelled
+            logger.error('Batch execution was cancelled by user')
+            batch._status = BatchFileStatus.CANCELLED
+            raise e
+        except Exception as e:
+            # Log any other exceptions during execution
+            logger.error('Error executing batch file %{file}s: %{exc}s',
+                         {'file': batch.file, 'exc': str(e)})
+            batch._status = BatchFileStatus.FAILED
+        finally:
+            # Terminate batch if still running
+            if batch.process and batch.process.returncode is None:
+                logger.debug('Terminating batch file %{file}s',
+                             {'file': batch.file})
+                await self._terminate_batch(batch)
+
+            # Terminate logging tasks
+            for task in (stdout_task, stderr_task):
+                if task and not task.done():
+                    logger.debug('Cancelling async task %{name}s',
+                                 {'name': task.get_name()})
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+
+    async def cancel_batch(self, batch: BatchFile, **kwargs):
+        if batch.status != BatchFileStatus.RUNNING:
+            logger.warning('Cannot cancel batch file %{file}s; it is not running',
+                           {'file': batch.file})
+            return
+        logger.info('Cancelling batch file %{file}s', {'file': batch.file})
+        batch._status = BatchFileStatus.CANCELLED
+        await self._terminate_batch(batch)
+
+    @staticmethod
+    async def _terminate_batch(batch: BatchFile, **kwargs):
+        if batch.process and batch.process.returncode is None:
+            # Request graceful termination of the process
+            logger.debug('Sending SIGTERM to batch process PID %{pid}d',
+                         {'pid': batch.process.pid})
+            batch.process.terminate()
+            try:
+                # Wait 10 s for a graceful shutdown
+                await asyncio.wait_for(batch.process.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                # Force kill the process
+                logger.debug('Sending SIGKILL to batch process PID %{pid}d',
+                             {'pid': batch.process.pid})
+                batch.process.kill()
+                await batch.process.wait()
+
+    @staticmethod
+    async def _log_stream_to_file(stream: asyncio.StreamReader,
+                                  file: Optional[Path] = None):
+        # Open the file for writing if provided
+        f = await aiofiles.open(file, mode='wb') if file else None
+        try:
+            while True:
+                # Read 8 KB of data from the stream
+                chunk = await stream.read(8192)
+
+                # Break if no more data is available
+                if not chunk:
+                    break
+
+                if f:
+                    # Write the chunk to the file
+                    await f.write(chunk)
+                # Otherwise, the chunk is discarded, but still drained from the stream
+        finally:
+            # Close the file if it was opened
+            if f:
+                await f.close()
+
 
 
 class ModulesSite(LocalSite):
