@@ -6,12 +6,12 @@ from enum import Enum
 from pathlib import Path
 import re
 import subprocess
-from typing import Optional, Iterable, Sequence
+from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 
 import aiofiles
 
-from xtl import settings
-from xtl.config.settings import DependencySettings
+if TYPE_CHECKING:
+    from xtl.config.settings import DependencySettings
 from xtl.common.compatibility import PY310_OR_LESS, XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
@@ -58,6 +58,9 @@ class ComputeSite(StrEnum):
         if isinstance(other, BaseComputeSite):
             return self.get() == other
         return super().__eq__(other)
+
+    def __hash__(self):
+        return super().__hash__()
 
 
 class BaseComputeSite(ABC):
@@ -130,6 +133,10 @@ class BaseComputeSite(ABC):
         :raises ValueError: If a dependency name is not found in settings and strict
             resolution is enabled.
         """
+        # Imports to avoid circular dependencies
+        from xtl import settings
+        from xtl.config.settings import DependencySettings
+
         resolved_deps: set[DependencySettings] = set()
         if dependencies is None:
             return resolved_deps

@@ -11,11 +11,12 @@ __all__ = [
     'PathIsAbsoluteValidator',
     'CastAsValidator',
     'CastAsNoneIfEmpty',
-    'CastAsPathOrNone',
+    'CastAsPathOrNone'
 ]
 
 from functools import partial
 from pathlib import Path
+import tempfile
 from typing import Any, Callable, Iterable, Optional
 
 from pydantic import AfterValidator, BeforeValidator
@@ -140,6 +141,16 @@ def cast_as_path_or_none(value: Any) -> Optional[Path]:
     return None
 
 
+def cast_as_temp_dir_if_none(value: Any, prefix: str = 'xtl_') -> Path:
+    """
+    Cast the value to a temporary directory if it is ``None``.
+    """
+    if value is None:
+        temp_dir = tempfile.TemporaryDirectory(prefix=prefix)
+        return Path(temp_dir.name)
+    return Path(value)
+
+
 # Custom validator classes
 def LengthValidator(length: int) -> AfterValidator:
     """
@@ -203,3 +214,4 @@ def CastAsPathOrNone() -> BeforeValidator:
     value is empty.
     """
     return BeforeValidator(cast_as_path_or_none)
+
