@@ -165,6 +165,8 @@ class JobConfig(Options):
     job_directory: Optional[Path] = Option(default=None,
                                            desc='Directory for job execution and '
                                                 'results')
+
+    # TODO: Remove all below when BatchJob/BatchJobConfig2 is fully implemented
     batch: Optional[BatchConfig] = Option(default=None,
                                           desc='Configuration for execution of batch'
                                                'files')

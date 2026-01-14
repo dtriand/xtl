@@ -3,9 +3,9 @@ This module defines a set of :class:`Options <xtl.common.options.Options>` `Pyda
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """
-
+from __future__ import annotations
 from pathlib import Path
-from typing import ClassVar, Optional, TYPE_CHECKING
+from typing import ClassVar, Optional
 
 from pydantic import PrivateAttr
 
@@ -14,6 +14,7 @@ logger = Logger(__name__)
 
 from xtl import version as current_version
 from xtl.automate import ComputeSite
+from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import version_from_str
 from xtl.common.os import FilePermissions
 from xtl.common.options import Option, Options
@@ -104,6 +105,40 @@ class AutomateSettings(Settings):
         Option(
             default=False,
             desc='Keep temporary files after job execution'
+        )
+
+
+class BatchSettings(Settings):
+    """
+    Settings for batch files in :mod:`xtl.jobs.batchfiles`
+    """
+
+    # Model attributes
+    permissions: FilePermissions = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions for the batch file in octal format (e.g., 700)',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+
+
+class JobsSettings(Settings):
+    """
+    Settings for jobs in :mod:`xtl.jobs`
+    """
+
+    # Model attributes
+    batch: BatchSettings = \
+        Option(
+            default=BatchSettings(),
+            desc='Settings for batch files'
+        )
+
+    compute_site: ComputeSite2 = \
+        Option(
+            default=ComputeSite2.LOCAL,
+            desc='Default compute site for job execution'
         )
 
 
@@ -234,6 +269,9 @@ class XTLSettings(Settings):
 
     automate: AutomateSettings = Option(default=AutomateSettings())
     """Settings for the :mod:`xtl.automate` module"""
+
+    jobs: JobsSettings = Option(default=JobsSettings())
+    """Settings for jobs in :mod:`xtl.jobs`"""
 
     dependencies: DependenciesSettings = Option(default=DependenciesSettings())
     """Settings for external tools and dependencies used by XTL"""
