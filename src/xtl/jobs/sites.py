@@ -18,6 +18,7 @@ from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType
 from xtl.logging import Logger
+from xtl.exceptions.base import SubprocessError
 
 
 __all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite',
@@ -256,7 +257,7 @@ class LocalSite(BaseComputeSite):
     async def execute_batch(self, batch: BatchFile, stdout: Path = None,
                             stderr: Path = None, **kwargs):
         # Get command to execute the batch file
-        cmd = batch.shell.get_execute_batch_command(batch.file)
+        cmd = batch.shell.get_execute_batch_command(batch.file, as_list=True)
 
         if PY310_OR_LESS:
             # TODO: Update exception handling to asyncio.TaskGroup when we drop support
@@ -298,9 +299,10 @@ class LocalSite(BaseComputeSite):
             raise e
         except Exception as e:
             # Log any other exceptions during execution
-            logger.error('Error executing batch file %{file}s: %{exc}s',
+            logger.error('Error executing batch file %(file)s: %(exc)s',
                          {'file': batch.file, 'exc': str(e)})
             batch._status = BatchFileStatus.FAILED
+            raise SubprocessError(f'Error executing file {batch.file}', raiser=batch, command=cmd) from e
         finally:
             # Terminate batch if still running
             if batch.process and batch.process.returncode is None:

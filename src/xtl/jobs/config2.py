@@ -230,6 +230,18 @@ class BatchJobConfig(JobConfig):
             f = f'{self.filename}.{f}'
         return self.job_directory / f
 
+    def get_batch(self, context: dict = None) -> 'BatchFile':
+        """
+        Returns a preconfigure BatchFile instance.
+
+        :param context: Optional dictionary of additional context variables to be used when rendering the batch file
+            template.
+        """
+        from xtl.jobs.batchfiles import BatchFile
+
+        batch = BatchFile.from_config(self, context=context)
+        return batch
+
     def get_template(self) -> Optional[str]:
         """
         Get the template for the content of the batch file for the selected shell.

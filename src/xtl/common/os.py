@@ -3,6 +3,7 @@ from enum import Enum
 import os
 from pathlib import Path
 import platform
+import tempfile
 from types import NoneType
 from typing import Optional
 
@@ -32,6 +33,24 @@ def get_username() -> str:
         import getpass
         return getpass.getuser()
 
+
+def get_temp_location() -> Path:
+    """
+    Get the system's temporary directory as a `Path` object.
+    """
+    temp_dir = tempfile.gettempdir()
+    return Path(temp_dir)
+
+
+def is_temp(f: str | Path) -> bool:
+    """
+    Check if the given file path is located within the system's temporary directory.
+
+    :param f: The path to check.
+    """
+    temp_location = get_temp_location()
+    f = Path(f).resolve()
+    return temp_location in f.parents
 
 
 class FileType(StrEnum):
