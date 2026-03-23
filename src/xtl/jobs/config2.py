@@ -1,10 +1,11 @@
+from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 
 from pydantic import PrivateAttr, model_validator, computed_field, field_serializer
 
 from xtl import settings, Logger
-from xtl.common.options import Option
+from xtl.common.options import Option, Options
 from xtl.common.os import FilePermissions
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import cast_as_temp_dir_if_none
@@ -16,8 +17,66 @@ from xtl.jobs.sites import ComputeSite
 logger = Logger(__name__)
 
 
+class ResourcesConfig(Options):
+
+    # TODO: Custom formatters & aliases for SLURM
+    # TODO: Custom validators for SLURM-like input
+    cpus: int = \
+        Option(
+            default=1, ge=1,
+            desc='Number of CPU cores required for the job',
+            alias='cpus-per-task'
+        )
+
+    memory: float = \
+        Option(
+            default=1.0, ge=0.0,
+            desc='Amount of memory (in GB) required for the job',
+            alias='mem',
+            formatter=lambda x: f'{x}G'
+        )
+
+    timeout: float | str | timedelta | None = \
+        Option(
+            default=None,
+            desc='Maximum runtime for the job (in minutes or D-HH:MM:SS format)',
+            alias='time',
+            # cast_as=...,
+            # formatter=...
+        )
+
+    gpus: int = \
+        Option(
+            default=0, ge=0,
+            desc='Number of GPUs required for the job',
+            alias='gpus'
+        )
+
+    no_tasks: int = \
+        Option(
+            default=1, ge=1,
+            desc='Number of tasks required for the job (only used in MPI jobs)',
+            alias='ntasks'
+        )
+
+    no_nodes: int = \
+        Option(
+            default=1, ge=1,
+            desc='Number of nodes required for the job (only used in MPI jobs)',
+            alias='nodes'
+        )
+
+    def to_slurm(self) -> list[str]:
+        args = []
+        for field, value in self.to_dict(by_alias=True).items():
+            if value:
+                args.append(f'--{field}={value}')
+        return args
+
+
 class BatchJobConfig(JobConfig):
 
+    # Generate a temporary directory if not provided
     job_directory: Optional[Path] = Option(
         default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_batch_'),
         desc='Directory for job execution and results',
@@ -40,7 +99,7 @@ class BatchJobConfig(JobConfig):
         )  # for slurm --comment
     permissions: FilePermissions | str | int = \
         Option(
-            default=FilePermissions(0o700),
+            default=settings.jobs.batch.permissions,
             desc='Permissions for the batch file in octal format (e.g., 700)',
             cast_as=FilePermissions,
             formatter=PermissionOctal
@@ -65,6 +124,11 @@ class BatchJobConfig(JobConfig):
         Option(
             default_factory=dict,
             desc='Templates for the content of the batch file for different shells'
+        )
+    resources: ResourcesConfig = \
+        Option(
+            default_factory=ResourcesConfig,
+            desc='Resources required for the batch job'
         )
 
     _shell: Shell | None = PrivateAttr(None)
@@ -171,3 +235,17 @@ class BatchJobConfig(JobConfig):
         Get the template for the content of the batch file for the selected shell.
         """
         return self.templates.get(self.shell, None)
+
+    def to_slurm(self) -> list[str]:
+        """
+        Convert the batch job configuration to a list of SLURM command-line arguments.
+        """
+        args = []
+        if self.name:
+            args.append(f'--job-name={self.name}')
+        if self.description:
+            args.append(f'--comment={self.description}')
+        args.extend(self.resources.to_slurm())
+        args.append(f'--output={self.stdout}')
+        args.append(f'--error={self.stderr}')
+        return args

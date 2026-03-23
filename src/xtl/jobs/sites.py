@@ -11,6 +11,7 @@ from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 import aiofiles
 
 if TYPE_CHECKING:
+    from xtl.jobs.config2 import BatchJobConfig
     from xtl.config.settings import DependencySettings
 from xtl.common.compatibility import PY310_OR_LESS, XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
@@ -191,6 +192,12 @@ class BaseComputeSite(ABC):
     async def execute_batch(self, batch: BatchFile, **kwargs):
         ...
 
+    @staticmethod
+    def _prepare_shebang(shell: ShellType) -> str:
+        if shell.shebang:
+            return f'{shell.shebang}{shell.new_line_char}'
+        return ''
+
 
 class LocalSite(BaseComputeSite):
     """
@@ -202,7 +209,8 @@ class LocalSite(BaseComputeSite):
                                              | DependencySettings | str
                                              | None,
                          shell: ShellType) -> str:
-        return self.policy.intercept_preamble('') if self.policy else ''
+        preamble = self._prepare_shebang(shell)
+        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
     def prepare_command(self, command: str) -> str:
         return self.policy.intercept_command(command) if self.policy else command
@@ -361,7 +369,6 @@ class LocalSite(BaseComputeSite):
                 await f.close()
 
 
-
 class ModulesSite(LocalSite):
     """
     A compute site that uses
@@ -400,6 +407,16 @@ class ModulesSite(LocalSite):
             cmd = f'call {cmd}'
         return cmd
 
+    def _prepare_modules_preamble(self, dependencies: Iterable[DependencySettings | str]
+                                                 | DependencySettings | str
+                                                 | None,
+                                 shell: ShellType) -> str:
+        preamble = self._purge_modules(shell=shell)
+        for dep in self.resolve_dependencies(dependencies):
+            if dep.modules:
+                preamble += self._load_modules(modules=dep.modules, shell=shell)
+        return preamble
+
     def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
                                              | DependencySettings | str
                                              | None,
@@ -417,10 +434,9 @@ class ModulesSite(LocalSite):
         :param shell: The shell type to generate the commands for.
         :return: The preamble string.
         """
-        preamble = self._purge_modules(shell=shell)
-        for dep in self.resolve_dependencies(dependencies):
-            if dep.modules:
-                preamble += self._load_modules(modules=dep.modules, shell=shell)
+        preamble = self._prepare_shebang(shell)
+        preamble += self._prepare_modules_preamble(dependencies=dependencies,
+                                                   shell=shell)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
     def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
@@ -506,12 +522,28 @@ class SlurmSite(SchedulerSite, ABC):
     Abstract base class for compute sites that utilize the
     `SLURM <https://slurm.schedmd.com/>`_ job scheduler.
     """
+    _default_shell = Shell.BASH
+    _supported_shells = frozenset([Shell.BASH])
 
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType) -> str:
-        # SBATCH preamble
+    @staticmethod
+    def _prepare_slurm_preamble(shell: ShellType,
+                                config: BatchJobConfig | dict = None) -> str:
+        from xtl.jobs.config2 import BatchJobConfig
+
+        args = []
+        if config:
+            if not isinstance(config, BatchJobConfig):
+                config = BatchJobConfig(**config)
+            args.extend(config.to_slurm())
+
+        if args:
+            nl = shell.new_line_char
+            return nl.join(f'#SBATCH {arg}' for arg in args) + nl
+        return ''
+
+    async def validate_submission(self, batch: BatchFile, **kwargs) -> bool:
+        # Run `sbatch --test-only <batchfile>` to check if allocation is possible
+        #  and check the exit code
         raise NotImplementedError()
 
     async def schedule_batch(self, batch: BatchFile, **kwargs) -> str:
@@ -536,12 +568,14 @@ class SlurmLocalSite(SlurmSite, LocalSite):
     def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
                                              | DependencySettings | str
                                              | None,
-                         shell: ShellType) -> str:
-        slurm_preamble = SlurmSite.prepare_preamble(self, dependencies=dependencies,
-                                                    shell=shell)
-        local_preamble = LocalSite.prepare_preamble(self, dependencies=dependencies,
-                                                    shell=shell)
-        raise NotImplementedError()
+                         shell: ShellType,
+                         config: BatchJobConfig | dict = None,
+                         **kwargs) -> str:
+        preamble = self._prepare_shebang(shell=shell)
+        # SBATCH preamble
+        if config:
+            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
+        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class SlurmModulesSite(SlurmSite, ModulesSite):
@@ -554,12 +588,17 @@ class SlurmModulesSite(SlurmSite, ModulesSite):
     def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
                                              | DependencySettings | str
                                              | None,
-                         shell: ShellType) -> str:
-        slurm_preamble = SlurmSite.prepare_preamble(self, dependencies=dependencies,
-                                                    shell=shell)
-        modules_preamble = ModulesSite.prepare_preamble(self, dependencies=dependencies,
-                                                        shell=shell)
-        raise NotImplementedError()
+                         shell: ShellType,
+                         config: BatchJobConfig | dict = None,
+                         **kwargs) -> str:
+        preamble = self._prepare_shebang(shell=shell)
+        # SBATCH preamble
+        if config:
+            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
+        # Modules preamble
+        preamble += self._prepare_modules_preamble(dependencies=dependencies,
+                                                   shell=shell)
+        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class VirtualizationSite(BaseComputeSite, ABC): ...
