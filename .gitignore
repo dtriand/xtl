@@ -1,11 +1,11 @@
 ### Development
-playground/
-utils/
-scripts/
-tests/cache
-src/xtl/chemistry
-src/xtl/chemistry2
-src/xtl/crystallization2
+/playground
+/utils
+/scripts
+/tests/cache
+/src/xtl/chemistry
+/src/xtl/chemistry2
+/src/xtl/crystallization2
 
 ### Temporary
 docs_/
