@@ -6,14 +6,19 @@ from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKIN
     get_args, Iterable
 from pathlib import Path
 
+from xtl.jobs.config2 import BatchJobConfig
+
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
 
 from xtl import settings, Logger
 from xtl.automate.batchfile import BatchFile
+from xtl.jobs.batchfiles import BatchFile as BatchFile2
+
 from xtl.jobs.config import JobConfig
 from xtl.math.uuid import UUIDFactory
 from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
+from xtl.exceptions.base import SubprocessError
 
 
 uuid = UUIDFactory()
@@ -43,7 +48,7 @@ class JobResults:
     """Optional data returned by the job."""
 
     error: Any | None = None
-    """Error that occured during job execution, if any."""
+    """Error that occurred during job execution, if any."""
 
     @property
     def success(self) -> bool:
@@ -54,6 +59,7 @@ class JobResults:
 
 
 JobConfigType = TypeVar('JobConfigType', bound=JobConfig)
+BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
 
 class Job(abc.ABC, Generic[JobConfigType]):
@@ -194,6 +200,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if config is not None:
             job.configure(config)
 
+        # TODO: Remove this when BatchJob is fully implemented
         # Propagate dependencies to batch configuration if available
         include_default = kwargs.pop('include_default_dependencies',
                                      job.config._include_default_dependencies)
@@ -300,7 +307,15 @@ class Job(abc.ABC, Generic[JobConfigType]):
             raise
         except Exception as e:
             self._error = e
-            self._logger.error('Job failed due to an exception: %s', e.args[0])
+            if isinstance(e, SubprocessError):
+                self._logger.error('Job failed with subprocess error: %s, cmd_args: %s',
+                                   e.message, repr(e.command),
+                                   exc_info=True, # TODO: Make this configurable
+                                   )
+            else:
+                self._logger.error('Job failed due to an exception: %s', str(e),
+                                   exc_info=True, # TODO: Make this configurable
+                                   )
         finally:
             self._is_running = False
             if self._error:
@@ -491,3 +506,80 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 # Write and flush the buffer to the log file
                 log.write(buffer)
                 log.flush()
+
+
+class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
+
+    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None):
+        super().__init__(job_id=job_id, logger=logger)
+
+        self._batch: Optional[BatchFile2] = None
+        self._batch_context: dict = {}
+
+    async def _execute(self) -> Any | None:
+        # Check if batch configuration is available
+        if not self.config:
+            raise ValueError('Job configuration does not include batch settings')
+
+        # Create the batch directory if it doesn't exist
+        if not self.config.job_directory.exists():
+            try:
+                self._logger.debug('Creating directory for batch file: %s',
+                                   self.config.job_directory)
+                self.config.job_directory.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                self._logger.error('Failed to create batch directory: %s',
+                                   self.config.job_directory)
+                raise e
+
+        # Create batch file
+        self._logger.debug('Creating batch file in %s',
+                           self.config.job_directory)
+        self._batch = self.config.get_batch(context=self._batch_context)
+
+        # Save batch file
+        try:
+            self._batch.save(update_permissions=True)
+            self._logger.debug('Batch file created: %s', self._batch.file)
+        except OSError as e:
+            self._logger.error('Failed to save batch file: %s', self._batch.file)
+            raise e
+
+        # Make sure log files exist
+        try:
+            self.config.stdout.touch(exist_ok=True)
+            self.config.stderr.touch(exist_ok=True)
+            self._logger.debug('Log files initialized: stdout=%s, stderr=%s',
+                               self.config.stdout, self.config.stderr)
+        except OSError as e:
+            self._logger.error('Failed to create log files: stdout=%s, stderr=%s',
+                               self.config.stdout, self.config.stderr)
+            raise e
+
+        # Execute the batch file
+        try:
+            await self._batch.execute(
+                stdout=self.config.stdout,
+                stderr=self.config.stderr
+            )
+        except asyncio.CancelledError as e:
+            await self._batch.cancel()
+            self.logger.error('Batch execution was cancelled by the user')
+            raise e
+
+        # Handle result
+        result = {'stdout': self.config.stdout.read_text(encoding='utf-8'),
+                  'stderr': self.config.stderr.read_text(encoding='utf-8')}
+
+        self.logger.debug('Batch execution completed successfully')
+
+        return result
+
+    @classmethod
+    def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> \
+            'BatchJob[BatchJobConfigType]':
+        job = super().with_config(config=config, **kwargs)
+        # Assign any additional kwargs that were not popped in the parent method
+        #  as context for rendering batch file templates.
+        job._batch_context = kwargs
+        return job

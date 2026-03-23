@@ -90,6 +90,7 @@ class BatchFile:
         # Imports to prevent circular dependencies
         from xtl import settings
         from xtl.jobs.sites import ComputeSiteType, LocalSite
+        from xtl.jobs.config2 import BatchJobConfig
 
         # Check compute_site
         if compute_site and not isinstance(compute_site, ComputeSiteType):
@@ -117,6 +118,7 @@ class BatchFile:
         self._status = BatchFileStatus.IDLE
         self._saved = False
         self._process: asyncio.subprocess.Process | None = None
+        self._config: BatchJobConfig | None = None
 
     @property
     def file(self) -> Path:
@@ -261,7 +263,7 @@ class BatchFile:
     # Aliases for execution and cancellation
     #  These methods provide an alternative API for interacting with batch files, rather
     #  than going through the compute site directly.
-    async def execute(self, schedule: bool = False):
+    async def execute(self, schedule: bool = False, **kwargs):
         """
         Execute or schedule the batch file on the compute site.
 
@@ -273,9 +275,9 @@ class BatchFile:
             raise RuntimeError('Batch file has not been saved yet. '
                                'Call `save()` before `execute()`.')
         if schedule and isinstance(self.compute_site, SchedulerSite):
-            await self.compute_site.schedule_batch(self)
+            await self.compute_site.schedule_batch(self, **kwargs)
         else:
-            await self.compute_site.execute_batch(self)
+            await self.compute_site.execute_batch(self, **kwargs)
 
     async def cancel(self):
         """
@@ -330,9 +332,15 @@ class BatchFile:
             permissions=config.permissions
         )
 
+        # Store the config
+        batch._config = config
+
         # Render template if provided
         if template := config.get_template():
             content = batch._render_template(template, context or {})
             batch.add_lines(content.splitlines())
 
         return batch
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.file})'
