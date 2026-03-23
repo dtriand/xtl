@@ -82,6 +82,9 @@ dev = [
     "sphinx-favicon>=1.0.1"
 ]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.dynamic]
 version = {attr = "xtl.__version__"}
 
