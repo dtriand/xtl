@@ -20,13 +20,14 @@ from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator
                       model_serializer, SerializerFunctionWrapHandler, SerializationInfo)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict
-from pydantic.fields import _Unset, Deprecated, FieldInfo
+from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
 from pydantic._internal._typing_extra import EllipsisType
 import toml
 from toml.decoder import CommentValue
 
 from xtl.common.validators import *
 from xtl.files.toml import ExtendedTomlEncoder
+from xtl.common.typed_vars import TypedIterable
 
 
 _Validator = Union[BeforeValidator, AfterValidator]
@@ -803,7 +804,7 @@ class Options(BaseModel):
 
     def _field_to_comment_value(self, name: str, field: FieldInfo,
                                 keep_comments: bool = False) -> \
-            CommentValue | dict[str, Any]:
+            CommentValue | dict[str, Any] | list[dict[str, Any] | Any]:
         """
         Cast a pydantic.FieldInfo to toml.CommentValue, where the comment is set to the
         field's description
@@ -813,17 +814,29 @@ class Options(BaseModel):
         :param keep_comments: Whether to include comments in the output.
         :return: A CommentValue object or a dictionary of nested CommentValue objects.
         """
-        # Check if the field is a valid pydantic field
-        if name not in self.__pydantic_fields__:
-            raise KeyError(f'Field {name!r} not defined')
-
         # Check if the field is another Options object
         value = getattr(self, name)
         if isinstance(value, Options):
             # Recursively convert nested Options objects to CommentValue
             return {vname: value._field_to_comment_value(name=vname, field=vfield,
                                                          keep_comments=keep_comments)
-                    for vname, vfield in value.__pydantic_fields__.items()}
+                    for vname, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items()}
+
+        elif isinstance(value, TypedIterable):
+            data = []  # we can cast all iterables to lists, since TOML doesn't differentiate
+            for i, item in enumerate(value):
+                if isinstance(item, Options):
+                    nested = {}
+                    for vname, vfield in {**item.__pydantic_fields__, **item.__pydantic_computed_fields__}.items():
+                        nested[vname] = item._field_to_comment_value(
+                            name=vname, field=vfield, keep_comments=keep_comments
+                        )
+                    data.append(nested)
+                else:
+                    data.append(item)
+            return data
+
+        # BUG: Lists of dicts are not getting properly serialized as array tables
 
         # Prepare comment
         comment = f'# {field.description}' if field.description and keep_comments else ''
@@ -851,13 +864,14 @@ class Options(BaseModel):
         """
         # Cast all fields to toml.CommentValue
         data = {}
-        for name, field in self.__pydantic_fields__.items():
+        for name, field in {**self.__pydantic_fields__, **self.__pydantic_computed_fields__}.items():
             alias = name
             # Ensure serialization aliases are kept
-            if field.serialization_alias:
+            if isinstance(field, FieldInfo) and field.serialization_alias:
                 alias = field.serialization_alias
-            data[alias] = self._field_to_comment_value(name=name, field=field,
-                                                       keep_comments=comments)
+            elif isinstance(field, ComputedFieldInfo) and field.alias:
+                alias = field.alias
+            data[alias] = self._field_to_comment_value(name=name, field=field, keep_comments=comments)
 
         # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
