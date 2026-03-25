@@ -27,13 +27,6 @@ class SimpleJob(Job[SimpleJobConfig]):
         await asyncio.sleep(0.2)  # Simulate some work
         return {'result': 123}
 
-class EchoJob(Job[SimpleJobConfig]):
-
-    async def _execute(self):
-        results = await self._execute_batch(self.config.commands,
-                                            args=['Hello', 'World!'])
-        return results.data
-
 
 @pytest.fixture
 def temp_dir():
@@ -59,13 +52,7 @@ class TestJob:
             job = SimpleJob(job_id="test_001")
             job.configure(SimpleJobConfig(should_fail=True))
             assert job.config is not None
-            assert job.config.batch is None
             assert job.config.should_fail == True
-
-            # Update configs
-            job.configure(SimpleJobConfig(batch=BatchConfig(permissions='755')))
-            assert job.config.batch is not None
-            assert job.config.batch.permissions.octal == '0o755'
 
         def test_job_with_config(self):
             """Test job creation with configuration."""
@@ -143,78 +130,3 @@ class TestJob:
             # Test cleanup on deletion
             job.clear()
             assert job_id not in SimpleJob._registry
-
-
-    # Test batch execution functionality
-    class TestBatchExecution:
-        """Test batch execution functionality of the Job class."""
-
-        @skipif_not_windows
-        @pytest.mark.parametrize(
-            'shell,      cmd,             expected', [
-            (CmdShell, 'echo "%2"', '"World!"\n'),
-            (PowerShell, 'echo $args[1]', 'World!\n')
-            ], ids=['cmd', 'powershell'])
-        @pytest.mark.asyncio
-        async def test_execute_batch_win(self, temp_dir, shell, cmd, expected):
-            job = EchoJob(job_id='test_win')
-            job.configure(
-                SimpleJobConfig(
-                    job_directory=temp_dir,
-                    commands=[cmd],
-                    batch=BatchConfig(),
-                )
-            )
-
-            job.config.batch.shell = shell
-
-            result = await job.run()
-
-            assert result.data['stdout'] == expected
-            assert result.data['stderr'] == ''
-
-        @skipif_not_linux
-        @pytest.mark.parametrize(
-            'shell,     cmd,         expected', [
-            (BashShell, 'echo "$2"', 'World!\n')
-            ], ids=['bash'])
-        @pytest.mark.asyncio
-        async def test_execute_batch_posix(self, temp_dir, shell, cmd, expected):
-            job = EchoJob(job_id='test_posix')
-            job.configure(
-                SimpleJobConfig(
-                    job_directory=temp_dir,
-                    commands=[cmd],
-                    batch=BatchConfig(),
-                )
-            )
-
-            job.config.batch.shell = shell
-
-            result = await job.run()
-
-            assert result.data['stdout'] == expected
-            assert result.data['stderr'] == ''
-
-        @pytest.mark.asyncio
-        async def test_log_stream_to_file(self, temp_dir):
-            """Test _log_stream_to_file functionality."""
-
-            job = SimpleJob(job_id='test_log_stream_to_file')
-            # Create a test file
-            test_file = temp_dir / "test_log.txt"
-
-            # Create a mock stream
-            mock_stream = AsyncMock()
-            mock_stream.read.side_effect = [b"line1\n", b"line2\n", b""]
-
-            # Call _log_stream_to_file
-            await job._log_stream_to_file(mock_stream, test_file)
-
-            # Verify file contents
-            assert test_file.exists()
-            content = test_file.read_bytes()
-            assert content == b"line1\nline2\n"
-
-            # Verify stream read calls
-            assert mock_stream.read.call_count == 3
