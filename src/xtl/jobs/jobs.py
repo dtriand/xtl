@@ -58,7 +58,7 @@ JobConfigType = TypeVar('JobConfigType', bound=JobConfig)
 BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
 
-class Job(abc.ABC, Generic[BaseJobConfigType]):
+class Job(abc.ABC, Generic[JobConfigType]):
     _registry: ClassVar[dict[str, 'Job']] = {}
     """Registry of all alive jobs of this class."""
 

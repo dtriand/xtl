@@ -1,9 +1,11 @@
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from pydantic import PrivateAttr, model_validator, computed_field, field_serializer
 
+if TYPE_CHECKING:
+    from xtl.jobs.batchfiles import BatchFile
 from xtl import settings, Logger
 from xtl.common.options import Option, Options
 from xtl.common.os import FilePermissions

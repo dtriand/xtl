@@ -365,7 +365,7 @@ class CmdShell(BaseShell):
     executable = r'C:\Windows\System32\cmd.exe'
     is_posix = False
     shebang = ''
-    comment_char = '#'
+    comment_char = 'rem'
     new_line_char = '\n'
     batch_extension = '.bat'
     batch_command = '{executable} /Q /C {batch_file} {batch_arguments}'

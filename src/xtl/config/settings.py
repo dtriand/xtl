@@ -207,6 +207,13 @@ class DependenciesSettings(Settings):
             )
         )
 
+    easybragg: DependencySettings = \
+        Option(
+            default=DependencySettings(
+                provides={'easyBragg.python'}
+            )
+        )
+
 
 class CLIAutoprocSettings(Settings):
     """
