@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, get_origin
 import tempfile
 from typing import TYPE_CHECKING
+from typing_extensions import TypedDict
 
 from pydantic import computed_field, PrivateAttr, model_validator
 
@@ -158,27 +159,73 @@ class BatchConfig(Options):
         return batch
 
 
-class JobConfig(Options):
+# Setting total=False to make all keys optional during initialization
+#  NB: This needs to happen on every subclass of JobStepsConfig
+class JobStepsConfig(TypedDict, total=True):
     """
-    Base class for passing configuration to a job.
+    Base class for defining the steps of a job. Each key is the name of a step, and the value is the configuration for
+    that step, which must be a subclass of JobConfig.
     """
-    job_directory: Optional[Path] = Option(default=None,
-                                           desc='Directory for job execution and '
-                                                'results')
+    ...
 
-    # TODO: Remove all below when BatchJob/BatchJobConfig2 is fully implemented
-    batch: Optional[BatchConfig] = Option(default=None,
-                                          desc='Configuration for execution of batch'
-                                               'files')
 
-    _include_default_dependencies: bool = PrivateAttr(True)
-    """Whether to include the default dependencies in the job."""
+class _BaseJobConfig(Options):
+    """
+    Base class for job configuration, containing fields common to all jobs.
+    """
+
+    job_directory: Optional[Path] = \
+        Option(
+            default=None,
+            desc='Directory for job execution and results'
+        )
+
+
+class JobConfig(_BaseJobConfig):
+    """
+    Class for passing configuration to a job.
+    """
+
+    steps: JobStepsConfig = \
+        Option(
+            default_factory=JobStepsConfig,
+            desc='Configuration for each step of the job.'
+        )
+
+    def _get_steps_class(self) -> type[TypedDict]:
+        """
+        Get the class of the steps field.
+        """
+        # Get the `steps` field
+        step_field = self.model_fields.get('steps', None)
+        if step_field is None:
+            raise ValueError('JobConfig must have a steps field')
+
+        # Get the type of the `steps` field and ensure it's a simple type
+        #  Will raise for e.g. list[int], Union[str, int], etc.
+        StepsClass: type[TypedDict] = step_field.annotation
+        if get_origin(StepsClass) is not None:
+            raise TypeError(f'`steps` must be a simple type, not {StepsClass}')
+
+        return StepsClass
+
+    @property
+    def steps_list(self) -> list[str]:
+        """
+        Returns the list of steps in the job, in the order they are defined.
+        """
+        return list(self._get_steps_class().__annotations__.keys())
 
     @model_validator(mode='after')
     def _propagate_job_directory(self):
         """
         Propagate job_directory to batch.batch_directory if both are set
         """
-        if self.job_directory is not None and self.batch is not None:
-            self.batch.directory = self.job_directory
+        if self.job_directory:
+            for i, step in enumerate(self.steps_list):
+                config = self.steps.get(step, {})
+                if not hasattr(config, 'job_directory'):
+                    continue
+                config.job_directory = self.job_directory / f'{i+1}_{step}'
+
         return self
