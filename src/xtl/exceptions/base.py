@@ -54,3 +54,11 @@ class SubprocessError(Error):
         self.message = message
         self.command = command
         self.raiser = raiser
+
+
+class StderrError(Error):
+
+    def __init__(self, message: str, stderr: str, raiser=None):
+        self.message = message
+        self.stderr = stderr
+        self.raiser = raiser

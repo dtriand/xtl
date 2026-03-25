@@ -154,7 +154,7 @@ class BaseComputeSite(ABC):
 
             # Check if dependency was found in settings
             if dep is None:
-                logger.debug('Dependency `%s` not found in settings', depname)
+                logger.warning('Dependency `%s` not found in settings', depname)
                 if settings.dependencies.resolution == 'strict':
                     logger.error('Strict dependency resolution enabled; missing '
                                  'dependency `%s`', depname)
@@ -257,7 +257,8 @@ class LocalSite(BaseComputeSite):
     async def execute_batch(self, batch: BatchFile, stdout: Path = None,
                             stderr: Path = None, **kwargs):
         # Get command to execute the batch file
-        cmd = batch.shell.get_execute_batch_command(batch.file, as_list=True)
+        args = kwargs.pop('batch_args', [])
+        cmd = batch.shell.get_execute_batch_command(batch.file, arguments=args, as_list=True)
 
         if PY310_OR_LESS:
             # TODO: Update exception handling to asyncio.TaskGroup when we drop support

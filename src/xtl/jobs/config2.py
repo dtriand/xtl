@@ -10,7 +10,7 @@ from xtl.common.os import FilePermissions
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.jobs import Shell
-from xtl.jobs.config import JobConfig
+from xtl.jobs.config import _BaseJobConfig
 from xtl.jobs.sites import ComputeSite
 
 
@@ -21,26 +21,28 @@ class ResourcesConfig(Options):
 
     # TODO: Custom formatters & aliases for SLURM
     # TODO: Custom validators for SLURM-like input
+    # Formatting should be handled within different methods, e.g. to_slurm()
+    # Maybe we implement a _aliases and _formatters PrivateAttr in the ResourcesConfig for this purpose?
     cpus: int = \
         Option(
             default=1, ge=1,
             desc='Number of CPU cores required for the job',
-            alias='cpus-per-task'
+            # alias='cpus-per-task'
         )
 
     memory: float = \
         Option(
             default=1.0, ge=0.0,
             desc='Amount of memory (in GB) required for the job',
-            alias='mem',
-            formatter=lambda x: f'{x}G'
+            # alias='mem',
+            # formatter=lambda x: f'{x}G'
         )
 
     timeout: float | str | timedelta | None = \
         Option(
             default=None,
             desc='Maximum runtime for the job (in minutes or D-HH:MM:SS format)',
-            alias='time',
+            # alias='time',
             # cast_as=...,
             # formatter=...
         )
@@ -49,21 +51,20 @@ class ResourcesConfig(Options):
         Option(
             default=0, ge=0,
             desc='Number of GPUs required for the job',
-            alias='gpus'
         )
 
     no_tasks: int = \
         Option(
             default=1, ge=1,
             desc='Number of tasks required for the job (only used in MPI jobs)',
-            alias='ntasks'
+            # alias='ntasks'
         )
 
     no_nodes: int = \
         Option(
             default=1, ge=1,
             desc='Number of nodes required for the job (only used in MPI jobs)',
-            alias='nodes'
+            # alias='nodes'
         )
 
     def to_slurm(self) -> list[str]:
@@ -74,13 +75,14 @@ class ResourcesConfig(Options):
         return args
 
 
-class BatchJobConfig(JobConfig):
+class BatchJobConfig(_BaseJobConfig):
 
-    # Generate a temporary directory if not provided
-    job_directory: Optional[Path] = Option(
-        default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_batch_'),
-        desc='Directory for job execution and results',
-        cast_as=lambda x: cast_as_temp_dir_if_none(x, prefix='xtl_batch_'),
+    # Batch jobs always require a job directory
+    job_directory: Optional[Path] = \
+        Option(
+            default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_batch_'),
+            desc='Directory for job execution and results',
+            cast_as=lambda x: cast_as_temp_dir_if_none(x, prefix='xtl_batch_'),
     )
     filename: str = \
         Option(

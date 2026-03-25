@@ -51,6 +51,9 @@ class Settings(Options):
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
 
+    # Make Settings hashable so that it can be used in sets or as dict keys
+    __hash__ = object.__hash__
+
 
 class UnitsSettings(Settings):
     """
@@ -141,6 +144,12 @@ class JobsSettings(Settings):
             desc='Default compute site for job execution'
         )
 
+    tracebacks: bool = \
+        Option(
+            default=False,
+            desc='Whether to include tracebacks in job logs when exceptions occur'
+        )
+
 
 class DependencySettings(Settings):
     """
@@ -178,7 +187,7 @@ class DependenciesSettings(Settings):
     resolution: str = \
         Option(
             default='loose',
-            choices=('strict', 'loose'),
+            choices={'strict', 'loose'},
             desc='Dependency resolution strategy. '
                  'If "strict", jobs requiring missing dependencies will fail to run. '
                  'If "loose", missing dependencies will be ignored.'
