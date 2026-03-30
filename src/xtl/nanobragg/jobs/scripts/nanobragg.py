@@ -10,13 +10,12 @@ Note that this script is intended to be run with a `cctbx` environment and not w
 import argparse
 from collections import ChainMap
 from copy import deepcopy
-from datetime import datetime
 import json
 import logging
 from pathlib import Path
 import sys
 import time
-from typing import Any, Callable, Generic, Mapping, MutableMapping, TypeVar
+from typing import Any, Callable, Generic, Mapping, MutableMapping, TypeVar, Union
 
 try:
     import cctbx
@@ -130,7 +129,7 @@ class Simulator:
         }
     }
 
-    def __init__(self, config: str | Path, **kwargs):
+    def __init__(self, config: Union[str, Path], **kwargs):
         """
         Wrapper around `simtbx.nanoBragg` to simulate X-ray diffraction patterns from nanocrystals in absolute scale.
 
@@ -161,12 +160,13 @@ class Simulator:
         if self.has_cuda:
             logger.info('CUDA available. Using GPU acceleration.')
         else:
-            logger.info('CUDA not available. Using CPU simulation.')
+            logger.info('CUDA not available. Using CPU for simulation.')
 
         self._image = None
+        logger.info('Initialization complete.')
 
     @staticmethod
-    def _load_config(config: str | Path) -> dict[str, Any]:
+    def _load_config(config: Union[str, Path]) -> dict[str, Any]:
         """
         Load the configuration from a JSON file and return it as a dictionary.
 
@@ -214,7 +214,7 @@ class Simulator:
         if config['type'] == 'simple':
             return SimData.simple_detector(
                 detector_distance_mm=config['distance'],
-                pixel_size_mm=config['pixel_size'],
+                pixelsize_mm=config['pixel_size'],
                 image_shape=(config['nx'], config['ny'])
             )
         else:
@@ -261,12 +261,11 @@ class Simulator:
         shapes = {
             'square': shapetype.Square,
             'round': shapetype.Round,
-            'gauss': shapetype.Gauss,
-            'gauss_star': shapetype.Gauss_star,
-            'gauss_argchk': shapetype.Gauss_argchk,
+            'gaussian': shapetype.Gauss,
+            'gaussian_argchk': shapetype.Gauss_argchk,
             'tophat': shapetype.Tophat
         }
-        return shapes.get(self._config['crystal']['shape'], shapes.get('gauss'))
+        return shapes.get(self._config['crystal']['shape'], shapes.get('gaussian'))
 
     def _get_nanobragg_simulator(self) -> simtbx.nanoBragg.nanoBragg:
         """
@@ -310,7 +309,7 @@ class Simulator:
         return simulator
 
     @staticmethod
-    def _load_stol_file(file: str | Path) -> np.ndarray:
+    def _load_stol_file(file: Union[str, Path]) -> np.ndarray:
         """
         Load a STOL file.
 
@@ -326,7 +325,7 @@ class Simulator:
         except Exception as e:
             raise ValueError(f'Error reading STOL file: {file}') from e
 
-    def _get_radially_average_structure_factors(self, material: str | Path) -> flex.vec2_double:
+    def _get_radially_average_structure_factors(self, material: Union[str, Path]) -> flex.vec2_double:
         """
         Get the radially averaged structure factors for an amorphous material, either by name or from a custom STOL
         file.
@@ -336,7 +335,7 @@ class Simulator:
             and the second column is the corresponding structure factor amplitude (e/A^3).
         """
         stol_dir = Path(__file__).parent / 'stol'
-        materials = { file.name for file in stol_dir.glob('*.txt') }
+        materials = { file.stem for file in stol_dir.glob('*.txt') }
 
         if material in materials:
             logger.info(f'Loading radial structure factors for {material}... ')
@@ -360,15 +359,27 @@ class Simulator:
         """
         amorphous = self._config['amorphous_content']
         for amorph in amorphous:
-            self._simulator.Fbg_vs_stol = self._get_radially_average_structure_factors(amorph['material'])
+            self._simulator.Fbg_vs_stol = self._get_radially_average_structure_factors(amorph['name'])
             self._simulator.amorphous_density_gcm3 = amorph['density']
-            self._simulator.amorphous_sample_size_mm = amorph['sample_size']
+            self._simulator.amorphous_sample_size_mm = amorph['size']
             self._simulator.amorphous_molecular_weight_Da = amorph['molecular_weight']
 
             self._simulator.add_background()
 
-    def simulate(self, n: int = None, output: str | Path = None, seed: int = None, mosaic_seed: int = None,
-                 save_cbf: bool = True, save_npy: bool = False, plot: bool = False) -> None:
+    def _calculate_spots(self, use_gpu: bool = False):
+        """
+        Calculate the diffraction spots using the nanoBragg simulator, either with GPU acceleration if available or
+        on the CPU.
+
+        :param use_gpu: Whether to use GPU acceleration if available (default: False)
+        """
+        if use_gpu and self.has_cuda:
+            self._simulator.add_nanoBragg_spots_cuda()
+        else:
+            self._simulator.add_nanoBragg_spots()
+
+    def simulate(self, n: int = None, output: Union[str, Path] = None, seed: int = None, mosaic_seed: int = None,
+                 save_cbf: bool = True, save_npy: bool = False, plot: bool = False, use_gpu: bool = False) -> None:
         """
         Simulate patterns and save them to disk.
 
@@ -379,6 +390,7 @@ class Simulator:
         :param save_cbf: Whether to save the simulated images in CBF format (default: True)
         :param save_npy: Whether to save the simulated images as NumPy arrays (default: False)
         :param plot: Whether to save plots of the simulated images as PNG files (default: False)
+        :param use_gpu: Whether to use GPU acceleration if available (default: False)
         """
         n = n or self._config['simulation']['no_images']
         if n <= 0:
@@ -387,7 +399,6 @@ class Simulator:
         seed = seed or self._config['simulation']['seed']
         mosaic_seed = mosaic_seed or self._config['simulation']['mosaic_seed']
         orientation = self._config['experiment']['crystal_orientation_mode'].lower()
-        processor = 'GPU' if self.has_cuda else 'CPU'
 
         logger.debug('Setting random seeds: seed=%(seed)d, mosaic_seed=%(seed)d',
                      {'seed': seed, 'mosaic_seed': mosaic_seed})
@@ -409,36 +420,40 @@ class Simulator:
             'plot': [], 'save_png': []
         }
 
-        logger.info(f'Simulating %(n)d frames with %(orientation)s crystal orientation on the %(processor)s... ',
-                    {'n': n, 'orientation': orientation, 'processor': processor})
+        logger.info(f'Simulating %(n)d frames with %(orientation)s crystal orientation',
+                    {'n': n, 'orientation': orientation})
         t0 = time.time()
 
         # Background calculation is always done on the CPU
         # We assume constant background across all images, so we only calculate it once
-        logger.info('Calculating background... ')
+        logger.info('Calculating background')
         self.calculate_background()
         t_bkg = time.time()
         timings['background'].append(t_bkg - t0)
 
         # Spot calculation
+        if use_gpu:
+            if self.has_cuda:
+                logger.info('Calculating spots with GPU acceleration')
+            else:
+                logger.warning('CUDA support not available, falling back to CPU for spot calculation')
+        else:
+            logger.info('Calculating spots with CPU')
         for i in range(n):
-            logger.info('Simulating frame %(current)d/%(total)d... ', {'current': i + 1, 'total': n})
             t1 = time.time()
 
             if orientation == 'random' or i == 0:
-                logger.debug('Randomizing crystal orientation...')
+                logger.debug('Randomizing crystal orientation')
                 self._simulator.randomize_orientation()
 
-            if self.has_cuda:
-                self._simulator.add_nanoBragg_spots_cuda()
-            else:
-                self._simulator.add_nanoBragg_spots()
+            logger.info('Calculating frame %(current)d/%(total)d', {'current': i + 1, 'total': n})
+            self._calculate_spots(use_gpu=use_gpu)
             t_frame = time.time()
             timings['frame'].append(t_frame - t1)
 
             # Noise calculation is always done on the CPU
             if self._config['simulation']['include_noise']:
-                logger.debug('Adding noise... ')
+                logger.debug('Adding noise')
                 self._simulator.add_noise()
                 t_noise = time.time()
                 timings['noise'].append(t_noise - t_frame)
@@ -446,32 +461,39 @@ class Simulator:
             # Save the simulated image
             frame = output / f'image_{i + 1:0{digits}d}'
             if save_cbf:
-                logger.debug('Saving CBF file... ')
+                cbf = frame.with_suffix('.cbf')
+                logger.debug('Saving CBF file: %(cbf)s', {'cbf': cbf})
                 t2 = time.time()
-                self._simulator.to_cbf(str(frame.with_suffix('.cbf')))
+                self._simulator.to_cbf(str(cbf))
                 t_cbf = time.time()
                 timings['save_cbf'].append(t_cbf - t2)
             if save_npy:
-                logger.debug('Saving NumPy file... ')
+                npy = frame.with_suffix('.npy')
+                logger.debug('Saving NumPy file: %(npy)s', {'npy': npy})
                 t2 = time.time()
                 self._image = self._simulator.raw_pixels.as_numpy_array()
-                np.save(frame.with_suffix('.npy'), self._image)
+                np.save(npy, self._image)
                 t_npy = time.time()
                 timings['save_npy'].append(t_npy - t2)
 
             # Plot the simulated image
             if plot:
+                png = frame.with_suffix('.png')
+                logger.debug('Saving PNG file: %(png)s', {'png': png})
                 if self._image is None:
-                    logger.debug('Converting raw pixels to NumPy array for plotting... ')
+                    logger.debug('Converting raw pixels to NumPy array for plotting')
                     self._image = self._simulator.raw_pixels.as_numpy_array()
                 t2 = time.time()
                 fig, _ = self.plot_image()
                 t_plot = time.time()
-                fig.savefig(frame.with_suffix('.png'), dpi=300)
+                fig.savefig(png, dpi=300)
                 t_png = time.time()
                 plt.close(fig)
                 timings['plot'].append(t_plot - t2)
                 timings['save_png'].append(t_png - t_plot)
+
+            # Clear the stored data on the simulator
+            self._simulator.free_all()
 
         t_end = time.time()
         logger.info(f'Simulation completed in {(t_end - t0):,.2f} seconds.')
@@ -536,6 +558,11 @@ def cli():
         default=['cbf'],
     )
     parser.add_argument(
+        '--gpu',
+        action='store_true',
+        help='Use GPU acceleration if available (default: False).'
+    )
+    parser.add_argument(
         '--debug',
         action='store_true',
         help='Enable debug logging.'
@@ -548,7 +575,8 @@ def cli():
     # Set up logging
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        stream=sys.stdout,
+        format='[%(asctime)s] %(levelname)s : %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
@@ -558,7 +586,8 @@ def cli():
         output=args.output,
         save_cbf='cbf' in args.fmt,
         save_npy='npy' in args.fmt,
-        plot='png' in args.fmt
+        plot='png' in args.fmt,
+        use_gpu=args.gpu
     )
 
 

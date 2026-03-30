@@ -36,10 +36,33 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
         Option(
             default_factory=lambda: {
                 Shell.BASH:
-                    'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__',
+                    '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
+                    'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
+                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS__ __XTL_NL__',
             },
             desc='Templates for the content of the batch file for different shells'
         )
+    use_gpu: bool = \
+        Option(
+            default=False,
+            desc='Use GPU acceleration for nanoBragg'
+        )
+    debug: bool = \
+        Option(
+            default=False,
+            desc='Enable debug mode for nanoBragg'
+        )
+
+    def get_extra_args(self) -> str:
+        """
+        Get extra command-line arguments for nanoBragg based on the configuration.
+        """
+        extra = []
+        if self.use_gpu:
+            extra.append('--gpu')
+        if self.debug:
+            extra.append('--debug')
+        return ' '.join(extra).rstrip(' ')
 
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
@@ -86,7 +109,9 @@ class NanoBraggJob(Job[NanoBraggJobConfig]):
             job_id=f'{self.job_id}.{i+1}',
             config=batch_config,
             **{
-                'NANOBRAGG_CONFIG': options_json
+                'NANOBRAGG_CONFIG': options_json,
+                'NANOBRAGG_OUTPUT_DIR': batch_config.job_directory,
+                'NANOBRAGG_EXTRA_ARGS': batch_config.get_extra_args(),
             }
         )
 
@@ -114,9 +139,9 @@ class NanoBraggJob(Job[NanoBraggJobConfig]):
         # Extract files
         self.logger.debug('Collecting results from batch job')
         images = {
-            'cbf': list(batch_config.job_directory.glob('image_*.cbf')),
-            'npy': list(batch_config.job_directory.glob('image_*.npy')),
-            'png': list(batch_config.job_directory.glob('image_*.png')),
+            'cbf': sorted(list(batch_config.job_directory.glob('image_*.cbf'))),
+            'npy': sorted(list(batch_config.job_directory.glob('image_*.npy'))),
+            'png': sorted(list(batch_config.job_directory.glob('image_*.png'))),
         }
         self.logger.debug('Step %(i)d/%(n)d completed: %(step)s', {'i': i + 1, 'n': no_steps, 'step': step})
 
