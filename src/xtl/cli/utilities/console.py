@@ -42,6 +42,7 @@ class ConsoleIO(rich.console.Console):
         from xtl.cli.utilities.logging import JobLoggerConfig, JobPoolLoggerConfig
 
         # Configuration
+        settings.jobs.tracebacks = self.debug
         self.logger_config.JOB = JobLoggerConfig(console=self)
         self.logger_config.JOB.level = logging.DEBUG if self.debug else logging.INFO
 
