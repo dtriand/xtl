@@ -8,8 +8,7 @@ from xtl.common.options import Option
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.exceptions.base import StderrError
 from xtl.jobs.jobs import Job, BatchJob
-from xtl.jobs.config2 import BatchJobConfig
-from xtl.jobs.config import JobConfig, JobStepsConfig
+from xtl.jobs.config import JobConfig, JobStepsConfig, BatchJobConfig
 from xtl.jobs.shells import Shell
 
 from xtl.nanobragg.config import NanoBraggOptions
@@ -39,6 +38,16 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
                     '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
                     'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
                         '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS__ __XTL_NL__',
+                # TODO: Remove WINDOWS
+                Shell.CMD:
+                    '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
+                    'echo __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
+                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS__ __XTL_NL__'
+                    '@echo off __XTL_NL__'
+                    'for /L %%i in (1,1,9) do ( __XTL_NL__'
+                    '    call echo.>%~dp0image_000%%i.cbf __XTL_NL__'
+                    '    call echo.>%~dp0image_000%%i.npy __XTL_NL__'
+                    ') __XTL_NL__'
             },
             desc='Templates for the content of the batch file for different shells'
         )
