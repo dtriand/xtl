@@ -4,16 +4,18 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 import shutil
+from typing import Any
 
 import numpy as np
 
 from xtl import settings
 from xtl.common.options import Option
+from xtl.exceptions.base import StderrError
 from xtl.jobs.jobs import Job
-from xtl.jobs.config import JobConfig, BatchConfig
+from xtl.jobs.config import JobConfig, BatchConfig, JobStepsConfig
 from xtl.jobs.pools import JobPool
 from xtl.math.uuid import UUIDFactory
-from xtl.saxs.jobs.atsas import DatcmpJob, DatcmpJobConfig
+from xtl.saxs.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
 from xtl.saxs.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
     DatcmpAdjustment
 
@@ -21,206 +23,221 @@ from xtl.saxs.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
 uuid = UUIDFactory()
 
 
-class SAXSCompareTreeJobConfig(JobConfig):
+class CliqueSearchJobConfig(JobConfig):
+    data: np.ndarray = \
+        Option(
+            ...,
+            desc='Boolean adjacency matrix with False on the diagonal'
+        )
+
+    max_cliques: int | None = \
+        Option(
+            default=None,
+            desc='Maximum number of cliques to return, or None for all'
+        )
+
+
+class CliqueSearchJob(Job[CliqueSearchJobConfig]):
+
+    def _execute(self) -> Any | None:
+
+        adjacency = self.config.data
+        all_cliques = []
+
+        def bron_kerbosch(R, P, X):
+            if not P and not X:
+                all_cliques.append(sorted(R[:]))
+                return
+
+            # pruning: can't beat current best
+            if all_cliques and len(R) + len(P) <= len(all_cliques[0]):
+                return
+
+            pivot = max(P + X, key=lambda u: np.sum(adjacency[u][P]))
+            candidates = [v for v in P if not adjacency[pivot, v]]
+
+            for v in candidates:
+                bron_kerbosch(
+                    R + [v],
+                    [u for u in P if adjacency[v, u]],
+                    [u for u in X if adjacency[v, u]],
+                )
+                P.remove(v)
+                X.append(v)
+
+        bron_kerbosch([], list(range(len(adjacency))), [])
+        return sorted(all_cliques, key=len, reverse=True)
+
+
+class SAXSCompareJobStepsConfig(JobStepsConfig, total=False):
+    datcmp_batch: DatcmpBatchJobConfig
+
+
+class SAXSCompareJobConfig(JobConfig):
     files: list[Path] = \
         Option(
             ...,
             desc='List of data files to compare',
             min_length=2,
-            path_exists=True)
-    datcmp: DatcmpOptions = \
+            path_exists=True
+        )
+    steps: SAXSCompareJobStepsConfig = \
         Option(
-            default_factory=lambda: DatcmpOptions(
-                test=DatcmpTest.CORMAP,
-                adjust=DatcmpAdjustment.FWER,
-                alpha=0.01,
-                format='FULL'
+            default_factory=lambda: SAXSCompareJobStepsConfig(
+                datcmp_batch=DatcmpBatchJobConfig(
+                    options=DatcmpOptions(
+                        test=DatcmpTest.CORMAP,
+                        adjust=DatcmpAdjustment.FWER,
+                        alpha=0.01,
+                        mode=DatcmpMode.PAIRWISE,
+                        format='CSV'
+                    ),
+                )
             ),
-            desc='Options for `datcmp`')
-    max_jobs: int = \
-        Option(
-            10, ge=0,
-            desc='Maximum number of parallel jobs to run. '
-                 'If set to 0, all jobs will be run in parallel.'
+            desc='Configuration for each step of the job.'
         )
 
 
 @dataclass
-class SAXSCompareTreeMatrix:
-    correlation_length: np.array
-    p_value: np.array
-    adjusted_p_value: np.array
+class SAXSComparisonMatrix:
+    correlation_length: np.ndarray
+    p_value: np.ndarray
+    adjusted_p_value: np.ndarray
 
 @dataclass
-class SAXSCompareTreeResults:
-    lineages: list[list[Path]]
-    matrix: SAXSCompareTreeMatrix
+class SAXSComparisonResults:
+    cliques: list[list[int]]
+    matrix: SAXSComparisonMatrix
     datasets: list[Path]
 
 
-class SAXSCompareTreeJob(Job[SAXSCompareTreeJobConfig]):
+class SAXSCompareJob(Job[SAXSCompareJobConfig]):
     """
     Job to compare SAXS datasets using datcmp.
     """
 
-    _job_prefix = 'saxs_compare_tree'
-    _dependencies = {'atsas'}
-
     async def _execute(self):
-        # Check for config
-        if self.config is None:
-            self.logger.error('Job is not configured.')
-            raise ValueError('Job is not configured.')
+        no_steps = len(self.config.steps_list)
 
-        # Generate all permutations first
-        permutations = self._get_permutations(self.config.files)
+        ############################
+        # Step 1: datcmp batch job #
+        ############################
+        i = 0
+        step = self.config.steps_list[i]
+        self.logger.info('Executing step %(i)d/%(n)d: %(steps)s', {'i': i + 1, 'n': no_steps, 'steps': step})
 
-        # Run all datcmp jobs in parallel
-        with JobPool(max_jobs=self.config.max_jobs or len(permutations),
-                     logger_config=self._logging_config) as pool:
+        # Prepare batch job
+        self.logger.debug(f'Preparing {DatcmpBatchJob.__name__}')
+        batch_config: DatcmpBatchJobConfig = self.config.steps[step]
+        batch_config.options.format = 'CSV'  # Ensure CSV format for parsing
+        batch_job = DatcmpBatchJob.with_config(
+            job_id=f'{self.job_id}.{i + 1}',
+            batch_args=[str(f) for f in self.config.files],
+            config=batch_config,
+            **{
+                'ATSAS_KWARGS': batch_config.get_args(),
+            }
+        )
 
-            # Create configs for each permutation
-            job_ids, configs = [], []
-            for i, files in enumerate(permutations):
-                job_id = uuid.random(settings.automate.job_digits)
-                config = DatcmpJobConfig(
-                    job_directory=self.config.job_directory,
-                    files=files,
-                    options=self.config.datcmp,
-                    batch=BatchConfig(
-                        compute_site=self.config.batch.compute_site,
-                        filename=f'datcmp_{job_id}',
-                        dependencies=self.config.batch.dependencies,
-                        permissions=self.config.batch.permissions
-                    ),
-                )
-                config.batch.shell = self.config.batch.shell
-                config.batch._strict_resolution = self.config.batch._strict_resolution
+        # Run batch job
+        self.logger.info('Running datcmp batch job in: %(dir)s', {'dir': batch_config.job_directory})
+        results = await batch_job.run()
+        self.logger.debug(f'Batch job completed')
+        if results.error:
+            raise RuntimeError(f'datcmp batch job failed with error: {results.error}')
+        else:
+            if stderr := results.data.get('stderr', None):
+                for line in stderr.splitlines():
+                    # Skip known warnings from datcmp that do not indicate a failure
+                    if 'warning: data shortened to common range' in line.lower():
+                        continue
+                    elif 'warning: data rebinned to common grid' in line.lower():
+                        continue
+                    else:
+                        raise StderrError('datcmp batch job failed', stderr=line)
 
-                configs.append(config)
-                job_ids.append(f'{DatcmpJob.__name__}|{i+1}')
+        # Parse results
+        no_files = len(self.config.files)
+        data = SAXSComparisonMatrix(
+            correlation_length=np.zeros((no_files, no_files)),
+            p_value=np.ones((no_files, no_files)),
+            adjusted_p_value=np.ones((no_files, no_files))
+        )
+        if stdout := results.data.get('stdout', None):
+            for i, line in enumerate(stdout.splitlines()):
+                if not line.startswith('Correlation Map test'):
+                    continue
+                parts = line.split(',')
+                if len(parts) != 6:
+                    continue
+                try:
+                    index_1 = int(parts[1]) - 1
+                    index_2 = int(parts[2]) - 1
+                    correlation_length = float(parts[3])
+                    p_value = float(parts[4])
+                    adjusted_p_value = float(parts[5])
+                except ValueError:
+                    self.logger.warning(f'Failed to parse line {i + 1} of datcmp output: {line}')
+                    self.logger.warning(f'   parts: {parts}')
+                    continue
 
-            # Submit jobs to the pool
-            jobs = pool.submit(DatcmpJob, configs=configs, job_ids=job_ids)
-            self.logger.debug('Running datcmp for %d permutations in batches of %d',
-                              len(permutations), pool._max_jobs)
-            results = await pool.launch()
+                data.correlation_length[index_1, index_2] = correlation_length
+                data.p_value[index_1, index_2] = p_value
+                data.adjusted_p_value[index_1, index_2] = adjusted_p_value
 
-        # Check if any of the datcmp jobs failed
-        for r in results:
-            if not r.data:
-                self._cleanup_temp_files()
-                raise RuntimeError('A datcmp job failed or returned no data.')
+            # Symmetrize matrices since datcmp only outputs upper triangle
+            data.correlation_length = np.triu(data.correlation_length) + np.triu(data.correlation_length, k=1).T
+            data.p_value = np.triu(data.p_value) + np.triu(data.p_value, k=1).T
+            data.adjusted_p_value = np.triu(data.adjusted_p_value) + np.triu(data.adjusted_p_value, k=1).T
 
-        # Parse logs
-        self.logger.debug('Parsing datcmp logs')
-        matrix = await self._parse_matrix(results[0].data)
-        tasks = [self._parse_lineage(r.data) for r in results if r is not None]
-        lineages = await asyncio.gather(*tasks)
+        #################
+        # Clique search #
+        #################
 
-        # Get the unique lineages
-        unique_lineages = []
-        for lineage in lineages:
-            lineage = sorted(lineage)
-            if lineage not in unique_lineages:
-                unique_lineages.append(lineage)
+        adjacent = data.p_value >= self.config.steps['datcmp_batch'].options.alpha
+        np.fill_diagonal(adjacent, False)  # No self-connections
+        cliques = self.find_cliques(adjacent)
 
-        # Cleanup temporary files
-        self._cleanup_temp_files()
-
-        # Return results
-        return SAXSCompareTreeResults(
-            lineages=unique_lineages,
-            matrix=SAXSCompareTreeMatrix(
-                correlation_length=np.array(matrix['correlation_length']),
-                p_value=np.array(matrix['p_value']),
-                adjusted_p_value=np.array(matrix['adjusted_p_value'])
-            ),
-            datasets=permutations[0]
+        return SAXSComparisonResults(
+            cliques=cliques,
+            matrix=data,
+            datasets=self.config.files
         )
 
     @staticmethod
-    def _get_permutations(files: list[Path]) -> list[list[Path]]:
+    def find_cliques(adjacency: np.ndarray) -> list[list[int]]:
         """
-        Generate all permutations of the given list of files.
+        Find all maximal cliques in an undirected graph using Bron-Kerbosch with pivoting and pruning, sorted by size
+        descending.
 
-        :param files: List of Paths representing the datasets to compare.
+        :param adjacency: Symmetric boolean (N, N) adjacency matrix with False on the diagonal.
+        :return: List of cliques, each a sorted list of node indices, ordered largest first.
         """
-        if len(files) <= 2:
-            return [files]
+        all_cliques = []
 
-        permutations = []
-        for i in range(len(files)):
-            permutations.append(files[i:] + files[:i])
-        return permutations
+        def bron_kerbosch(R, P, X):
+            if not P and not X:
+                all_cliques.append(sorted(R[:]))
+                return
 
-    async def _parse_lineage(self, log: str) -> list[Path]:
-        """
-        Parse the log output from datcmp to extract a list of datasets that passed the
-        test.
+            # pruning: can't beat current best
+            if all_cliques and len(R) + len(P) <= len(all_cliques[0]):
+                return
 
-        :param log: The log output from the datcmp command.
-        :return: A list of Paths representing the datasets that passed the test.
-        """
-        if not log:
-            self.logger.warning('Log is empty, no lineage to parse.')
-            return []
+            pivot = max(P + X, key=lambda u: np.sum(adjacency[u][P]))
+            candidates = [v for v in P if not adjacency[pivot, v]]
 
-        starred_regex = re.compile(r'\s+(\d+)(\*?)\s+(.+)')
-        selected = []
-        for line in log.splitlines():
-            match = starred_regex.match(line)
-            if match:
-                d, starred, file = match.groups()
-                if starred == '*':
-                    selected.append(Path(file))
-        return selected
+            for v in candidates:
+                bron_kerbosch(
+                    R + [v],
+                    [u for u in P if adjacency[v, u]],
+                    [u for u in X if adjacency[v, u]],
+                )
+                P.remove(v)
+                X.append(v)
 
-    async def _parse_matrix(self, log: str) -> dict:
-        """
-        Parse the log output from datcmp to extract the correlation matrix and p-values.
-
-        :param log: The log output from the datcmp command.
-        :return: A dictionary containing the correlation lengths, p-values, and adjusted
-            p-values matrices.
-        """
-        D1 = []
-        D2 = []
-        correlation_lengths = []
-        p_values = []
-        adjusted_p_values = []
-
-        matrix_regex = re.compile(
-            r'\s+(\d+)\s+vs\.\s+(\d+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)(\s|\*)'
-        )
-        for line in log.splitlines():
-            match = matrix_regex.match(line)
-            if match:
-                d1, d2, corr_length, p_value, adj_p_value, starred = match.groups()
-                D1.append(int(d1))
-                D2.append(int(d2))
-                correlation_lengths.append(float(corr_length))
-                p_values.append(float(p_value))
-                adjusted_p_values.append(float(adj_p_value))
-
-        if not D1:
-            self.logger.warning('No valid data found in the log for matrix parsing.')
-            return {}
-
-        no_datasets = int(D2[-1])
-        empty_matrix: list = [[0.] * no_datasets for _ in range(no_datasets)]
-        matrix = {
-            'correlation_length': copy.deepcopy(empty_matrix),
-            'p_value': copy.deepcopy(empty_matrix),
-            'adjusted_p_value': copy.deepcopy(empty_matrix),
-        }
-        for d1, d2, corr_length, p_value, adj_p_value in zip(
-                D1, D2, correlation_lengths, p_values, adjusted_p_values):
-            matrix['correlation_length'][d1 - 1][d2 - 1] = corr_length
-            matrix['p_value'][d1 - 1][d2 - 1] = p_value
-            matrix['adjusted_p_value'][d1 - 1][d2 - 1] = adj_p_value
-
-        return matrix
+        bron_kerbosch([], list(range(len(adjacency))), [])
+        return sorted(all_cliques, key=len, reverse=True)
 
     def _cleanup_temp_files(self):
         """
