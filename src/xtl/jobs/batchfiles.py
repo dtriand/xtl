@@ -58,10 +58,10 @@ class BatchTemplate(Template):
     delimiter = '__'
     pattern = r'''
             __(?:
-                (?P<escaped>__)             |  # Escape sequence of two delimiters
-                (?P<named>[a-zA-Z_]\w*)__   |  # Delimiter and a Python identifier
-                (?P<braced>[a-zA-Z_]\w*)__  |  # Delimiter and a braced identifier
-                (?P<invalid>)                  # Other ill-formed delimiter expressions
+                (?P<escaped>__)                        |  # Escape sequence of two delimiters
+                (?P<named>[a-zA-Z_][a-zA-Z0-9_]*?)__   |  # Delimiter and a Python identifier
+                (?P<braced>[a-zA-Z_][a-zA-Z0-9_]*?)__  |  # Delimiter and a braced identifier
+                (?P<invalid>)                             # Other ill-formed delimiter expressions
             )
         '''
 
