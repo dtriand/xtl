@@ -35,20 +35,16 @@ class ATSASBatchJobConfig(BatchJobConfig, abc.ABC):
             default_factory=lambda: {
                 Shell.BASH:
                     '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
-                    '__ATSAS_EXEC__ "$@" __ATSAS_KWARGS__ ',
+                    '__ATSAS_EXEC__ __INPUT_FILES__ __ATSAS_KWARGS__',
                 Shell.CMD:
                     '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
-                    '__ATSAS_EXEC__ %* __ATSAS_KWARGS__ ',
+                    '__ATSAS_EXEC__ __INPUT_FILES__ __ATSAS_KWARGS__',
                 Shell.POWERSHELL:
                     '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
-                    '__ATSAS_EXEC__ @args __ATSAS_KWARGS__ ',
+                    '__ATSAS_EXEC__ __INPUT_FILES__ __ATSAS_KWARGS__',
             },
             desc='Templates for the content of the batch file for different shells'
         )
-
-    @abc.abstractmethod
-    def get_args(self) -> str:
-        ...
 
 
 class DatcmpBatchJobConfig(ATSASBatchJobConfig):
@@ -56,17 +52,21 @@ class DatcmpBatchJobConfig(ATSASBatchJobConfig):
     name: Optional[str] = 'xtl.DatcmpBatchJobConfig'
     description: Optional[str] = 'DATCMP batch job'
 
+    input: list[Path] = \
+        Option(
+            desc='List of input data files for `datcmp`'
+        )
     options: DatcmpOptions = \
         Option(
             default_factory=DatcmpOptions,
             desc='Options for `datcmp`'
         )
 
-    def get_args(self) -> str:
-        """
-        Get the command-line arguments for the datcmp executable based on the configuration.
-        """
-        return ' '.join(self.options.get_args())
+    def get_context(self):
+        context = super().get_context()
+        context['ATSAS_KWARGS'] = ' '.join(self.options.get_args())
+        context['INPUT_FILES'] = ' '.join(self.shell.get().sanitize_value(file) for file in self.input)
+        return context
 
 
 class DatcmpBatchJob(BatchJob[ATSASBatchJobConfig]):

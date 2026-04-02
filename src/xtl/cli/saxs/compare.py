@@ -5,8 +5,7 @@ import typer
 from xtl import settings
 from xtl.cli.utilities.decorators import typer_async, attach_hook, job_options
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, \
-    get_job_options, JobOptions, CPU_CORES
-from xtl.saxs.jobs.atsas_utils import DatcmpMode, DatcmpTest, DatcmpAdjustment
+    get_job_options, JobOptions
 
 
 app = typer.Typer()
@@ -20,15 +19,8 @@ app = typer.Typer()
 async def cli_saxs_compare(
     datafiles: list[Path] = typer.Argument(..., metavar='FILE(S)',
                                            help='Data files to compare'),
-    test: DatcmpTest = typer.Option(DatcmpTest.CORMAP, '--test', '-t',
-                                    help='Test name'),
-    adjustment: DatcmpAdjustment = typer.Option(DatcmpAdjustment.FWER, '--adjust',
-                                                help='Adjustment method'),
     alpha: float = typer.Option(0.01, '--alpha', '-a', min=0,
                                 help='Significance level for clique search'),
-    max_jobs: int = typer.Option(CPU_CORES * 10, '--max-jobs', min=0,
-                                 help='Maximum number of concurrent jobs',
-                                 rich_help_panel='Parallelization'),
     job_options: JobOptions = typer.Option(),
     console_options: ConsoleOptions = typer.Option(),
 ):
@@ -38,29 +30,20 @@ async def cli_saxs_compare(
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.report_job_options(job_options)
-    settings.automate.keep_temp = job_options.keep_temp
+    settings.jobs.keep_temp = job_options.keep_temp
 
     job_directory = Path(tempfile.mkdtemp(prefix='xtl_saxs_compare_'))
-    if console.verbose:
-        console.print(f'Job directory: [dim]{job_directory}[/]')
     config = SAXSCompareJobConfig(
         job_directory=job_directory,
         files=datafiles,
         steps={
             'datcmp_batch': {
                 'options': {
-                    'test': test,
-                    'adjust': adjustment,
                     'alpha': alpha,
-                    'mode': DatcmpMode.PAIRWISE,
                 }
             }
-        },
-        max_jobs=max_jobs,
+        }
     )
-    if job_options.compute_site == 'modules':
-        config._include_default_dependencies = False
-
     with console.get_pool() as pool:
         jobs = pool.submit(SAXSCompareJob, configs=[config])
         results = await pool.launch()
@@ -72,13 +55,14 @@ async def cli_saxs_compare(
     from rich.tree import Tree
 
     tree = Tree('[bold]Datasets[/]')
-    for i, lineage in enumerate(results.data.cliques):
+    cliques = results.data['cliques']
+    for i, lineage in enumerate(cliques):
         branch = tree.add(f'[bold green]Clique #{i + 1:,}[/]')
-        for j in lineage:
-            branch.add(results.data.datasets[j].name)
+        for file in lineage:
+            branch.add(file.name)
     console.print(tree)
 
     console.print(f'\nNumber of unique merging cliques: '
-                  f'[dim]{len(results.data.cliques):,}[/]', highlight=False)
+                  f'[dim]{len(cliques):,}[/]', highlight=False)
     console.print(f'Longest clique: [dim]#1 '
-                  f'({len(results.data.cliques[0])}/{len(datafiles)} datasets)[/]', highlight=False)
+                  f'({len(cliques[0])}/{len(datafiles)} datasets)[/]', highlight=False)
