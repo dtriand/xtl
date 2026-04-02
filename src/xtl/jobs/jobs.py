@@ -7,11 +7,10 @@ from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKIN
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
-    from xtl.jobs.batchfiles import BatchFile as BatchFile2
+    from xtl.jobs.batchfiles import BatchFile
 
 from xtl import settings, Logger
-from xtl.jobs.config import _BaseJobConfig, JobConfig
-from xtl.jobs.config2 import BatchJobConfig
+from xtl.jobs.config import _BaseJobConfig, JobConfig, BatchJobConfig
 from xtl.math.uuid import UUIDFactory
 from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
 from xtl.exceptions.base import SubprocessError, StderrError
@@ -84,6 +83,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     )
     """Logging configuration for jobs."""
 
+    # TODO: Remove _job_prefix and _dependencies since they are not used?
     _job_prefix: ClassVar[str] = 'xtl_job'
     """Job prefix"""
 
@@ -373,7 +373,7 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         super().__init__(job_id=job_id, logger=logger)
 
         self._config: BatchJobConfig | None
-        self._batch: Optional[BatchFile2] = None
+        self._batch: Optional[BatchFile] = None
         self._batch_args: list[str] = []
         self._batch_context: dict = {}
 

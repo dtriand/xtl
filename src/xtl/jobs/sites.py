@@ -11,7 +11,7 @@ from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 import aiofiles
 
 if TYPE_CHECKING:
-    from xtl.jobs.config2 import BatchJobConfig
+    from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
 from xtl.common.compatibility import PY310_OR_LESS, XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
@@ -531,7 +531,7 @@ class SlurmSite(SchedulerSite, ABC):
     @staticmethod
     def _prepare_slurm_preamble(shell: ShellType,
                                 config: BatchJobConfig | dict = None) -> str:
-        from xtl.jobs.config2 import BatchJobConfig
+        from xtl.jobs.config import BatchJobConfig
 
         args = []
         if config:

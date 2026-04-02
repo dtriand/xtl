@@ -73,7 +73,7 @@ async def cli_nanobragg_simulate(
     from xtl.nanobragg.config import NanoBraggOptions
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
-    console.report_automate(job_options)
+    console.report_job_options(job_options)
 
     if options_file.suffix not in ['.json', '.toml']:
         console.print('Options file must be JSON or TOML', style='red')

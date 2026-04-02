@@ -9,7 +9,7 @@ from xtl.logging.config import LoggerConfig
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool
-    from xtl.cli.utilities.common import AutomateOptions
+    from xtl.cli.utilities.common import JobOptions
 
 
 class ConsoleIO(rich.console.Console):
@@ -60,7 +60,7 @@ class ConsoleIO(rich.console.Console):
         self._setup_job_logging()
         return JobPool(max_jobs=max_jobs, logger_config=self.logger_config.JOB)
 
-    def report_automate(self, options: 'AutomateOptions') -> None:
+    def report_job_options(self, options: 'JobOptions') -> None:
         if self.verbose:
             from xtl.common.compatibility import OS_POSIX
 

@@ -12,7 +12,7 @@ from xtl import settings
 from xtl.common.options import Option
 from xtl.exceptions.base import StderrError
 from xtl.jobs.jobs import Job
-from xtl.jobs.config import JobConfig, BatchConfig, JobStepsConfig
+from xtl.jobs.config import JobConfig, JobStepsConfig
 from xtl.jobs.pools import JobPool
 from xtl.math.uuid import UUIDFactory
 from xtl.saxs.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
