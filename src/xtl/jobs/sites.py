@@ -387,11 +387,11 @@ class ModulesSite(LocalSite):
         :param shell: The shell type to generate the command for.
         :return: The command string to purge modules.
         """
-        cmd = 'module purge' + shell.new_line_char
+        cmd = 'module purge'
         if shell == Shell.CMD:
             # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd
+            cmd = f'call {cmd} 2>NUL'
+        return cmd + shell.new_line_char
 
     @staticmethod
     def _load_modules(modules: str | Iterable[str], shell: ShellType) -> str:
@@ -404,11 +404,11 @@ class ModulesSite(LocalSite):
         """
         if isinstance(modules, str):
             modules = [modules]
-        cmd = f'module load {" ".join(modules)}{shell.new_line_char}'
+        cmd = f'module load {" ".join(modules)}'
         if shell == Shell.CMD:
             # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd
+            cmd = f'call {cmd} 2>NUL'
+        return cmd + shell.new_line_char
 
     def _prepare_modules_preamble(self, dependencies: Iterable[DependencySettings | str]
                                                  | DependencySettings | str
