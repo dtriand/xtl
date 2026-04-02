@@ -113,7 +113,7 @@ class BatchFile:
         self._shell = shell or DefaultShell()
 
         # Set permissions
-        _permissions = FilePermissions(permissions or settings.jobs.batch.permissions)
+        _permissions = FilePermissions(permissions or settings.jobs.permissions.scripts)
         if not _permissions.owner.can_execute:
             raise ValueError(f'`permissions` must allow owner execute access, '
                              f'not {_permissions}')
@@ -310,26 +310,7 @@ class BatchFile:
         """
         Sanitize the context dictionary for safe insertion into batch file templates.
         """
-        sanitized = {}
-        for key, value in context.items():
-            match value:
-                case Path():
-                    path_str = str(value)
-                    if self.shell.is_posix:
-                        # Use shlex.quote to properly escape the path for POSIX shells
-                        sanitized[key] = shlex.quote(path_str)
-                    elif self.shell == Shell.CMD:  # CMD requires double quotes for escaping
-                        # Escape internal quotes by doubling them
-                        path_str = path_str.replace('"', '""')
-                        sanitized[key] = f'"{path_str}"'
-                    elif self.shell == Shell.POWERSHELL:  # PWSH requires single quotes for escaping
-                        # Escape internal quotes by doubling them
-                        path_str = path_str.replace('\'', '\'\'')
-                        sanitized[key] = f'\'{path_str}\''
-                    else:
-                        raise ValueError(f'Unsupported shell for path sanitization: {self.shell}')
-                case _:
-                    sanitized[key] = value
+        sanitized = {key: self.shell.sanitize_value(value) for key, value in context.items()}
         return sanitized
 
     def _render_template(self, template: str, context: dict = None) -> str:

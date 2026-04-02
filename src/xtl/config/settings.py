@@ -71,17 +71,32 @@ class AutomatePermissionsSettings(Settings):
     """
 
     # Model attributes
-    update: bool = Option(default=False,
-                          desc='Update permissions of the output files '
-                               'after execution of external jobs')
-    files: FilePermissions = Option(default=FilePermissions(0o600),
-                                    desc='Permissions octal for files',
-                                    cast_as=FilePermissions,
-                                    formatter=PermissionOctal)
-    directories: FilePermissions = Option(default=FilePermissions(0o700),
-                                          desc='Permissions octal for directories',
-                                          cast_as=FilePermissions,
-                                          formatter=PermissionOctal)
+    update: bool = \
+        Option(
+            default=False,
+            desc='Update permissions of the output files after execution of external jobs'
+        )
+    scripts: FilePermissions = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions octal for scripts',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+    files: FilePermissions = \
+        Option(
+            default=FilePermissions(0o600),
+            desc='Permissions octal for files',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+    directories: FilePermissions = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions octal for directories',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
 
 
 class AutomateSettings(Settings):
@@ -132,16 +147,28 @@ class JobsSettings(Settings):
     """
 
     # Model attributes
-    batch: BatchSettings = \
+    permissions: AutomatePermissionsSettings = \
         Option(
-            default=BatchSettings(),
-            desc='Settings for batch files'
+            default=AutomatePermissionsSettings(),
+            desc='Permissions settings for jobs'
+        )
+
+    job_digits: int = \
+        Option(
+            default=5,
+            desc='Number of digits to use for generation of random job IDs'
         )
 
     compute_site: ComputeSite2 = \
         Option(
             default=ComputeSite2.LOCAL,
             desc='Default compute site for job execution'
+        )
+
+    keep_temp: bool = \
+        Option(
+            default=False,
+            desc='Keep temporary files after job execution'
         )
 
     tracebacks: bool = \
