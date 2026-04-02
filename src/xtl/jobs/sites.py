@@ -390,7 +390,7 @@ class ModulesSite(LocalSite):
         cmd = 'module purge'
         if shell == Shell.CMD:
             # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd} 2>NUL'
+            cmd = f'call {cmd}'
         return cmd + shell.new_line_char
 
     @staticmethod
@@ -407,7 +407,7 @@ class ModulesSite(LocalSite):
         cmd = f'module load {" ".join(modules)}'
         if shell == Shell.CMD:
             # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd} 2>NUL'
+            cmd = f'call {cmd}'
         return cmd + shell.new_line_char
 
     def _prepare_modules_preamble(self, dependencies: Iterable[DependencySettings | str]

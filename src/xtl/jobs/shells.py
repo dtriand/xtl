@@ -338,6 +338,26 @@ class BaseShell:
             return bits
         return full_command
 
+    def sanitize_value(self, value):
+        match value:
+            case Path():
+                path_str = str(value)
+                if self.is_posix:
+                    # Use shlex.quote to properly escape the path for POSIX shells
+                    return shlex.quote(path_str)
+                elif self == Shell.CMD:  # CMD requires double quotes for escaping
+                    # Escape internal quotes by doubling them
+                    path_str = path_str.replace('"', '""')
+                    return f'"{path_str}"'
+                elif self == Shell.POWERSHELL:  # PWSH requires single quotes for escaping
+                    # Escape internal quotes by doubling them
+                    path_str = path_str.replace('\'', '\'\'')
+                    return f'\'{path_str}\''
+                else:
+                    raise ValueError(f'Unsupported shell for path sanitization: {self.__class__.__name__}')
+            case _:
+                return value
+
 
 class BashShell(BaseShell):
     """
