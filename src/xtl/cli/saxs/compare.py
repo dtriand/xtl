@@ -5,7 +5,7 @@ import typer
 from xtl import settings
 from xtl.cli.utilities.decorators import typer_async, attach_hook, job_options
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, \
-    get_automate_options, AutomateOptions, CPU_CORES
+    get_job_options, JobOptions, CPU_CORES
 from xtl.saxs.jobs.atsas_utils import DatcmpMode, DatcmpTest, DatcmpAdjustment
 
 
@@ -15,7 +15,7 @@ app = typer.Typer()
 @app.command('compare', help='Compare two or more SAXS datasets using datcmp')
 @job_options(dependencies=['atsas'])
 @attach_hook(func=get_console_options, hook_output='console_options')
-@attach_hook(func=get_automate_options, hook_output='automate_options')
+@attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
 async def cli_saxs_compare(
     datafiles: list[Path] = typer.Argument(..., metavar='FILE(S)',
@@ -29,17 +29,16 @@ async def cli_saxs_compare(
     max_jobs: int = typer.Option(CPU_CORES * 10, '--max-jobs', min=0,
                                  help='Maximum number of concurrent jobs',
                                  rich_help_panel='Parallelization'),
-    automate_options: AutomateOptions = typer.Option(),
+    job_options: JobOptions = typer.Option(),
     console_options: ConsoleOptions = typer.Option(),
 ):
     import tempfile
     from xtl.cli.utilities.console import ConsoleIO
-    from xtl.saxs.jobs.atsas_utils import DatcmpOptions
     from xtl.saxs.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
-    console.report_automate(automate_options)
-    settings.automate.keep_temp = automate_options.keep_temp
+    console.report_job_options(job_options)
+    settings.automate.keep_temp = job_options.keep_temp
 
     job_directory = Path(tempfile.mkdtemp(prefix='xtl_saxs_compare_'))
     if console.verbose:
@@ -59,7 +58,7 @@ async def cli_saxs_compare(
         },
         max_jobs=max_jobs,
     )
-    if automate_options.compute_site == 'modules':
+    if job_options.compute_site == 'modules':
         config._include_default_dependencies = False
 
     with console.get_pool() as pool:
