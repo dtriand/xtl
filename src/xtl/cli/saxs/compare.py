@@ -35,7 +35,7 @@ async def cli_saxs_compare(
     import tempfile
     from xtl.cli.utilities.console import ConsoleIO
     from xtl.saxs.jobs.atsas_utils import DatcmpOptions
-    from xtl.saxs.jobs.compare import SAXSCompareTreeJob, SAXSCompareTreeJobConfig
+    from xtl.saxs.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.report_automate(automate_options)
@@ -44,23 +44,26 @@ async def cli_saxs_compare(
     job_directory = Path(tempfile.mkdtemp(prefix='xtl_saxs_compare_'))
     if console.verbose:
         console.print(f'Job directory: [dim]{job_directory}[/]')
-    config = SAXSCompareTreeJobConfig(
+    config = SAXSCompareJobConfig(
         job_directory=job_directory,
         files=datafiles,
-        batch=automate_options.get_batch_config(),
-        datcmp=DatcmpOptions(
-            test=test,
-            adjust=adjustment,
-            alpha=alpha,
-            mode=DatcmpMode.PAIRWISE,
-        ),
+        steps={
+            'datcmp_batch': {
+                'options': {
+                    'test': test,
+                    'adjust': adjustment,
+                    'alpha': alpha,
+                    'mode': DatcmpMode.PAIRWISE,
+                }
+            }
+        },
         max_jobs=max_jobs,
     )
     if automate_options.compute_site == 'modules':
         config._include_default_dependencies = False
 
     with console.get_pool() as pool:
-        jobs = pool.submit(SAXSCompareTreeJob, configs=[config])
+        jobs = pool.submit(SAXSCompareJob, configs=[config])
         results = await pool.launch()
     if not results[0].success:
         raise typer.Exit(code=1)
@@ -70,19 +73,13 @@ async def cli_saxs_compare(
     from rich.tree import Tree
 
     tree = Tree('[bold]Datasets[/]')
-    for i, lineage in enumerate(results.data.lineages):
-        branch = tree.add(f'[bold green]Lineage #{i + 1}[/]')
-        for file in lineage:
-            branch.add(str(file))
+    for i, lineage in enumerate(results.data.cliques):
+        branch = tree.add(f'[bold green]Clique #{i + 1:,}[/]')
+        for j in lineage:
+            branch.add(results.data.datasets[j].name)
     console.print(tree)
 
-    max_len = 1
-    longest_lineage = None
-    for i, lineage in enumerate(results.data.lineages):
-        if len(lineage) > max_len:
-            max_len = len(lineage)
-            longest_lineage = i + 1
-    console.print(f'\nNumber of unique merging lineages: '
-                  f'[dim]{len(results.data.lineages)}[/]', highlight=False)
-    console.print(f'Longest lineage: [dim]#{longest_lineage} '
-                  f'({max_len}/{len(datafiles)} datasets)[/]', highlight=False)
+    console.print(f'\nNumber of unique merging cliques: '
+                  f'[dim]{len(results.data.cliques):,}[/]', highlight=False)
+    console.print(f'Longest clique: [dim]#1 '
+                  f'({len(results.data.cliques[0])}/{len(datafiles)} datasets)[/]', highlight=False)
