@@ -4,12 +4,8 @@ import os
 import typer
 
 from xtl import settings
-from xtl.common.os import FilePermissions
+from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.jobs.sites import ComputeSite
-
-
-CPU_CORES: int = os.cpu_count()
-"""Number of CPU cores available on the system, used for parallel job execution."""
 
 
 @dataclass(frozen=True)
