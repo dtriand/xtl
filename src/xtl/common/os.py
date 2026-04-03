@@ -14,6 +14,10 @@ else:
     from enum import StrEnum
 
 
+CPU_CORES: int = os.cpu_count()
+"""Number of CPU cores available on the system, used for parallel job execution."""
+
+
 def get_os_name_and_version() -> str:
     if platform.system() == 'Linux':
         try:

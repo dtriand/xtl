@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import sys
 from typing import Any
@@ -106,17 +107,28 @@ class LoggerConfig(Options):
                                                lambda: [StreamHandlerConfig()],
                                            desc='List of handlers for the job logger')
 
-    def configure(self, logger: logging.Logger) -> None:
+    def configure(self, logger: logging.Logger, remove_existing: bool = False) -> None:
         """
         Configure the given logger based on this configuration.
 
         :param logger: The logger to configure
+        :param remove_existing: Whether to remove existing handlers before adding new ones
         """
+        # Remove existing handlers
+        if remove_existing and logger.handlers:
+            for handler in list(logger.handlers):
+                logger.removeHandler(handler)
+                with contextlib.suppress(Exception):
+                    handler.close()
+
         logger.setLevel(self.level)
         logger.propagate = self.propagate
 
         for handler_config in self.handlers:
             handler = handler_config.get_handler()
+            if handler in logger.handlers:
+                # Avoid adding duplicate handlers
+                continue
             logger.addHandler(handler)
 
         # Ensure at least a NullHandler is present

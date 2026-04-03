@@ -16,7 +16,7 @@ from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import version_from_str
-from xtl.common.os import FilePermissions
+from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
@@ -126,18 +126,31 @@ class AutomateSettings(Settings):
         )
 
 
-class BatchSettings(Settings):
+class ResourcesSettings(Settings):
     """
-    Settings for batch files in :mod:`xtl.jobs.batchfiles`
+    Resource settings for jobs
     """
 
     # Model attributes
-    permissions: FilePermissions = \
+    max_jobs: int = \
         Option(
-            default=FilePermissions(0o700),
-            desc='Permissions for the batch file in octal format (e.g., 700)',
-            cast_as=FilePermissions,
-            formatter=PermissionOctal
+            default=10,
+            desc='Maximum number of jobs to run concurrently in a pool'
+        )
+    max_cores: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of CPU cores to use for job execution'
+        )
+    max_threads: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of threads to use for job execution'
+        )
+    max_processes: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of processes to use for job execution'
         )
 
 
@@ -147,12 +160,6 @@ class JobsSettings(Settings):
     """
 
     # Model attributes
-    permissions: AutomatePermissionsSettings = \
-        Option(
-            default=AutomatePermissionsSettings(),
-            desc='Permissions settings for jobs'
-        )
-
     job_digits: int = \
         Option(
             default=5,
@@ -175,6 +182,24 @@ class JobsSettings(Settings):
         Option(
             default=False,
             desc='Whether to include tracebacks in job logs when exceptions occur'
+        )
+
+    threading_debug: bool = \
+        Option(
+            default=False,
+            desc='Enable thread and process names in job logs for debugging concurrency issues'
+        )
+
+    permissions: AutomatePermissionsSettings = \
+        Option(
+            default=AutomatePermissionsSettings(),
+            desc='Permissions settings for jobs'
+        )
+
+    resources: ResourcesSettings = \
+        Option(
+            default=ResourcesSettings(),
+            desc='Default resource settings for job execution'
         )
 
 
