@@ -1,7 +1,6 @@
 """
-Central location for various compatibility checks and environment variables.
+Central location for various compatibility checks.
 """
-import os
 import platform
 import sys
 
@@ -53,10 +52,3 @@ OS_MACOS: bool = platform.system() == 'Darwin'
 OS_POSIX: bool = OS_LINUX or OS_MACOS
 """Operating system is POSIX compliant (Linux or macOS)"""
 
-
-#########################
-# Environment variables #
-#########################
-XTL_COMPUTE_SITE: str | None = os.getenv('XTL_COMPUTE_SITE', None)
-"""Environment variable 'XTL_COMPUTE_SITE'"""
-# Used to trigger specialized compute site configurations
