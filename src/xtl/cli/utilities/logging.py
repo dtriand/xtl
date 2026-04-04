@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.highlighter import RegexHighlighter, Highlighter
 
+from xtl import settings
 from xtl.logging.config import LoggerConfig, LoggingFormat, HandlerConfig
 
 
@@ -32,12 +33,17 @@ def get_rich_logger_config(console: Console = None,
     """
     Returns a logger config with rich.logging.RichHandler
     """
+    if settings.jobs.threading_debug:
+        fmt = '[%(name)s<%(processName)s:%(threadName)s>] %(message)s'
+    else:
+        fmt = '[%(name)s] %(message)s'
+
     config = LoggerConfig(
         handlers=[
             HandlerConfig(
                 handler=RichHandler,
                 format=LoggingFormat(
-                    format='[%(name)s] %(message)s',
+                    format=fmt,
                 ),
                 options={
                     'show_path': False,
