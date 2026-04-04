@@ -6,9 +6,17 @@ from xtl.jobs.pools2 import BasePool
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 
 
+class _DummyIPCBackend:
+    def start(self): pass
+
+    def stop(self): pass
+
+
 class _DummyPool(BasePool):
-    async def _execute_submission(self, submission):
-        return None
+
+    _ipc_cls = _DummyIPCBackend
+
+    async def _execute_submission(self, submission): return None
 
 
 @pytest.mark.asyncio
