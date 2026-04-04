@@ -1,7 +1,10 @@
+__all__ = ['JobSubmission']
+
 from xtl import settings
 from xtl.common.options import Option, Options
 from xtl.math.uuid import UUIDFactory
 from xtl.jobs.jobs import Job, JobData
+from xtl.jobs.ipc import IPCHandle
 
 
 uuid = UUIDFactory()
@@ -23,6 +26,14 @@ class JobSubmission(Options):
             ...,
             desc='Serialized job data, including job class, config, and metadata'
         )
+
+    ipc: IPCHandle | None = \
+        Option(
+            default=None,
+            desc='Optional `IPCHandle` containing interprocess communication primitives '
+                 'for worker communication'
+        )
+
 
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':

@@ -415,7 +415,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             # If no pool is set, return a dummy pool that does nothing
             return _DummyPool()
         # Use the pool's lock
-        return self._pool.request_lock()
+        return self._pool.get_lock()
 
     @property
     def logger(self) -> logging.Logger:

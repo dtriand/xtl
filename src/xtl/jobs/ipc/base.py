@@ -118,7 +118,7 @@ class IPCBackend(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def get_queue(self, name: str | None) -> IPCQueue:
+    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
         """
         Get a queue by name.
         """

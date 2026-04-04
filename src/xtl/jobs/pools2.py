@@ -18,6 +18,8 @@ from xtl.common.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job, JobResults
 from xtl.jobs.logging import get_logger_config
+from xtl.jobs.ipc import (IPCBackend, IPCHandle, IPCHandleNames, IPCLock, IPCQueue, IPCState, AsyncIPCBackend,
+                          ThreadedIPCBackend, ProcessIPCBackend)
 from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.logging.config import LoggerConfig
@@ -56,6 +58,7 @@ class BasePool(abc.ABC):
     _logging_level = logging.INFO
     _logging_config: LoggerConfig = get_logger_config(level=_logging_level)
     _executor_cls = None
+    _ipc_cls: type[IPCBackend]
 
     def __init__(self, name: str | None = None, max_jobs: int = 1, logger_config: LoggerConfig = None,
                  resources: Resources | None = None, resources_manager: ResourceManager | None = None, **kwargs):
@@ -85,7 +88,8 @@ class BasePool(abc.ABC):
         self._executor: BasePool._executor_cls | None = None  # Managed by __aenter__ and __aexit__
 
         # Initialize inter-process communication
-        self._ipc = None
+        self._ipc: IPCBackend | None = None  # Managed by __aenter__ and __aexit__
+        self._ipc_handle_names: IPCHandleNames = IPCHandleNames()
 
         # Concurrency control
         self._semaphore: asyncio.Semaphore | None = None
@@ -190,6 +194,10 @@ class BasePool(abc.ABC):
         self._resources = self._rc_lease.granted
         self._semaphore = asyncio.Semaphore(self._resources.jobs)
 
+        # Start the IPC backend
+        self._ipc = self._ipc_cls()
+        self._ipc.start()
+
         self._in_ctx = True
         self.logger.debug('Entering the pool context manager')
         return self
@@ -241,6 +249,12 @@ class BasePool(abc.ABC):
         self._jobs.clear()
         self._submissions.clear()
 
+        # Tear down IPC backend
+        if self._ipc is not None:
+            self._ipc.stop()
+            self._ipc = None
+        self._ipc_handle_names = IPCHandleNames()
+
         # Release resources
         if self._rc_lease is not None:
             self.logger.debug('Releasing resources from pool: %s', self._rc_lease.granted.__dict__)
@@ -287,6 +301,7 @@ class BasePool(abc.ABC):
 
             # Create submission
             submission = JobSubmission.from_job(job)
+            submission.ipc = self._build_ipc_handle()
 
             # Register submission and job
             self._submissions[submission.submission_id] = submission
@@ -390,8 +405,96 @@ class BasePool(abc.ABC):
             self.logger.debug('Deactivating pool')
             self._is_running = False
 
+    def get_lock(self, name: str | None = None) -> IPCLock:
+        """
+        Get a lock from the pool. If the requested lock does not exist, it will be created.
+        If a name is not specified, the default lock will be returned.
+
+        :param name: The name of the lock to retrieve, or None for the default lock.
+        :raises RuntimeError: If the pool is not currently active (i.e., not within the context manager).
+        :return: An IPCLock instance corresponding to the requested lock.
+        """
+        if self._ipc is None:
+            raise RuntimeError('Locks are only available from within the pool context manager')
+        lock = self._ipc.get_lock(name)
+        self._ipc_handle_names.locks.add(name)
+        return lock
+
+    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
+        """
+        Get a queue from the pool. If the requested queue does not exist, it will be created.
+
+        :param name: The name of the queue to retrieve.
+        :param maxsize: The maximum size of the queue (default: 0 for unlimited).
+        :raises RuntimeError: If the pool is not currently active (i.e., not within the context manager).
+        :return: An IPCQueue instance corresponding to the requested queue.
+        """
+        if self._ipc is None:
+            raise RuntimeError('Queues are only available from within the pool context manager')
+        queue = self._ipc.get_queue(name, maxsize=maxsize)
+        self._ipc_handle_names.queues.add(name)
+        return queue
+
+    def get_state(self, name: str | None) -> IPCState:
+        """
+        Get a shared state dict from the pool. If the requested state does not exist, it will be created.
+        Per-operation atomicity is guaranteed. Any compound read-modify-write (RMW) operations (e.g. in-place
+        modification) are NOT atomic and must be protected with an explicit lock.
+
+        Example usage:
+
+        .. code-block:: python
+
+            state = pool.get_state('my_state')
+            # Atomic operation
+            state['counter'] = 0
+            # Compound RMW - unsafe
+            state['counter'] += 1  # 3 separate operations: get, modify, set - not atomic!
+            # Compound RMW - safe with lock
+            async with pool.get_lock():
+                state['counter'] += 1  # Protected by lock, safe to perform compound RMW
+
+        :param name: The name of the state to retrieve.
+        :raises RuntimeError: If the pool is not currently active (i.e., not within the context manager).
+        :return: An IPCState instance corresponding to the requested state.
+        """
+        if self._ipc is None:
+            raise RuntimeError('Shared states are only available from within the pool context manager')
+        state = self._ipc.get_state(name)
+        self._ipc_handle_names.states.add(name)
+        return state
+
+    def _build_ipc_handle(self) -> IPCHandle | None:
+        """
+        Build a pickleable IPCHandle from all registered IPC primitives.
+        """
+        if self._ipc is None:
+            return None
+        return self._ipc.to_handle(self._ipc_handle_names)
+
+
+class ProxyPool:
+    """
+    A minimal pool shim injected as Job.pool inside a worker process or thread.
+    It exposes only the methods needed for a Job to run, backed by the ProxyIPCBackend.
+    """
+
+    def __init__(self, ipc: IPCBackend):
+        self._ipc = ipc
+
+    def get_lock(self, name: str | None = None) -> IPCLock:
+        return self._ipc.get_lock(name)
+
+    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
+        return self._ipc.get_queue(name, maxsize=maxsize)
+
+    def get_state(self, name: str) -> IPCState:
+        return self._ipc.get_state(name)
+
 
 class AsyncPool(BasePool):
+
+    _ipc_cls = AsyncIPCBackend
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults:
         job = self._jobs.get(submission.data.job_id)
@@ -465,6 +568,7 @@ class ThreadedPool(BasePool):
 
     _executor_cls = ThreadPoolExecutor
     _executor: ThreadPoolExecutor | None
+    _ipc_cls = ThreadedIPCBackend
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -497,8 +601,11 @@ class ThreadedPool(BasePool):
             thread.name = new_name
 
     @staticmethod
-    def _run_in_thread(job: Job):
+    def _run_in_thread(job: Job, handle: IPCHandle | None):
         ThreadedPool._rename_current_thread()
+        if handle is not None:
+            ipc = ThreadedPool._ipc_cls.from_handle(handle)
+            job._pool = ProxyPool(ipc)
         return asyncio.run(job.run())
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults:
@@ -507,13 +614,14 @@ class ThreadedPool(BasePool):
         if job is None:
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
 
-        return await self._run_with_context(self._executor, self._run_in_thread, job)
+        return await self._run_with_context(self._executor, self._run_in_thread, job, submission.ipc)
 
 
 class MultiprocessPool(BasePool):
 
     _executor_cls = ProcessPoolExecutor
     _executor: ProcessPoolExecutor | None
+    _ipc_cls = ProcessIPCBackend
 
     async def __aenter__(self):
         await super().__aenter__()
@@ -547,6 +655,11 @@ class MultiprocessPool(BasePool):
     def _run_in_process(payload: dict) -> JobResults:
         submission = JobSubmission.from_dict(payload)
         job = submission.to_job()
+
+        if submission.ipc is not None:
+            ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
+            job._pool = ProxyPool(ipc)
+
         return asyncio.run(job.run())
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults:
