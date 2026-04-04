@@ -5,6 +5,7 @@ from xtl.common.options import Option, Options
 from xtl.math.uuid import UUIDFactory
 from xtl.jobs.jobs import Job, JobData
 from xtl.jobs.ipc import IPCHandle
+from xtl.jobs.resources import Resources
 
 
 uuid = UUIDFactory()
@@ -33,7 +34,11 @@ class JobSubmission(Options):
             desc='Optional `IPCHandle` containing interprocess communication primitives '
                  'for worker communication'
         )
-
+    resources: Resources | None = \
+        Option(
+            default=None,
+            desc='Optional resources granted to the current pool'
+        )
 
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':

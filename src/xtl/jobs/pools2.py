@@ -20,7 +20,7 @@ from xtl.jobs.jobs import Job, JobResults
 from xtl.jobs.logging import get_logger_config
 from xtl.jobs.ipc import (IPCBackend, IPCHandle, IPCHandleNames, IPCLock, IPCQueue, IPCState, AsyncIPCBackend,
                           ThreadedIPCBackend, ProcessIPCBackend)
-from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
+from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager, CURRENT_LEASE
 from xtl.jobs.submissions import JobSubmission
 from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
@@ -302,6 +302,7 @@ class BasePool(abc.ABC):
             # Create submission
             submission = JobSubmission.from_job(job)
             submission.ipc = self._build_ipc_handle()
+            submission.resources = self._resources  # Save total granted resources for the pool
 
             # Register submission and job
             self._submissions[submission.submission_id] = submission
@@ -601,12 +602,29 @@ class ThreadedPool(BasePool):
             thread.name = new_name
 
     @staticmethod
-    def _run_in_thread(job: Job, handle: IPCHandle | None):
-        ThreadedPool._rename_current_thread()
-        if handle is not None:
-            ipc = ThreadedPool._ipc_cls.from_handle(handle)
+    async def _bootstrap_thread(submission: JobSubmission) -> JobResults:
+        # Initialize the worker thread's ResourceManager with the granted budget.
+        get_rc_manager(total=submission.resources)
+
+        # Deserialize the job
+        job = submission.to_job()
+
+        # Reconstruct the IPC backend
+        if submission.ipc is not None:
+            ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
-        return asyncio.run(job.run())
+
+        return await job.run()
+
+    @staticmethod
+    def _run_in_thread(submission: JobSubmission) -> JobResults:
+        ThreadedPool._rename_current_thread()
+
+        # Clear the stale outer-loop lease from the copied context
+        #  Subsequent calls to get_rc_manager() in the worker thread will create a new lease
+        CURRENT_LEASE.set(None)
+
+        return asyncio.run(ThreadedPool._bootstrap_thread(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults:
         job_id = submission.data.job_id
@@ -614,7 +632,7 @@ class ThreadedPool(BasePool):
         if job is None:
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
 
-        return await self._run_with_context(self._executor, self._run_in_thread, job, submission.ipc)
+        return await self._run_with_context(self._executor, self._run_in_thread, submission)
 
 
 class MultiprocessPool(BasePool):
@@ -652,15 +670,28 @@ class MultiprocessPool(BasePool):
             process.name = new_name
 
     @staticmethod
-    def _run_in_process(payload: dict) -> JobResults:
-        submission = JobSubmission.from_dict(payload)
+    async def _bootstrap_process(submission: JobSubmission) -> JobResults:
+        # Initialize the worker process's ResourceManager with the granted budget.
+        get_rc_manager(total=submission.resources)
+
+        # Deserialize the job
         job = submission.to_job()
 
+        # Reconstruct the IPC backend
         if submission.ipc is not None:
             ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-        return asyncio.run(job.run())
+        return await job.run()
+
+    @staticmethod
+    def _run_in_process(payload: dict) -> JobResults:
+        submission = JobSubmission.from_dict(payload)
+
+        # NB: No need to clear CURRENT_LEASE here, because we are not
+        #  using copy_context to propagate the lease
+
+        return asyncio.run(MultiprocessPool._bootstrap_process(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults:
         job_id = submission.data.job_id
