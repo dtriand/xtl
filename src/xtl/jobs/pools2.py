@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import abc
 import asyncio
 import contextlib
 import contextvars
+from enum import Enum
 import logging
 import multiprocessing
 import pickle
@@ -11,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from typing import AsyncIterator, Literal, overload, Type, Iterable, TYPE_CHECKING
 
 from xtl import settings
+from xtl.common.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job, JobResults
 from xtl.jobs.logging import get_logger_config
@@ -19,8 +23,32 @@ from xtl.jobs.submissions import JobSubmission
 from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
 
+if PY310_OR_LESS:
+    class StrEnum(str, Enum):
+        pass
+else:
+    from enum import StrEnum
+
 
 uuid = UUIDFactory()
+
+
+class JobPool(StrEnum):
+    SIMPLE = 'simple'
+    ASYNC = 'async'
+    THREADS = 'threads'
+    PROCESSES = 'processes'
+
+    def get(self) -> Type[BasePool]:
+        if self == JobPool.SIMPLE:
+            return SimplePool
+        if self == JobPool.ASYNC:
+            return AsyncPool
+        if self == JobPool.THREADS:
+            return ThreadedPool
+        if self == JobPool.PROCESSES:
+            return MultiprocessPool
+        raise ValueError(f'Unsupported {JobPool.__name__} type: {self!r}')
 
 
 class BasePool(abc.ABC):
@@ -158,6 +186,7 @@ class BasePool(abc.ABC):
         if self._rc_manager is None:
             self._rc_manager = get_rc_manager()
         self._rc_lease = await self._rc_manager.acquire(self._rc_requested)
+        self.logger.debug('Resources granted for the pool: %s', self._rc_lease.granted.__dict__)
         self._resources = self._rc_lease.granted
         self._semaphore = asyncio.Semaphore(self._resources.jobs)
 
