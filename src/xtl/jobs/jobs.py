@@ -5,19 +5,23 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 import logging
 from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
-    get_args, Iterable
+    get_args, Iterable, overload, Literal
+
+from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import JobPool
+    from xtl.jobs.pools2 import BasePool
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
 from xtl import settings, Logger
 from xtl.math.uuid import UUIDFactory
+from xtl.common.options import Option, Options
 from xtl.common.misc import deepmerge
 from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
 from xtl.exceptions.base import SubprocessError, StderrError
 from xtl.jobs.config import JobConfig, BatchJobConfig
+from xtl.jobs.logging import get_logger_config
 
 
 uuid = UUIDFactory()
@@ -33,6 +37,67 @@ class _DummyPool:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return None
+
+
+class JobData(Options):
+    """
+    Serializable data class for transporting job information and configuration.
+    """
+
+    job_cls: str = \
+        Option(
+            ...,
+            desc='Import path of the Job class, e.g. "xtl.foo.bar.MyJob"'
+        )
+
+    job_id: str = \
+        Option(
+            ...,
+            desc='Unique identifier for this job instance'
+        )
+
+    config: dict[str, Any] | None = \
+        Option(
+            ...,
+            desc='Job configuration'
+        )
+
+    logging_config: dict[str, Any] | None = \
+        Option(
+            ...,
+            desc='Logging configuration for this job'
+        )
+
+    @staticmethod
+    def _import_symbol(path: str):
+        """
+        Dynamically import a symbol from a module given its import path.
+        """
+        module_path, _, attr = path.rpartition('.')
+        if not module_path or not attr:
+            raise ValueError(f'Invalid import path: {path!r}')
+        module = __import__(module_path, fromlist=[attr])
+        try:
+            return getattr(module, attr)
+        except AttributeError as exc:
+            raise ImportError(f'Could not resolve symbol {path!r}') from exc
+
+    def get_job_cls(self) -> Type['Job']:
+        """
+        Dynamically import and return the Job class specified by `job_cls`.
+        """
+        return self._import_symbol(self.job_cls)
+
+    @field_validator('job_cls', mode='before')
+    @classmethod
+    def validate_job_cls(cls, value: Any) -> str:
+        try:
+            job_cls = cls._import_symbol(value)
+        except (ImportError, ValueError) as exc:
+            raise ValueError(f'Invalid `job_cls`: {value!r}') from exc
+        if not isinstance(job_cls, type) or not issubclass(job_cls, Job):
+            raise TypeError(f'`job_cls` must be a subclass of {Job.__name__}, got {value!r}')
+        return value
 
 
 @dataclass
@@ -73,18 +138,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _logging_level: ClassVar[int] = logging.INFO
     """Logging level for jobs."""
 
-    _logging_config: ClassVar[LoggerConfig] = LoggerConfig(
-        level=_logging_level,
-        propagate=False,
-        handlers=[
-            StreamHandlerConfig(
-                format=LoggingFormat(
-                    format='[%(asctime)s.%(msecs)03d:%(name)s] %(message)s',
-                    datefmt='%H:%M:%S'
-                )
-            )
-        ]
-    )
+    _logging_config: ClassVar[LoggerConfig] = get_logger_config(level=_logging_level)
     """Logging configuration for jobs."""
 
     _keep_files: ClassVar[bool] = False
@@ -119,7 +173,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._error: Exception | None = None
 
         # Pool integration
-        self._pool: Optional['JobPool'] = None
+        self._pool: Optional['BaseJobPool'] = None
 
         # Initialize config
         self._config: JobConfigType | None = None
@@ -230,18 +284,18 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._is_complete
 
     @property
-    def pool(self) -> Optional['JobPool']:
+    def pool(self) -> Optional['BasePool']:
         """
         Get the job pool associated with this job, if any.
         """
         return self._pool
 
     @pool.setter
-    def pool(self, pool: Optional['JobPool']) -> None:
-        # Avoid circular import by checking class name instead of importing JobPool
-        if pool is not None and pool.__class__.__name__ != 'JobPool':
-            raise TypeError(f'Expected a JobPool instance, '
-                            f'got {type(pool).__name__}')
+    def pool(self, pool: Optional['BasePool']) -> None:
+        from xtl.jobs.pools2 import BasePool
+
+        if pool is not None and not isinstance(pool, BasePool):
+            raise TypeError(f'`pool` must inherit from {BasePool.__name__}, got {type(pool).__name__}')
         self._pool = pool
 
     def clear(self) -> None:
@@ -403,6 +457,49 @@ class Job(abc.ABC, Generic[JobConfigType]):
             cls._logging_config.configure(logger)
 
         return logger
+
+    @overload
+    def serialize(self, as_dict: Literal[True]) -> dict[str, Any]: ...
+
+    @overload
+    def serialize(self, as_dict: Literal[False]) -> JobData: ...
+
+    def serialize(self, as_dict: bool = True) -> dict[str, Any] | JobData:
+        """
+        Serialize the job to a dictionary for storage or transmission.
+        """
+        job_data = JobData(
+            job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
+            job_id=self.job_id,
+            config=self.config.to_dict() if self.config else None,
+            logging_config=self._logging_config.to_dict() if self._logging_config else None
+        )
+        if as_dict:
+            return job_data.to_dict()
+        return job_data
+
+    @classmethod
+    def deserialize(cls, data: JobData | dict[str, Any]) -> 'Job[JobConfigType]':
+        """
+        Deserialize a job from a dictionary.
+        """
+        if isinstance(data, dict):
+            data = JobData.from_dict(data)
+        elif not isinstance(data, JobData):
+            raise TypeError(f'Expected a {JobData.__name__} instance or dict, got {type(data).__name__}')
+        job_cls = data.get_job_cls()
+        config_cls = job_cls._config_class
+        config = config_cls.from_dict(data.config) if data.config else None
+
+        job = job_cls.with_config(
+            config=config,
+            job_id=data.job_id,
+            logger=job_cls.get_logger(
+                data.job_id,
+                config=LoggerConfig.from_dict(data.logging_config) if data.logging_config else None
+            )
+        )
+        return job
 
 
 @dataclass(frozen=True)
