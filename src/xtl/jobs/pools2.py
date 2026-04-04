@@ -214,6 +214,7 @@ class BasePool(abc.ABC):
 
         # Release resources
         if self._rc_lease is not None:
+            self.logger.debug('Releasing resources from pool: %s', self._rc_lease.granted.__dict__)
             await self._rc_lease.release()
             self._rc_lease = None
         self._resources = None
@@ -368,6 +369,67 @@ class AsyncPool(BasePool):
         if job is None:
             raise KeyError(f'No job found for submission with job_id={submission.job_id!r}')
         return await job.run()
+
+
+class SimplePool(AsyncPool):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._rc_requested = Resources(jobs=1, threads=self._rc_requested.threads,
+                                       processes=self._rc_requested.processes, cores=self._rc_requested.cores)
+
+    async def _launch_all(self) -> list[JobResults]:
+        """
+        Launch all submitted jobs and return their aggregated results.
+        """
+        if not self._submissions:
+            self.logger.warning('No jobs submitted to pool')
+            return []
+
+        # Activate the pool
+        self._is_running = True
+        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
+        try:
+            # Create tasks
+            for submission in self._submissions.values():
+                task = asyncio.create_task(self._process_submission(submission))
+                self._tasks[submission.submission_id] = task
+
+            # Wait for all tasks to complete and gather results
+            self.logger.debug('Launching jobs...')
+            results = []
+            for task in self._tasks.values():
+                results.append(await task)
+            self.logger.debug('All jobs completed')
+            return results
+        finally:
+            # No exception handling at this stage, this is managed by __aexit__
+            self.logger.debug('Deactivating pool')
+            self._is_running = False
+
+    async def _launch_stream(self) -> AsyncIterator[JobResults]:
+        if not self._submissions:
+            self.logger.warning('No jobs submitted to pool')
+            return
+
+        # Activate the pool
+        self._is_running = True
+        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
+        try:
+            # Create tasks
+            for submission in self._submissions.values():
+                task = asyncio.create_task(self._process_submission(submission))
+                self._tasks[submission.submission_id] = task
+
+            self.logger.debug('Launching jobs...')
+            for task in self._tasks.values():
+                yield await task
+            self.logger.debug('All jobs completed')
+        finally:
+            # No exception handling at this stage, this is managed by __aexit__
+            self.logger.debug('Deactivating pool')
+            self._is_running = False
+
 
 
 class ThreadedPool(BasePool):

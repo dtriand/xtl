@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import contextlib
 import shutil
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -445,6 +446,12 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Create and configure new logger
         logger = logging.getLogger(job_id)
+        # Avoid duplicate emission when the same logger id is configured repeatedly.
+        if logger.handlers:
+            for handler in list(logger.handlers):
+                logger.removeHandler(handler)
+                with contextlib.suppress(Exception):
+                    handler.close()
         if config is not None:
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, '
