@@ -1,11 +1,12 @@
-__all__ = ['JobSubmission']
-
 from xtl import settings
 from xtl.common.options import Option, Options
 from xtl.math.uuid import UUIDFactory
 from xtl.jobs.jobs import Job, JobData
 from xtl.jobs.ipc import IPCHandle
 from xtl.jobs.resources import Resources
+
+
+__all__ = ['JobSubmission']
 
 
 uuid = UUIDFactory()

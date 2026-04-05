@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Optional, get_origin, TYPE_CHECKING
-from typing_extensions import TypedDict
+from typing import Any, Optional, TYPE_CHECKING
 
 from pydantic import computed_field, PrivateAttr, model_validator, field_serializer
 
@@ -17,6 +16,9 @@ from xtl.jobs.sites import ComputeSite
 
 if TYPE_CHECKING:
     from xtl.jobs.batchfiles import BatchFile
+
+
+__all__ = ['JobConfig', 'BatchJobConfig', 'SteppedJobConfig']
 
 
 logger = Logger(__name__)

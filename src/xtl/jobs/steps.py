@@ -8,6 +8,9 @@ from xtl.jobs.config import JobConfig, BatchJobConfig
 from xtl.jobs.results import JobResults
 
 
+__all__ = ['StepSpec', 'JobContext']
+
+
 class StepSpec(Options):
     model_config = Options.model_config | {'frozen': True}
 

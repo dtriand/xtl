@@ -1,5 +1,3 @@
-__all__ = ['Job', 'BatchJob', 'SteppedJob', 'JobData']
-
 import abc
 import asyncio
 import shutil
@@ -27,6 +25,9 @@ from xtl.exceptions.base import SubprocessError, StderrError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
 from xtl.jobs.logging import get_logger_config
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
+
+
+__all__ = ['Job', 'BatchJob', 'SteppedJob', 'JobData']
 
 
 uuid = UUIDFactory()
