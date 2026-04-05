@@ -17,6 +17,7 @@ PY310_OR_LESS: bool = (PY_VERS < (3, 11))
 # Features missing in Python 3.10:
 # - ``enum.StrEnum``
 # - ``asyncio.TaskGroup``
+# - ``from typing import Self``
 
 # TODO: Remove when dropping support for Python 3.11 (EOL: 10/2027)
 PY311_OR_LESS: bool = (PY_VERS < (3, 12))

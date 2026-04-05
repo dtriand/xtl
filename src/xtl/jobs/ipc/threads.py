@@ -10,7 +10,8 @@ class ThreadedLock(IPCLock):
     Threaded context manager for locks
     """
 
-    def __init__(self):
+    def __init__(self, name: str):
+        super().__init__(name)
         self._lock = threading.RLock()
 
     async def acquire(self) -> None:
@@ -101,32 +102,32 @@ class ThreadedIPCBackend(IPCBackend):
         self._queues.clear()
         self._states.clear()
 
-    def get_lock(self, name: str | None = None) -> ThreadedLock:
+    def get_lock(self, name: str = None) -> ThreadedLock:
         if name is None:
             name = self._default_lock_name
         if name not in self._locks:
-            self._locks[name] = ThreadedLock()
+            self._locks[name] = ThreadedLock(name=name)
         return self._locks[name]
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> ThreadedQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> ThreadedQueue:
         if name not in self._queues:
             self._queues[name] = ThreadedQueue(maxsize=maxsize)
         return self._queues[name]
 
-    def get_state(self, name: str | None) -> ThreadedState:
+    def get_state(self, name: str) -> ThreadedState:
         if name not in self._states:
             self._states[name] = ThreadedState()
         return self._states[name]
 
     # Threading primitives are also not pickleable. ThreadedPool always runs in the
     #  same process, so we share the backend by reference.
-    def _raw_lock(self, name: str | None) -> Any:
+    def _raw_lock(self, name: str) -> Any:
         return self.get_lock(name)
 
-    def _raw_queue(self, name: str | None) -> Any:
+    def _raw_queue(self, name: str) -> Any:
         return self.get_queue(name)
 
-    def _raw_state(self, name: str | None) -> Any:
+    def _raw_state(self, name: str) -> Any:
         return self.get_state(name)
 
     @classmethod

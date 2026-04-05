@@ -10,7 +10,8 @@ class AsyncLock(IPCLock):
     Async context manager for locks
     """
 
-    def __init__(self):
+    def __init__(self, name: str):
+        super().__init__(name)
         self._lock = asyncio.Lock()
 
     async def acquire(self) -> None:
@@ -66,32 +67,32 @@ class AsyncIPCBackend(IPCBackend):
         self._queues.clear()
         self._states.clear()
 
-    def get_lock(self, name: str | None = None) -> AsyncLock:
+    def get_lock(self, name: str = None) -> AsyncLock:
         if name is None:
             name = self._default_lock_name
         if name not in self._locks:
-            self._locks[name] = AsyncLock()
+            self._locks[name] = AsyncLock(name=name)
         return self._locks[name]
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> AsyncQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> AsyncQueue:
         if name not in self._queues:
             self._queues[name] = AsyncQueue(maxsize=maxsize)
         return self._queues[name]
 
-    def get_state(self, name: str | None) -> AsyncState:
+    def get_state(self, name: str) -> AsyncState:
         if name not in self._states:
             self._states[name] = AsyncState()
         return self._states[name]
 
     # Asyncio primitives are not pickleable. Since SimplePool and AsyncPool always run on
     #  the same event loop, we share the backend by reference.
-    def _raw_lock(self, name: str | None) -> Any:
+    def _raw_lock(self, name: str) -> Any:
         return self.get_lock(name)
 
-    def _raw_queue(self, name: str | None) -> Any:
+    def _raw_queue(self, name: str) -> Any:
         return self.get_queue(name)
 
-    def _raw_state(self, name: str | None) -> Any:
+    def _raw_state(self, name: str) -> Any:
         return self.get_state(name)
 
     @classmethod

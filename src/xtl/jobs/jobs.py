@@ -11,7 +11,7 @@ from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKIN
 from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools2 import BasePool
+    from xtl.jobs.pools2 import PoolProtocol
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
@@ -23,21 +23,20 @@ from xtl.logging.config import LoggerConfig, StreamHandlerConfig, LoggingFormat
 from xtl.exceptions.base import SubprocessError, StderrError
 from xtl.jobs.config import JobConfig, BatchJobConfig
 from xtl.jobs.logging import get_logger_config
+from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
 
 uuid = UUIDFactory()
 logger_ = Logger(__name__)
 
 
-class _DummyPool:
+class _DummyLock:
     """
-    A dummy context manager for job execution outside of a pool.
+    A dummy lock context manager for job execution outside of a pool.
     """
-    async def __aenter__(self):
-        return None
+    async def __aenter__(self): return None
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return None
+    async def __aexit__(self, exc_type, exc_val, exc_tb): return None
 
 
 class JobData(Options):
@@ -101,28 +100,6 @@ class JobData(Options):
         return value
 
 
-@dataclass
-class JobResults:
-    """
-    Dataclass to hold the results of a single job.
-    """
-    job_id: str
-    """The unique identifier of the job."""
-
-    data: Any | None = None
-    """Optional data returned by the job."""
-
-    error: Any | None = None
-    """Error that occurred during job execution, if any."""
-
-    @property
-    def success(self) -> bool:
-        """
-        Whether the job completed successfully without errors.
-        """
-        return self.error is None
-
-
 JobConfigType = TypeVar('JobConfigType', bound=JobConfig)
 BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
@@ -139,7 +116,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _logging_level: ClassVar[int] = logging.INFO
     """Logging level for jobs."""
 
-    _logging_config: ClassVar[LoggerConfig] = get_logger_config(level=_logging_level)
+    _logger_config: ClassVar[LoggerConfig] = get_logger_config(level=_logging_level)
     """Logging configuration for jobs."""
 
     _keep_files: ClassVar[bool] = False
@@ -174,7 +151,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._error: Exception | None = None
 
         # Pool integration
-        self._pool: Optional['BaseJobPool'] = None
+        self._pool: Optional['PoolProtocol'] = None
 
         # Initialize config
         self._config: JobConfigType | None = None
@@ -285,18 +262,18 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._is_complete
 
     @property
-    def pool(self) -> Optional['BasePool']:
+    def pool(self) -> Optional['PoolProtocol']:
         """
         Get the job pool associated with this job, if any.
         """
         return self._pool
 
     @pool.setter
-    def pool(self, pool: Optional['BasePool']) -> None:
-        from xtl.jobs.pools2 import BasePool
+    def pool(self, pool: Optional['PoolProtocol']) -> None:
+        from xtl.jobs.pools2 import PoolProtocol
 
-        if pool is not None and not isinstance(pool, BasePool):
-            raise TypeError(f'`pool` must inherit from {BasePool.__name__}, got {type(pool).__name__}')
+        if pool is not None and not isinstance(pool, PoolProtocol):
+            raise TypeError(f'`pool` must implement {PoolProtocol.__name__}, got {type(pool).__name__}')
         self._pool = pool
 
     def clear(self) -> None:
@@ -407,15 +384,18 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 self.logger.error('Failed to update permissions in job directory: %s', self.config.job_directory)
                 self.logger.error('Error details: %s', str(e))
 
-    async def lock(self):
+    async def lock(self, name: str | None = None) -> Any:
         """
         Context manager to acquire a lock during job execution.
+
+        :param name: Optional name of the lock.
         """
         if self._pool is None:
-            # If no pool is set, return a dummy pool that does nothing
-            return _DummyPool()
+            # If no pool is set, return a dummy lock that does nothing
+            self.logger.warning('Requested lock for job outside a pool context manager')
+            return _DummyLock()
         # Use the pool's lock
-        return self._pool.get_lock()
+        return self._pool.get_lock(name)
 
     @property
     def logger(self) -> logging.Logger:
@@ -459,9 +439,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
             config.configure(logger)
             if update_config:
                 # This is required for propagating log configs to subjobs
-                cls._logging_config = config
+                cls._logger_config = config
         else:
-            cls._logging_config.configure(logger)
+            cls._logger_config.configure(logger)
 
         return logger
 
@@ -479,7 +459,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
             job_id=self.job_id,
             config=self.config.to_dict() if self.config else None,
-            logging_config=self._logging_config.to_dict() if self._logging_config else None
+            logging_config=self._logger_config.to_dict() if self._logger_config else None
         )
         if as_dict:
             return job_data.to_dict()
@@ -507,23 +487,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
             )
         )
         return job
-
-
-@dataclass(frozen=True)
-class BatchResults:
-    """
-    Dataclass to hold the results of a batch file execution.
-    """
-
-    stdout: str
-    """Standard output captured from the batch execution."""
-
-    stderr: str
-    """Standard error captured from the batch execution."""
-
-    return_code: int
-    """Return code from the batch execution."""
-
 
 
 class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
@@ -614,7 +577,6 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
         return results
 
-
     @classmethod
     def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> \
             'BatchJob[BatchJobConfigType]':
@@ -633,15 +595,6 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         batch_context = deepcopy(self._batch_context)
         config_context = self.config.get_context()
         return deepmerge(batch_context, config_context)
-
-
-@dataclass
-class SteppedJobResults(JobResults):
-    """
-    Dataclass to hold the results of a stepped job, which includes results and data from all steps.
-    """
-    steps: dict[str, JobResults] = field(default_factory=dict)
-    """A dictionary mapping step names to their results."""
 
 
 class SteppedJob(Job[JobConfig], Generic[JobConfigType]):
@@ -682,7 +635,7 @@ class SteppedJob(Job[JobConfig], Generic[JobConfigType]):
 
             # Create preconfigured job
             step_id = f'{self.job_id}.{i}'
-            logger = spec.job_cls.get_logger(job_id=step_id, config=self._logging_config)  # propagate logging config
+            logger = spec.job_cls.get_logger(job_id=step_id, config=self._logger_config)  # propagate logging config
             job = spec.job_cls.with_config(config, job_id=step_id, logger=logger)
 
             # Run the job step
@@ -708,7 +661,6 @@ class SteppedJob(Job[JobConfig], Generic[JobConfigType]):
 
         self.logger.info('All steps completed')
         return ctx.results, ctx.data
-
 
     async def run(self) -> SteppedJobResults | None:
         results = await super().run()
