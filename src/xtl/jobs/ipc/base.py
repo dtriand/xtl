@@ -171,7 +171,7 @@ class IPCBackend(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def from_handle(cls, handle: IPCHandle) -> None:
+    def from_handle(cls, handle: IPCHandle) -> IPCBackend:
         """
         Reconstruct a backend from an IPCHandle inside a worker. The returned backend
         is a lightweight shim: it does not own the underlying IPC primitives and cannot

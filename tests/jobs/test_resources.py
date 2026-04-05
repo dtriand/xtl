@@ -1,15 +1,25 @@
 import asyncio
+from typing import Any
 
 import pytest
 
 from xtl.jobs.pools2 import BasePool
+from xtl.jobs.ipc import IPCBackend, IPCLock, IPCQueue, IPCState, IPCHandle
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 
 
-class _DummyIPCBackend:
+class _DummyIPCBackend(IPCBackend):
     def start(self): pass
-
     def stop(self): pass
+    def get_lock(self, name: str = None) -> IPCLock: pass
+    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue: pass
+    def get_state(self, name: str) -> IPCState: pass
+    def _raw_lock(self, name: str) -> Any: pass
+    def _raw_queue(self, name: str) -> Any: pass
+    def _raw_state(self, name: str) -> Any: pass
+
+    @classmethod
+    def from_handle(cls, handle: IPCHandle) -> IPCBackend: return cls()
 
 
 class _DummyPool(BasePool):
