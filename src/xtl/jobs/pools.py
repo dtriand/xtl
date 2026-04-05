@@ -3,8 +3,6 @@ from __future__ import annotations
 import abc
 import asyncio
 import contextlib
-import contextvars
-from collections.abc import Callable
 from enum import Enum
 import logging
 from logging.handlers import QueueHandler
@@ -12,7 +10,7 @@ import multiprocessing
 import re
 import threading
 from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
-from typing import AsyncIterator, Literal, overload, Type, Iterable, Any, Protocol, runtime_checkable
+from typing import AsyncIterator, Literal, overload, Type, Iterable, Protocol, runtime_checkable
 
 from xtl import settings
 from xtl.common.compatibility import PY310_OR_LESS
@@ -22,7 +20,7 @@ from xtl.jobs.jobs import Job, JobResults
 from xtl.jobs.logging import get_logger_config
 from xtl.jobs.ipc import (IPCBackend, IPCHandle, IPCHandleNames, IPCLock, IPCQueue, IPCState, AsyncIPCBackend,
                           ThreadedIPCBackend, ProcessIPCBackend)
-from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager, CURRENT_LEASE
+from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
@@ -451,23 +449,6 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         ...
 
-    @staticmethod
-    async def _run_with_context(executor: Executor | None, fn: Callable, *args) -> Any:
-        """
-        Run a function in a separate executor, but copying the contextvars first.
-
-        :param executor: The executor to run the function in. If None, the function will be run in the current thread.
-        :param fn: The function to execute.
-        :param args: Arguments to pass to the function.
-        """
-        loop = asyncio.get_running_loop()
-        ctx = contextvars.copy_context()
-
-        def _runner(_unused=None):
-            return ctx.run(fn, *args)
-
-        return await loop.run_in_executor(executor, _runner, None)
-
     async def _process_submission(self, submission: JobSubmission) -> JobResults | None:
         """
         Process a job submission and ensure that the concurrency limit is respected.
@@ -799,36 +780,29 @@ class ThreadedPool(BasePool):
         # Initialize the worker thread's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Grab the job instance from memory
-        job = submission.data.get_job_cls()._registry.get(submission.data.job_id, None)
-        if job is None:
-            # Deserialize the job
-            job = submission.to_job()
+        # Deserialize the job
+        job = submission.to_job()
 
-            # Reconstruct the IPC backend
-            if submission.ipc is not None:
-                ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
-                job._pool = ProxyPool(ipc)
+        # Reconstruct the IPC backend
+        if submission.ipc is not None:
+            ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
+            job._pool = ProxyPool(ipc)
 
         return await job.run()
 
     @staticmethod
     def _run_in_thread(submission: JobSubmission) -> JobResults | None:
         ThreadedPool._rename_current_thread()
-
-        # Clear the stale outer-loop lease from the copied context
-        #  Subsequent calls to get_rc_manager() in the worker thread will create a new lease
-        CURRENT_LEASE.set(None)
-
         return asyncio.run(ThreadedPool._bootstrap_thread(submission))
 
-    async def _execute_submission(self, submission: JobSubmission) -> JobResults:
+    async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
         job_id = submission.data.job_id
         job = self._jobs.get(job_id)
         if job is None:
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
 
-        return await self._run_with_context(self._executor, self._run_in_thread, submission)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(self._executor, self._run_in_thread, submission)
 
 
 class MultiprocessPool(BasePool):

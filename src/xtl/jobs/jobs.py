@@ -106,8 +106,8 @@ BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
 
 class Job(abc.ABC, Generic[JobConfigType]):
-    _registry: ClassVar[dict[str, 'Job']] = {}
-    """Registry of all alive jobs of this class."""
+    _registry: ClassVar[set[str]] = set()
+    """Registry of all alive job IDs of this class. Used to prevent duplicate IDs"""
 
     # Note that this class variable is updated in __init_subclass__ when the subclass
     #  is defined with a generic parameter, e.g., Job[Config].
@@ -123,7 +123,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _keep_files: ClassVar[bool] = False
     """Whether to keep any files created by this job"""
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None):
+    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None,
+                 *, enforce_id: bool = False):
         """
         Abstract base class for asynchronous jobs execution.
 
@@ -131,20 +132,24 @@ class Job(abc.ABC, Generic[JobConfigType]):
             a unique ID will be generated.
         :param logger: Optional, a custom logger for the job. If not provided,
             a logger will be created using `job_id`.
+        :param enforce_id: If True, skip the check for duplicate job IDs and
+            register the job unconditionally.
         """
         # Create a unique job ID
         self._job_id = str(job_id) if job_id else \
             uuid.random(length=settings.jobs.job_digits)
-        while self._job_id in self._registry:
-            # Regenerate if necessary
-            logger_.debug('Regenerating job_id: %s', self._job_id)
-            self._job_id = uuid.random(length=settings.jobs.job_digits)
+
+        if not enforce_id:
+            while self._job_id in self._registry:
+                # Regenerate if necessary
+                logger_.debug('Regenerating job_id: %s', self._job_id)
+                self._job_id = uuid.random(length=settings.jobs.job_digits)
 
         # Attach a logger
         self._logger = logger or self.get_logger(self.job_id)
 
         # Register the job in the class registry
-        self.__class__._registry[self._job_id] = self
+        self.__class__._registry.add(self._job_id)
 
         # Job state
         self._is_running = False
@@ -218,28 +223,16 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Extract init parameters
         job_id = kwargs.pop('job_id', None)
         logger = kwargs.pop('logger', None)
+        enforce_id = kwargs.pop('enforce_id', False)
 
         # Create job instance
-        job = cls(job_id=job_id, logger=logger)
+        job = cls(job_id=job_id, logger=logger, enforce_id=enforce_id)
 
         # Set configuration if provided
         if config is not None:
             job.configure(config)
 
         return job
-
-    @classmethod
-    def map(cls, configs: Iterable[JobConfigType] | JobConfigType = None) -> \
-            tuple['Job[JobConfigType]', ...]:
-        """
-        Map a list of configurations to job instances.
-        """
-        if not isinstance(configs, Iterable):
-            if not isinstance(configs, cls._config_class):
-                raise TypeError(f'Expected a list of {cls._config_class.__name__}, '
-                                f'got {type(configs).__name__}')
-            configs = (configs,)
-        return tuple(cls.with_config(config) for config in configs)
 
     @property
     def job_id(self) -> str:
@@ -281,8 +274,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         Explicitly remove this job from the registry.
         """
-        if self._job_id in self.__class__._registry:
-            del self.__class__._registry[self._job_id]
+        # Called by __del__ and BasePool._drain_pool()
+        self.__class__._registry.discard(self._job_id)
 
     def __del__(self) -> None:
         self.clear()
@@ -410,30 +403,23 @@ class Job(abc.ABC, Generic[JobConfigType]):
                    update_config: bool = True) -> logging.Logger:
         """
         Get or create a logger for the job with the given ID. If `config` is not
-        specified, the default configuration is chosen.
+        specified, the default configuration is chosen. If a logger already exists,
+        but a new ``config`` is provided, the handlers will get reconfigured.
 
         :param job_id: Unique identifier of the job.
         :param config: Optional logging configuration.
         :param update_config: If True, update the class-level logging configuration
             with the provided config.
         """
-        # Recover existing loggers
-        if job_id in cls._registry:
-            return cls._registry[job_id].logger
-
         # Cast job_id to string
         if not isinstance(job_id, str):
             job_id = str(job_id)
 
-        # Create and configure new logger
+        # Create or fetch logger
         logger = logging.getLogger(job_id)
-        # Avoid duplicate emission when the same logger id is configured repeatedly.
-        if logger.handlers:
-            for handler in list(logger.handlers):
-                logger.removeHandler(handler)
-                with contextlib.suppress(Exception):
-                    handler.close()
+
         if config is not None:
+            # If a `config` was passed, configure/reconfigure the logger
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, '
                                 f'got {type(config).__name__}')
@@ -442,8 +428,10 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 # This is required for propagating log configs to subjobs
                 cls._logger_config = config
         else:
-            cls._logger_config.configure(logger)
-
+            # When no `config` is passed, use the job class logger config
+            has_xtl_handlers = any(getattr(h, '_xtl_owned', False) for h in logger.handlers)
+            if not has_xtl_handlers:
+                cls._logger_config.configure(logger)
         return logger
 
     @overload
@@ -469,23 +457,29 @@ class Job(abc.ABC, Generic[JobConfigType]):
     @classmethod
     def deserialize(cls, data: JobData | dict[str, Any]) -> 'Job[JobConfigType]':
         """
-        Deserialize a job from a dictionary.
+        Deserialize a job from a JobData instance or raw dict.
         """
         if isinstance(data, dict):
-            data = JobData.from_dict(data)
-        elif not isinstance(data, JobData):
+            jdata = JobData.from_dict(data)
+        elif isinstance(data, JobData):
+            jdata = data
+        else:
             raise TypeError(f'Expected a {JobData.__name__} instance or dict, got {type(data).__name__}')
-        job_cls = data.get_job_cls()
+
+
+        job_cls = jdata.get_job_cls()
         config_cls = job_cls._config_class
-        config = config_cls.from_dict(data.config) if data.config else None
+        config = config_cls.from_dict(jdata.config) if jdata.config else None
 
         job = job_cls.with_config(
             config=config,
-            job_id=data.job_id,
+            job_id=jdata.job_id,
             logger=job_cls.get_logger(
-                data.job_id,
-                config=LoggerConfig.from_dict(data.logging_config) if data.logging_config else None
-            )
+                jdata.job_id,
+                config=LoggerConfig.from_dict(
+                    jdata.logging_config) if jdata.logging_config else None
+            ),
+            enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
         return job
 

@@ -61,14 +61,6 @@ class TestJob:
             assert job.job_id == "test_002"
             assert job.config is config
 
-        def test_job_map(self):
-            """Test mapping multiple configurations to job instances."""
-            configs = [SimpleJobConfig(should_fail=True) for _ in range(3)]
-            jobs = SimpleJob.map(configs)
-            assert len(jobs) == 3
-            for job, config in zip(jobs, configs):
-                assert job.config is config
-
         @pytest.mark.parametrize(
             'should_fail', [True, False],
         )
@@ -125,7 +117,6 @@ class TestJob:
             job_id = 'registry_test'
             job = SimpleJob(job_id=job_id)
             assert job_id in SimpleJob._registry
-            assert SimpleJob._registry[job_id] is job
 
             # Test cleanup on deletion
             job.clear()
