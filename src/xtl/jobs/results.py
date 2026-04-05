@@ -2,6 +2,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+__all__ = ['JobResults', 'SteppedJobResults', 'BatchResults']
+
+
 @dataclass
 class JobResults:
     """
@@ -22,6 +25,7 @@ class JobResults:
         Whether the job completed successfully without errors.
         """
         return self.error is None
+
 
 @dataclass(frozen=True)
 class BatchResults:

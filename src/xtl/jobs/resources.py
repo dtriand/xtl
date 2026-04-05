@@ -8,6 +8,9 @@ import weakref
 from xtl import settings
 
 
+__all__ = ['Resources', 'ResourceManager', 'ResourcesLease', 'get_total_resources', 'get_rc_manager']
+
+
 @dataclass(frozen=True)
 class Resources:
     """
