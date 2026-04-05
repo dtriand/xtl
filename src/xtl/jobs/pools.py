@@ -799,13 +799,16 @@ class ThreadedPool(BasePool):
         # Initialize the worker thread's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Deserialize the job
-        job = submission.to_job()
+        # Grab the job instance from memory
+        job = submission.data.get_job_cls()._registry.get(submission.data.job_id, None)
+        if job is None:
+            # Deserialize the job
+            job = submission.to_job()
 
-        # Reconstruct the IPC backend
-        if submission.ipc is not None:
-            ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
-            job._pool = ProxyPool(ipc)
+            # Reconstruct the IPC backend
+            if submission.ipc is not None:
+                ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
+                job._pool = ProxyPool(ipc)
 
         return await job.run()
 

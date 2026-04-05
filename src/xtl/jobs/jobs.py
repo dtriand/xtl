@@ -5,6 +5,7 @@ import shutil
 from copy import deepcopy
 from dataclasses import dataclass, field
 import logging
+from logging.handlers import QueueHandler
 from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
     get_args, Iterable, overload, Literal
 
@@ -488,6 +489,58 @@ class Job(abc.ABC, Generic[JobConfigType]):
         )
         return job
 
+    def _create_child(self, job_cls: type['Job'], config: JobConfigType | BatchJobConfigType, *,
+                      suffix: str | int, logger_config: LoggerConfig | None = None,
+                      inherit_pool: bool = True, inherit_queue_handlers: bool = True, **kwargs) -> 'Job':
+        """
+        Spawn a child Job that inherits the configuration from the current Job.
+
+        :param job_cls: Job class to spawn.
+        :param config: Configuration to use for the child job.
+        :param suffix: Suffix to use for the child job ID.
+        :param logger_config: Logging configuration to use for the child job.
+        :param inherit_pool: Whether the child job should inherit the current pool.
+        :param inherit_queue_handlers: Whether the child job should inherit any queue handlers attached to the current
+            job. This is used to propagate Queue handlers that are injected during runtime.
+        :param kwargs: Additional keyword arguments to pass to the `Job.with_config` constructor
+        :returns: The spawned child Job instance.
+        """
+        child_id = f'{self.job_id}.{suffix}'
+
+        # Create logger for child
+        lcfg = logger_config or self._logger_config
+        child_logger = job_cls.get_logger(job_id=child_id, config=lcfg)
+
+        # Spawn child job
+        child = job_cls.with_config(
+            config=config,
+            job_id=child_id,
+            logger=child_logger,
+            **kwargs
+        )
+
+        # Optionally propagate pool
+        if inherit_pool:
+            pool_name = self.pool.__class__.__name__
+            if hasattr(self.pool, 'pool_id'):
+                pool_name += f'|{self.pool.pool_id}'
+            self.logger.debug('Propagating pool %s to child job: %s', pool_name, child_id)
+            child.pool = self.pool
+
+        # Optionally propagate any Queue handlers (assuming they are injected at runtime)
+        if inherit_queue_handlers:
+            existing_qids = {id(h.queue) for h in child.logger.handlers if isinstance(h, QueueHandler)}
+            for handler in self.logger.handlers:
+                if isinstance(handler, QueueHandler):
+                    qid = id(handler.queue)
+                    if qid in existing_qids:
+                        continue
+                    self.logger.debug('Propagating QueueHandler (id: %s) to child job: %s', qid, child_id)
+                    child.logger.addHandler(handler)
+                    existing_qids.add(qid)
+
+        return child
+
 
 class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
@@ -634,9 +687,7 @@ class SteppedJob(Job[JobConfig], Generic[JobConfigType]):
             self.logger.debug('Preparing %(job_cls)s', {'job_cls': spec.job_cls.__name__})
 
             # Create preconfigured job
-            step_id = f'{self.job_id}.{i}'
-            logger = spec.job_cls.get_logger(job_id=step_id, config=self._logger_config)  # propagate logging config
-            job = spec.job_cls.with_config(config, job_id=step_id, logger=logger)
+            job = self._create_child(job_cls=spec.job_cls, config=config, suffix=i)
 
             # Run the job step
             self.logger.debug('Running %(job_cls)s', {'job_cls': spec.job_cls.__name__})
