@@ -13,7 +13,8 @@ class ProcessLock(IPCLock):
     Wraps a multiprocessing.Manager().Lock() proxy with an async interface.
     """
 
-    def __init__(self, lock):
+    def __init__(self, lock, name: str):
+        super().__init__(name)
         self._lock = lock
 
     async def acquire(self) -> None:
@@ -120,7 +121,7 @@ class ProcessIPCBackend(IPCBackend):
             self._manager.shutdown()
             self._manager = None
 
-    def get_lock(self, name: str | None = None) -> ProcessLock:
+    def get_lock(self, name: str = None) -> ProcessLock:
         if name is None:
             name = self._default_lock_name
         if name not in self._locks:
@@ -128,10 +129,10 @@ class ProcessIPCBackend(IPCBackend):
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting locks')
             raw_lock = self._manager.Lock()
             self._raw_locks[name] = raw_lock
-            self._locks[name] = ProcessLock(raw_lock)
+            self._locks[name] = ProcessLock(raw_lock, name=name)
         return self._locks[name]
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> ProcessQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> ProcessQueue:
         if name not in self._queues:
             if self._manager is None:
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting queues')
@@ -140,7 +141,7 @@ class ProcessIPCBackend(IPCBackend):
             self._queues[name] = ProcessQueue(raw_queue)
         return self._queues[name]
 
-    def get_state(self, name: str | None) -> ProcessState:
+    def get_state(self, name: str) -> ProcessState:
         if name not in self._states:
             if self._manager is None:
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting state')
@@ -149,15 +150,15 @@ class ProcessIPCBackend(IPCBackend):
             self._states[name] = ProcessState(raw_state)
         return self._states[name]
 
-    def _raw_lock(self, name: str | None) -> Any:
+    def _raw_lock(self, name: str) -> Any:
         if name is None:
             name = self._default_lock_name
         return self._raw_locks.get(name)
 
-    def _raw_queue(self, name: str | None) -> Any:
+    def _raw_queue(self, name: str) -> Any:
         return self._raw_queues.get(name)
 
-    def _raw_state(self, name: str | None) -> Any:
+    def _raw_state(self, name: str) -> Any:
         return self._raw_states.get(name)
 
     @classmethod
@@ -174,7 +175,7 @@ class ProxyProcessIPCBackend(IPCBackend):
 
     def __init__(self, handle: IPCHandle):
         self._locks: dict[str, ProcessLock] = {
-            n: ProcessLock(h) for n, h in handle.locks.items()
+            n: ProcessLock(h, name=n) for n, h in handle.locks.items()
         }
         self._queues: dict[str, ProcessQueue] = {
             n: ProcessQueue(h) for n, h in handle.queues.items()
@@ -191,7 +192,7 @@ class ProxyProcessIPCBackend(IPCBackend):
     def stop(self) -> None:
         pass
 
-    def get_lock(self, name: str | None = None) -> ProcessLock:
+    def get_lock(self, name: str = None) -> ProcessLock:
         if name is None:
             name = self._default_lock_name
         try:
@@ -202,7 +203,7 @@ class ProxyProcessIPCBackend(IPCBackend):
                 f'Call pool.get_lock({name!r}) before launching jobs.'
             )
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> ProcessQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> ProcessQueue:
         try:
             return self._queues[name]
         except KeyError:
@@ -211,7 +212,7 @@ class ProxyProcessIPCBackend(IPCBackend):
                 f'Call pool.get_queue({name!r}) before launching jobs.'
             )
 
-    def get_state(self, name: str | None) -> ProcessState:
+    def get_state(self, name: str) -> ProcessState:
         try:
             return self._states[name]
         except KeyError:
@@ -223,10 +224,10 @@ class ProxyProcessIPCBackend(IPCBackend):
     def _raw_lock(self, name: str | None) -> Any:
         raise NotImplementedError(f'{ProxyProcessIPCBackend.__name__} cannot create new primitives')
 
-    def _raw_queue(self, name: str | None) -> Any:
+    def _raw_queue(self, name: str) -> Any:
         raise NotImplementedError(f'{ProxyProcessIPCBackend.__name__} cannot create new primitives')
 
-    def _raw_state(self, name: str | None) -> Any:
+    def _raw_state(self, name: str) -> Any:
         raise NotImplementedError(f'{ProxyProcessIPCBackend.__name__} cannot create new primitives')
 
     @classmethod

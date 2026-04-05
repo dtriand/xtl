@@ -10,6 +10,13 @@ class IPCLock(abc.ABC):
     Unified async context manager for locks
     """
 
+    def __init__(self, name: str):
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
     @abc.abstractmethod
     async def acquire(self) -> None: ...
 
@@ -111,42 +118,42 @@ class IPCBackend(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def get_lock(self, name: str | None = None) -> IPCLock:
+    def get_lock(self, name: str = None) -> IPCLock:
         """
         Get a lock by name. If name is None, return the default lock.
         """
         ...
 
     @abc.abstractmethod
-    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue:
         """
         Get a queue by name.
         """
         ...
 
     @abc.abstractmethod
-    def get_state(self, name: str | None) -> IPCState:
+    def get_state(self, name: str) -> IPCState:
         """
         Get a shared state dict by name.
         """
         ...
 
     @abc.abstractmethod
-    def _raw_lock(self, name: str | None) -> Any:
+    def _raw_lock(self, name: str) -> Any:
         """
         Get the raw (pickleable) lock object by name, for use in IPCHandle.
         """
         ...
 
     @abc.abstractmethod
-    def _raw_queue(self, name: str | None) -> Any:
+    def _raw_queue(self, name: str) -> Any:
         """
         Get the raw (pickleable) queue object by name, for use in IPCHandle.
         """
         ...
 
     @abc.abstractmethod
-    def _raw_state(self, name: str | None) -> Any:
+    def _raw_state(self, name: str) -> Any:
         """
         Get the raw (pickleable) state dict object by name, for use in IPCHandle.
         """

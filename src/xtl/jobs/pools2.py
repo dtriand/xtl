@@ -4,14 +4,15 @@ import abc
 import asyncio
 import contextlib
 import contextvars
+from collections.abc import Callable
 from enum import Enum
 import logging
 from logging.handlers import QueueHandler
 import multiprocessing
 import re
 import threading
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from typing import AsyncIterator, Literal, overload, Type, Iterable
+from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
+from typing import AsyncIterator, Literal, overload, Type, Iterable, Any, Protocol, runtime_checkable
 
 from xtl import settings
 from xtl.common.compatibility import PY310_OR_LESS
@@ -29,20 +30,33 @@ from xtl.math.uuid import UUIDFactory
 if PY310_OR_LESS:
     class StrEnum(str, Enum):
         pass
+
+    from typing_extensions import Self
 else:
     from enum import StrEnum
+    from typing import Self
+
+
+__all__ = ['PoolProtocol', 'JobPool', 'BasePool', 'SimplePool', 'AsyncPool', 'ThreadedPool', 'MultiprocessPool']
 
 
 uuid = UUIDFactory()
 
 
 class JobPool(StrEnum):
+    """
+    Enum for available job pools.
+    """
+
     SIMPLE = 'simple'
     ASYNC = 'async'
     THREADS = 'threads'
     PROCESSES = 'processes'
 
     def get(self) -> Type[BasePool]:
+        """
+        Get the class of the requested job pool.
+        """
         if self == JobPool.SIMPLE:
             return SimplePool
         if self == JobPool.ASYNC:
@@ -54,26 +68,55 @@ class JobPool(StrEnum):
         raise ValueError(f'Unsupported {JobPool.__name__} type: {self!r}')
 
 
-class BasePool(abc.ABC):
+@runtime_checkable
+class PoolProtocol(Protocol):
+    """
+    Protocol for pools.
+    """
+
+    def get_lock(self, name: str | None = None) -> IPCLock: ...
+    def get_queue(self, name: str) -> IPCQueue: ...
+    def get_state(self, name: str) -> IPCState: ...
+
+
+class BasePool(PoolProtocol, abc.ABC):
 
     _logging_level = logging.INFO
-    _logging_config: LoggerConfig = get_logger_config(level=_logging_level)
-    _executor_cls = None
+    """Default logging level for the pool's logger configuration. Setting after initialization has no effect"""
+
+    _logger_config: LoggerConfig = get_logger_config(level=_logging_level)
+    """Default logging config for the pool's logger."""
+
+    _executor_cls: Executor | None = None
+    """The executor class to use for this pool. If None, the pool does not use an executor and runs jobs in the 
+    main thread."""
+
     _ipc_cls: type[IPCBackend]
+    """The IPCBackend class to use for this pool."""
 
     def __init__(self, name: str | None = None, max_jobs: int = 1, logger_config: LoggerConfig = None,
                  resources: Resources | None = None, resources_manager: ResourceManager | None = None, **kwargs):
+        """
+        Abstract base class for job pools.
+
+        :param name: Optional name for pool
+        :param max_jobs: The maximum number of concurrent jobs to run. This is capped by the available quota
+            (default: 1).
+        :param logger_config: Optional configuration for the pool's logger.
+        :param resources: Optional resources to request for this pool. This is capped by the available quota
+            (default: None, get all available)
+        :param resources_manager: Optional ResourceManager to use for resource allocation. If not provided, the default
+            global ResourceManager will be used.
+        :param kwargs: Additional keyword arguments:
+            - `job_logger_config`: Configuration for the Job loggers (default: same as pool)
+        :raises ValueError: If an invalid `max_jobs` is provided
+        :raises TypeError: If `logger_config` is not of the correct type
+        """
         if max_jobs < 1:
             raise ValueError(f'`max_jobs` must be at least 1, got {max_jobs}')
         if logger_config and not isinstance(logger_config, LoggerConfig):
             raise TypeError(f'Expected a {LoggerConfig.__name__} instance for `logger_config`, '
                             f'got {type(logger_config).__name__}')
-
-        # Resources allocation
-        self._rc_requested: Resources = resources or Resources(jobs=max_jobs, threads=1, processes=1, cores=1)
-        self._rc_manager: ResourceManager | None = resources_manager
-        self._rc_lease: ResourcesLease | None = None
-        self._resources: Resources | None = None
 
         # Set up pool_id and name
         self._pool_id = uuid.random(settings.jobs.job_digits)
@@ -82,11 +125,18 @@ class BasePool(abc.ABC):
         # Configure logger for this pool
         self._logger = self.get_logger(
             logger_id=f'{self.__class__.__name__}|{self._name or self._pool_id}',
-            config=logger_config or self._logging_config
+            config=logger_config or self._logger_config
         )
+        self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
+
+        # Resources allocation
+        self._rc_requested: Resources = resources or Resources(jobs=max_jobs, threads=1, processes=1, cores=1)
+        self._rc_manager: ResourceManager | None = resources_manager
+        self._rc_lease: ResourcesLease | None = None
+        self._resources: Resources | None = None
 
         # Pool executor backend
-        self._executor: BasePool._executor_cls | None = None  # Managed by __aenter__ and __aexit__
+        self._executor = None  # Managed by __aenter__ and __aexit__
 
         # Initialize inter-process communication
         self._ipc: IPCBackend | None = None  # Managed by __aenter__ and __aexit__
@@ -109,15 +159,15 @@ class BasePool(abc.ABC):
         # Submission tracking
         self._submissions: dict[str, JobSubmission] = {}  # Managed by submit() and launchers
 
-        # Logger configuration
-        if logger_config and not isinstance(logger_config, LoggerConfig):
-            raise TypeError(f'Expected a {LoggerConfig.__name__} instance for `logger_config`, '
-                            f'got {type(logger_config).__name__}')
-        self._logger_config = logger_config or self._logging_config
-
         # Pool state
         self._is_running = False  # Managed by launcher methods
         self._error: Exception | None = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not hasattr(cls, '_ipc_cls') or not issubclass(cls._ipc_cls, IPCBackend):
+            raise TypeError(f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
+                            f'subclass of {IPCBackend.__name__}')
 
     @property
     def pool_id(self) -> str:
@@ -157,7 +207,7 @@ class BasePool(abc.ABC):
         return self._logger
 
     @classmethod
-    def get_logger(cls, logger_id: str, config: LoggerConfig = None, update_config: bool = True) -> logging.Logger:
+    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None, update_config: bool = True) -> logging.Logger:
         """
         Get or create a logger for the pool with the specified ID. If a `config` is not specified, the default
         configuration is chosen.
@@ -173,12 +223,12 @@ class BasePool(abc.ABC):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
             config.configure(logger)
             if update_config:
-                cls._logging_config = config
+                cls._logger_config = config
         else:
-            cls._logging_config.configure(logger)
+            cls._logger_config.configure(logger)
         return logger
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         """
         Enter the context manager.
         """
@@ -188,16 +238,20 @@ class BasePool(abc.ABC):
 
         # Acquire resources for this pool
         self.logger.debug('Requesting resources for the pool: %s', self._rc_requested.__dict__)
-        if self._rc_manager is None:
-            self._rc_manager = get_rc_manager()
-        self._rc_lease = await self._rc_manager.acquire(self._rc_requested)
-        self.logger.debug('Resources granted for the pool: %s', self._rc_lease.granted.__dict__)
-        self._resources = self._rc_lease.granted
-        self._semaphore = asyncio.Semaphore(self._resources.jobs)
+        if (manager := self._rc_manager) is None:
+            manager = get_rc_manager()
+            self._rc_manager = manager
+
+        lease = await manager.acquire(self._rc_requested)
+        self._rc_lease = lease
+        self._resources = lease.granted
+        self.logger.debug('Resources granted for the pool: %s', lease.granted.__dict__)
+        self._semaphore = asyncio.Semaphore(lease.granted.jobs)
 
         # Start the IPC backend
-        self._ipc = self._ipc_cls()
-        self._ipc.start()
+        ipc = self._ipc_cls()
+        ipc.start()
+        self._ipc = ipc
 
         self._in_ctx = True
         self.logger.debug('Entering the pool context manager')
@@ -241,9 +295,13 @@ class BasePool(abc.ABC):
         return True
 
     async def _drain_pool(self):
+        """
+        Pool tear down procedure.
+        """
         self._tasks.clear()
 
-        # Release job ids from Job._registry, to allow reusing predictable job ids, e.g. Job1, Job2
+        # Release job ids from Job._registry, to allow reusing job ids
+        #  NB: This is especially needed when using predictable ids, such as Job1, Job2, etc.
         for job in self._jobs.values():
             with contextlib.suppress(Exception):
                 job.clear()
@@ -264,35 +322,106 @@ class BasePool(abc.ABC):
         self._resources = None
         self._semaphore = None
 
-    def submit(self, job_cls: Type[Job], configs: Iterable[JobConfig | None] = None, **kwargs):
+    def _generate_job_ids(self, job_cls: Type[Job], n: int) -> list[str]:
+        """
+        Generate a list of `n` unique sequential job ids while preventing semantic collisions upon multiple calls for
+        the same `job_cls`.
+
+        :param job_cls: the job class to generate job ids for
+        :param n: the number of job ids to generate
+        """
+        prefix = f'{job_cls.__name__}|'
+        pattern = re.compile(rf'^{re.escape(prefix)}(\d+)$')
+
+        # Find the indices of all existing job ids
+        taken: set[int] = set()
+        for job in self._jobs.values():
+            if not isinstance(job, job_cls):
+                # Skip for different Job types
+                continue
+            m = pattern.match(job.job_id)
+            if not m:
+                # Skip for randomized or user-provided job_ids
+                continue
+            taken.add(int(m.group(1)))
+
+        digits = len(str(max(1, n)))
+
+        def make_job_id(x: int) -> str:
+            return f'{prefix}{str(x).zfill(digits)}'
+
+        # Generate new job_ids
+        job_ids: list[str] = []
+        i = 1
+        for _ in range(n):
+            job_id = make_job_id(i)
+            while i in taken:
+                i += 1
+                job_id = make_job_id(i)
+            job_ids.append(job_id)
+            taken.add(i)
+            i += 1
+        return job_ids
+
+
+    def submit(self, job_cls: Type[Job], configs: JobConfig | None | Iterable[JobConfig | None] = None, **kwargs) -> \
+            list[Job]:
+        """
+        Submit a job to the pool for execution. This method must be called from within the pool's context manager.
+
+        Example:
+
+            .. code-block:: python
+
+                async with pool:
+                    pool.submit(MyJob, configs=[config1, config2])
+                    results = pool.launch()
+
+        :param job_cls: The job type to submit. Must be a subclass of `Job`.
+        :param configs: The configs to submit to the pool.
+        :param kwargs: Additional keyword arguments to pass to `job_cls`.
+            - `job_ids`: Optional list of job IDs to assign to the submitted jobs. If not provided, job IDs will be
+                generated in the format `<job_cls>|<i>`, where i is an incrementing index
+        :raises RuntimeError: If the method is called outside the pool's context manager
+        :raises TypeError: If `job_cls` is not a subclass of `Job`.
+        :raises TypeError: If one of the `configs` is not a `JobConfig` instance or None.
+        :raises ValueError: If `job_ids` is provided but does not have the same length as `configs`
+        :return: A list of the configured submitted jobs.
+        """
+        if not self._in_ctx:
+            raise RuntimeError(f'Jobs submitted outside the pool context')
+
         if not issubclass(job_cls, Job):
             raise TypeError(f'Expected a subclass of {Job.__name__} for `job_cls`, got {job_cls}')
 
         # Cast configs to a list
-        if not isinstance(configs, Iterable):
-            configs = [configs]
-        configs = list(configs)
+        if configs is None:
+            configs_list: list[JobConfig | None] = [None]
+        elif isinstance(configs, JobConfig):
+            configs_list = [configs]
+        elif isinstance(configs, Iterable) and not isinstance(configs, (str, bytes, bytearray)):
+            configs_list = list(configs)
+        else:
+            raise TypeError(f'Invalid `configs` type: {type(configs).__name__}')
 
         # Generate job IDs if not provided
         if (job_ids := kwargs.get('job_ids', None)) is None:
-            digits = len(str(max(1, len(configs))))
-            job_ids = [f'{job_cls.__name__}|{str(i + 1).zfill(digits)}' for i in range(len(configs))]
+            job_ids = self._generate_job_ids(job_cls, len(configs_list))
         job_ids = list(job_ids)
 
         # Check for length consistency
-        if len(job_ids) != len(configs):
-            raise ValueError(f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs)})')
+        if len(job_ids) != len(configs_list):
+            raise ValueError(f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs_list)})')
 
         # Create and register jobs
         created_jobs: list[Job] = []
-        for job_id, config in zip(job_ids, configs):
+        for job_id, config in zip(job_ids, configs_list):
             if job_id is None:
                 # In case None was passed explicitly in job_ids
                 job_id = uuid.random(settings.jobs.job_digits)
 
             # Create logger
-            logger = job_cls.get_logger(job_id, self._logger_config)
-
+            logger = job_cls.get_logger(job_id, self._job_logger_config)
 
             # Create job instance
             job = job_cls(job_id=job_id, logger=logger)
@@ -314,10 +443,23 @@ class BasePool(abc.ABC):
         return created_jobs
 
     @abc.abstractmethod
-    async def _execute_submission(self, submission: JobSubmission) -> JobResults: ...
+    async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
+        """
+        Execute a job submission.
+
+        :param submission: The submission to execute.
+        """
+        ...
 
     @staticmethod
-    async def _run_with_context(executor, fn, *args):
+    async def _run_with_context(executor: Executor | None, fn: Callable, *args) -> Any:
+        """
+        Run a function in a separate executor, but copying the contextvars first.
+
+        :param executor: The executor to run the function in. If None, the function will be run in the current thread.
+        :param fn: The function to execute.
+        :param args: Arguments to pass to the function.
+        """
         loop = asyncio.get_running_loop()
         ctx = contextvars.copy_context()
 
@@ -326,7 +468,17 @@ class BasePool(abc.ABC):
 
         return await loop.run_in_executor(executor, _runner, None)
 
-    async def _process_submission(self, submission: JobSubmission) -> JobResults:
+    async def _process_submission(self, submission: JobSubmission) -> JobResults | None:
+        """
+        Process a job submission and ensure that the concurrency limit is respected.
+
+        :param submission: The submission to execute.
+        :raises RuntimeError: If the method is called outside the pool's context manager.
+        :return: The result of the job execution.
+        """
+        if self._semaphore is None:
+            raise RuntimeError(f'Pool semaphore is not initialized')
+
         async with self._semaphore:
             job_id = submission.data.job_id
             self._running_jobs.add(job_id)
@@ -348,11 +500,22 @@ class BasePool(abc.ABC):
     async def launch(self, mode: Literal['all']) -> list[JobResults]: ...
 
     async def launch(self, mode: Literal['stream', 'all'] = 'all') -> AsyncIterator[JobResults] | list[JobResults]:
+        """
+        Launch all submitted jobs in the pool. By default, the results are returned only when all jobs have completed.
+        If `mode` is set to `'stream'`, then the results are yielded as soon as each job completes.
+
+        :param mode: How to return the results from the running jobs:
+            - `'all'`: Return all results after all jobs have completed (default)
+            - `'stream'`: Yield results as soon as they become available
+        :raises RuntimeError: If called outside the pool's context manager.
+        :raises ValueError: If an invalid `mode` is passed.
+        :return: The results of the job execution.
+        """
         if not self._in_ctx:
             raise RuntimeError(f'{self.__class__.__name__}.launch() must be used within the context manager.')
         if mode == 'all':
             return await self._launch_all()
-        if mode == 'stream':
+        elif mode == 'stream':
             return self._launch_stream()
         raise ValueError(f'Invalid mode: {mode!r}. Expected \'all\' or \'stream\'.')
 
@@ -384,6 +547,9 @@ class BasePool(abc.ABC):
             self._is_running = False
 
     async def _launch_stream(self) -> AsyncIterator[JobResults]:
+        """
+        Launch all submitted jobs and yield the results as they become available.
+        """
         if not self._submissions:
             self.logger.warning('No jobs submitted to pool')
             return
@@ -419,10 +585,10 @@ class BasePool(abc.ABC):
         if self._ipc is None:
             raise RuntimeError('Locks are only available from within the pool context manager')
         lock = self._ipc.get_lock(name)
-        self._ipc_handle_names.locks.add(name)
+        self._ipc_handle_names.locks.add(lock.name)
         return lock
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue:
         """
         Get a queue from the pool. If the requested queue does not exist, it will be created.
 
@@ -437,7 +603,7 @@ class BasePool(abc.ABC):
         self._ipc_handle_names.queues.add(name)
         return queue
 
-    def get_state(self, name: str | None) -> IPCState:
+    def get_state(self, name: str) -> IPCState:
         """
         Get a shared state dict from the pool. If the requested state does not exist, it will be created.
         Per-operation atomicity is guaranteed. Any compound read-modify-write (RMW) operations (e.g. in-place
@@ -475,19 +641,21 @@ class BasePool(abc.ABC):
         return self._ipc.to_handle(self._ipc_handle_names)
 
 
-class ProxyPool:
-    """
-    A minimal pool shim injected as Job.pool inside a worker process or thread.
-    It exposes only the methods needed for a Job to run, backed by the ProxyIPCBackend.
-    """
+class ProxyPool(PoolProtocol):
 
     def __init__(self, ipc: IPCBackend):
+        """
+        A minimal pool shim injected as Job.pool inside a worker process or thread.
+        It exposes only the methods needed for a Job to run, backed by the ProxyIPCBackend.
+
+        :param ipc: An IPCBackend instance.
+        """
         self._ipc = ipc
 
     def get_lock(self, name: str | None = None) -> IPCLock:
         return self._ipc.get_lock(name)
 
-    def get_queue(self, name: str | None, maxsize: int = 0) -> IPCQueue:
+    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue:
         return self._ipc.get_queue(name, maxsize=maxsize)
 
     def get_state(self, name: str) -> IPCState:
@@ -495,10 +663,15 @@ class ProxyPool:
 
 
 class AsyncPool(BasePool):
+    """
+    A pool for running jobs asynchronously. The jobs are executed within the same process and same thread (and event
+    loop). This is well suited for running I/O-bound task, e.g. fetching data over network, executing batch jobs. It is
+    the most responsive pool type, since it does not add any IPC overhead.
+    """
 
     _ipc_cls = AsyncIPCBackend
 
-    async def _execute_submission(self, submission: JobSubmission) -> JobResults:
+    async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
         job = self._jobs.get(submission.data.job_id)
         if job is None:
             raise KeyError(f'No job found for submission with job_id={submission.data.job_id!r}')
@@ -506,11 +679,22 @@ class AsyncPool(BasePool):
 
 
 class SimplePool(AsyncPool):
+    """
+    A pool for running jobs synchronously. This is a thin wrapper around AsyncPool, that enforces a sequential job
+    execution (`max_jobs=1`). Suitable for running a single job, or when concurrency is risky. It can also be used for
+    debugging, since it enforces a deterministic operations order.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._rc_requested = Resources(jobs=1, threads=self._rc_requested.threads,
-                                       processes=self._rc_requested.processes, cores=self._rc_requested.cores)
+        # Cap resources to one job
+        self._rc_requested = \
+            Resources(
+                jobs=1,
+                threads=self._rc_requested.threads,
+                processes=self._rc_requested.processes,
+                cores=self._rc_requested.cores
+            )
 
     async def _launch_all(self) -> list[JobResults]:
         """
@@ -565,8 +749,13 @@ class SimplePool(AsyncPool):
             self._is_running = False
 
 
-
 class ThreadedPool(BasePool):
+    """
+    A pool for running jobs in separate threads. The jobs are executed within the same process but in separate threads.
+    This pool is well suited for running I/O-blocking tasks, e.g. non-async APIs, filesystem I/O. Not ideal for
+    CPU-bound tasks, since Python (at least < 3.14) is not truly threaded. Internally, the spawned threads are managed
+    by a ThreadPoolExecutor.
+    """
 
     _executor_cls = ThreadPoolExecutor
     _executor: ThreadPoolExecutor | None
@@ -603,7 +792,7 @@ class ThreadedPool(BasePool):
             thread.name = new_name
 
     @staticmethod
-    async def _bootstrap_thread(submission: JobSubmission) -> JobResults:
+    async def _bootstrap_thread(submission: JobSubmission) -> JobResults | None:
         # Initialize the worker thread's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
@@ -618,7 +807,7 @@ class ThreadedPool(BasePool):
         return await job.run()
 
     @staticmethod
-    def _run_in_thread(submission: JobSubmission) -> JobResults:
+    def _run_in_thread(submission: JobSubmission) -> JobResults | None:
         ThreadedPool._rename_current_thread()
 
         # Clear the stale outer-loop lease from the copied context
@@ -637,6 +826,12 @@ class ThreadedPool(BasePool):
 
 
 class MultiprocessPool(BasePool):
+    """
+    A pool for running jobs in separate processes. This pool is well suited for running CPU-bound tasks, e.g. heavy
+    numerical calculations. It can also be used to impose stronger isolation between worker processes. It has the
+    highest overhead among the pool types upon initialization. Internally, the spawned subprocesses are managed by
+    a ProcessPoolExecutor.
+    """
 
     _executor_cls = ProcessPoolExecutor
     _executor: ProcessPoolExecutor | None
@@ -757,7 +952,6 @@ class MultiprocessPool(BasePool):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-
         # Check if eavesdropper is running and signal it to stop
         if self._eavesdropping is not None:
             self.logger.debug('Stopping eavesdropper')
@@ -799,13 +993,13 @@ class MultiprocessPool(BasePool):
             process.name = new_name
 
     @staticmethod
-    async def _bootstrap_process(submission: JobSubmission) -> JobResults:
+    async def _bootstrap_process(submission: JobSubmission) -> JobResults | None:
         # Initialize the worker process's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
         # Filter out dummy queue handlers from the logging config
         valid_handlers = []
-        eavesdropper = None
+        eavesdropper: dict | None = None
         for h in submission.data.logging_config.get('handlers', []):
             if h['handler'] == 'XTL_DUMMY_QUEUE_HANDLER':
                 eavesdropper = h
@@ -822,24 +1016,27 @@ class MultiprocessPool(BasePool):
             ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-        # Install relay queue handler if eavesdropper config was found
-        if eavesdropper is not None:
-            config = eavesdropper.get('config', {})
-            qname = config.get('eavesdrop_queue', None)
-            if qname is None:
-                raise ValueError('Eavesdropper config is missing the required "eavesdrop_queue" field')
+            # Install relay queue handler if eavesdropper config was found
+            if eavesdropper is not None:
+                config: dict = eavesdropper.get('config', {})
+                qname: str | None = config.get('eavesdrop_queue', None)
+                if qname is None:
+                    raise ValueError('Eavesdropper config is missing the required "eavesdrop_queue" field')
 
-            # Get the actual queue object from the IPC backend
-            queue = submission.ipc.queues.get(qname)
+                # Get the actual queue object from the IPC backend
+                try:
+                    queue = submission.ipc.queues[qname]
+                except KeyError as e:
+                    raise KeyError(f'Eavesdropper queue {qname!r} not found in IPC') from e
 
-            # Add a QueueHandler to the job's logger to forward logs
-            handler = QueueHandler(queue)
-            job.logger.addHandler(handler)
+                # Add a QueueHandler to the job's logger to forward logs
+                handler = QueueHandler(queue)
+                job.logger.addHandler(handler)
 
         return await job.run()
 
     @staticmethod
-    def _run_in_process(payload: dict) -> JobResults:
+    def _run_in_process(payload: dict) -> JobResults | None:
         submission = JobSubmission.from_dict(payload)
 
         # NB: No need to clear CURRENT_LEASE here, because we are not
@@ -847,7 +1044,7 @@ class MultiprocessPool(BasePool):
 
         return asyncio.run(MultiprocessPool._bootstrap_process(submission))
 
-    async def _execute_submission(self, submission: JobSubmission) -> JobResults:
+    async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
         job_id = submission.data.job_id
         job = self._jobs.get(job_id)
         if job is None:
@@ -861,7 +1058,7 @@ class MultiprocessPool(BasePool):
                 raise TypeError(
                     f'Job submission with job_id={job_id!r} contains an unpicklable object and cannot be executed in a '
                     f'process pool\n'
-                    f'Offending object found at path {path}: type={obj_type}, repr={obj_repr}'
+                    f'Offending object found at {path}: type={obj_type}, repr={obj_repr}'
                 )
 
             loop = asyncio.get_running_loop()
