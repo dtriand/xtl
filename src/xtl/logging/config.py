@@ -107,16 +107,17 @@ class LoggerConfig(Options):
                                                lambda: [StreamHandlerConfig()],
                                            desc='List of handlers for the job logger')
 
-    def configure(self, logger: logging.Logger, remove_existing: bool = False) -> None:
+    def configure(self, logger: logging.Logger) -> None:
         """
-        Configure the given logger based on this configuration.
+        Configure the given logger based on this configuration. Handlers installed by this
+        method are tagged with a ``_xtl_owned`` attribute and are replaced on consecutive
+        calls of this method. Other handlers are not modified.
 
         :param logger: The logger to configure
-        :param remove_existing: Whether to remove existing handlers before adding new ones
         """
-        # Remove existing handlers
-        if remove_existing and logger.handlers:
-            for handler in list(logger.handlers):
+        # Remove previously installed handlers by this method
+        for handler in logger.handlers:
+            if getattr(handler, '_xtl_owned', False):
                 logger.removeHandler(handler)
                 with contextlib.suppress(Exception):
                     handler.close()
@@ -126,11 +127,12 @@ class LoggerConfig(Options):
 
         for handler_config in self.handlers:
             handler = handler_config.get_handler()
-            if handler in logger.handlers:
-                # Avoid adding duplicate handlers
-                continue
+            # Mark handlers created by this method
+            handler._xtl_owned = True
             logger.addHandler(handler)
 
         # Ensure at least a NullHandler is present
         if not logger.hasHandlers():
-            logger.addHandler(logging.NullHandler())
+            null = logging.NullHandler()
+            null._xtl_owned = True
+            logger.addHandler(null)
