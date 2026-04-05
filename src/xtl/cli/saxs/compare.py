@@ -44,7 +44,7 @@ async def cli_saxs_compare(
             }
         }
     )
-    with console.get_pool() as pool:
+    async with console.get_pool() as pool:
         jobs = pool.submit(SAXSCompareJob, configs=[config])
         results = await pool.launch()
     if not results[0].success:

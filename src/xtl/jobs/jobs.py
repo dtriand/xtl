@@ -11,7 +11,7 @@ from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKIN
 from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools2 import PoolProtocol
+    from xtl.jobs.pools import PoolProtocol
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
@@ -270,7 +270,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
     @pool.setter
     def pool(self, pool: Optional['PoolProtocol']) -> None:
-        from xtl.jobs.pools2 import PoolProtocol
+        from xtl.jobs.pools import PoolProtocol
 
         if pool is not None and not isinstance(pool, PoolProtocol):
             raise TypeError(f'`pool` must implement {PoolProtocol.__name__}, got {type(pool).__name__}')
