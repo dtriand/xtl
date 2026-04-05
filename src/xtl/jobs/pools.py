@@ -76,6 +76,9 @@ class PoolProtocol(Protocol):
     def get_queue(self, name: str) -> IPCQueue: ...
     def get_state(self, name: str) -> IPCState: ...
 
+    @property
+    def pool_id(self) -> str: ...
+
 
 class BasePool(PoolProtocol, abc.ABC):
 
@@ -627,6 +630,8 @@ class BasePool(PoolProtocol, abc.ABC):
 
 class ProxyPool(PoolProtocol):
 
+    _PROXY_SENTINEL = '<proxy>'
+
     def __init__(self, ipc: IPCBackend):
         """
         A minimal pool shim injected as Job.pool inside a worker process or thread.
@@ -635,6 +640,14 @@ class ProxyPool(PoolProtocol):
         :param ipc: An IPCBackend instance.
         """
         self._ipc = ipc
+
+    @property
+    def pool_id(self) -> str:
+        """
+        Sentinel pool_id for logging. Returns \'<proxy>\' to indicate this is a
+        worker-side shim rather than a live BasePool.
+        """
+        return self._PROXY_SENTINEL
 
     def get_lock(self, name: str | None = None) -> IPCLock:
         return self._ipc.get_lock(name)
