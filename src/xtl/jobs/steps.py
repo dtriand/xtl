@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Any, Optional, Callable
 
 from xtl.common.options import Option, Options
-from xtl.jobs.jobs import Job, BatchJob, JobResults
+from xtl.jobs.jobs import Job, BatchJob
 from xtl.jobs.config import JobConfig, BatchJobConfig
+from xtl.jobs.results import JobResults
 
 
 class StepSpec(Options):
@@ -41,7 +42,7 @@ class StepSpec(Options):
             desc='A function that takes the JobContext and returns a dictionary of dynamic default values for the '
                  'step configuration. This can be used to set defaults based on the results of previous steps.'
         )
-    post_processor: Optional[Callable[[JobResults, JobContext], dict[str, Any]]] = \
+    post_processor: Optional[Callable[[JobResults | None, JobContext], dict[str, Any]]] = \
         Option(
             default=None,
             desc='An optional function that takes the JobContext and the result of the step, and can modify the '
