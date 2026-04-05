@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from xtl.jobs.pools2 import BasePool
+from xtl.jobs.pools import BasePool
 from xtl.jobs.ipc import IPCBackend, IPCLock, IPCQueue, IPCState, IPCHandle
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 

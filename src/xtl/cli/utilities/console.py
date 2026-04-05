@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import rich.console
 import rich.theme
@@ -8,7 +8,7 @@ from xtl import settings
 from xtl.logging.config import LoggerConfig
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import JobPool
+    from xtl.jobs.pools import JobPool, BasePool
     from xtl.cli.utilities.common import JobOptions
 
 
@@ -41,14 +41,19 @@ class ConsoleIO(rich.console.Console):
         self.logger_config.POOL = JobPoolLoggerConfig(console=self)
         self.logger_config.POOL.level = logging.DEBUG if self.debug else logging.INFO
 
-    def get_pool(self, max_jobs: int = 1) -> 'JobPool':
+    def get_pool(self, pool_type: Union['JobPool', str] = None, max_jobs: int = 1) -> 'BasePool':
         """
         Returns a JobPool instance with a configured logger attached to the console.
         """
         from xtl.jobs.pools import JobPool
+        pool_cls = (JobPool(pool_type) if pool_type else JobPool.SIMPLE).get()
 
         self._setup_job_logging()
-        return JobPool(max_jobs=max_jobs, logger_config=self.logger_config.JOB)
+        return pool_cls(
+            max_jobs=max_jobs,
+            logger_config=self.logger_config.POOL,
+            job_logger_config=self.logger_config.JOB
+        )
 
     def report_job_options(self, options: 'JobOptions') -> None:
         if self.verbose:
