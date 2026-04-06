@@ -19,7 +19,6 @@ class Resources:
     jobs: int = 1
     threads: int = 1
     processes: int = 1
-    cores: int = 1
 
     def cap_to(self, other: 'Resources') -> 'Resources':
         """
@@ -31,8 +30,7 @@ class Resources:
         return Resources(
             jobs=min(self.jobs, other.jobs),
             threads=min(self.threads, other.threads),
-            processes=min(self.processes, other.processes),
-            cores=min(self.cores, other.cores)
+            processes=min(self.processes, other.processes)
         )
 
     def fits_in(self, other: 'Resources') -> bool:
@@ -45,8 +43,7 @@ class Resources:
         return (
             self.jobs <= other.jobs and
             self.threads <= other.threads and
-            self.processes <= other.processes and
-            self.cores <= other.cores
+            self.processes <= other.processes
         )
 
     def clamp_min(self, minimum: int = 1) -> 'Resources':
@@ -60,24 +57,21 @@ class Resources:
         return Resources(
             jobs=max(minimum, self.jobs),
             threads=max(minimum, self.threads),
-            processes=max(minimum, self.processes),
-            cores=max(minimum, self.cores)
+            processes=max(minimum, self.processes)
         )
 
     def __sub__(self, other: 'Resources') -> 'Resources':
         return Resources(
             jobs=max(0, self.jobs - other.jobs),
             threads=max(0, self.threads - other.threads),
-            processes=max(0, self.processes - other.processes),
-            cores=max(0, self.cores - other.cores)
+            processes=max(0, self.processes - other.processes)
         )
 
     def __add__(self, other: 'Resources') -> 'Resources':
         return Resources(
             jobs=self.jobs + other.jobs,
             threads=self.threads + other.threads,
-            processes=self.processes + other.processes,
-            cores=self.cores + other.cores
+            processes=self.processes + other.processes
         )
 
 
@@ -240,7 +234,6 @@ def get_total_resources() -> Resources:
         jobs=settings.jobs.resources.max_jobs,
         threads=settings.jobs.resources.max_threads,
         processes=settings.jobs.resources.max_processes,
-        cores=settings.jobs.resources.max_cores,
     )
 
 

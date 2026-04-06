@@ -137,11 +137,6 @@ class ResourcesSettings(Settings):
             default=10,
             desc='Maximum number of jobs to run concurrently in a pool'
         )
-    max_cores: int = \
-        Option(
-            default=CPU_CORES,
-            desc='Maximum number of CPU cores to use for job execution'
-        )
     max_threads: int = \
         Option(
             default=CPU_CORES,

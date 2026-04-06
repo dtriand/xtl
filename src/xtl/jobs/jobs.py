@@ -1,16 +1,17 @@
 import abc
 import asyncio
-import shutil
+import contextlib
 from copy import deepcopy
 import logging
 from logging.handlers import QueueHandler
-from typing import Any, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
-    get_args, overload, Literal, cast
+import shutil
+from typing import Any, AsyncIterator, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
+    get_args, overload, Literal, cast, Union
 
 from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import PoolProtocol
+    from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, SimplePool, AsyncPool, ThreadedPool, MultiprocessPool
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
@@ -24,6 +25,7 @@ from xtl.logging.config import LoggerConfig
 from xtl.exceptions.base import SubprocessError, StderrError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
 from xtl.jobs.logging import get_logger_config
+from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
 
@@ -126,6 +128,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _keep_files: ClassVar[bool] = False
     """Whether to keep any files created by this job"""
 
+    _resources: ClassVar[Resources | None] = None
+    """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
+
     def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None,
                  *, enforce_id: bool = False):
         """
@@ -160,7 +165,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._error: BaseException | None = None
 
         # Pool integration
-        self._pool: Optional['PoolProtocol'] = None
+        self._pool: Optional['BasePool'] = None
 
         # Initialize config
         self._config: JobConfigType | None = None
@@ -266,20 +271,114 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._is_complete
 
     @property
-    def pool(self) -> Optional['PoolProtocol']:
+    def pool(self) -> Optional['BasePool']:
         """
         Get the job pool associated with this job, if any.
         """
         return self._pool
 
     @pool.setter
-    def pool(self, pool: Optional['PoolProtocol']) -> None:
+    def pool(self, pool: Optional['BasePool']) -> None:
         from xtl.jobs.pools import PoolProtocol
 
         # Duck typing to enable attaching of real BasePool subclasses but also ProxyPool in worker threads/processes
         if pool is not None and not isinstance(pool, PoolProtocol):
             raise TypeError(f'`pool` must implement {PoolProtocol.__name__}, got {type(pool).__name__}')
         self._pool = pool
+
+    @overload
+    async def get_pool(
+            self,
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['SimplePool']: ...
+
+    @overload
+    async def get_pool(
+            self,
+            pool_type: Literal['simple', 'JobPool.SIMPLE'],
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['SimplePool']: ...
+
+    @overload
+    async def get_pool(
+            self,
+            pool_type: Literal['async', 'JobPool.ASYNC'],
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['AsyncPool']: ...
+
+    @overload
+    async def get_pool(
+            self,
+            pool_type: Literal['threads', 'JobPool.THREADS'],
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['ThreadedPool']: ...
+
+    @overload
+    async def get_pool(
+            self,
+            pool_type: Literal['processes', 'JobPool.PROCESSES'],
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['MultiprocessPool']: ...
+
+    @contextlib.asynccontextmanager
+    async def get_pool(
+            self,
+            pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = 'simple',
+            max_jobs: int = 1,
+            *,
+            resources: Resources | None = None,
+            **kwargs
+    ) -> AsyncIterator['BasePool']:
+        from xtl.jobs.pools import JobPool
+
+        granted = await get_rc_manager().available()
+        effective = resources.cap_to(granted) if resources is not None else granted
+
+        # Determine which resource dimension should cap the max_jobs for the pool
+        pool = JobPool(pool_type)
+        if pool in [JobPool.SIMPLE, JobPool.ASYNC]:
+            limit = effective.jobs
+            dimension = 'jobs'
+        elif pool == JobPool.THREADS:
+            limit = effective.threads
+            dimension = 'threads'
+        elif pool == JobPool.PROCESSES:
+            limit = effective.processes
+            dimension = 'processes'
+        else:
+            raise ValueError(f'Unknown pool type: {pool_type}')
+
+        # Warn and cap if over-requested
+        pool_cls = pool.get()
+        if max_jobs > limit:
+            self.logger.warning('The requested max_jobs=%(max_jobs)d exceeds granted '
+                                '%(dimension)s=%(limit)d for %(pool_type), capping to %(limit)d',
+                                {'max_jobs': max_jobs, 'dimension': dimension, 'limit': limit,
+                                 'pool_type': pool_cls.__name__})
+            max_jobs = limit
+
+        # Allocate the appropriate budget
+        budget = Resources(jobs=max_jobs, threads=effective.threads, processes=effective.processes)
+
+        # Yield the pool
+        async with pool_cls(max_jobs=max_jobs, resources=budget, **kwargs) as child:
+            yield child
+
 
     def clear(self) -> None:
         """
@@ -290,6 +389,23 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
     def __del__(self) -> None:
         self.clear()
+
+    def get_resources(self) -> Resources | None:
+        """
+        Get the resources associated with this job, if any. The resolution order is as follows (first
+        non-``None`` wins):
+
+        1. ``self.config.resources`` - per instance override _via_ ``JobConfig``
+        2. ``Job._resources`` - class-level declaration
+        3. ``None`` - implies no resource limits
+
+        :returns: A ``Resources`` ceiling, or ``None`` if no resource limit.
+        """
+        if self._config is not None:
+            resources = self._config.resources
+            if resources is not None:
+                return resources
+        return self._resources
 
     @abc.abstractmethod
     async def _execute(self) -> Any | None:
@@ -350,6 +466,16 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 )
         finally:
             self._is_running = False
+
+            # For SteppedJobs, check if any of the steps failed
+            if isinstance(self, SteppedJob):
+                # SteppedJob._execute returns a tuple (step_results, data)
+                result: tuple[dict[str, JobResults | None], dict[str, Any]]
+                for i, r in enumerate(result[0].values()):
+                    if isinstance(r, JobResults):
+                        if not r.success:
+                            self._error = r.error
+
             if self._error:
                 self._logger.debug('Job aborted successfully')
             else:
@@ -375,7 +501,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if job_dir is None or not job_dir.exists():
             return
 
-        if not (self._keep_files and settings.jobs.keep_temp):
+        if not (self._keep_files or settings.jobs.keep_temp):
             try:
                 self.logger.debug('Cleaning up job directory: %s', job_dir)
                 async with self.lock():
