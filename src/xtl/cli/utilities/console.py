@@ -10,7 +10,7 @@ from xtl.logging.config import LoggerConfig
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool, BasePool
     from xtl.cli.utilities.common import JobOptions
-    from xtl.cli.utilities.live_pool import LivePool
+    from xtl.tui.live_pool import LivePool
 
 
 class ConsoleIO(rich.console.Console):
@@ -43,7 +43,7 @@ class ConsoleIO(rich.console.Console):
         self.logger_config.POOL.level = logging.DEBUG if self.debug else logging.INFO
 
     def get_pool(self, pool_type: 'JobPool | str' = None, max_jobs: int = 1) -> 'LivePool':
-        from xtl.cli.utilities.live_pool import LivePool
+        from xtl.tui.live_pool import LivePool
 
         return LivePool(
             pool_type=pool_type,
