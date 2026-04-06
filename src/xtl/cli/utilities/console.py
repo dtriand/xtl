@@ -10,6 +10,7 @@ from xtl.logging.config import LoggerConfig
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool, BasePool
     from xtl.cli.utilities.common import JobOptions
+    from xtl.cli.utilities.live_pool import LivePool
 
 
 class ConsoleIO(rich.console.Console):
@@ -41,18 +42,13 @@ class ConsoleIO(rich.console.Console):
         self.logger_config.POOL = JobPoolLoggerConfig(console=self)
         self.logger_config.POOL.level = logging.DEBUG if self.debug else logging.INFO
 
-    def get_pool(self, pool_type: Union['JobPool', str] = None, max_jobs: int = 1) -> 'BasePool':
-        """
-        Returns a JobPool instance with a configured logger attached to the console.
-        """
-        from xtl.jobs.pools import JobPool
-        pool_cls = (JobPool(pool_type) if pool_type else JobPool.SIMPLE).get()
+    def get_pool(self, pool_type: 'JobPool | str' = None, max_jobs: int = 1) -> 'LivePool':
+        from xtl.cli.utilities.live_pool import LivePool
 
-        self._setup_job_logging()
-        return pool_cls(
+        return LivePool(
+            pool_type=pool_type,
             max_jobs=max_jobs,
-            logger_config=self.logger_config.POOL,
-            job_logger_config=self.logger_config.JOB
+            console=self,
         )
 
     def report_job_options(self, options: 'JobOptions') -> None:
