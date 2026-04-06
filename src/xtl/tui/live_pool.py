@@ -1,11 +1,12 @@
 import logging
 from typing import Any, Literal, Type, TYPE_CHECKING
 
-from rich.console import Group
-from rich.live import Live
-from rich.panel import Panel
-from rich.text import Text
-from rich.theme import Theme
+import rich.console
+import rich.live
+import rich.panel
+import rich.progress
+import rich.text
+import rich.theme
 from typer import BadParameter
 
 from xtl.logging.config import LoggerConfig
@@ -24,10 +25,37 @@ else:
 
 if TYPE_CHECKING:
     from xtl.jobs import Job, JobConfig
+    from xtl.jobs.results import JobResults
     from xtl.tui.console import ConsoleIO
 
 
-import rich.progress
+class JobOverviewColumn(rich.progress.ProgressColumn):
+
+    def __init__(self, sep: str = '/'):
+        super().__init__()
+        self._sep = sep
+
+    def render(self, task: rich.progress.Task) -> rich.console.RenderableType:
+        total = int(task.total) if task.total is not None else '?'
+        completed = int(task.completed)
+        fmt = ','
+
+        success = int(task.fields.get('success', 0))
+        failed = int(task.fields.get('failed', 0))
+        if (success + failed != completed) or (completed == 0):
+            # Assume the fields are not getting updated properly
+            text = f'[dim]{completed:{fmt}}{self._sep}{total}[/dim]'
+        else:
+            text = ''
+            if success:
+                text += f'[green]{success:{fmt}}[/green][dim]{self._sep}[/dim]'
+            if failed:
+                text += f'[red]{failed:{fmt}}[/red][dim]{self._sep}[/dim]'
+            text += f'[dim]{total}[/dim]'
+
+        return rich.text.Text.from_markup(text)
+
+
 class PoolProgress(ProgressBar):
 
     def __init__(self, *, console: 'ConsoleIO') -> None:
@@ -43,6 +71,8 @@ class PoolProgress(ProgressBar):
         self._job_task = self.add_task(
             name='jobs',
             description='Waiting for jobs...',
+            success=0,
+            failed=0,
         )
 
     @classmethod
@@ -52,7 +82,7 @@ class PoolProgress(ProgressBar):
             rich.progress.TextColumn('[progress.description]{task.description}'),
             rich.progress.BarColumn(),
             rich.progress.TaskProgressColumn(),
-            rich.progress.MofNCompleteColumn(),
+            JobOverviewColumn(),
             rich.progress.TimeElapsedColumn(),
         )
 
@@ -60,9 +90,12 @@ class PoolProgress(ProgressBar):
         self._job_task.description = 'Running jobs'
         self._job_task.start()
 
-    def complete_job(self, result: Any):
-        # TODO: Do additional checking for errors in results here
+    def complete_job(self, result: 'JobResults'):
         self._job_task.advance(1)
+        if result.success:
+            self._job_task.advance(1, field='success')
+        else:
+            self._job_task.advance(1, field='failed')
 
     @property
     def total(self) -> float | None:
@@ -84,10 +117,19 @@ class PoolProgress(ProgressBar):
 
 class LogPanel:
 
-    def __init__(self, handler: BufferingHandler, console: 'ConsoleIO', **kwargs) -> None:
+    def __init__(
+            self,
+            handler: BufferingHandler,
+            console: 'ConsoleIO',
+            *,
+            title: str = None,
+            subtitle: str = None,
+            **kwargs
+    ) -> None:
         self._handler = handler
         self._console = console
-        self._title = kwargs.pop('title', None)
+        self._title = title
+        self._subtitle = subtitle
         self._renderer = LogRenderer(
             console=console,
             log_fmt=kwargs.pop('log_fmt', None),
@@ -103,13 +145,15 @@ class LogPanel:
 
         if not logs:
             logs = [
-                Text('Waiting for logs...', style='dim italic', justify='center')
+                rich.text.Text('Waiting for logs...', style='dim italic', justify='center')
             ]
 
-        return Panel(
-            Group(*logs),
+        return rich.panel.Panel(
+            rich.console.Group(*logs),
             title=self._title,
-            border_style='dim'
+            border_style='dim',
+            subtitle=self._subtitle,  # Updated from LivePool.__aenter__
+            subtitle_align='right',
         )
 
 
@@ -125,7 +169,7 @@ class LivePool(PoolProtocol):
         from xtl import settings
 
         self._console: 'ConsoleIO' = console
-        self._theme = Theme(JOB_STYLES)
+        self._theme = rich.theme.Theme(JOB_STYLES)
         # Buffer size between 10-20, depending on the console height
         self._buffer_size = min(20, max(10, self._console.height - 8))
         self._buffer = BufferingHandler(tail_size=self._buffer_size)
@@ -146,7 +190,7 @@ class LivePool(PoolProtocol):
         self._progress = PoolProgress(
             console=self._console,
         ) if progress else None
-        self._live: Live | None = None
+        self._live: rich.live.Live | None = None
 
         # Pool and loggers
         self._pool = self._create_pool(pool_type, max_jobs)
@@ -179,18 +223,20 @@ class LivePool(PoolProtocol):
         )
 
     async def __aenter__(self) -> Self:
+        from xtl import settings
+
         self._console.push_theme(self._theme)
 
         components: list[Any] = [self._log_panel]
         if self._progress:
             components.append(self._progress)
 
-        renderable = Group(*components)
+        renderable = rich.console.Group(*components)
 
-        live = Live(
+        live = rich.live.Live(
             renderable=renderable,
             console=self._console,
-            refresh_per_second=20,
+            refresh_per_second=settings.cli.max_fps,
             transient=True
         )
         self._live = live
@@ -199,6 +245,14 @@ class LivePool(PoolProtocol):
         self._install_buffer()
 
         await self._pool.__aenter__()
+
+        # Resources allocation
+        #  NB: This is only available from within the pool context
+        rc = self._pool.resources
+        if rc is not None and self._console.verbose >= 1:
+            subtitle = f'J:{rc.jobs}|T:{rc.threads}|P:{rc.processes}|C:{rc.cores}'
+            self._log_panel._subtitle = subtitle
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
