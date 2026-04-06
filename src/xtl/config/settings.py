@@ -287,6 +287,12 @@ class CLISettings(Settings):
     format: CLIConsoleFormatSettings = Option(default=CLIConsoleFormatSettings())
     autoproc: CLIAutoprocSettings = Option(default=CLIAutoprocSettings())
 
+    max_fps: int = \
+        Option(
+            default=10, gt=1, lt=60,
+            desc='Maximum refreshes (per s) for live console elements'
+        )
+
 
 class XTLSettings(Settings):
     """

@@ -40,11 +40,20 @@ class ProgressTask:
             **kwargs
         )
 
-    def advance(self, value: int | float) -> None:
-        self._progress.advance(
-            task_id=self._task_id,
-            advance=value
-        )
+    def advance(self, value: int | float, *, field: str | None = None) -> None:
+        """
+        Advances the task by a given value. If `field` is specified, advances
+        that field instead, if it exists.
+        """
+        if not field:
+            self._progress.advance(
+                task_id=self._task_id,
+                advance=value
+            )
+        else:
+            old = self._task.fields.get(field, None)
+            if old is not None:
+                self.update(**{field: old + value})
 
     def __iadd__(self, value: int | float) -> ProgressTask:
         if not isinstance(value, (int, float)):
@@ -166,11 +175,13 @@ class ProgressBar:
             name: str,
             *,
             description: str,
-            total: int | float | None = None
+            total: int | float | None = None,
+            **kwargs
     ) -> ProgressTask:
         task_id = self._progress.add_task(
             description=description,
             total=total,
+            **kwargs
         )
         task = ProgressTask(
             name=name,
