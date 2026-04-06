@@ -16,7 +16,8 @@ from xtl import settings
 from xtl.common.compatibility import PY310_OR_LESS
 from xtl.common.misc import is_picklable
 from xtl.jobs.config import JobConfig
-from xtl.jobs.jobs import Job, JobResults
+from xtl.jobs.jobs import Job
+from xtl.jobs.results import JobResults
 from xtl.jobs.logging import get_logger_config
 from xtl.jobs.ipc import (IPCBackend, IPCHandle, IPCHandleNames, IPCLock, IPCQueue, IPCState, AsyncIPCBackend,
                           ThreadedIPCBackend, ProcessIPCBackend)
@@ -131,7 +132,7 @@ class BasePool(PoolProtocol, abc.ABC):
         self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
 
         # Resources allocation
-        self._rc_requested: Resources = resources or Resources(jobs=max_jobs, threads=1, processes=1, cores=1)
+        self._rc_requested: Resources = self._resolve_resources(max_jobs=max_jobs, requested=resources)
         self._rc_manager: ResourceManager | None = resources_manager
         self._rc_lease: ResourcesLease | None = None
         self._resources: Resources | None = None
@@ -169,6 +170,15 @@ class BasePool(PoolProtocol, abc.ABC):
         if not hasattr(cls, '_ipc_cls') or not issubclass(cls._ipc_cls, IPCBackend):
             raise TypeError(f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
                             f'subclass of {IPCBackend.__name__}')
+
+    @abc.abstractmethod
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        """
+        Translate a ``max_jobs`` count and an optional explicit ``Resources`` request in the
+        resources to request from the ``ResourceManager``. Subclasses define their own
+        behaviour depending on their intent.
+        """
+        ...
 
     @property
     def pool_id(self) -> str:
@@ -262,13 +272,12 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         Exit the context manager and handle any exceptions.
         """
-        keyboard_interrupt = exc_type is KeyboardInterrupt or \
-                             exc_type is asyncio.CancelledError
+        interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
         # Exception handling
         if exc_val:
             # We use logger.error here instead of logger.exception to avoid
             #   printing the traceback
-            if keyboard_interrupt:
+            if interrupted:
                 self.logger.error('Pool execution was interrupted by user')
             else:
                 self.logger.error('An exception occurred within the pool context: %s',
@@ -278,14 +287,14 @@ class BasePool(PoolProtocol, abc.ABC):
             # Request cancellation of all running tasks
             self.logger.warning('Cancelling all running tasks')
             for job_id, task in list(self._tasks.items()):
-                if keyboard_interrupt:
+                if interrupted:
                     task.cancel('Execution interrupted by user')
                 else:
                     task.cancel('An exception occurred in the pool context')
 
             self._in_ctx = False
             await self._drain_pool()
-            if keyboard_interrupt:
+            if interrupted:
                 return True  # Suppress the exception
             return False  # Propagate other exceptions
 
@@ -433,7 +442,18 @@ class BasePool(PoolProtocol, abc.ABC):
             # Create submission
             submission = JobSubmission.from_job(job)
             submission.ipc = self._build_ipc_handle()
-            submission.resources = self._resources  # Save total granted resources for the pool
+
+            # Allocate resources
+            job_request = job.get_resources()
+            if job_request and self._resources:
+                # Ensure the granted resources for the submission are capped by the pool's resources
+                submission.resources = job_request.cap(self._resources)
+            elif job_request:
+                # If the pool has no limit, then grant whatever has been requested
+                submission.resources = job_request
+            else:
+                # If the job has no requirement, then give everything the pool has
+                submission.resources = self._resources
 
             # Register submission and job
             self._submissions[submission.submission_id] = submission
@@ -668,6 +688,9 @@ class AsyncPool(BasePool):
 
     _ipc_cls = AsyncIPCBackend
 
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        return requested or Resources(jobs=max_jobs, threads=1, processes=1)
+
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
         job = self._jobs.get(submission.data.job_id)
         if job is None:
@@ -682,16 +705,10 @@ class SimplePool(AsyncPool):
     debugging, since it enforces a deterministic operations order.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Cap resources to one job
-        self._rc_requested = \
-            Resources(
-                jobs=1,
-                threads=self._rc_requested.threads,
-                processes=self._rc_requested.processes,
-                cores=self._rc_requested.cores
-            )
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        # Hard cap max_jobs to 1, since this pool is meant for sequential execution
+        r = requested or Resources(jobs=1, threads=1, processes=1)
+        return Resources(jobs=1, threads=r.threads, processes=r.processes)
 
     async def _launch_all(self) -> list[JobResults]:
         """
@@ -758,9 +775,12 @@ class ThreadedPool(BasePool):
     _executor: ThreadPoolExecutor | None
     _ipc_cls = ThreadedIPCBackend
 
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        return requested or Resources(jobs=max_jobs, threads=max_jobs, processes=1)
+
     async def __aenter__(self):
         await super().__aenter__()
-        self._executor = self._executor_cls(max_workers=self._resources.jobs)
+        self._executor = self._executor_cls(max_workers=self._resources.jobs)  # type: ignore
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -837,6 +857,9 @@ class MultiprocessPool(BasePool):
         # Eavesdropping task for capturing logs from worker processes
         self._eavesdropping: asyncio.Task | None = None  # Managed by __aexit__ and _ensure_picklable_log_handlers
         self._eavesdropping_qname = f'{self.pool_id}_log_queue'
+
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        return requested or Resources(jobs=max_jobs, threads=1, processes=max_jobs)
 
     def _eavesdrop(self) -> None:
         """
@@ -936,7 +959,7 @@ class MultiprocessPool(BasePool):
 
         # Initialize the process pool executor
         self._executor = self._executor_cls(
-            max_workers=self._resources.jobs,
+            max_workers=self._resources.jobs,  # type: ignore
             initializer=self._rename_current_process
         )
 

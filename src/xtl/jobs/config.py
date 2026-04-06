@@ -13,6 +13,7 @@ from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.jobs.shells import Shell
 from xtl.jobs.sites import ComputeSite
+from xtl.jobs.resources import Resources
 
 if TYPE_CHECKING:
     from xtl.jobs.batchfiles import BatchFile
@@ -33,6 +34,12 @@ class JobConfig(Options):
         Option(
             default=None,
             desc='Directory for job execution and results'
+        )
+
+    resources: Optional[Resources] = \
+        Option(
+            default=None,
+            desc='Resources to allocate for this job. Overrides job-defined resources'
         )
 
 

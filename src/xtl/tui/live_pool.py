@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any, Literal, Type, TYPE_CHECKING
 
@@ -250,17 +251,18 @@ class LivePool(PoolProtocol):
         #  NB: This is only available from within the pool context
         rc = self._pool.resources
         if rc is not None and self._console.verbose >= 1:
-            subtitle = f'J:{rc.jobs}|T:{rc.threads}|P:{rc.processes}|C:{rc.cores}'
+            subtitle = f'J:{rc.jobs}|T:{rc.threads}|P:{rc.processes}'
             self._log_panel._subtitle = subtitle
 
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
+        interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
         # Check for errors
         # ...
 
+        suppressed = False
         try:
             # Do something depending on error
             # if exc_val:
@@ -269,7 +271,8 @@ class LivePool(PoolProtocol):
             #         self._live.transient = False
             #         self._live.stop()
             #     raise typer.Abort()
-
+            suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
+        finally:
             self._buffer.clear()
 
             # Stop rich.Live and clear output
@@ -277,11 +280,15 @@ class LivePool(PoolProtocol):
                 self._live.transient = True
                 self._live.stop()
 
-            return suppressed
-        finally:
             self._patcher.restore()
             self._patcher.remove_handler()
             self._console.pop_theme()
+
+        if interrupted:
+            self._console.print('User cancelled the job execution.', style='yellow')
+            return False  # never suppress Ctrl+C/cancel
+
+        return suppressed
 
     def _install_buffer(self) -> None:
         manager = logging.root.manager
