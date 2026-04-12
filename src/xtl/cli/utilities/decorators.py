@@ -152,12 +152,13 @@ def job_options(dependencies: str | list[str] = None):
         dependencies = [dependencies]
     if dependencies:
         for dep in dependencies:
-            if dep in settings.dependencies.to_dict():
+            if dep in settings.dependencies.to_dict().keys():
                 if dep not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES:
-                    xtl.cli.utilities.common.REQUIRED_DEPENDENCIES.append(dep)
+                    xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep] = []
                 modules = getattr(settings.dependencies, dep).modules
                 for module in modules:
-                    if module not in xtl.cli.utilities.common.REQUIRED_MODULES:
+                    if module not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep]:
+                        xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep].append(module)
                         xtl.cli.utilities.common.REQUIRED_MODULES.append(module)
             else:
                 logger.warning('Dependency %s is not defined in '

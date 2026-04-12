@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import os
 
 import typer
 
@@ -33,10 +32,10 @@ def get_console_options(
 
 
 # Modified by `xtl.cli.utilities.decorators.job_options`
-REQUIRED_DEPENDENCIES = list()
-"""List of required dependencies for job execution, modified by decorators."""
+REQUIRED_DEPENDENCIES: dict[str, list[str]] = {'extra': []}
+"""Dictionary of required dependencies and their modules for job execution, modified by decorators."""
 
-REQUIRED_MODULES = list()
+REQUIRED_MODULES: list[str] = list()
 """List of required modules for job execution, modified by decorators."""
 
 
@@ -46,14 +45,62 @@ class PermissionsOptions:
     files: FilePermissions
     directories: FilePermissions
 
+    @staticmethod
+    def parse_permissions_pair(value: str) -> tuple[FilePermissions, FilePermissions]:
+        parts = [p.strip() for p in value.split(',')]
+        if len(parts) != 2 or not all(parts):
+            raise typer.BadParameter('Expected format: FILES,DIRS (example: 600,700)')
+
+        try:
+            files = FilePermissions.from_string(parts[0]) if parts[0] else settings.jobs.permissions.files
+            dirs = FilePermissions.from_string(parts[1]) if parts[1] else settings.jobs.permissions.directories
+        except Exception as e:
+            raise typer.BadParameter('Invalid permissions format') from e
+        return files, dirs
+
 
 @dataclass(frozen=True)
 class JobOptions:
     compute_site: ComputeSite
     permissions: PermissionsOptions
-    modules: set[str]
+    modules: dict[str, list[str]]
     keep_temp: bool
 
+    @staticmethod
+    def _ignore_default_modules(value: str | list[str]) -> str:
+        if isinstance(value, list):
+            return ''
+        elif isinstance(value, str):
+            return value
+        else:
+            raise ValueError(f'Could not cast {value!r} to string')
+
+    @staticmethod
+    def parse_module_names(value: str) -> dict[str, list[str]]:
+        modules = {
+            'extra': []
+        }
+
+        if not value:
+            return modules
+
+        module_parts = value.split(',')
+        for part in module_parts:
+            dependency_parts = part.split('=')
+            if len(dependency_parts) == 1:
+                modules['extra'].append(dependency_parts[0])
+            elif len(dependency_parts) == 2:
+                dep, module = dependency_parts
+                if dep not in modules.keys():
+                    modules[dep] = []
+                modules[dep].append(module)
+            else:
+                raise typer.BadParameter(f'Invalid module format: {part!r}. Expected <module> or <dependency>=<module>')
+        return modules
+
+    @property
+    def has_modules(self) -> bool:
+        return any(self.modules.values())
 
 job_options_panel = 'Job execution'
 def get_job_options(
@@ -62,42 +109,43 @@ def get_job_options(
             settings.jobs.compute_site, '--compute-site',
             rich_help_panel=job_options_panel,
             help='Compute site for configuring job execution'),
-    modules: list[str] = \
+    modules: str = \
         typer.Option(
-            REQUIRED_MODULES, '--module',
+            REQUIRED_MODULES,
+            '--modules',
+            parser=JobOptions._ignore_default_modules,
             rich_help_panel=job_options_panel,
             help='Module to load before job execution (only for `modules` site)'),
     update_permissions: bool = \
         typer.Option(
-            settings.automate.permissions.update,
+            settings.jobs.permissions.update,
             '--chmod/--dont-chmod',
             rich_help_panel=job_options_panel,
             help='Update permissions of output files',
         ),
-    permissions: tuple[FilePermissions, FilePermissions] = \
-        typer.Option(  # TODO: Check parser, should accept one comma separated argument, e.g.: 700,600
-            (settings.automate.permissions.files,
-             settings.automate.permissions.directories),
+    permissions: str = \
+        typer.Option(
+            f'{settings.jobs.permissions.files}, {settings.jobs.permissions.directories}',
             '--permissions',
             rich_help_panel=job_options_panel,
-            metavar='<FILES DIRS>',
-            parser=FilePermissions.from_string,
+            metavar='FILES,DIRS',
             help='Permissions for output files and directories'
         ),
     keep_temp: bool = \
         typer.Option(
-            settings.automate.keep_temp, '--keep-temp/--delete-temp',
+            settings.jobs.keep_temp, '--keep-temp/--delete-temp',
             rich_help_panel=job_options_panel,
             help='Keep temporary files after job execution'
         )
 ):
+    f_permissions, d_permissions = PermissionsOptions.parse_permissions_pair(permissions)
     return JobOptions(
         compute_site=compute_site,
         permissions=PermissionsOptions(
             update=update_permissions,
-            files=FilePermissions(permissions[0]),
-            directories=FilePermissions(permissions[1])
+            files=f_permissions,
+            directories=d_permissions
         ),
-        modules=set(modules),
+        modules=JobOptions.parse_module_names(modules),
         keep_temp=keep_temp
     )

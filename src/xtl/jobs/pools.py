@@ -292,6 +292,16 @@ class BasePool(PoolProtocol, abc.ABC):
                 else:
                     task.cancel('An exception occurred in the pool context')
 
+            # Await cancellation
+            pending = [t for t in self._tasks.values() if not t.done()]
+            if pending:
+                self.logger.warning('Waiting for %d tasks to cancel', len(pending))
+                done, pending = await asyncio.wait(pending, timeout=5)
+                if pending:
+                    for t in pending:
+                        t.cancel()
+                    await asyncio.gather(*pending, return_exceptions=True)
+
             self._in_ctx = False
             await self._drain_pool()
             if interrupted:
