@@ -14,7 +14,7 @@ else:
     from enum import StrEnum
 
 
-CPU_CORES: int = os.cpu_count()
+CPU_CORES: int | None = os.cpu_count()
 """Number of CPU cores available on the system, used for parallel job execution."""
 
 

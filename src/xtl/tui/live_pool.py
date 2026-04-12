@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Literal, Type, TYPE_CHECKING
+from typing import Any, Literal, Type, Union, TYPE_CHECKING, Iterable
 
 import rich.console
 import rich.live
@@ -22,7 +22,7 @@ from xtl.tui.styles import JOB_STYLES
 if PY310_OR_LESS:
     from typing_extensions import Self
 else:
-    from typing import Self, Any, Type, Literal
+    from typing import Self
 
 if TYPE_CHECKING:
     from xtl.jobs import Job, JobConfig
@@ -45,14 +45,14 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
         failed = int(task.fields.get('failed', 0))
         if (success + failed != completed) or (completed == 0):
             # Assume the fields are not getting updated properly
-            text = f'[dim]{completed:{fmt}}{self._sep}{total}[/dim]'
+            text = f'[dim]{completed:{fmt}}{self._sep}{total:{fmt}}[/dim]'
         else:
             text = ''
             if success:
                 text += f'[green]{success:{fmt}}[/green][dim]{self._sep}[/dim]'
             if failed:
                 text += f'[red]{failed:{fmt}}[/red][dim]{self._sep}[/dim]'
-            text += f'[dim]{total}[/dim]'
+            text += f'[dim]{total:{fmt}}[/dim]'
 
         return rich.text.Text.from_markup(text)
 
@@ -304,7 +304,7 @@ class LivePool(PoolProtocol):
     def submit(
             self,
             job_cls: Type['Job'],
-            configs: 'JobConfig | None | Iterable[JobConfig | None]' = None,
+            configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
             **kwargs
     ) -> list['Job']:
 

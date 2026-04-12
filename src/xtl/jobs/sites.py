@@ -415,7 +415,12 @@ class ModulesSite(LocalSite):
                                                  | DependencySettings | str
                                                  | None,
                                  shell: ShellType) -> str:
+        from xtl.cli.utilities.common import REQUIRED_DEPENDENCIES
+
         preamble = self._purge_modules(shell=shell)
+        if extra := REQUIRED_DEPENDENCIES.get('extra', []):
+            # Inject extra modules declared during runtime from the CLI
+            preamble += self._load_modules(modules=extra, shell=shell)
         for dep in self.resolve_dependencies(dependencies):
             if dep.modules:
                 preamble += self._load_modules(modules=dep.modules, shell=shell)
