@@ -4,6 +4,7 @@ from typing import Any, Literal, Type, Union, TYPE_CHECKING, Iterable
 
 import rich.console
 import rich.live
+import rich.logging
 import rich.panel
 import rich.progress
 import rich.text
@@ -157,6 +158,17 @@ class LogPanel:
             subtitle_align='right',
         )
 
+    def replay(self) -> None:
+        records = self._handler._records
+        limit = self._handler._records.maxlen
+
+        if len(records) >= limit:
+            self._console.print(f'[dim italic]Displaying the latest {limit:,} records[/]', justify='center', highlight=False)
+
+        for record in records:
+            log = self._renderer.render(record, time_format='%Y-%m-%d %H:%M:%S,%f')
+            self._console.print(log)
+
 
 class LivePool(PoolProtocol):
 
@@ -259,26 +271,21 @@ class LivePool(PoolProtocol):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
-        # Check for errors
-        # ...
+        # Check for job errors
+        job_errors = self._results and any(r.error for r in self._results)
 
         suppressed = False
         try:
+            # Stop rich.Live and clear output
+            if live := self._live:
+                live.stop()
+
             # Do something depending on error
-            # if exc_val:
-            #     # Stop rich.Live but persist on screen
-            #     if self._live:
-            #         self._live.transient = False
-            #         self._live.stop()
-            #     raise typer.Abort()
+            if exc_val or job_errors:
+                self._replay_logs()
             suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             self._buffer.clear()
-
-            # Stop rich.Live and clear output
-            if self._live:
-                self._live.transient = True
-                self._live.stop()
 
             self._patcher.restore()
             self._patcher.remove_handler()
@@ -300,6 +307,14 @@ class LivePool(PoolProtocol):
 
         self._patcher.patch(*all_loggers)
         logging.getLogger = self._patcher.patched_getLogger
+
+    def _replay_logs(self) -> None:
+        if not self._buffer.has_records:
+            return
+
+        self._console.print('\n[dim]─── Job logs ───[/]', justify='center')
+        self._log_panel.replay()
+        self._console.print(f'[dim]─── End of job logs ───[/]', justify='center')
 
     def submit(
             self,
