@@ -26,31 +26,34 @@ class _DummyPool(BasePool):
 
     _ipc_cls = _DummyIPCBackend
 
+    def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
+        return requested or Resources(jobs=max_jobs, threads=1, processes=1)
+
     async def _execute_submission(self, submission): return None
 
 
 @pytest.mark.asyncio
 async def test_root_acquire_release_restores_available():
-    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
-    lease = await manager.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
+    lease = await manager.acquire(Resources(jobs=2, threads=2, processes=2))
     available_during = await manager.available()
-    assert available_during == Resources(jobs=2, threads=2, processes=2, cores=2)
+    assert available_during == Resources(jobs=2, threads=2, processes=2)
 
     await lease.release()
     available_after = await manager.available()
-    assert available_after == Resources(jobs=4, threads=4, processes=4, cores=4)
+    assert available_after == Resources(jobs=4, threads=4, processes=4)
 
 
 @pytest.mark.asyncio
 async def test_nested_acquire_from_parent_scope():
-    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
-    root = await manager.acquire(Resources(jobs=4, threads=4, processes=4, cores=4))
+    root = await manager.acquire(Resources(jobs=4, threads=4, processes=4))
     # Global capacity is now exhausted, but nested acquire should still work via the parent lease.
-    child = await manager.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
+    child = await manager.acquire(Resources(jobs=2, threads=2, processes=2))
 
-    assert child.granted == Resources(jobs=2, threads=2, processes=2, cores=2)
+    assert child.granted == Resources(jobs=2, threads=2, processes=2)
 
     await child.release()
     await root.release()
@@ -58,16 +61,16 @@ async def test_nested_acquire_from_parent_scope():
 
 @pytest.mark.asyncio
 async def test_nested_timeout_when_parent_budget_exhausted():
-    manager = ResourceManager(Resources(jobs=2, threads=2, processes=2, cores=2))
+    manager = ResourceManager(Resources(jobs=2, threads=2, processes=2))
 
-    root = await manager.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
-    child1 = await manager.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
+    root = await manager.acquire(Resources(jobs=2, threads=2, processes=2))
+    child1 = await manager.acquire(Resources(jobs=2, threads=2, processes=2))
 
     # Force sibling acquisition attempt from root scope; root has no child budget left.
     token = CURRENT_LEASE.set(root)
     try:
         with pytest.raises(asyncio.TimeoutError):
-            await manager.acquire(Resources(jobs=1, threads=1, processes=1, cores=1), timeout=0.05)
+            await manager.acquire(Resources(jobs=1, threads=1, processes=1), timeout=0.05)
     finally:
         CURRENT_LEASE.reset(token)
 
@@ -77,35 +80,35 @@ async def test_nested_timeout_when_parent_budget_exhausted():
 
 @pytest.mark.asyncio
 async def test_nested_manager_mismatch_raises():
-    manager1 = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
-    manager2 = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager1 = ResourceManager(Resources(jobs=4, threads=4, processes=4))
+    manager2 = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
-    root = await manager1.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
+    root = await manager1.acquire(Resources(jobs=2, threads=2, processes=2))
     with pytest.raises(RuntimeError, match='different ResourceManager'):
-        await manager2.acquire(Resources(jobs=1, threads=1, processes=1, cores=1))
+        await manager2.acquire(Resources(jobs=1, threads=1, processes=1))
 
     await root.release()
 
 
 @pytest.mark.asyncio
 async def test_released_parent_cannot_acquire_child():
-    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
-    root = await manager.acquire(Resources(jobs=2, threads=2, processes=2, cores=2))
+    root = await manager.acquire(Resources(jobs=2, threads=2, processes=2))
     await root.release()
 
     with pytest.raises(RuntimeError, match='released lease'):
-        await root.acquire_child(Resources(jobs=1, threads=1, processes=1, cores=1))
+        await root.acquire_child(Resources(jobs=1, threads=1, processes=1))
 
 
 @pytest.mark.asyncio
 async def test_current_lease_context_restored_on_nested_release():
-    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
-    root = await manager.acquire(Resources(jobs=3, threads=3, processes=3, cores=3))
+    root = await manager.acquire(Resources(jobs=3, threads=3, processes=3))
     assert CURRENT_LEASE.get() is root
 
-    child = await manager.acquire(Resources(jobs=1, threads=1, processes=1, cores=1))
+    child = await manager.acquire(Resources(jobs=1, threads=1, processes=1))
     assert CURRENT_LEASE.get() is child
 
     await child.release()
@@ -117,28 +120,28 @@ async def test_current_lease_context_restored_on_nested_release():
 
 @pytest.mark.asyncio
 async def test_nested_pool_contexts_share_manager_budget():
-    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4, cores=4))
+    manager = ResourceManager(Resources(jobs=4, threads=4, processes=4))
 
     async with _DummyPool(max_jobs=4, resources_manager=manager) as outer:
-        assert outer.resources == Resources(jobs=4, threads=1, processes=1, cores=1)
+        assert outer.resources == Resources(jobs=4, threads=1, processes=1)
         # Outer pool consumed global budget.
-        assert await manager.available() == Resources(jobs=0, threads=3, processes=3, cores=3)
+        assert await manager.available() == Resources(jobs=0, threads=3, processes=3)
 
         async with _DummyPool(max_jobs=2, resources_manager=manager) as inner:
-            assert inner.resources == Resources(jobs=2, threads=1, processes=1, cores=1)
+            assert inner.resources == Resources(jobs=2, threads=1, processes=1)
             # Nested pool should draw from parent lease only, not global manager again.
-            assert await manager.available() == Resources(jobs=0, threads=3, processes=3, cores=3)
+            assert await manager.available() == Resources(jobs=0, threads=3, processes=3)
 
         # Releasing inner pool should not change global availability while outer is active.
-        assert await manager.available() == Resources(jobs=0, threads=3, processes=3, cores=3)
+        assert await manager.available() == Resources(jobs=0, threads=3, processes=3)
 
     # Releasing outer pool restores global availability.
-    assert await manager.available() == Resources(jobs=4, threads=4, processes=4, cores=4)
+    assert await manager.available() == Resources(jobs=4, threads=4, processes=4)
 
 
 @pytest.mark.asyncio
 async def test_nested_pool_context_restores_current_lease_scope():
-    manager = ResourceManager(Resources(jobs=3, threads=3, processes=3, cores=3))
+    manager = ResourceManager(Resources(jobs=3, threads=3, processes=3))
 
     async with _DummyPool(max_jobs=3, resources_manager=manager):
         outer_lease = CURRENT_LEASE.get()
