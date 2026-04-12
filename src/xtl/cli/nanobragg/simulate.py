@@ -6,15 +6,15 @@ from typing import Annotated
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
-from xtl.cli.cliio import epilog
-from xtl.cli.utilities.decorators import typer_async, attach_hook, job_options
+from xtl.cli.utilities import epilog
+from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 
 app = typer.Typer()
 
 
 @app.command('simulate', short_help='Run a nanoBragg simulation', epilog=epilog)
-@job_options(dependencies=['easybragg'])
+@jobs_depend_on('easybragg')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
@@ -68,12 +68,12 @@ async def cli_nanobragg_simulate(
         [i]Toggle GPU acceleration[/i]
         xtl.nanobragg simulate options.json --gpu
     """
-    from xtl.cli.utilities.console import ConsoleIO
+    from xtl.tui.console import ConsoleIO
     from xtl.nanobragg.jobs.nanobragg import NanoBraggJob, NanoBraggJobConfig
     from xtl.nanobragg.config import NanoBraggOptions
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
-    console.report_job_options(job_options)
+    console.apply_job_options(job_options)
 
     if options_file.suffix not in ['.json', '.toml']:
         console.print('Options file must be JSON or TOML', style='red')
@@ -85,8 +85,7 @@ async def cli_nanobragg_simulate(
         elif options_file.suffix == '.toml':
             options = NanoBraggOptions.from_toml(options_file)
     except Exception as e:
-        console.print_traceback(e)
-        console.print(f'Error: Failed to read config file {options_file}', style='red')
+        console.print_traceback(e, message=f'Error: Failed to read config file {options_file}')
         raise typer.Abort()
 
     if mtz:
@@ -106,16 +105,16 @@ async def cli_nanobragg_simulate(
     # TODO: Propagate job_options to NanoBraggJob
     config = NanoBraggJobConfig(
         job_directory=output_dir,
-        options=options,
         steps={
             'nanobragg_batch': {
+                'input': options.to_json(output_dir / 'nanobragg_options.json'),
                 'use_gpu': use_gpu,
                 'debug': console.debug,
                 }
         }
     )
 
-    with console.get_pool() as pool:
+    async with console.get_pool() as pool:
         jobs = pool.submit(NanoBraggJob, configs=[config])
         # TODO: Progress tracking for nanoBragg job
         results = await pool.launch()

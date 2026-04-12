@@ -1,14 +1,12 @@
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import logging
-
 from xtl.common.options import Option
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.exceptions.base import StderrError
-from xtl.jobs.jobs import Job, BatchJob
-from xtl.jobs.config import JobConfig, JobStepsConfig, BatchJobConfig
+from xtl.jobs.jobs import Job, BatchJob, SteppedJob
+from xtl.jobs.steps import StepSpec
+from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
 from xtl.jobs.shells import Shell
 
 from xtl.nanobragg.config import NanoBraggOptions
@@ -35,21 +33,15 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
         Option(
             default_factory=lambda: {
                 Shell.BASH:
-                    '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
+                    '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
                     'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
-                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS__ __XTL_NL__',
-                # TODO: Remove WINDOWS
-                Shell.CMD:
-                    '__XTL_COMMENT__ __XTL_DOCSTRING__ __XTL_NL__'
-                    'echo __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
-                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS__ __XTL_NL__'
-                    '@echo off __XTL_NL__'
-                    'for /L %%i in (1,1,9) do ( __XTL_NL__'
-                    '    call echo.>%~dp0image_000%%i.cbf __XTL_NL__'
-                    '    call echo.>%~dp0image_000%%i.npy __XTL_NL__'
-                    ') __XTL_NL__'
+                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__',
             },
             desc='Templates for the content of the batch file for different shells'
+        )
+    input: Path = \
+        Option(
+            desc='Path to input options JSON file',
         )
     use_gpu: bool = \
         Option(
@@ -73,86 +65,47 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
             extra.append('--debug')
         return ' '.join(extra).rstrip(' ')
 
+    def get_context(self):
+        context = super().get_context()
+        context['NANOBRAGG_CONFIG'] = self.input
+        context['NANOBRAGG_OUTPUT_DIR'] = self.job_directory
+        context['NANOBRAGG_EXTRA_ARGS'] = self.get_extra_args()
+        return context
+
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None):
-        super().__init__(job_id=job_id, logger=logger)
+    _keep_files = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._batch_context |= {
             'NANOBRAGG_SCRIPT': str(Path(__file__).parent / 'scripts' / 'nanobragg.py')
         }
 
 
-class NanoBraggJobStepsConfig(JobStepsConfig, total=False):
-    nanobragg_batch: NanoBraggBatchJobConfig
+class NanoBraggJobConfig(SteppedJobConfig):
+    ...
 
 
-class NanoBraggJobConfig(JobConfig):
-    options: NanoBraggOptions
-    steps: NanoBraggJobStepsConfig = \
-        Option(
-            default_factory=lambda: NanoBraggJobStepsConfig(
-                nanobragg_batch=NanoBraggBatchJobConfig()
-            ),
-            desc='Steps for the nanoBragg job'
-        )
+class NanoBraggJob(SteppedJob[NanoBraggJobConfig]):
 
+    _keep_files = True
 
-class NanoBraggJob(Job[NanoBraggJobConfig]):
-
-    async def _execute(self) -> dict[str, list[Path]]:
-        no_steps = len(self.config.steps_list)
-
-        ###############################
-        # Step 1: nanoBragg batch job #
-        ###############################
-        i = 0
-        step = self.config.steps_list[i]
-        self.logger.info('Executing step %(i)d/%(n)d: %(steps)s', {'i': i + 1, 'n': no_steps, 'steps': step})
-
-        # Prepare batch job
-        self.logger.debug(f'Preparing {NanoBraggBatchJob.__name__}')
-        batch_config = self.config.steps[step]
-        options_json = batch_config.job_directory / 'nanobragg_options.json'
-        batch_job = NanoBraggBatchJob.with_config(
-            job_id=f'{self.job_id}.{i+1}',
-            config=batch_config,
-            **{
-                'NANOBRAGG_CONFIG': options_json,
-                'NANOBRAGG_OUTPUT_DIR': batch_config.job_directory,
-                'NANOBRAGG_EXTRA_ARGS': batch_config.get_extra_args(),
+    _steps = (
+        StepSpec(
+            name='nanobragg_batch',
+            desc='Run nanoBragg batch job',
+            job_cls=NanoBraggBatchJob,
+            config_cls=NanoBraggBatchJobConfig,
+            post_processor=lambda results, ctx: {
+                'cbf': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.cbf'),
+                'npy': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.npy'),
+                'png': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.png'),
             }
-        )
+        ),
+    )
 
-        # Save options to file
-        if options_json.exists():
-            raise FileExistsError(f'Options file already exists: {options_json}')
-        try:
-            self.logger.debug(f'Creating directory for options file: {options_json.parent}')
-            options_json.parent.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            raise RuntimeError(f'Failed to create directory for options file: {options_json.parent}') from e
-        self.logger.debug(f'Saving nanoBragg options to {options_json}')
-        self.config.options.to_json(options_json)
-
-        # Run batch job
-        self.logger.info('Running nanoBragg batch job in: %(dir)s', {'dir': batch_config.job_directory})
-        results = await batch_job.run()
-        self.logger.debug(f'Batch job completed')
-        if results.error:
-            raise RuntimeError(f'nanoBragg batch job failed with error: {results.error}')
-        else:
-            if stderr := results.data.get('stderr', None):
-                raise StderrError('nanoBragg batch job failed', stderr=stderr)
-
-        # Extract files
-        self.logger.debug('Collecting results from batch job')
-        images = {
-            'cbf': sorted(list(batch_config.job_directory.glob('image_*.cbf'))),
-            'npy': sorted(list(batch_config.job_directory.glob('image_*.npy'))),
-            'png': sorted(list(batch_config.job_directory.glob('image_*.png'))),
-        }
-        self.logger.debug('Step %(i)d/%(n)d completed: %(step)s', {'i': i + 1, 'n': no_steps, 'step': step})
-
-        self.logger.info('All steps completed')
-        return images
+    @staticmethod
+    def glob_files(path: Path, pattern: str) -> list[Path]:
+        return sorted(list(Path(path).glob(pattern)))

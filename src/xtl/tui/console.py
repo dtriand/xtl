@@ -1,7 +1,6 @@
 from typing import Literal, TYPE_CHECKING, Union
 
 import rich.console
-import rich.prompt
 
 if TYPE_CHECKING:
     from xtl.jobs import JobPool
@@ -17,6 +16,8 @@ class ConsoleIO(rich.console.Console):
         self.debug = debug
 
     def confirm(self, question: str, **kwargs) -> bool:
+        import rich.prompt
+
         return rich.prompt.Confirm.ask(question, console=self, **kwargs)
 
     def apply_job_options(self, options: 'JobOptions') -> None:
@@ -79,3 +80,21 @@ class ConsoleIO(rich.console.Console):
             console=self,
         )
 
+    def print_traceback(self, exception: Exception, *, message: str | None = None) -> None:
+        if self.debug:
+            # Rich traceback
+            try:
+                raise exception
+            except Exception:
+                self.print_exception(show_locals=True)
+        elif self.verbose:
+            # Standard traceback
+            import traceback
+
+            for line in traceback.format_exception(type(exception), exception, exception.__traceback__):
+                self.print(line, style='red')
+        else:
+            # Only exception message
+            self.print(f'{exception}', style='red')
+        if message:
+            self.print(f'{message}', style='red')
