@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import typer
 
 from xtl import settings
-from xtl.common.os import FilePermissions, CPU_CORES
+from xtl.common.os import FilePermissions
 from xtl.jobs.sites import ComputeSite
 
 

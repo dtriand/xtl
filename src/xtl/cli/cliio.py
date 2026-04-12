@@ -16,7 +16,7 @@ from xtl.common.os import get_permissions_in_decimal
 from xtl import settings
 
 
-epilog='</> with ❤️ by [i magenta]_dtriand[/]'
+epilog='</> with [red]<3[/] by [i magenta]_dtriand[/]'
 
 
 class CliIO:

@@ -147,9 +147,9 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> \
     return decorator
 
 
-def job_options(dependencies: str | list[str] = None):
-    if isinstance(dependencies, str):
-        dependencies = [dependencies]
+def jobs_depend_on(*dependencies: str):
+    if len(dependencies) == 0:
+        raise ValueError('Job dependencies cannot be empty')
     if dependencies:
         for dep in dependencies:
             if dep in settings.dependencies.to_dict().keys():
