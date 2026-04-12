@@ -2,7 +2,7 @@ import typer
 
 from .simulate import app as simulate_app
 
-from xtl.cli.cliio import epilog
+from xtl.cli.utilities import epilog
 
 
 app = typer.Typer(
