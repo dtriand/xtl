@@ -70,7 +70,7 @@ class LogRenderer:
             console=self._console,
             renderables=renderables,
             log_time=datetime.fromtimestamp(record.created),
-            time_format=self._render.time_format,
+            time_format=kwargs.get('time_format', self._render.time_format),
             level=level,
             path=record.pathname if self._render.show_path else None,
             line_no=record.lineno if self._render.show_path else None,
