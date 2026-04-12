@@ -2,16 +2,17 @@ from pathlib import Path
 
 import typer
 
-from xtl.cli.utilities.decorators import typer_async, attach_hook, job_options
+from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, \
     get_job_options, JobOptions
+from xtl.cli.utilities import epilog
 
 
 app = typer.Typer()
 
 
-@app.command('compare', help='Compare two or more SAXS datasets using datcmp')
-@job_options(dependencies=['atsas'])
+@app.command('compare', help='Compare two or more SAXS datasets using datcmp', epilog=epilog)
+@jobs_depend_on('atsas')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
