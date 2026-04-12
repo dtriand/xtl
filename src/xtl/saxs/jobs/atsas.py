@@ -74,8 +74,8 @@ class DatcmpBatchJob(BatchJob[ATSASBatchJobConfig]):
     Job to compare SAXS datasets using ATSAS datcmp.
     """
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None):
-        super().__init__(job_id=job_id, logger=logger)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._batch_context |= {
             'ATSAS_EXEC': 'datcmp'
         }
