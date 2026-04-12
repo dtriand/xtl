@@ -38,22 +38,22 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
         self._sep = sep
 
     def render(self, task: rich.progress.Task) -> rich.console.RenderableType:
-        total = int(task.total) if task.total is not None else '?'
-        completed = int(task.completed)
         fmt = ','
+        completed = int(task.completed)
+        total = f'{int(task.total):{fmt}}' if task.total is not None else '?'
 
         success = int(task.fields.get('success', 0))
         failed = int(task.fields.get('failed', 0))
         if (success + failed != completed) or (completed == 0):
             # Assume the fields are not getting updated properly
-            text = f'[dim]{completed:{fmt}}{self._sep}{total:{fmt}}[/dim]'
+            text = f'[dim]{completed}{self._sep}{total}[/dim]'
         else:
             text = ''
             if success:
                 text += f'[green]{success:{fmt}}[/green][dim]{self._sep}[/dim]'
             if failed:
                 text += f'[red]{failed:{fmt}}[/red][dim]{self._sep}[/dim]'
-            text += f'[dim]{total:{fmt}}[/dim]'
+            text += f'[dim]{total}[/dim]'
 
         return rich.text.Text.from_markup(text)
 
@@ -282,7 +282,10 @@ class LivePool(PoolProtocol):
 
             # Do something depending on error
             if exc_val or job_errors:
-                self._replay_logs()
+                self._console.print('An error occurred while executing jobs', style='red')
+                if (not self._console.is_terminal or
+                        self._console.confirm('Would you like to print the job logs?', default=True)):
+                    self._replay_logs()
             suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             self._buffer.clear()
@@ -312,9 +315,9 @@ class LivePool(PoolProtocol):
         if not self._buffer.has_records:
             return
 
-        self._console.print('\n[dim]─── Job logs ───[/]', justify='center')
+        self._console.print('\n[dim]--- Job logs ---[/]', justify='center')
         self._log_panel.replay()
-        self._console.print(f'[dim]─── End of job logs ───[/]', justify='center')
+        self._console.print(f'[dim]--- End of job logs ---[/]', justify='center')
 
     def submit(
             self,

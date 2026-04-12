@@ -910,59 +910,65 @@ class MultiprocessPool(BasePool):
     @contextlib.asynccontextmanager
     async def _ensure_picklable_log_handlers(self, submission: JobSubmission) -> AsyncIterator[None]:
         """
-        Context manager to ensure that the logging handlers in the Job's logging configuration are picklable before
-        the Job is pickled for execution in a separate process. If any unpicklable handlers are found, they will be
-        temporarily removed from the configuration and replaced with a dummy signal for the worker process to install a
-        QueueHandler that forwards logs to the pool's eavesdropping queue. After the Job has been executed, the original
-        logging configuration will be restored.
-
-        :param submission: The JobSubmission containing the logging configuration to check and modify if necessary.
+        Ensure job logging handlers are picklable for process execution. If no usable
+        handlers remain (including the case handlers=[]), inject a dummy marker so
+        the worker installs a QueueHandler and forwards logs to this pool.
         """
-        popped_handlers = []
-        dummy = None
-        try:
-            # Check if the logging config is picklable as-is. If it is, we can skip the filtering step.
-            safe, _ = is_picklable(submission.data.logging_config)
+        popped_handlers: list[dict] = []
+        dummy: dict | None = None
+
+        # Ensure config structure exists
+        if submission.data.logging_config is None:
+            submission.data.logging_config = {}
+        log_cfg = submission.data.logging_config
+        handlers_configs = list(log_cfg.get('handlers', []))
+
+        # Keep only picklable handlers; stash removed ones for restoration
+        picklable_handlers: list[dict] = []
+        for handler_config in handlers_configs:
+            safe, _ = is_picklable(handler_config)
             if safe:
-                yield
-            else:
-                # Filter out unpicklable handlers
-                handlers_configs = submission.data.logging_config.get('handlers', [])
-                picklable_handlers = []
-                for handler_config in handlers_configs:
-                    safe, _ = is_picklable(handler_config)
-                    if safe:
-                        picklable_handlers.append(handler_config)
-                        continue
+                picklable_handlers.append(handler_config)
+                continue
 
-                    # Log the removal of a handler
-                    popped_handlers.append(handler_config)
-                    handler = handler_config['handler']
-                    self.logger.debug('Removed unpicklable log handler <%s> from submission of job: %s',
-                                      handler.__name__, submission.data.job_id)
+            popped_handlers.append(handler_config)
+            handler = handler_config.get('handler', '<unknown>')
+            handler_name = getattr(handler, '__name__', str(handler))
+            self.logger.debug(
+                'Removed unpicklable log handler <%s> from submission of job: %s',
+                handler_name,
+                submission.data.job_id,
+            )
 
-                # Update the logging config
-                submission.data.logging_config['handlers'] = picklable_handlers
+        # Update submission to only contain picklable handlers for process handoff
+        log_cfg['handlers'] = picklable_handlers
 
-                if popped_handlers:
-                    # Add a dummy signal for the worker process to install a QueueHandler
-                    dummy = {
-                        'handler': 'XTL_DUMMY_QUEUE_HANDLER',
-                        'config': popped_handlers[0].get('config', {}) | {'eavesdrop_queue': self._eavesdropping_qname}
-                    }
-                    submission.data.logging_config['handlers'].append(dummy)
+        # Critical: if no handlers remain, still inject queue relay
+        need_relay = bool(popped_handlers) or not picklable_handlers
+        try:
+            if need_relay:
+                dummy = {
+                    'handler': 'XTL_DUMMY_QUEUE_HANDLER',
+                    'config': {'eavesdrop_queue': self._eavesdropping_qname},
+                }
+                log_cfg['handlers'].append(dummy)
+                self._eavesdrop()
 
-                    # Start log listener thread
-                    self._eavesdrop()
-                yield
+            yield
+
         finally:
-            # Restore the original logging configuration
+            # Remove dummy relay marker if we added one
+            if dummy is not None and dummy in log_cfg.get('handlers', []):
+                log_cfg['handlers'].remove(dummy)
+
+            # Restore any removed unpicklable handlers
             if popped_handlers:
-                self.logger.debug('Reattaching popped handlers to submission for job: %s', submission.data.job_id)
-                submission.data.logging_config['handlers'].extend(popped_handlers)
-                submission.data.logging_config['handlers'].remove(dummy)
+                self.logger.debug(
+                    'Reattaching popped handlers to submission for job: %s',
+                    submission.data.job_id,
+                )
+                log_cfg['handlers'].extend(popped_handlers)
                 popped_handlers.clear()
-                dummy = None
 
     async def __aenter__(self):
         await super().__aenter__()

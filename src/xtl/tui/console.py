@@ -1,6 +1,7 @@
 from typing import Literal, TYPE_CHECKING, Union
 
 import rich.console
+import rich.prompt
 
 if TYPE_CHECKING:
     from xtl.jobs import JobPool
@@ -14,6 +15,9 @@ class ConsoleIO(rich.console.Console):
         super().__init__(*args, **kwargs)
         self.verbose = verbose
         self.debug = debug
+
+    def confirm(self, question: str, **kwargs) -> bool:
+        return rich.prompt.Confirm.ask(question, console=self, **kwargs)
 
     def apply_job_options(self, options: 'JobOptions') -> None:
         """
