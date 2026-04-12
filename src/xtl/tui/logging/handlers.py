@@ -63,8 +63,10 @@ class LoggerHandlerPatcher:
             logger.addHandler(self._handler)
             self._attached_loggers.append(logger)
 
-            # Ensure propagation
-            logger.propagate = True
+            # Ensure propagation is off
+            #  NB: This is required for preventing duplicate
+            #  records from jobs within a multiprocess pool
+            logger.propagate = False
 
     def restore(self):
         # Restore the original handlers to the loggers
