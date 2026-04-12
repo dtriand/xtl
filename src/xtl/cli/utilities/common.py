@@ -114,6 +114,7 @@ def get_job_options(
             REQUIRED_MODULES,
             '--modules',
             parser=JobOptions._ignore_default_modules,
+            metavar='',  # This hides the parser signature
             rich_help_panel=job_options_panel,
             help='Module to load before job execution (only for `modules` site)'),
     update_permissions: bool = \
