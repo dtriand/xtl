@@ -36,10 +36,14 @@ else:
     from typing import Self
 
 
-__all__ = ['PoolProtocol', 'JobPool', 'BasePool', 'SimplePool', 'AsyncPool', 'ThreadedPool', 'MultiprocessPool']
+__all__ = ['PoolProtocol', 'JobPool', 'BasePool', 'SimplePool', 'AsyncPool', 'ThreadedPool', 'MultiprocessPool',
+           'JOB_POOL_TYPES']
 
 
 uuid = UUIDFactory()
+
+
+JOB_POOL_TYPES = Literal['simple', 'async', 'threads', 'processes']
 
 
 class JobPool(StrEnum):
