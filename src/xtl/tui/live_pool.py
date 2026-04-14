@@ -12,7 +12,7 @@ import rich.theme
 from typer import BadParameter
 
 from xtl.logging.config import LoggerConfig
-from xtl.jobs.pools import PoolProtocol, JobPool, BasePool
+from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
 from xtl.common.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
 from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
@@ -175,10 +175,18 @@ class LivePool(PoolProtocol):
     def __init__(
             self,
             console: 'ConsoleIO',
-            pool_type: JobPool | str | None = None,
+            pool_type: JobPool | JOB_POOL_TYPES | None = None,
             max_jobs: int = 1,
             progress: bool = True,
     ) -> None:
+        """
+        Α job pool with interactive rich elements on the console.
+
+        :param console: The console to render the pool in.
+        :param pool_type: The type of the pool to use. If None, a simple pool is created.
+        :param max_jobs: The maximum number of jobs to run concurrently in the pool.
+        :param progress: Whether or not to display a progress bar.
+        """
         from xtl import settings
 
         self._console: 'ConsoleIO' = console
@@ -217,9 +225,15 @@ class LivePool(PoolProtocol):
 
     def _create_pool(
             self,
-            pool_type: JobPool | str | None = None,
+            pool_type: JobPool | JOB_POOL_TYPES | None = None,
             max_jobs: int = 1
     ) -> BasePool:
+        """
+        Create a preconfigured job pool.
+
+        :param pool_type: The type of the pool to use. If None, a simple pool is created.
+        :param max_jobs: The maximum number of jobs to run concurrently in the pool.
+        """
         logger_config = LoggerConfig(
             level=logging.DEBUG if self._console.debug else logging.INFO,
             propagate=False,
@@ -238,14 +252,17 @@ class LivePool(PoolProtocol):
     async def __aenter__(self) -> Self:
         from xtl import settings
 
+        # Update the console theme
         self._console.push_theme(self._theme)
 
+        # Create renderables
         components: list[Any] = [self._log_panel]
         if self._progress:
             components.append(self._progress)
 
         renderable = rich.console.Group(*components)
 
+        # Create Live instance and start
         live = rich.live.Live(
             renderable=renderable,
             console=self._console,
@@ -255,8 +272,10 @@ class LivePool(PoolProtocol):
         self._live = live
         live.start()
 
+        # Install special buffer handler for redirecting logs
         self._install_buffer()
 
+        # Enter the actual pool
         await self._pool.__aenter__()
 
         # Resources allocation
@@ -269,6 +288,7 @@ class LivePool(PoolProtocol):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        # Check if the exit was caused by Ctrl+C
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
         # Check for job errors
@@ -280,20 +300,27 @@ class LivePool(PoolProtocol):
             if live := self._live:
                 live.stop()
 
-            # Do something depending on error
+            # Replay logs if there were any errors on the jobs
             if exc_val or job_errors:
                 self._console.print('An error occurred while executing jobs', style='red')
                 if (not self._console.is_terminal or
                         self._console.confirm('Would you like to print the job logs?', default=True)):
                     self._replay_logs()
+
+            # Let the pool exit normally
             suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
         finally:
+            # Empty the handler's buffer
             self._buffer.clear()
 
+            # Restore patched loggers
             self._patcher.restore()
             self._patcher.remove_handler()
+
+            # Remove console theme
             self._console.pop_theme()
 
+        # Inform about manual interruption
         if interrupted:
             self._console.print('User cancelled the job execution.', style='yellow')
             return False  # never suppress Ctrl+C/cancel
@@ -301,17 +328,30 @@ class LivePool(PoolProtocol):
         return suppressed
 
     def _install_buffer(self) -> None:
+        """
+        Install a buffering logging handler and patch all available loggers
+        """
         manager = logging.root.manager
 
+        # Grab the default logger
         all_loggers = [logging.getLogger()]
+
+        # Also grap every other registered logger
         for logger in manager.loggerDict.values():
             if isinstance(logger, logging.Logger):
                 all_loggers.append(logger)
 
+        # Patch all loggers
         self._patcher.patch(*all_loggers)
+
+        # Patch the default logger getter to ensure consistency with any loggers
+        #  that will be spawned in the future
         logging.getLogger = self._patcher.patched_getLogger
 
     def _replay_logs(self) -> None:
+        """
+        Replay all logs to the console.
+        """
         if not self._buffer.has_records:
             return
 
@@ -325,7 +365,13 @@ class LivePool(PoolProtocol):
             configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
             **kwargs
     ) -> list['Job']:
+        """
+        Submit one or more jobs to the pool.
 
+        :param job_cls: Job class to submit to.
+        :param configs: Job configs to iterate over.
+        :param kwargs: Extra keyword arguments to pass to the underlying pool's `.submit` method.
+        """
         jobs = self._pool.submit(job_cls, configs=configs, **kwargs)
 
         for job in jobs:
@@ -338,7 +384,12 @@ class LivePool(PoolProtocol):
 
         return jobs
 
-    async def launch(self, mode: Literal['all', 'stream'] = 'stream'):
+    async def launch(self, mode: Literal['all', 'stream'] = 'all'):
+        """
+        Launch all submitted jobs and track their progress.
+
+        :param mode: Whether to return all results together (`'all'`) or yield them as each job completes (`'stream'`).
+        """
         if mode not in ['all', 'stream']:
             raise BadParameter(f'`mode` must be one of: \'all\', \'stream\'')
 
@@ -352,12 +403,11 @@ class LivePool(PoolProtocol):
         return await self._launch_all()
 
     async def _launch_all(self):
-        results = await self._pool.launch(mode='all')
-        for result in results:
-            if self._progress:
-                self._progress.complete_job(result)
-        self._results = results
-        return results
+        # NB: Internally we stream the results, so that we can update the
+        #  progress bar accordingly
+        async for _ in self._launch_stream():
+            pass
+        return self._results
 
     async def _launch_stream(self):
         async for result in await self._pool.launch(mode='stream'):
