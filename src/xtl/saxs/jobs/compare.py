@@ -4,9 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from xtl.common.options import Option
-from xtl.jobs.jobs import SteppedJob
-from xtl.jobs.config import SteppedJobConfig
-from xtl.jobs.steps import StepSpec
+from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.math.jobs.clustering import CliqueSearchJob, CliqueSearchJobConfig
 from xtl.saxs.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
 from xtl.saxs.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
@@ -39,7 +37,7 @@ class SAXSComparisonResults:
 
 class SAXSCompareJob(SteppedJob[SAXSCompareJobConfig]):
     """
-    Job to compare SAXS datasets using datcmp.
+    Job to compare SAXS datasets using ATSAS `datcmp`.
     """
     _steps = (
         StepSpec(

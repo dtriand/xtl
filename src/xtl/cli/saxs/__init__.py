@@ -1,6 +1,7 @@
 import typer
 
 from .compare import app as compare_app
+from .subtract import app as subtract_app
 from xtl.cli.utilities import epilog
 
 
@@ -12,3 +13,4 @@ app = typer.Typer(
     epilog=epilog
 )
 app.add_typer(compare_app)
+app.add_typer(subtract_app)

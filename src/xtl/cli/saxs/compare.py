@@ -11,7 +11,7 @@ from xtl.cli.utilities import epilog
 app = typer.Typer()
 
 
-@app.command('compare', help='Compare two or more SAXS datasets using datcmp', epilog=epilog)
+@app.command('compare', short_help='Compare two or more datasets', epilog=epilog)
 @jobs_depend_on('atsas')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
@@ -20,7 +20,7 @@ async def cli_saxs_compare(
     datafiles: list[Path] = \
             typer.Argument(
                 ...,
-                metavar='FILE(S)',
+                metavar='FILE(S)', show_default=False,
                 help='Data files to compare'
             ),
     alpha: float = \
@@ -37,6 +37,20 @@ async def cli_saxs_compare(
     job_options: JobOptions = typer.Option(),
     console_options: ConsoleOptions = typer.Option(),
 ):
+    """
+    Compare two or more SAXS datasets using
+    [magenta]ATSAS [link=https://biosaxs-com.github.io/atsas/latest/manuals/datcmp.html]datcmp[/].
+
+    \b
+    USAGE
+    [green]>[/] xtl.saxs compare sample1.dat sample2.dat ...
+
+    [i]Relax similarity level[/i]
+    [green]>[/] xtl.saxs compare sample*.dat -a 0.05
+
+    [i]Print output as CSV[/i]
+    [green]>[/] xtl.saxs compare sample*.dat --csv
+    """
     import tempfile
     from xtl.tui.console import ConsoleIO
     from xtl.saxs.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
@@ -56,7 +70,7 @@ async def cli_saxs_compare(
             }
         }
     )
-    async with console.get_pool('simple', max_jobs=5) as pool:
+    async with console.get_pool('simple') as pool:
         jobs = pool.submit(SAXSCompareJob, configs=config)
         results = await pool.launch('all')
 
