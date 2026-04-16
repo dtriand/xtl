@@ -855,7 +855,7 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         overrides = deepcopy(parent_config.steps.get(spec.name, {}))
 
         # Prepare the payload, by overriding defaults
-        payload = deepmerge(defaults | dynamic_defaults, overrides)
+        payload = deepmerge(deepmerge(defaults, dynamic_defaults), overrides)
 
         # Return JobConfig instance
         return spec.config_cls(**payload)
@@ -870,9 +870,13 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
 
         # Execute steps sequentially
         for i, spec in enumerate(self._steps, start=1):
-            self.logger.info('Executing step %(i)d/%(n)d: %(step)s',
-                             {'i': i, 'n': len(self._steps), 'step': spec.name})
-            self.logger.debug('Preparing %(config_cls)s', {'config_cls': spec.config_cls.__name__})
+            # Check whether to skip current step
+            if spec.condition(ctx):
+                self.logger.info('Executing step %(i)d/%(n)d: %(step)s',
+                                 {'i': i, 'n': len(self._steps), 'step': spec.name})
+                self.logger.debug('Preparing %(config_cls)s', {'config_cls': spec.config_cls.__name__})
+            else:
+                self.logger.info('Skipping step %(i)d/%(n)d: %(step)s')
 
             # Get the config for the current step, merging defaults and dynamic defaults from the StepSpec with any
             #  overrides from the JobConfig

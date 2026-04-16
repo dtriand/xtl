@@ -45,6 +45,12 @@ class StepSpec(Options):
             desc='A function that takes the JobContext and returns a dictionary of dynamic default values for the '
                  'step configuration. This can be used to set defaults based on the results of previous steps.'
         )
+    condition: Callable[[JobContext], bool] = \
+        Option(
+            default_factory=lambda: lambda ctx: True,
+            desc='A function that takes the JobContext and returns a boolean indicating whether or not to execute '
+                 'the current step.'
+        )
     post_processor: Optional[Callable[[JobResults | None, JobContext], dict[str, Any]]] = \
         Option(
             default=None,
