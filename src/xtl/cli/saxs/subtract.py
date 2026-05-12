@@ -87,7 +87,7 @@ async def cli_saxs_subtract(
     for i, result in enumerate(results):
         if not result or not result.success:
             dataset = configs[i].input
-            console.print(f'Subtraction failed for dataset: {dataset}', style='red')
+            console.print(f'Subtraction failed for dataset: {dataset}', style='red', highlight=False)
     else:
         console.print(f'Subtracted {len(datafiles)} dataset{"s" if len(datafiles) > 1 else ""} '
                       f'in: {output_directory.absolute()}',
