@@ -36,7 +36,7 @@ class CreateDirectoryJob(Job[CreateDirectoryJobConfig]):
         if not config.directory.exists():
             try:
                 # Ensure only one process creates the directory
-                with self.lock():
+                async with self.lock():
                     config.directory.mkdir(
                         parents=True,
                         exist_ok=True,
@@ -52,7 +52,7 @@ class CreateDirectoryJob(Job[CreateDirectoryJobConfig]):
         if (permissions := config.permissions) is not None:
             try:
                 # Ensure only one process updates permissions
-                with self.lock():
+                async with self.lock():
                     chmod(config.directory, permissions.decimal)
             except OSError as e:
                 raise RuntimeError(f'Failed to set permissions for {config.directory}') from e
