@@ -6,8 +6,8 @@ import numpy as np
 from xtl.common.options import Option
 from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.math.jobs.clustering import CliqueSearchJob, CliqueSearchJobConfig
-from xtl.saxs.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
-from xtl.saxs.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
+from xtl.scattering.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
+from xtl.scattering.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
     DatcmpAdjustment
 
 

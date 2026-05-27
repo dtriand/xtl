@@ -53,7 +53,7 @@ async def cli_saxs_compare(
     """
     import tempfile
     from xtl.tui.console import ConsoleIO
-    from xtl.saxs.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
+    from xtl.scattering.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)

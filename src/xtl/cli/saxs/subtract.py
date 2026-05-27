@@ -58,7 +58,7 @@ async def cli_saxs_subtract(
     import tempfile
     from xtl import settings
     from xtl.tui.console import ConsoleIO
-    from xtl.saxs.jobs.operations import SAXSSubtractJob, SAXSSubtractJobConfig
+    from xtl.scattering.jobs.operations import SAXSSubtractJob, SAXSSubtractJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
