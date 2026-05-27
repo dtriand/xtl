@@ -74,7 +74,7 @@ class ScatteringData(pd.DataFrame):
     def wavelength(self, wavelength: Optional[float | int]) -> None:
         if wavelength is not None:
             self._wavelength_A = float(wavelength)
-            self._energy_keV = KEV_PER_A * self._wavelength_A
+            self._energy_keV = KEV_PER_A / self._wavelength_A
         else:
             self._wavelength_A = None
             self._energy_keV = None
@@ -85,7 +85,7 @@ class ScatteringData(pd.DataFrame):
         if self._energy_keV:
             return self._energy_keV
         elif self._wavelength_A:
-            return KEV_PER_A * self._wavelength_A
+            return KEV_PER_A / self._wavelength_A
         return None
 
     @energy.setter
