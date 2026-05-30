@@ -1,4 +1,5 @@
-from typing import Any, Optional, Iterable
+from collections.abc import Iterable, Mapping
+from typing import Any, Optional
 
 import pandas as pd
 from pandas._typing import Dtype, ArrayLike
@@ -21,8 +22,8 @@ class ScatteringData(pd.DataFrame):
             # pd.DataFrame arguments
             data: ArrayLike | Iterable | dict | pd.DataFrame | None = None,
             index: ArrayLike | pd.Index | None = None,
-            columns: ArrayLike | pd.Index | None = None,
-            dtype: Iterable | pd.Index | pd.Series | Dtype | str |
+            columns: ArrayLike | Iterable | pd.Index | None = None,
+            dtypes: Iterable | pd.Index | pd.Series | Dtype | str |
                    dict[str, Dtype | str] | None = None,
             copy: bool = False,
             # XTL arguments
@@ -33,13 +34,35 @@ class ScatteringData(pd.DataFrame):
         if wavelength is not None and energy is not None:
             raise ValueError('Specify only one of wavelength and energy, not both')
 
-        self._radial_col = radial_col
         self._wavelength_A = None
         self._energy_keV = None
 
-        super().__init__(
-            data=data, index=index, columns=columns, dtype=dtype, copy=copy
-        )
+        super().__init__(data=data, index=index, columns=columns, dtype=None, copy=copy)
+
+        # Set dtypes
+        if dtypes is not None:
+            if isinstance(dtypes, Mapping):
+                dtype_items = dtypes.items()
+            elif isinstance(dtypes, Iterable) and not isinstance(dtypes, (str, bytes)):
+                dtypes = list(dtypes)
+                if len(dtypes) != len(self.columns):
+                    raise ValueError('Number of dtypes is not equal to number of columns')
+                dtype_items = zip(self.columns, dtypes)
+            else:
+                dtype_items = ((col, dtypes) for col in self.columns)
+
+            for col, dt in dtype_items:
+                if col not in self.columns:
+                    raise KeyError(f'Column {col!r} not found in data while setting dtypes')
+                try:
+                    self[col] = self[col].astype(dt, copy=False)
+                except Exception as e:
+                    raise TypeError(f'Error converting column {col!r} to dtype {dt!r}') from e
+
+        self._radial_col = radial_col
+        if self.has_radial and not isinstance(self.radial.dtype, ScatteringAngleDtype):
+            raise TypeError(f'Radial column {self._radial_col} must have an angular dtype, '
+                            f'got {self.radial.dtype}')
 
         # Copy over _metadata if present in provided data
         if isinstance(data, ScatteringData):
@@ -98,6 +121,12 @@ class ScatteringData(pd.DataFrame):
             self._wavelength_A = None
 
     @property
+    def has_radial(self) -> bool:
+        if self._radial_col is None:
+            return False
+        return self._radial_col in self.columns
+
+    @property
     def radial(self) -> pd.Series:
         """The radial data column."""
         if self._radial_col not in self.columns:
@@ -105,13 +134,6 @@ class ScatteringData(pd.DataFrame):
         if self._radial_col is None:
             raise AttributeError('No radial column has been set')
         return self[self._radial_col]
-
-    @property
-    def radial_dtype(self) -> ScatteringAngleDtype | None:
-        if self._radial_col is None:
-            return None
-        d = self.radial.dtype
-        return d if isinstance(d, ScatteringAngleDtype) else None
 
     # radial conversions
     # TODO: Rework xtl.units.crystallography.radial.RadialValue
