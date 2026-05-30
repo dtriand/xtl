@@ -111,7 +111,6 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
         """
         Read the DAT file using gemmi.
         """
-        from xtl.datasets.scattering.data import ScatteringData
         from xtl.datasets.scattering.dtypes import ANGULAR_DTYPES, INTENSITY_DTYPES, SIGMA_DTYPES
         from xtl.scattering.profiles import ScatteringProfile
         from xtl.scattering.metadata import AtsasDatScatteringProfileMetadata
@@ -122,8 +121,8 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
             lines = f.readlines()
 
         # Separate data from metadata
-        metadata_lines = []
-        data_lines = []
+        metadata_text = ''
+        data: list[tuple[str, str, str]] = []
         for line in lines:
             line = line.rstrip('\n')
             if not line:
@@ -131,26 +130,13 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
                 continue
             if match := self._DATA_RE.match(line):
                 # First check if the line contains 3 columns of numbers
-                data_lines.append(match.groups())
+                data.append(match.groups())
             else:
                 # If not, assume it is metadata
-                metadata_lines.append(line)
-
-        # Sanitize metadata into key-valued pairs
-        metadata = {}
-        for line in metadata_lines:
-            groups = line.split(':', maxsplit=1)
-            if len(groups) != 2:
-                continue
-
-            key, value = groups[0].strip(), groups[1].strip()
-            if key == 'Parent(s)':
-                value = [v for v in value.split(' ') if v]
-
-            metadata[key] = value
+                metadata_text += line + '\n'
 
         # Convert to metadata object
-        metadata = AtsasDatScatteringProfileMetadata.from_dat_kwargs(metadata)
+        metadata = AtsasDatScatteringProfileMetadata.from_text(metadata_text)
 
         # Determine radial axis units
         #  Probably always q_nm, but we shall warn when it is not...
@@ -166,13 +152,15 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
         else:
             wavelength = metadata.wavelength * 10  # Convert nm -> A
 
-        data = ScatteringData(data=data_lines, columns=('q', 'I', 'sigma'), radial_col='q', wavelength=wavelength)
-        data = data.astype(
-            {
+        return ScatteringProfile(
+            data,
+            columns=('q', 'I', 'sigma'),
+            dtypes={
                 'q': ANGULAR_DTYPES['q_nm'],
                 'I': INTENSITY_DTYPES['arbitrary'],
                 'sigma': SIGMA_DTYPES['arbitrary']
-            }
+            },
+            radial_col='q',
+            metadata=metadata,
+            wavelength=wavelength
         )
-
-        return ScatteringProfile(data=data_lines, metadata=metadata, wavelength=wavelength)

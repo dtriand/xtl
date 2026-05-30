@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Iterable, Any
 
 from xtl.common.options import Option, Options
 from xtl.scattering.files import Scattering1DFileType
@@ -190,32 +191,49 @@ class AtsasDatScatteringProfileMetadata(ScatteringProfileMetadata):
         default_factory=list, desc='Extra metadata lines that could not be parsed'
     )
 
-    @classmethod
-    def from_dat_kwargs(cls, metadata: dict) -> AtsasDatScatteringProfileMetadata:
-        """
-        Initialize a AtsasDatScatteringProfileMetadata instance from a dictionary of key-valued metadata extracted from
-        an ATSAS DAT file.
+    def __init__(self, **kwargs: Any) -> None:
+        filtered = {}
+        for key, value in kwargs.items():
+            if key in ['Sample', 'parent']:
+                # Skip these two keys, since they can be reconstructed from other metadata:
+                # - concentration + code -> Sample
+                # - Parent(s) -> parent
+                continue
+            filtered[key] = filtered
 
-        :param metadata: Dictionary of key-valued metadata extracted from an ATSAS DAT file, where keys are the original
-            metadata names
+        super().__init__(**kwargs)
+
+    @classmethod
+    def from_text(cls, text: str) -> AtsasDatScatteringProfileMetadata:
+        """
+        Initialize a metadata instance from a text block containing ATSAS DAT formatted metadata, i.e. key-valued pairs
+        separated by a colon. Lines that do not match this format will be ignored.
+
+        :param text:
         :return:
         """
+        def lines_to_dict(lines: Iterable[str]) -> dict:
+            """
+            Split key-value pairs and sanitize before returning as a dictionary.
 
-        aliased = {field.serialization_alias: name for name, field in cls.__pydantic_fields__.items()
-                   if field.serialization_alias is not None}
-        kwargs = { 'extra': [] }
-        for key, value in metadata.items():
-            if key in aliased:
-                kwargs[aliased[key]] = value
-            else:
-                if key in ['Sample', 'parent']:
-                    # Skip these two keys, since they can be reconstructed from other metadata:
-                    # - concentration + code -> Sample
-                    # - Parent(s) -> parent
+            :param lines:
+            :return:
+            """
+            data = {}
+            for line in lines:
+                groups = line.split(':', maxsplit=1)
+                if len(groups) != 2:
                     continue
-                kwargs['extra'].append((key, value))
 
-        return cls(**kwargs)
+                key, value = groups[0].strip(), groups[1].strip()
+                if key == 'Parent(s)':
+                    value = [v for v in value.split(' ') if v]
+
+                data[key] = value
+            return data
+
+        metadata = lines_to_dict(text.splitlines())
+        return cls(**metadata)
 
 
 ScatteringProfileMetadataType = ScatteringProfileMetadata | AtsasDatScatteringProfileMetadata
