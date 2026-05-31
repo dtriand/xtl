@@ -212,6 +212,7 @@ class AtsasDatScatteringProfileMetadata(ScatteringProfileMetadata):
         :param text:
         :return:
         """
+
         def lines_to_dict(lines: Iterable[str]) -> dict:
             """
             Split key-value pairs and sanitize before returning as a dictionary.

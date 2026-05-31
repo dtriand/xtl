@@ -4,8 +4,9 @@ from typing import Any, Optional
 import pandas as pd
 from pandas._typing import Dtype, ArrayLike
 
-from xtl.datasets.scattering.dtypes import ScatteringAngleDtype
+from xtl.datasets.scattering.dtypes import ScatteringAngleDtype, ANGULAR_DTYPES
 from xtl.math.constants import KEV_PER_A
+from xtl.units.scattering.radial import RadialUnits, RadialValue
 
 
 class ScatteringData(pd.DataFrame):
@@ -135,5 +136,29 @@ class ScatteringData(pd.DataFrame):
             raise AttributeError('No radial column has been set')
         return self[self._radial_col]
 
-    # radial conversions
-    # TODO: Rework xtl.units.crystallography.radial.RadialValue
+    def convert_to(self, units: RadialUnits | str, inplace: bool = False) -> 'ScatteringData':
+        if not self.has_radial:
+            raise AttributeError('No radial column has been set')
+
+        current = self.radial.dtype.units
+        if current == units:
+            return self if inplace else self.copy()
+
+        # Transform to RadialValue for unit conversion
+        radial = RadialValue(self.radial.values, current)
+        converted = radial.convert_to(units, wavelength=self.wavelength)
+
+        # Update with converted values
+        result = self if inplace else self.copy()
+        result[self._radial_col] = converted.value
+
+        # Find and apply the correct dtype for the target unit type
+        for dtype in ANGULAR_DTYPES.values():
+            if dtype.units == units:
+                target_dtype = dtype
+                break
+        else:
+            raise NotImplementedError(f'No valid dtype implemented for {units}')
+        result[self._radial_col] = result[self._radial_col].astype(target_dtype)
+
+        return result
