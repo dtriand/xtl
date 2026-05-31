@@ -54,9 +54,9 @@ def cli_diffraction_correlate_fft(
 
     from xtl.units.scattering.radial import RadialUnits, RadialValue
     if selection_2theta is not None:
-        selection = RadialValue(value=selection_2theta, type=RadialUnits.TWOTHETA_DEG)
+        selection = RadialValue(value=selection_2theta, kind=RadialUnits.TWOTHETA_DEG)
     else:
-        selection = RadialValue(value=selection_q, type=RadialUnits.Q_NM)
+        selection = RadialValue(value=selection_q, kind=RadialUnits.Q_NM)
 
     # Load CCF data
     from xtl.exceptions.utils import Catcher
@@ -103,15 +103,15 @@ def cli_diffraction_correlate_fft(
     if r is None:
         cli.print('Error: Failed to get radial units from CCF file header', style='red')
         raise typer.Abort()
-    cli.print(f'Radial units in CCF file: {r.name.latex} ({r.unit.latex})')
+    cli.print(f'Radial units in CCF file: {r.quantity_pretty} ({r.physical_units_pretty})')
 
     # Convert selection units to the units of CCF if necessary
     wavelength = geometry.wavelength / 1e-10
-    if r.type != selection.type:
+    if r != selection.kind:
         with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
-            n0, v0, u0 = selection.name.latex, selection.value, selection.units.latex
-            selection = selection.to(units=r, wavelength=wavelength)
-            n1, v1, u1 = selection.name.latex, selection.value, selection.units.latex
+            n0, v0, u0 = selection.kind.quantity_pretty, selection.value, selection.kind.physical_units_pretty
+            selection = selection.convert_to(r, wavelength=wavelength)
+            n1, v1, u1 = selection.kind.quantity_pretty, selection.value, selection.kind.physical_units_pretty
 
             u0 = u0 if u0 == '\u00b0' else f' {u0}'
             u1 = u1 if u1 == '\u00b0' else f' {u1}'
@@ -147,12 +147,12 @@ def cli_diffraction_correlate_fft(
         fc = np.abs(fc)
 
     # Calculate selection in 2theta, q and d
-    tth = selection.to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
-    q = selection.to(RadialUnits.Q_NM, wavelength=wavelength)
-    d = selection.to(RadialUnits.D_A, wavelength=wavelength)
-    subtitle = (f'{tth.name.latex}={tth.value:.4f}{tth.units.latex} | '
-                f'{q.name.latex}={q.value:.4f} {q.units.latex} | '
-                f'{d.name.latex}={d.value:.2f} {d.units.latex}')
+    tth = selection.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
+    q = selection.convert_to(RadialUnits.Q_NM, wavelength=wavelength)
+    d = selection.convert_to(RadialUnits.D_A, wavelength=wavelength)
+    subtitle = (f'{tth.kind.quantity_pretty}={tth.value:.4f}{tth.kind.physical_units_pretty} | '
+                f'{q.kind.quantity_pretty}={q.value:.4f} {q.kind.physical_units_pretty} | '
+                f'{d.kind.quantity_pretty}={d.value:.2f} {d.kind.physical_units_pretty}')
 
     # Prepare plots
     import matplotlib.pyplot as plt
@@ -213,7 +213,7 @@ def cli_diffraction_correlate_fft(
     ax0.vlines(selection.value, delta.min(), delta.max(), 'r', '--')
     ax0.set_title('2D Cross-correlation function')
     ax0.set_ylabel(f'\u0394 (\u00b0)')
-    ax0.set_xlabel(f'{selection.name.latex} ({selection.units.latex})')
+    ax0.set_xlabel(selection.kind.latex)
 
     ax2.plot(delta, ccf[:, ccf_i], color='xkcd:light brown')
     # ax2.plot(delta * np.pi / 180., ccf[:, ccf_i], color='xkcd:light brown')
@@ -258,7 +258,7 @@ def cli_diffraction_correlate_fft(
         ax1.vlines(selection.value, azimuthal.min(), azimuthal.max(), 'r', '--')
         ax1.set_title('2D Azimuthal integration')
         ax1.set_ylabel('\u03c7 (\u00b0)')
-        ax1.set_xlabel(f'{selection.name.latex} ({selection.units.latex})')
+        ax1.set_xlabel(selection.kind.latex)
 
         ax3.plot(azimuthal, intensities[:, ccf_i], color='xkcd:crimson')
         # ax3.plot(azimuthal * np.pi / 180., intensities[:, ccf_i], color='xkcd:crimson')
