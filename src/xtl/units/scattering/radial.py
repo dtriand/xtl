@@ -1,27 +1,116 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Callable, Optional
 
 from xtl.common.labels import Label
 from xtl.math.crystallography import radial_converters, unit_converters
-from xtl.common.compatibility import PY310_OR_LESS
-
-if PY310_OR_LESS:
-    class StrEnum(str, Enum):
-        pass
-else:
-    from enum import StrEnum
+from xtl.units.base import Units, UnitsDescription
 
 
-class RadialUnit(StrEnum):
-    TWOTHETA_DEG = '2th_deg'  # 2theta in degrees
-    TWOTHETA_RAD = '2th_rad'  # 2theta in radians
-    Q_NM = 'q_nm^-1'          # q = 2*pi/d in 1/nm
-    Q_A = 'q_A^-1'            # q = 2*pi/d in 1/A
-    D_NM = 'd_nm'             # d in nm
-    D_A = 'd_A'               # d in A
-    S_NM = 's_nm^-1'          # s = 1/d in 1/nm
-    S_A = 's_A^-1'            # s = 1/d in 1/A
+class RadialUnits(Units):
+    TWOTHETA_DEG = (
+        '2th_deg',
+        UnitsDescription(
+            name='2th_deg',
+            desc='Scattering angle 2theta in degrees',
+            repr='2theta (deg)',
+            pretty='2\u03b8 (\u00b0)',
+            latex=r'$2\theta\ (^\circ)$',
+            aliases=('2th', '2theta', 'tth', 'ttheta', 'deg', 'degrees',
+                     '2th_deg', '2th_degrees', '2theta_deg', '2theta_degrees',
+                     'tth_deg', 'tth_degrees', 'ttheta_deg', 'ttheta_degrees'),
+        )
+    )
+
+    TWOTHETA_RAD = (
+        '2th_rad',
+        UnitsDescription(
+            name='2th_rad',
+            desc='Scattering angle 2theta in radians',
+            repr='2theta (rad)',
+            pretty='2\u03b8 (rad)',
+            latex=r'$2\theta\ (\mathrm{rad})$',
+            aliases=('rad', 'radians', '2th_rad', '2theta_rad', '2th_radians',
+                     '2theta_radians', 'tth_rad', 'tth_radians', 'ttheta_rad',
+                     'ttheta_radians')
+        )
+    )
+
+    D_A = (
+        'd_A',
+        UnitsDescription(
+            name='d_A',
+            desc='d-spacing in Angstroms',
+            repr='d (A)',
+            pretty='d (\u212b)',
+            latex=r'$d\ (\mathrm{\AA})$',
+            aliases=('d', 'd_a', 'a', 'angstrom', 'angstroem',
+                     'd_ang', 'd_angstrom', 'd_angstroem')
+        )
+    )
+
+    D_NM = (
+        'd_nm',
+        UnitsDescription(
+            name='d_nm',
+            desc='d-spacing in nanometers',
+            repr='d (nm)',
+            pretty='d (nm)',
+            latex=r'$d\ (\mathrm{nm})$',
+            aliases=('d_nm', 'd_nanometers', 'nm', 'nanometers')
+        )
+    )
+
+    Q_A = (
+        'q_A^-1',
+        UnitsDescription(
+            name='q_A^-1',
+            desc='q-spacing (2 * pi / d) in reciprocal Angstroms',
+            repr='q (1/A)',
+            pretty='q (\u212b\u207B\u00B9)',
+            latex=r'$q\ (\mathrm{\AA}^{-1})$',
+            aliases=('q_a', 'q_1/a', '1/a', 'A^-1', 'q_ra', 'q_angstrom',
+                     'q_angstroem', 'q_reciprocal_angstrom', 'q_reciprocal_angstroem')
+        )
+    )
+
+    Q_NM = (
+        'q_nm^-1',
+        UnitsDescription(
+            name='q_nm^-1',
+            desc='q-spacing (2 * pi / d) in reciprocal nanometers',
+            repr='q (1/nm)',
+            pretty='q (nm\u207B\u00B9)',
+            latex=r'$q\ (\mathrm{nm}^{-1})$',
+            aliases=('q', 'q_nm', 'q_nanometers', 'q_1/nm', '1/nm', 'nm^-1',
+                     'q_nm^-1', 'q_rnm', 'q_reciprocal_nanometers')
+        )
+    )
+
+    S_A = (
+        's_A^-1',
+        UnitsDescription(
+            name='s_A^-1',
+            desc='s-spacing (1 / d) in reciprocal Angstroms',
+            repr='s (1/A)',
+            pretty='s (\u212b\u207B\u00B9)',
+            latex=r'$s\ (\mathrm{\AA}^{-1})$',
+            aliases=('s_a', 's_1/a', 's_ra', 's_angstrom', 's_angstroem',
+                     's_reciprocal_angstrom', 's_reciprocal_angstroem')
+        )
+    )
+
+    S_NM = (
+        's_nm^-1',
+        UnitsDescription(
+            name='s_nm^-1',
+            desc='s-spacing (1 / d) in reciprocal nanometers',
+            repr='s (1/nm)',
+            pretty='s (nm\u207B\u00B9)',
+            latex=r'$s\ (\mathrm{nm}^{-1})$',
+            aliases=('s', 's_nm', 's_nanometers', 's_1/nm',
+                     's_rnm', 's_reciprocal_nanometers')
+        )
+    )
 
 
 @dataclass
@@ -39,7 +128,7 @@ class RadialUnitDescription:
 
     @property
     def type(self):
-        return RadialUnit(self.repr)
+        return RadialUnits(self.repr)
 
     @classmethod
     def ttheta_deg(cls):
@@ -82,27 +171,27 @@ class RadialUnitDescription:
                    unit=Label(value='1/A', repr='A^-1', latex='\u212b\u207B\u00B9'))
 
     @classmethod
-    def from_type(cls, r: RadialUnit | str):
+    def from_type(cls, r: RadialUnits | str):
         if isinstance(r, str):
-            r = RadialUnit(r)
-        if not isinstance(r, RadialUnit):
-            raise TypeError(f'Expected {RadialUnit.__class__.__name__} or str, got {type(r)}')
+            r = RadialUnits(r)
+        if not isinstance(r, RadialUnits):
+            raise TypeError(f'Expected {RadialUnits.__class__.__name__} or str, got {type(r)}')
 
-        if r == RadialUnit.TWOTHETA_DEG:
+        if r == RadialUnits.TWOTHETA_DEG:
             return cls.ttheta_deg()
-        elif r == RadialUnit.TWOTHETA_RAD:
+        elif r == RadialUnits.TWOTHETA_RAD:
             return cls.ttheta_rad()
-        elif r == RadialUnit.Q_NM:
+        elif r == RadialUnits.Q_NM:
             return cls.q_nm()
-        elif r == RadialUnit.Q_A:
+        elif r == RadialUnits.Q_A:
             return cls.q_A()
-        elif r == RadialUnit.D_NM:
+        elif r == RadialUnits.D_NM:
             return cls.d_nm()
-        elif r == RadialUnit.D_A:
+        elif r == RadialUnits.D_A:
             return cls.d_A()
-        elif r == RadialUnit.S_NM:
+        elif r == RadialUnits.S_NM:
             return cls.s_nm()
-        elif r == RadialUnit.S_A:
+        elif r == RadialUnits.S_A:
             return cls.s_A()
         else:
             raise ValueError(f'Unknown radial units: {r!r}')
@@ -111,13 +200,13 @@ class RadialUnitDescription:
 @dataclass
 class RadialValue:
     value: float | int
-    type: RadialUnit | str
+    type: RadialUnits | str
 
     def __post_init__(self):
         if isinstance(self.type, str):
             # Recast type to enum
-            self.type = RadialUnit(self.type)
-        r = RadialUnit(self.type)
+            self.type = RadialUnits(self.type)
+        r = RadialUnits(self.type)
         self._radial: RadialUnitDescription = RadialUnitDescription.from_type(r)
 
         self._std_units = {
@@ -137,9 +226,9 @@ class RadialValue:
     def units(self):
         return self._radial.unit
 
-    def to(self, units: RadialUnitDescription | RadialUnit | str, wavelength: Optional[float] = None) -> 'RadialValue':
+    def to(self, units: RadialUnitDescription | RadialUnits | str, wavelength: Optional[float] = None) -> 'RadialValue':
         # Typecast to RadialUnit
-        if isinstance(units, RadialUnit) or isinstance(units, str):
+        if isinstance(units, RadialUnits) or isinstance(units, str):
             new = RadialUnitDescription.from_type(units)
         else:
             new = units
