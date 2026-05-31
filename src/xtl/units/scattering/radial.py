@@ -4,19 +4,28 @@ from typing import Callable, Optional
 
 from xtl.common.labels import Label
 from xtl.math.crystallography import radial_converters, unit_converters
+from xtl.common.compatibility import PY310_OR_LESS
+
+if PY310_OR_LESS:
+    class StrEnum(str, Enum):
+        pass
+else:
+    from enum import StrEnum
 
 
-class RadialUnitType(Enum):
+class RadialUnit(StrEnum):
     TWOTHETA_DEG = '2th_deg'  # 2theta in degrees
     TWOTHETA_RAD = '2th_rad'  # 2theta in radians
-    Q_NM = 'q_nm^-1'          # q in 1/nm
-    Q_A = 'q_A^-1'            # q in 1/A
+    Q_NM = 'q_nm^-1'          # q = 2*pi/d in 1/nm
+    Q_A = 'q_A^-1'            # q = 2*pi/d in 1/A
     D_NM = 'd_nm'             # d in nm
     D_A = 'd_A'               # d in A
+    S_NM = 's_nm^-1'          # s = 1/d in 1/nm
+    S_A = 's_A^-1'            # s = 1/d in 1/A
 
 
 @dataclass
-class RadialUnit:
+class RadialUnitDescription:
     name: Label
     unit: Label
 
@@ -30,7 +39,7 @@ class RadialUnit:
 
     @property
     def type(self):
-        return RadialUnitType(self.repr)
+        return RadialUnit(self.repr)
 
     @classmethod
     def ttheta_deg(cls):
@@ -63,24 +72,38 @@ class RadialUnit:
                    unit=Label(value='A', repr='A', latex='\u212b'))
 
     @classmethod
-    def from_type(cls, r: RadialUnitType | str):
-        if isinstance(r, str):
-            r = RadialUnitType(r)
-        if not isinstance(r, RadialUnitType):
-            raise TypeError(f'Expected {RadialUnitType.__class__.__name__} or str, got {type(r)}')
+    def s_nm(cls):
+        return cls(name=Label(value='s', repr='s', latex='s'),
+                   unit=Label(value='1/nm', repr='nm^-1', latex='nm\u207B\u00B9'))
 
-        if r == RadialUnitType.TWOTHETA_DEG:
+    @classmethod
+    def s_A(cls):
+        return cls(name=Label(value='s', repr='s', latex='s'),
+                   unit=Label(value='1/A', repr='A^-1', latex='\u212b\u207B\u00B9'))
+
+    @classmethod
+    def from_type(cls, r: RadialUnit | str):
+        if isinstance(r, str):
+            r = RadialUnit(r)
+        if not isinstance(r, RadialUnit):
+            raise TypeError(f'Expected {RadialUnit.__class__.__name__} or str, got {type(r)}')
+
+        if r == RadialUnit.TWOTHETA_DEG:
             return cls.ttheta_deg()
-        elif r == RadialUnitType.TWOTHETA_RAD:
+        elif r == RadialUnit.TWOTHETA_RAD:
             return cls.ttheta_rad()
-        elif r == RadialUnitType.Q_NM:
+        elif r == RadialUnit.Q_NM:
             return cls.q_nm()
-        elif r == RadialUnitType.Q_A:
+        elif r == RadialUnit.Q_A:
             return cls.q_A()
-        elif r == RadialUnitType.D_NM:
+        elif r == RadialUnit.D_NM:
             return cls.d_nm()
-        elif r == RadialUnitType.D_A:
+        elif r == RadialUnit.D_A:
             return cls.d_A()
+        elif r == RadialUnit.S_NM:
+            return cls.s_nm()
+        elif r == RadialUnit.S_A:
+            return cls.s_A()
         else:
             raise ValueError(f'Unknown radial units: {r!r}')
 
@@ -88,19 +111,20 @@ class RadialUnit:
 @dataclass
 class RadialValue:
     value: float | int
-    type: RadialUnitType | str
+    type: RadialUnit | str
 
     def __post_init__(self):
         if isinstance(self.type, str):
             # Recast type to enum
-            self.type = RadialUnitType(self.type)
-        r = RadialUnitType(self.type)
-        self._radial: RadialUnit = RadialUnit.from_type(r)
+            self.type = RadialUnit(self.type)
+        r = RadialUnit(self.type)
+        self._radial: RadialUnitDescription = RadialUnitDescription.from_type(r)
 
         self._std_units = {
-            '2theta': RadialUnit.ttheta_deg(),
-            'd': RadialUnit.d_A(),
-            'q':  RadialUnit.q_A()
+            '2theta': RadialUnitDescription.ttheta_deg(),
+            'd': RadialUnitDescription.d_A(),
+            'q':  RadialUnitDescription.q_A(),
+            's': RadialUnitDescription.s_A()
         }
         self._supported_unit_types = list(self._std_units.keys())
         self._supported_units = ['deg', 'rad', 'A', 'nm', 'A^-1', 'nm^-1']
@@ -113,18 +137,18 @@ class RadialValue:
     def units(self):
         return self._radial.unit
 
-    def to(self, units: RadialUnit | RadialUnitType | str, wavelength: Optional[float] = None) -> 'RadialValue':
+    def to(self, units: RadialUnitDescription | RadialUnit | str, wavelength: Optional[float] = None) -> 'RadialValue':
         # Typecast to RadialUnit
-        if isinstance(units, RadialUnitType) or isinstance(units, str):
-            new = RadialUnit.from_type(units)
+        if isinstance(units, RadialUnit) or isinstance(units, str):
+            new = RadialUnitDescription.from_type(units)
         else:
             new = units
         # Check if units is a RadialUnit
-        if not isinstance(new, RadialUnit):
-            raise TypeError(f'Expected {RadialUnit.__class__.__name__} or str, got {type(new)}')
+        if not isinstance(new, RadialUnitDescription):
+            raise TypeError(f'Expected {RadialUnitDescription.__class__.__name__} or str, got {type(new)}')
 
         # Check if units are supported
-        new: RadialUnit
+        new: RadialUnitDescription
         if new.name.value not in self._supported_unit_types:
             raise ValueError(f'Unsupported radial units: {new.name.value!r}, choose one from: {",".join(self._supported_unit_types)}')
         if new.unit.repr not in self._supported_units:
@@ -139,21 +163,21 @@ class RadialValue:
         new_value = f(self.value, wavelength)
         return RadialValue(new_value, new.repr)
 
-    def _conversion_function(self, r0: RadialUnit, r1: RadialUnit) -> Callable:
+    def _conversion_function(self, r0: RadialUnitDescription, r1: RadialUnitDescription) -> Callable:
         """
         Returns a number to multiply r0 to get r1.
         """
         u0, u1 = r0.unit.value, r1.unit.value
         t0, t1 = r0.name.value, r1.name.value
 
-        # Check if units are the same
-        if u0 == u1:
-            return lambda x, w: x
-
-        # Check if unit types are the same
+        # Check if types are the same first (both 'q', both 'd', etc.)
         if t0 == t1:
+            # Same type, just different units (if any)
+            if u0 == u1:
+                return lambda x, w: x
             return lambda x, w: unit_converters[u0][u1](x)
 
+        # Different types (e.g., q vs s, or d vs 2theta)
         # Get factor f0 to convert r0 to standard units (2th, A, 1/A)
         f0 = self._conversion_function(r0, self._std_units[t0])
 

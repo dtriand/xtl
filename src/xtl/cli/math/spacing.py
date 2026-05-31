@@ -2,30 +2,30 @@ import numpy as np
 import typer
 
 from xtl.cli.cliio import Console
-from xtl.units.crystallography.radial import RadialUnitType, RadialValue, RadialUnit
+from xtl.units.scattering.radial import RadialUnit, RadialValue, RadialUnitDescription
 
 app = typer.Typer()
 
 
 radial_mappings = {
-    RadialUnitType.TWOTHETA_DEG: ['2th', '2theta',
+    RadialUnit.TWOTHETA_DEG: ['2th', '2theta',
                                   'tth', 'ttheta',
                                   'deg', 'degrees',
                                   '2th_deg', '2th_degrees',
                                   '2theta_deg', '2theta_degrees',
                                   'tth_deg', 'tth_degrees',
                                   'ttheta_deg', 'ttheta_degrees'],
-    RadialUnitType.TWOTHETA_RAD: ['rad', 'radians',
+    RadialUnit.TWOTHETA_RAD: ['rad', 'radians',
                                   '2th_rad', '2theta_rad',
                                   '2th_radians', '2theta_radians',
                                   'tth_rad', 'tth_radians',
                                   'ttheta_rad', 'ttheta_radians'],
-    RadialUnitType.D_A: ['d', 'd_a', 'a', 'angstrom', 'angstroem',
+    RadialUnit.D_A: ['d', 'd_a', 'a', 'angstrom', 'angstroem',
                          'd_ang', 'd_angstrom', 'd_angstroem'],
-    RadialUnitType.D_NM: ['d_nm', 'd_nanometers', 'nm', 'nanometers'],
-    RadialUnitType.Q_A: ['q_a', 'q_1/a', '1/a', 'A^-1', 'q_ra', 'q_angstrom', 'q_angstroem',
+    RadialUnit.D_NM: ['d_nm', 'd_nanometers', 'nm', 'nanometers'],
+    RadialUnit.Q_A: ['q_a', 'q_1/a', '1/a', 'A^-1', 'q_ra', 'q_angstrom', 'q_angstroem',
                          'q_reciprocal_angstrom', 'q_reciprocal_angstroem'],
-    RadialUnitType.Q_NM: ['q', 'q_nm', 'q_nanometers', 'q_1/nm', '1/nm', 'nm^-1',
+    RadialUnit.Q_NM: ['q', 'q_nm', 'q_nanometers', 'q_1/nm', '1/nm', 'nm^-1',
                           'q_nm^-1', 'q_rnm', 'q_reciprocal_nanometers'],
 }
 
@@ -35,7 +35,7 @@ def print_radial_ids(explain_ids: bool):
         cli = Console()
         table = []
         for rt, ids in radial_mappings.items():
-            table.append([RadialUnit.from_type(rt).latex, ', '.join(ids)])
+            table.append([RadialUnitDescription.from_type(rt).latex, ', '.join(ids)])
         cli.print_table(table, headers=['Radial units', 'Identifiers'])
         raise typer.Exit()
 
@@ -103,17 +103,17 @@ def cli_math_spacing(
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback, silent=True) as catcher:
         if to_type:
             n = r.to(units=to_type, wavelength=wavelength)
-            rs = '' if r.type is RadialUnitType.TWOTHETA_DEG else ' '
-            ns = '' if n.type is RadialUnitType.TWOTHETA_DEG else ' '
+            rs = '' if r.type is RadialUnit.TWOTHETA_DEG else ' '
+            ns = '' if n.type is RadialUnit.TWOTHETA_DEG else ' '
             cli.print(f'{r.name.latex}={r.value:,.6f}{rs}{r.units.latex} is '
                       f'{n.name.latex}={n.value:,.6f}{ns}{n.units.latex}')
         else:
-            tth_deg = r.to(RadialUnitType.TWOTHETA_DEG, wavelength=wavelength)
-            tth_rad = r.to(RadialUnitType.TWOTHETA_RAD, wavelength=wavelength)
-            d_A = r.to(RadialUnitType.D_A, wavelength=wavelength)
-            d_nm = r.to(RadialUnitType.D_NM, wavelength=wavelength)
-            q_A = r.to(RadialUnitType.Q_A, wavelength=wavelength)
-            q_nm = r.to(RadialUnitType.Q_NM, wavelength=wavelength)
+            tth_deg = r.to(RadialUnit.TWOTHETA_DEG, wavelength=wavelength)
+            tth_rad = r.to(RadialUnit.TWOTHETA_RAD, wavelength=wavelength)
+            d_A = r.to(RadialUnit.D_A, wavelength=wavelength)
+            d_nm = r.to(RadialUnit.D_NM, wavelength=wavelength)
+            q_A = r.to(RadialUnit.Q_A, wavelength=wavelength)
+            q_nm = r.to(RadialUnit.Q_NM, wavelength=wavelength)
 
             table = []
             for line in [[tth_deg, d_A, q_A], [tth_rad, d_nm, q_nm]]:
@@ -122,7 +122,7 @@ def cli_math_spacing(
                     if np.isnan(q.value):
                         text = '\u221e'
                     else:
-                        qs = '' if q.type is RadialUnitType.TWOTHETA_DEG else ' '
+                        qs = '' if q.type is RadialUnit.TWOTHETA_DEG else ' '
                         text = f'{q.value:,.6f}{qs}{q.units.latex}'
                     if q.type == r.type:
                         text = f'[i]{text}[/]'
