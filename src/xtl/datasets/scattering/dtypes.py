@@ -7,11 +7,12 @@ to label columns such as intensities, uncertainties (sigmas) and angles.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 from pandas.api.extensions import ExtensionDtype, ExtensionArray, register_extension_dtype, take as ext_take
-from pandas._typing import Dtype
+
+from xtl.units.scattering.radial import RadialUnits
 
 
 class ScatteringDtype(ExtensionDtype):
@@ -19,7 +20,7 @@ class ScatteringDtype(ExtensionDtype):
     Base ExtensionDtype for implementing persistent scattering data types
     """
     label: str
-    label_latex: str
+    label_pretty: str
     type = float
     kind = 'f'
 
@@ -42,13 +43,19 @@ class IntensitySigmaDtype(ScatteringDtype):
 class ScatteringAngleDtype(ScatteringDtype):
     """Base dtype for scattering angle data"""
 
+    units: RadialUnits
+
+    @property
+    def label_pretty(self) -> str:
+        return self.units.pretty
+
 
 @register_extension_dtype
 class IntensityArbitraryDtype(IntensityDtype):
     """Dtype for intensity in arbitrary units."""
     name = 'intensity_arbitrary'
     label = 'Intensity (A.U.)'
-    label_latex = 'I (A.U.)'
+    label_pretty = 'I (A.U.)'
 
 
 @register_extension_dtype
@@ -56,14 +63,14 @@ class IntensityAbsoluteDtype(IntensityDtype):
     """Dtype for intensity in absolute units."""
     name = 'intensity_absolute'
     label = 'Intensity (Abs)'
-    label_latex = 'I'
+    label_pretty = 'I'
 
 @register_extension_dtype
 class IntensitySigmaArbitraryDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in arbitrary units."""
     name = 'intensity_sigma_arbitrary'
     label = 'Intensity Sigma (A.U.)'
-    label_latex = r'\sigma(I) (A.U.)'
+    label_pretty = r'\sigma(I) (A.U.)'
 
 
 @register_extension_dtype
@@ -71,7 +78,7 @@ class IntensitySigmaAbsoluteDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in absolute units."""
     name = 'intensity_sigma_absolute'
     label = 'Intensity Sigma (Abs)'
-    label_latex = r'\sigma(I)'
+    label_pretty = r'\sigma(I)'
 
 
 @register_extension_dtype
@@ -79,7 +86,7 @@ class Angle2ThetaDegDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (degrees)."""
     name = 'angle_2theta_deg'
     label = '2theta (deg)'
-    label_latex = r'2\theta (\deg)'
+    units = RadialUnits.TWOTHETA_DEG
 
 
 @register_extension_dtype
@@ -87,7 +94,7 @@ class Angle2ThetaRadDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (radians)."""
     name = 'angle_2theta_rad'
     label = '2theta (rad)'
-    label_latex = r'2\theta (\rad)'
+    units = RadialUnits.TWOTHETA_RAD
 
 
 @register_extension_dtype
@@ -95,7 +102,7 @@ class AngleDSpacingAngstromDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (Angstroms)."""
     name = 'angle_d_spacing_A'
     label = 'd-spacing (A)'
-    label_latex = r'd (\AA)'
+    units = RadialUnits.D_A
 
 
 @register_extension_dtype
@@ -103,7 +110,7 @@ class AngleDSpacingNanometerDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (nanometers)."""
     name = 'angle_d_spacing_nm'
     label = 'd-spacing (nm)'
-    label_latex = r'd (nm)'
+    units = RadialUnits.D_NM
 
 
 @register_extension_dtype
@@ -111,7 +118,7 @@ class AngleSInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse Angstroms)."""
     name = 'angle_s_A'
     label = 's (1/A)'
-    label_latex = r's (1/\AA)'
+    units = RadialUnits.S_A
 
 
 @register_extension_dtype
@@ -119,7 +126,7 @@ class AngleSInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse nanometers)."""
     name = 'angle_s_nm'
     label = 's (1/nm)'
-    label_latex = r's (1/nm)'
+    units = RadialUnits.S_NM
 
 
 @register_extension_dtype
@@ -127,7 +134,7 @@ class AngleQInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse Angstroms)."""
     name = 'angle_q_A'
     label = 'q (1/A)'
-    label_latex = r'q (1/\AA)'
+    units = RadialUnits.Q_A
 
 
 @register_extension_dtype
@@ -135,41 +142,35 @@ class AngleQInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse nanometers)."""
     name = 'angle_q_nm'
     label = 'q (1/nm)'
-    label_latex = r'q (1/nm)'
+    units = RadialUnits.Q_NM
 
 
-SCATTERING_DTYPES: dict[str, Dtype] = {
-    dtype.name: dtype() for dtype in [
-        IntensityArbitraryDtype, IntensityAbsoluteDtype,
-        IntensitySigmaArbitraryDtype, IntensitySigmaAbsoluteDtype,
+ANGULAR_DTYPES: dict[str, ScatteringAngleDtype] = {
+    dtype.units.value: dtype() for dtype in [
         Angle2ThetaDegDtype, Angle2ThetaRadDtype,
         AngleDSpacingAngstromDtype, AngleDSpacingNanometerDtype,
         AngleSInverseAngstromDtype, AngleSInverseNanometerDtype,
         AngleQInverseAngstromDtype, AngleQInverseNanometerDtype
     ]
 }
-"""Dictionary of scattering data type names to their corresponding ``ScatteringDtype class``"""
-
-ANGULAR_DTYPES: dict[str, Dtype] = {
-    key.replace('angle_', ''): value
-    for key, value in SCATTERING_DTYPES.items()
-    if key.startswith('angle')
-}
 """Dictionary of scattering angle data types to their corresponding ``ScatteringDtype class``"""
 
-INTENSITY_DTYPES: dict[str, Dtype] = {
-    key.replace('intensity_', ''): value
-    for key, value in SCATTERING_DTYPES.items()
-    if key.startswith('intensity') and not 'sigma' in key
+INTENSITY_DTYPES: dict[str, IntensityDtype] = {
+    dtype.name: dtype() for dtype in [
+        IntensityArbitraryDtype, IntensityAbsoluteDtype
+    ]
 }
 """Dictionary of scattering intensity data types to their corresponding ``ScatteringDtype class``"""
 
-SIGMA_DTYPES: dict[str, Dtype] = {
-    key.replace('intensity_sigma_', ''): value
-    for key, value in SCATTERING_DTYPES.items()
-    if key.startswith('intensity_sigma')
+SIGMA_DTYPES: dict[str, IntensitySigmaDtype] = {
+    dtype.name: dtype() for dtype in [
+        IntensitySigmaArbitraryDtype, IntensitySigmaAbsoluteDtype
+    ]
 }
 """Dictionary of scattering intensity sigma data types to their corresponding ``ScatteringDtype class``"""
+
+SCATTERING_DTYPES: dict[str, ScatteringDtype] = ANGULAR_DTYPES | INTENSITY_DTYPES | SIGMA_DTYPES
+"""Dictionary of scattering data type names to their corresponding ``ScatteringDtype class``"""
 
 
 class ScatteringArray(ExtensionArray):

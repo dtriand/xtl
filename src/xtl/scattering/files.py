@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from xtl import Logger
 from xtl.common.compatibility import PY310_OR_LESS
+from xtl.datasets.scattering import AngleQInverseNanometerDtype, IntensityArbitraryDtype, IntensitySigmaArbitraryDtype
 from xtl.files.meta import FileContainer, FileReaderMeta
 if TYPE_CHECKING:
     from xtl.scattering.profiles import ScatteringProfile
@@ -156,9 +157,9 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
             data,
             columns=('q', 'I', 'sigma'),
             dtypes={
-                'q': ANGULAR_DTYPES['q_nm'],
-                'I': INTENSITY_DTYPES['arbitrary'],
-                'sigma': SIGMA_DTYPES['arbitrary']
+                'q': AngleQInverseNanometerDtype(),
+                'I': IntensityArbitraryDtype(),
+                'sigma': IntensitySigmaArbitraryDtype()
             },
             radial_col='q',
             metadata=metadata,

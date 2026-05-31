@@ -1,14 +1,15 @@
 import copy
-from typing import Any, Iterable
+
+import numpy as np
 from typing_extensions import Self
 
 import pandas as pd
-from pandas._typing import Dtype, ArrayLike, NpDtype
+from pandas._typing import Dtype, ArrayLike
 
 from xtl.datasets.scattering.data import ScatteringData
 from xtl.datasets.scattering.dtypes import ScatteringAngleDtype, IntensityDtype, IntensitySigmaDtype
 from xtl.scattering.metadata import *
-from xtl.math.crystallography import radial_converters, unit_converters
+from xtl.units.scattering.radial import RadialUnits
 
 
 class _ScatteringBase:
@@ -188,6 +189,15 @@ class ScatteringProfile(_ScatteringBase):
         else:
             return None
 
+    def get_radial_array(self, units: RadialUnits | str | None = None) -> np.ndarray:
+        if units is None:
+            return self.radial.values.__array__(dtype=np.float64)
+        return self._data.convert_to(units, inplace=False)[self._cols['x']].values.__array__(dtype=np.float64)
 
-class ScatteringProfiles(_ScatteringBase):
-    ...
+    def __add__(self, other) -> 'ScatteringProfile': ...
+
+    def __sub__(self, other) -> 'ScatteringProfile': ...
+
+    def __mul__(self, other) -> 'ScatteringProfile': ...
+
+    def __truediv__(self, other) -> 'ScatteringProfile': ...
