@@ -70,37 +70,40 @@ def cli_math_spacing(
 
     from xtl.exceptions.utils import Catcher
 
-    r = RadialValue(value=value, type=from_type)
-    with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback, silent=True) as catcher:
+    r = RadialValue(value=value, kind=from_type)
+    with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback, silent=False) as catcher:
         if to_type:
-            n = r.to(units=to_type, wavelength=wavelength)
-            rs = '' if r.type is RadialUnits.TWOTHETA_DEG else ' '
-            ns = '' if n.type is RadialUnits.TWOTHETA_DEG else ' '
-            cli.print(f'{r.name.latex}={r.value:,.6f}{rs}{r.units.latex} is '
-                      f'{n.name.latex}={n.value:,.6f}{ns}{n.units.latex}')
+            n = r.convert_to(to_type, wavelength=wavelength)
+            rs = '' if r.kind is RadialUnits.TWOTHETA_DEG else ' '
+            ns = '' if n.kind is RadialUnits.TWOTHETA_DEG else ' '
+            cli.print(f'{r.kind.quantity_pretty}={r.value:,.6f}{rs}{r.kind.physical_units_pretty} is '
+                      f'{n.kind.quantity_pretty}={n.value:,.6f}{ns}{n.kind.physical_units_pretty}')
         else:
-            tth_deg = r.to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
-            tth_rad = r.to(RadialUnits.TWOTHETA_RAD, wavelength=wavelength)
-            d_A = r.to(RadialUnits.D_A, wavelength=wavelength)
-            d_nm = r.to(RadialUnits.D_NM, wavelength=wavelength)
-            q_A = r.to(RadialUnits.Q_A, wavelength=wavelength)
-            q_nm = r.to(RadialUnits.Q_NM, wavelength=wavelength)
+            tth_deg = r.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
+            tth_rad = r.convert_to(RadialUnits.TWOTHETA_RAD, wavelength=wavelength)
+            d_A = r.convert_to(RadialUnits.D_A, wavelength=wavelength)
+            d_nm = r.convert_to(RadialUnits.D_NM, wavelength=wavelength)
+            q_A = r.convert_to(RadialUnits.Q_A, wavelength=wavelength)
+            q_nm = r.convert_to(RadialUnits.Q_NM, wavelength=wavelength)
+            s_A = r.convert_to(RadialUnits.S_A, wavelength=wavelength)
+            s_nm = r.convert_to(RadialUnits.S_NM, wavelength=wavelength)
 
             table = []
-            for line in [[tth_deg, d_A, q_A], [tth_rad, d_nm, q_nm]]:
+            for line in [[tth_deg, d_A, q_A, s_A], [tth_rad, d_nm, q_nm, s_nm]]:
                 row = []
                 for q in line:
                     if np.isnan(q.value):
                         text = '\u221e'
                     else:
-                        qs = '' if q.type is RadialUnits.TWOTHETA_DEG else ' '
-                        text = f'{q.value:,.6f}{qs}{q.units.latex}'
-                    if q.type == r.type:
+                        qs = '' if q.kind is RadialUnits.TWOTHETA_DEG else ' '
+                        text = f'{q.value:,.6f}{qs}{q.kind.physical_units_pretty}'
+                    if q.kind == r.kind:
                         text = f'[i]{text}[/]'
                     row.append(text)
                 table.append(row)
 
-            cli.print_table(table, headers=[tth_deg.name.latex, d_A.name.latex, q_nm.name.latex],
+            cli.print_table(table, headers=[tth_deg.kind.quantity_pretty, d_A.kind.quantity_pretty,
+                                            q_nm.kind.quantity_pretty, s_nm.kind.quantity_pretty],
                             table_kwargs={'caption': f'Assuming \u03bb={wavelength:,.6f} \u212b',
                                           'box': None})
     if catcher.raised:

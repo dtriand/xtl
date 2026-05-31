@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from xtl.common.labels import Label
+import numpy as np
+
+from xtl.math.constants import KEV_PER_A
 from xtl.math.crystallography import radial_converters, unit_converters
 from xtl.units.base import Units, UnitsDescription
 
@@ -10,7 +12,7 @@ class RadialUnits(Units):
     TWOTHETA_DEG = (
         '2th_deg',
         UnitsDescription(
-            name='2th_deg',
+            name='2theta_degrees',
             desc='Scattering angle 2theta in degrees',
             repr='2theta (deg)',
             pretty='2\u03b8 (\u00b0)',
@@ -24,7 +26,7 @@ class RadialUnits(Units):
     TWOTHETA_RAD = (
         '2th_rad',
         UnitsDescription(
-            name='2th_rad',
+            name='2theta_radians',
             desc='Scattering angle 2theta in radians',
             repr='2theta (rad)',
             pretty='2\u03b8 (rad)',
@@ -63,7 +65,7 @@ class RadialUnits(Units):
     Q_A = (
         'q_A^-1',
         UnitsDescription(
-            name='q_A^-1',
+            name='q_1/A',
             desc='q-spacing (2 * pi / d) in reciprocal Angstroms',
             repr='q (1/A)',
             pretty='q (\u212b\u207B\u00B9)',
@@ -76,7 +78,7 @@ class RadialUnits(Units):
     Q_NM = (
         'q_nm^-1',
         UnitsDescription(
-            name='q_nm^-1',
+            name='q_1/nm',
             desc='q-spacing (2 * pi / d) in reciprocal nanometers',
             repr='q (1/nm)',
             pretty='q (nm\u207B\u00B9)',
@@ -89,7 +91,7 @@ class RadialUnits(Units):
     S_A = (
         's_A^-1',
         UnitsDescription(
-            name='s_A^-1',
+            name='s_1/A',
             desc='s-spacing (1 / d) in reciprocal Angstroms',
             repr='s (1/A)',
             pretty='s (\u212b\u207B\u00B9)',
@@ -102,7 +104,7 @@ class RadialUnits(Units):
     S_NM = (
         's_nm^-1',
         UnitsDescription(
-            name='s_nm^-1',
+            name='s_1/nm',
             desc='s-spacing (1 / d) in reciprocal nanometers',
             repr='s (1/nm)',
             pretty='s (nm\u207B\u00B9)',
@@ -112,176 +114,120 @@ class RadialUnits(Units):
         )
     )
 
-
-@dataclass
-class RadialUnitDescription:
-    name: Label
-    unit: Label
+    @property
+    def quantity(self) -> str:
+        return self.name.split('_')[0]
 
     @property
-    def repr(self):
-        return f'{self.name.repr}_{self.unit.repr}'
+    def quantity_pretty(self) -> str:
+        return self.pretty.split(' ')[0]
 
     @property
-    def latex(self):
-        return f'{self.name.latex} ({self.unit.latex})'
+    def physical_units(self) -> str:
+        return self.name.split('_')[1]
 
     @property
-    def type(self):
-        return RadialUnits(self.repr)
-
-    @classmethod
-    def ttheta_deg(cls):
-        return cls(name=Label(value='2theta', repr='2th', latex='2\u03b8'),
-                   unit=Label(value='degrees', repr='deg', latex='\u00b0'))
-
-    @classmethod
-    def ttheta_rad(cls):
-        return cls(name=Label(value='2theta', repr='2th', latex='2\u03b8'),
-                   unit=Label(value='radians', repr='rad', latex='rad'))
-
-    @classmethod
-    def q_nm(cls):
-        return cls(name=Label(value='q', repr='q', latex='q'),
-                   unit=Label(value='1/nm', repr='nm^-1', latex='nm\u207B\u00B9'))
-
-    @classmethod
-    def q_A(cls):
-        return cls(name=Label(value='q', repr='q', latex='q'),
-                   unit=Label(value='1/A', repr='A^-1', latex='\u212b\u207B\u00B9'))
-
-    @classmethod
-    def d_nm(cls):
-        return cls(name=Label(value='d', repr='d', latex='d'),
-                   unit=Label(value='nm', repr='nm', latex='nm'))
-
-    @classmethod
-    def d_A(cls):
-        return cls(name=Label(value='d', repr='d', latex='d'),
-                   unit=Label(value='A', repr='A', latex='\u212b'))
-
-    @classmethod
-    def s_nm(cls):
-        return cls(name=Label(value='s', repr='s', latex='s'),
-                   unit=Label(value='1/nm', repr='nm^-1', latex='nm\u207B\u00B9'))
-
-    @classmethod
-    def s_A(cls):
-        return cls(name=Label(value='s', repr='s', latex='s'),
-                   unit=Label(value='1/A', repr='A^-1', latex='\u212b\u207B\u00B9'))
-
-    @classmethod
-    def from_type(cls, r: RadialUnits | str):
-        if isinstance(r, str):
-            r = RadialUnits(r)
-        if not isinstance(r, RadialUnits):
-            raise TypeError(f'Expected {RadialUnits.__class__.__name__} or str, got {type(r)}')
-
-        if r == RadialUnits.TWOTHETA_DEG:
-            return cls.ttheta_deg()
-        elif r == RadialUnits.TWOTHETA_RAD:
-            return cls.ttheta_rad()
-        elif r == RadialUnits.Q_NM:
-            return cls.q_nm()
-        elif r == RadialUnits.Q_A:
-            return cls.q_A()
-        elif r == RadialUnits.D_NM:
-            return cls.d_nm()
-        elif r == RadialUnits.D_A:
-            return cls.d_A()
-        elif r == RadialUnits.S_NM:
-            return cls.s_nm()
-        elif r == RadialUnits.S_A:
-            return cls.s_A()
-        else:
-            raise ValueError(f'Unknown radial units: {r!r}')
+    def physical_units_pretty(self) -> str:
+        return self.pretty.split(' ')[1].replace('(', '').replace(')', '')
 
 
 @dataclass
 class RadialValue:
-    value: float | int
-    type: RadialUnits | str
+
+    value: float | int | np.ndarray
+    kind: RadialUnits
 
     def __post_init__(self):
-        if isinstance(self.type, str):
-            # Recast type to enum
-            self.type = RadialUnits(self.type)
-        r = RadialUnits(self.type)
-        self._radial: RadialUnitDescription = RadialUnitDescription.from_type(r)
+        if isinstance(self.kind, str):
+            # Recast kind to enum
+            self.kind = RadialUnits(self.kind)
 
-        self._std_units = {
-            '2theta': RadialUnitDescription.ttheta_deg(),
-            'd': RadialUnitDescription.d_A(),
-            'q':  RadialUnitDescription.q_A(),
-            's': RadialUnitDescription.s_A()
+        # Get the quantity and (actual) units from the enum
+        self._quantity, self._unit = self.kind.quantity, self.kind.physical_units
+
+        # Standard radial units for conversions
+        self._std_kinds = {
+            '2theta': RadialUnits.TWOTHETA_DEG,
+            'd': RadialUnits.D_A,
+            'q': RadialUnits.Q_A,
+            's': RadialUnits.S_A,
         }
-        self._supported_unit_types = list(self._std_units.keys())
-        self._supported_units = ['deg', 'rad', 'A', 'nm', 'A^-1', 'nm^-1']
+        self._supported_quantities = set(self._std_kinds.keys())
+        self._supported_units = {'degrees', 'radians', 'A', 'nm', '1/A', '1/nm'}
 
-    @property
-    def name(self):
-        return self._radial.name
-
-    @property
-    def units(self):
-        return self._radial.unit
-
-    def to(self, units: RadialUnitDescription | RadialUnits | str, wavelength: Optional[float] = None) -> 'RadialValue':
-        # Typecast to RadialUnit
-        if isinstance(units, RadialUnits) or isinstance(units, str):
-            new = RadialUnitDescription.from_type(units)
-        else:
-            new = units
-        # Check if units is a RadialUnit
-        if not isinstance(new, RadialUnitDescription):
-            raise TypeError(f'Expected {RadialUnitDescription.__class__.__name__} or str, got {type(new)}')
-
-        # Check if units are supported
-        new: RadialUnitDescription
-        if new.name.value not in self._supported_unit_types:
-            raise ValueError(f'Unsupported radial units: {new.name.value!r}, choose one from: {",".join(self._supported_unit_types)}')
-        if new.unit.repr not in self._supported_units:
-            raise ValueError(f'Unsupported units: {new.unit.repr!r}, choose one from: {",".join(self._supported_units)}')
-
-        # Check if wavelength is required for conversion
-        if sorted([self.name.value, new.name.value]) in [['2theta', 'd'], ['2theta', 'q']]:
-            if wavelength is None:
-                raise ValueError(f'Wavelength is required to convert from {self.name.value} to {new.name.value}')
-
-        f = self._conversion_function(self._radial, new)
-        new_value = f(self.value, wavelength)
-        return RadialValue(new_value, new.repr)
-
-    def _conversion_function(self, r0: RadialUnitDescription, r1: RadialUnitDescription) -> Callable:
-        """
-        Returns a number to multiply r0 to get r1.
-        """
-        u0, u1 = r0.unit.value, r1.unit.value
-        t0, t1 = r0.name.value, r1.name.value
-
-        # Check if types are the same first (both 'q', both 'd', etc.)
-        if t0 == t1:
-            # Same type, just different units (if any)
-            if u0 == u1:
-                return lambda x, w: x
-            return lambda x, w: unit_converters[u0][u1](x)
-
-        # Different types (e.g., q vs s, or d vs 2theta)
-        # Get factor f0 to convert r0 to standard units (2th, A, 1/A)
-        f0 = self._conversion_function(r0, self._std_units[t0])
-
-        # Get factor f1 to convert standard units (2th, A, 1/A) to r1 units
-        f1 = self._conversion_function(self._std_units[t1], r1)
-
-        # Get converter that assumes standard units
-        converter = radial_converters[t0][t1]
-
-        return lambda x, w: f1(converter(f0(x, w), w), w)
-
-    def __repr__(self):
-        return f'{self.value} {self.units.repr}'
+    def __repr__(self) -> str:
+        return f'{self.value} {self.kind.repr}'
 
     def __rich_repr__(self):
         yield 'value', self.value
-        yield 'units', self.units.repr
-        yield 'type', self._radial.type
+        yield 'units', self.kind.repr
+        yield 'kind', self.kind
+
+    def convert_to(self, units: RadialUnits | str, /, wavelength: Optional[float | int] = None,
+           energy: Optional[float | int] = None) -> 'RadialValue':
+        if isinstance(units, (str, RadialUnits)):
+            target = RadialUnits(units)
+        else:
+            raise TypeError(f'`units` must be of type {RadialUnits.__name__} or str, got {type(units)}')
+
+        # Validate target unit
+        target_quantity, target_unit = target.quantity, target.physical_units
+        if target_quantity not in self._supported_quantities:
+            raise NotImplementedError(f'Unsupported radial quantity: {target_quantity!r}, '
+                                      f'must be one of: {", ".join(self._supported_quantities)}')
+        if target_unit not in self._supported_units:
+            raise NotImplementedError(f'Unsupported unit: {target_unit!r}, '
+                                      f'must be one of: {", ".join(self._supported_units)}')
+
+        # Check if wavelength/energy is required for conversion
+        _q0, _q1 = sorted([self._quantity, target_quantity])
+        if _q0 == '2theta' and _q1 in {'d', 'q', 's'}:
+            if wavelength is None and energy is None:
+                raise ValueError(f'One of `wavelength` or `energy` must be specified to convert '
+                                 f'from {self.kind.repr} to {target.repr}')
+            elif wavelength is None:
+                wavelength = KEV_PER_A / energy
+
+        # Convert value
+        f = self._conversion_function(kind0=self.kind, kind1=target)
+        result = f(self.value, wavelength)
+        return RadialValue(result, target)
+
+    def _conversion_function(self, kind0: RadialUnits, kind1: RadialUnits) -> Callable:
+        """
+        Get the conversion function from kind0 to kind1.
+        :param kind0: The original radial unit kind.
+        :param kind1: The target radial unit kind.
+        :return: A function that takes (value, wavelength) and returns the converted value.
+        """
+        quantity0, unit0 = kind0.quantity, kind0.physical_units
+        quantity1, unit1 = kind1.quantity, kind1.physical_units
+
+        # Same quantity, but different physical units
+        if quantity0 == quantity1:
+            if unit0 == unit1:
+                return lambda x, w: x
+            return lambda x, w: unit_converters[unit0][unit1](x)
+
+        # Different quantities, need to convert to standard units first
+        # Get standard units for each quantity
+        std0 = self._std_kinds[quantity0].physical_units
+        std1 = self._std_kinds[quantity1].physical_units
+
+        # Convert original quantity to standard units
+        if unit0 != std0:
+            standardizer0 = lambda x, w: unit_converters[unit0][std0](x)
+        else:
+            standardizer0 = lambda x, w: x
+
+        # Convert target quantity from standard units to requested units
+        if unit1 != std1:
+            standardizer1 = lambda x, w: unit_converters[std1][unit1](x)
+        else:
+            standardizer1 = lambda x, w: x
+
+        # Get the converter between quantities (assuming standard units)
+        converter = radial_converters[quantity0][quantity1]
+
+        # Compose: standardizer0 (to std) -> converter (between quantities) -> standardizer1 (to target units)
+        return lambda x, w: standardizer1(converter(standardizer0(x, w), w), w)
