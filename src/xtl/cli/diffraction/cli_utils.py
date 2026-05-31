@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from pyFAI.geometry import Geometry
 
     from xtl.diffraction.images.images import Image
-    from xtl.units.scattering.radial import RadialUnitDescription
+    from xtl.units.scattering.radial import RadialUnits
 
 
 class ZScale(Enum):
@@ -94,14 +94,14 @@ def get_geometry_from_header(header: str) -> 'Geometry':
     return Geometry(**kwargs)
 
 
-def get_radial_units_from_header(header: str) -> Optional['RadialUnitDescription']:
-    from xtl.units.scattering.radial import RadialUnitDescription, RadialUnits
+def get_radial_units_from_header(header: str) -> Optional['RadialUnits']:
+    from xtl.units.scattering.radial import RadialUnits
 
     for line in header.splitlines():
         if line.startswith('pyFAI.AzimuthalIntegrator.unit'):
             units = line.split(':')[-1].strip()
             if units in ['2th_deg', '2theta', '2th']:
-                return RadialUnitDescription.from_type(RadialUnits.TWOTHETA_DEG)
+                return RadialUnits.TWOTHETA_DEG
             elif units in ['q_nm', 'q', 'q_nm^-1']:
-                return RadialUnitDescription.from_type(RadialUnits.Q_NM)
+                return RadialUnits.Q_NM
     return None
