@@ -95,13 +95,13 @@ def get_geometry_from_header(header: str) -> 'Geometry':
 
 
 def get_radial_units_from_header(header: str) -> Optional['RadialUnitDescription']:
-    from xtl.units.scattering.radial import RadialUnitDescription, RadialUnit
+    from xtl.units.scattering.radial import RadialUnitDescription, RadialUnits
 
     for line in header.splitlines():
         if line.startswith('pyFAI.AzimuthalIntegrator.unit'):
             units = line.split(':')[-1].strip()
             if units in ['2th_deg', '2theta', '2th']:
-                return RadialUnitDescription.from_type(RadialUnit.TWOTHETA_DEG)
+                return RadialUnitDescription.from_type(RadialUnits.TWOTHETA_DEG)
             elif units in ['q_nm', 'q', 'q_nm^-1']:
-                return RadialUnitDescription.from_type(RadialUnit.Q_NM)
+                return RadialUnitDescription.from_type(RadialUnits.Q_NM)
     return None

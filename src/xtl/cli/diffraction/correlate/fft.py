@@ -52,11 +52,11 @@ def cli_diffraction_correlate_fft(
         cli.print('Select only one parameter to calculate FFT (--2theta, --q)', style='red')
         raise typer.Abort()
 
-    from xtl.units.scattering.radial import RadialUnit, RadialValue
+    from xtl.units.scattering.radial import RadialUnits, RadialValue
     if selection_2theta is not None:
-        selection = RadialValue(value=selection_2theta, type=RadialUnit.TWOTHETA_DEG)
+        selection = RadialValue(value=selection_2theta, type=RadialUnits.TWOTHETA_DEG)
     else:
-        selection = RadialValue(value=selection_q, type=RadialUnit.Q_NM)
+        selection = RadialValue(value=selection_q, type=RadialUnits.Q_NM)
 
     # Load CCF data
     from xtl.exceptions.utils import Catcher
@@ -147,9 +147,9 @@ def cli_diffraction_correlate_fft(
         fc = np.abs(fc)
 
     # Calculate selection in 2theta, q and d
-    tth = selection.to(RadialUnit.TWOTHETA_DEG, wavelength=wavelength)
-    q = selection.to(RadialUnit.Q_NM, wavelength=wavelength)
-    d = selection.to(RadialUnit.D_A, wavelength=wavelength)
+    tth = selection.to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
+    q = selection.to(RadialUnits.Q_NM, wavelength=wavelength)
+    d = selection.to(RadialUnits.D_A, wavelength=wavelength)
     subtitle = (f'{tth.name.latex}={tth.value:.4f}{tth.units.latex} | '
                 f'{q.name.latex}={q.value:.4f} {q.units.latex} | '
                 f'{d.name.latex}={d.value:.2f} {d.units.latex}')
