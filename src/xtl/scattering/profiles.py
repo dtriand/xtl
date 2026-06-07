@@ -1,15 +1,21 @@
-import copy
+from copy import deepcopy
 
+from typing import TYPE_CHECKING
 import numpy as np
 from typing_extensions import Self
 
 import pandas as pd
 from pandas._typing import Dtype, ArrayLike
 
+from xtl.units.base import Units
+
+if TYPE_CHECKING:
+    import matplotlib.pyplot as plt
+
 from xtl.datasets.scattering.data import ScatteringData
 from xtl.datasets.scattering.dtypes import ScatteringAngleDtype, IntensityDtype, IntensitySigmaDtype
 from xtl.scattering.metadata import *
-from xtl.units.scattering.radial import RadialUnits
+from xtl.units.scattering.radial import RadialUnits, RadialUnitsDescription
 
 
 class _ScatteringBase:
@@ -17,6 +23,7 @@ class _ScatteringBase:
     def __init__(self,
                  # pd.DataFrame arguments
                  data: ArrayLike | Iterable | dict | pd.DataFrame | ScatteringData,
+                 /,
                  index: ArrayLike | pd.Index | None = None,
                  columns: ArrayLike | pd.Index | Iterable | None = None,
                  dtypes: Iterable | pd.Index | pd.Series | Dtype | str |
@@ -61,7 +68,7 @@ class _ScatteringBase:
             self._data.dropna(inplace=True)
             return self
         else:
-            r = copy.deepcopy(self)
+            r = deepcopy(self)
             r._data.dropna(inplace=True)
             return r
 
@@ -189,15 +196,86 @@ class ScatteringProfile(_ScatteringBase):
         else:
             return None
 
-    def get_radial_array(self, units: RadialUnits | str | None = None) -> np.ndarray:
-        if units is None:
-            return self.radial.values.__array__(dtype=np.float64)
-        return self._data.convert_to(units, inplace=False)[self._cols['x']].values.__array__(dtype=np.float64)
+    def get_radial_array(self, units: RadialUnits | str = RadialUnits.Q_NM) -> np.ndarray:
+        if units == self._data.radial.dtype.units:
+            return self.radial.values.to_numpy(np.float64)
+        return self._data.convert_to(units, inplace=False)[self._cols['x']].values.to_numpy(np.float64)
 
-    def __add__(self, other) -> 'ScatteringProfile': ...
+    def get_guinier_array(self, units: RadialUnits | str = RadialUnits.Q_NM) -> np.ndarray:
+        q = self.get_radial_array(units=units)
+        x = q**2
 
-    def __sub__(self, other) -> 'ScatteringProfile': ...
+        I_positive = self.intensity > 0
+        y = np.full_like(self.intensity, np.nan)
+        y[I_positive] = np.log(self.intensity[I_positive])
 
-    def __mul__(self, other) -> 'ScatteringProfile': ...
+        e = np.full_like(self.intensity, np.nan)
+        if self.sigma is not None:
+            e[I_positive] = self.sigma[I_positive].astype(np.float64) / self.intensity[I_positive].astype(np.float64)
 
-    def __truediv__(self, other) -> 'ScatteringProfile': ...
+        return np.array([x, y, e])
+
+    def get_kratky_array(self, units: RadialUnits | str = RadialUnits.Q_NM) -> np.ndarray:
+        q = self.get_radial_array(units=units)
+        x = q**2
+
+        y = self.intensity.astype(np.float64) * x
+
+        if self.sigma is not None:
+            e = self.sigma.astype(np.float64) * x
+        else:
+            e = np.full_like(self.intensity, np.nan)
+
+        return np.array([x, y, e])
+    
+    def get_porod_array(self, units: RadialUnits | str = RadialUnits.Q_NM) -> np.ndarray:
+        q = self.get_radial_array(units=units)
+        x = q**4
+
+        y = self.intensity.astype(np.float64) * x
+
+        if self.sigma is not None:
+            e = self.sigma.astype(np.float64) * x
+        else:
+            e = np.full_like(self.intensity, np.nan)
+
+        return np.array([x, y, e])
+
+    def _format_plot_axes(self, ax: 'plt.Axes', units_x: RadialUnits | None,
+                          units_y: Units | None = None, title: str | None = None, **kwargs) -> None:
+        # Set ticks
+        ax.tick_params(axis='x', direction='in', top=True)
+        ax.tick_params(axis='y', direction='in', right=True)
+
+        # Set labels
+        if units_x:
+            ax.set_xlabel(units_x.latex)
+        if units_y:
+            ax.set_ylabel(units_y.latex)
+        if title:
+            ax.set_title(title)
+
+    def plot(self, ax: 'plt.Axes' = None, units: RadialUnits | str = RadialUnits.Q_NM, errors: bool = False,
+             **kwargs) -> 'plt.Axes':
+        import matplotlib.pyplot as plt
+
+        units = RadialUnits(units)
+        kwargs.setdefault('title', 'SAXS profile')
+        label = kwargs.get('label', self.metadata.name if self.metadata is not None else None)
+        color = kwargs.get('color', None)
+
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.get_figure()
+
+        x = self.get_radial_array(units=units)
+        line = ax.plot(x, self.intensity, label=label, color=color)
+        if errors and self.sigma is not None:
+            ax.fill_between(x, self.intensity - self.sigma, self.intensity + self.sigma,
+                            label=label, color=line[0].get_color(), alpha=0.3, edgecolor=None,
+                            zorder=line[0].get_zorder() - 1)
+
+        self._format_plot_axes(ax, units_x=units, units_y=self.intensity.dtype.units)
+
+        return ax
