@@ -103,15 +103,15 @@ def cli_diffraction_correlate_fft(
     if r is None:
         cli.print('Error: Failed to get radial units from CCF file header', style='red')
         raise typer.Abort()
-    cli.print(f'Radial units in CCF file: {r.quantity_pretty} ({r.physical_units_pretty})')
+    cli.print(f'Radial units in CCF file: {r.quantity.pretty} ({r.physical_units.pretty})')
 
     # Convert selection units to the units of CCF if necessary
     wavelength = geometry.wavelength / 1e-10
     if r != selection.kind:
         with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
-            n0, v0, u0 = selection.kind.quantity_pretty, selection.value, selection.kind.physical_units_pretty
+            n0, v0, u0 = selection.kind.quantity.pretty, selection.value, selection.kind.physical_units.pretty
             selection = selection.convert_to(r, wavelength=wavelength)
-            n1, v1, u1 = selection.kind.quantity_pretty, selection.value, selection.kind.physical_units_pretty
+            n1, v1, u1 = selection.kind.quantity.pretty, selection.value, selection.kind.physical_units.pretty
 
             u0 = u0 if u0 == '\u00b0' else f' {u0}'
             u1 = u1 if u1 == '\u00b0' else f' {u1}'
@@ -150,9 +150,9 @@ def cli_diffraction_correlate_fft(
     tth = selection.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
     q = selection.convert_to(RadialUnits.Q_NM, wavelength=wavelength)
     d = selection.convert_to(RadialUnits.D_A, wavelength=wavelength)
-    subtitle = (f'{tth.kind.quantity_pretty}={tth.value:.4f}{tth.kind.physical_units_pretty} | '
-                f'{q.kind.quantity_pretty}={q.value:.4f} {q.kind.physical_units_pretty} | '
-                f'{d.kind.quantity_pretty}={d.value:.2f} {d.kind.physical_units_pretty}')
+    subtitle = (f'{tth.kind.quantity.pretty}={tth.value:.4f}{tth.kind.physical_units.pretty} | '
+                f'{q.kind.quantity.pretty}={q.value:.4f} {q.kind.physical_units.pretty} | '
+                f'{d.kind.quantity.pretty}={d.value:.2f} {d.kind.physical_units.pretty}')
 
     # Prepare plots
     import matplotlib.pyplot as plt
