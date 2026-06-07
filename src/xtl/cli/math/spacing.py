@@ -76,8 +76,8 @@ def cli_math_spacing(
             n = r.convert_to(to_type, wavelength=wavelength)
             rs = '' if r.kind is RadialUnits.TWOTHETA_DEG else ' '
             ns = '' if n.kind is RadialUnits.TWOTHETA_DEG else ' '
-            cli.print(f'{r.kind.quantity_pretty}={r.value:,.6f}{rs}{r.kind.physical_units_pretty} is '
-                      f'{n.kind.quantity_pretty}={n.value:,.6f}{ns}{n.kind.physical_units_pretty}')
+            cli.print(f'{r.kind.quantity.pretty}={r.value:,.6f}{rs}{r.kind.physical_units.pretty} is '
+                      f'{n.kind.quantity.pretty}={n.value:,.6f}{ns}{n.kind.physical_units.pretty}')
         else:
             tth_deg = r.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
             tth_rad = r.convert_to(RadialUnits.TWOTHETA_RAD, wavelength=wavelength)
@@ -96,14 +96,14 @@ def cli_math_spacing(
                         text = '\u221e'
                     else:
                         qs = '' if q.kind is RadialUnits.TWOTHETA_DEG else ' '
-                        text = f'{q.value:,.6f}{qs}{q.kind.physical_units_pretty}'
+                        text = f'{q.value:,.6f}{qs}{q.kind.physical_units.pretty}'
                     if q.kind == r.kind:
                         text = f'[i]{text}[/]'
                     row.append(text)
                 table.append(row)
 
-            cli.print_table(table, headers=[tth_deg.kind.quantity_pretty, d_A.kind.quantity_pretty,
-                                            q_nm.kind.quantity_pretty, s_nm.kind.quantity_pretty],
+            cli.print_table(table, headers=[tth_deg.kind.quantity.pretty, d_A.kind.quantity.pretty,
+                                            q_nm.kind.quantity.pretty, s_nm.kind.quantity.pretty],
                             table_kwargs={'caption': f'Assuming \u03bb={wavelength:,.6f} \u212b',
                                           'box': None})
     if catcher.raised:
