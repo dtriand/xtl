@@ -12,20 +12,21 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 from pandas.api.extensions import ExtensionDtype, ExtensionArray, register_extension_dtype, take as ext_take
 
+from xtl.units.base import Units, UnitsDescription
 from xtl.units.scattering.radial import RadialUnits
+from xtl.units.scattering.intensity import IntensityUnits
 
 
 class ScatteringDtype(ExtensionDtype):
     """
     Base ExtensionDtype for implementing persistent scattering data types
     """
-    label: str
-    label_pretty: str
+    units: Units
     type = float
     kind = 'f'
 
     def __repr__(self) -> str:
-        return f'{self.label}'
+        return f'{self.units.repr}'
 
     @classmethod
     def construct_array_type(cls):
@@ -34,58 +35,50 @@ class ScatteringDtype(ExtensionDtype):
 
 class IntensityDtype(ScatteringDtype):
     """Base dtype for scattering intensity data"""
+    units: IntensityUnits
 
 
 class IntensitySigmaDtype(ScatteringDtype):
     """Base dtype for scattering intensity sigma data"""
+    units: IntensityUnits
 
 
 class ScatteringAngleDtype(ScatteringDtype):
     """Base dtype for scattering angle data"""
-
     units: RadialUnits
-
-    @property
-    def label_pretty(self) -> str:
-        return self.units.pretty
 
 
 @register_extension_dtype
 class IntensityArbitraryDtype(IntensityDtype):
     """Dtype for intensity in arbitrary units."""
     name = 'intensity_arbitrary'
-    label = 'Intensity (A.U.)'
-    label_pretty = 'I (A.U.)'
+    units = IntensityUnits.ARB
 
 
 @register_extension_dtype
 class IntensityAbsoluteDtype(IntensityDtype):
     """Dtype for intensity in absolute units."""
     name = 'intensity_absolute'
-    label = 'Intensity (Abs)'
-    label_pretty = 'I'
+    units = IntensityUnits.ABS
 
 @register_extension_dtype
 class IntensitySigmaArbitraryDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in arbitrary units."""
     name = 'intensity_sigma_arbitrary'
-    label = 'Intensity Sigma (A.U.)'
-    label_pretty = r'\sigma(I) (A.U.)'
+    units = IntensityUnits.ARB
 
 
 @register_extension_dtype
 class IntensitySigmaAbsoluteDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in absolute units."""
     name = 'intensity_sigma_absolute'
-    label = 'Intensity Sigma (Abs)'
-    label_pretty = r'\sigma(I)'
+    units = IntensityUnits.ABS
 
 
 @register_extension_dtype
 class Angle2ThetaDegDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (degrees)."""
     name = 'angle_2theta_deg'
-    label = '2theta (deg)'
     units = RadialUnits.TWOTHETA_DEG
 
 
@@ -93,7 +86,6 @@ class Angle2ThetaDegDtype(ScatteringAngleDtype):
 class Angle2ThetaRadDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (radians)."""
     name = 'angle_2theta_rad'
-    label = '2theta (rad)'
     units = RadialUnits.TWOTHETA_RAD
 
 
@@ -101,7 +93,6 @@ class Angle2ThetaRadDtype(ScatteringAngleDtype):
 class AngleDSpacingAngstromDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (Angstroms)."""
     name = 'angle_d_spacing_A'
-    label = 'd-spacing (A)'
     units = RadialUnits.D_A
 
 
@@ -109,7 +100,6 @@ class AngleDSpacingAngstromDtype(ScatteringAngleDtype):
 class AngleDSpacingNanometerDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (nanometers)."""
     name = 'angle_d_spacing_nm'
-    label = 'd-spacing (nm)'
     units = RadialUnits.D_NM
 
 
@@ -117,7 +107,6 @@ class AngleDSpacingNanometerDtype(ScatteringAngleDtype):
 class AngleSInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse Angstroms)."""
     name = 'angle_s_A'
-    label = 's (1/A)'
     units = RadialUnits.S_A
 
 
@@ -125,7 +114,6 @@ class AngleSInverseAngstromDtype(ScatteringAngleDtype):
 class AngleSInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse nanometers)."""
     name = 'angle_s_nm'
-    label = 's (1/nm)'
     units = RadialUnits.S_NM
 
 
@@ -133,7 +121,6 @@ class AngleSInverseNanometerDtype(ScatteringAngleDtype):
 class AngleQInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse Angstroms)."""
     name = 'angle_q_A'
-    label = 'q (1/A)'
     units = RadialUnits.Q_A
 
 
@@ -141,7 +128,6 @@ class AngleQInverseAngstromDtype(ScatteringAngleDtype):
 class AngleQInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse nanometers)."""
     name = 'angle_q_nm'
-    label = 'q (1/nm)'
     units = RadialUnits.Q_NM
 
 
