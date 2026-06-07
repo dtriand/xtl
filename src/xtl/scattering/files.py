@@ -110,9 +110,8 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
 
     def read(self) -> 'ScatteringProfile':
         """
-        Read the DAT file using gemmi.
+        Read the DAT file.
         """
-        from xtl.datasets.scattering.dtypes import ANGULAR_DTYPES, INTENSITY_DTYPES, SIGMA_DTYPES
         from xtl.scattering.profiles import ScatteringProfile
         from xtl.scattering.metadata import AtsasDatScatteringProfileMetadata
 
@@ -138,6 +137,8 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
 
         # Convert to metadata object
         metadata = AtsasDatScatteringProfileMetadata.from_text(metadata_text)
+        metadata.name = self.file.stem
+        metadata.filepath = self.file
 
         # Determine radial axis units
         #  Probably always q_nm, but we shall warn when it is not...

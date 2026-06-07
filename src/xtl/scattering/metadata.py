@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Iterable, Any
 
 from xtl.common.options import Option, Options
@@ -20,6 +21,9 @@ class ScatteringProfileMetadata(Options):
         Option(
             default=None, desc='Dataset title'
         )
+    filepath: Path | None = Option(
+        default=None, desc='File path'
+    )
     wavelength: float | None = \
         Option(
             default=None, ge=0.0, desc='Wavelength in Angstroms'
