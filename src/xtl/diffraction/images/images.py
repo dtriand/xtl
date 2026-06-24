@@ -4,7 +4,6 @@ from functools import partial
 from pathlib import Path
 
 import fabio
-from matplotlib.cm import get_cmap
 from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColormap
 from matplotlib.image import AxesImage
 import matplotlib.path
@@ -336,9 +335,9 @@ class Image:
             raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log')
 
         if cmap is None:
-            cmap = get_cmap(self.cmap)
+            cmap = plt.get_cmap(self.cmap)
         else:
-            cmap = get_cmap(cmap)
+            cmap = plt.get_cmap(cmap)
         if bad_value_color is None:
             cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
         else:

@@ -71,7 +71,7 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
         raise typer.Abort()
 
     # Initialize colormap
-    cmap = matplotlib.cm.get_cmap(cmap)
+    cmap = plt.get_cmap(cmap)
     cmap.set_bad(color=cbad, alpha=1.0)
 
     # Iterate over frames

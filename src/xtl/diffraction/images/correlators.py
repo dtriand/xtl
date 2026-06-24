@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 
-from matplotlib.cm import get_cmap, ScalarMappable
+from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
@@ -318,9 +318,9 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
             raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log, symlog')
 
         if cmap is None:
-            cmap = get_cmap(self.cmap)
+            cmap = plt.get_cmap(self.cmap)
         else:
-            cmap = get_cmap(cmap)
+            cmap = plt.get_cmap(cmap)
         if bad_value_color is None:
             cmap.set_bad(color=self.cmap_bad_values, alpha=1.0)
         else:
