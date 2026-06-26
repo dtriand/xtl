@@ -19,7 +19,7 @@ from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator
                       BeforeValidator, AfterValidator, ModelWrapValidatorHandler,
                       model_serializer, SerializerFunctionWrapHandler, SerializationInfo)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
-from pydantic.config import JsonDict
+from pydantic.config import JsonDict, ExtraValues
 from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
 from pydantic._internal._typing_extra import EllipsisType
 import toml
@@ -28,6 +28,7 @@ from toml.decoder import CommentValue
 from xtl.common.validators import *
 from xtl.files.toml import ExtendedTomlEncoder
 from xtl.common.typed_vars import TypedIterable
+from xtl.exceptions.pydantic import OptionsValidationError
 
 
 _Validator = Union[BeforeValidator, AfterValidator]
@@ -394,7 +395,10 @@ class Options(BaseModel):
                 if alias and alias in data and name not in data:
                     # Swap the alias key with the original name
                     data[name] = data.pop(alias)
-        super().__init__(**data)
+        try:
+            super().__init__(**data)
+        except ValidationError as e:
+            raise OptionsValidationError(e, type(self).__name__) from e
 
     @staticmethod
     def _get_envvar(data: Any) -> Any:
@@ -716,6 +720,18 @@ class Options(BaseModel):
             super().__setattr__(name, value)
         except ValidationError as e:
             raise e
+
+    @classmethod
+    def model_validate(cls, obj: Any, *, strict: bool | None = None, extra: ExtraValues | None = None,
+                       from_attributes: bool | None = None, context: Any | None = None, by_alias: bool | None = None,
+                       by_name: bool | None = None):
+        try:
+            return super().model_validate(
+                obj, strict=strict, extra=extra, from_attributes=from_attributes, context=context, by_alias=by_alias,
+                by_name=by_name
+            )
+        except ValidationError as e:
+            raise OptionsValidationError(e, cls.__name__) from e
 
     def to_dict(self, by_alias: bool = True) -> dict[str, Any]:
         """

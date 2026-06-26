@@ -7,6 +7,7 @@ from pydantic import Field, ValidationError
 
 from xtl.common.options import Option, Options
 from xtl.common.validators import cast_as, validate_length
+from xtl.exceptions.pydantic import OptionsValidationError
 
 
 class TestOption:
@@ -79,7 +80,7 @@ class TestOptions:
 
     def test_immutability(self):
         m = self.MyModel(name='Alice', age=2, double_this=3, field=1.5)
-        with pytest.raises(ValidationError, match='Value is not in choices'):
+        with pytest.raises(OptionsValidationError, match='Value is not in choices'):
             m.name = 'Dave'
         assert m.model_dump() == {
             'name': 'Alice',
@@ -111,11 +112,11 @@ class TestOptions:
             path: Path = Option(default='.', cast_as=Path, path_exists=True)
 
         m = ComplexModel(name='Alice', age=2, double_this=3, field=1.5)
-        with pytest.raises(ValidationError, match='Value is not in choices'):
+        with pytest.raises(OptionsValidationError, match='Value is not in choices'):
             m.name = 'Dave'
-        with pytest.raises(ValidationError, match='Input should be greater than'):
+        with pytest.raises(OptionsValidationError, match='Input should be greater than'):
             m.age = -1
-        with pytest.raises(ValidationError, match='Value is not in choices'):
+        with pytest.raises(OptionsValidationError, match='Value is not in choices'):
             m.name = 'Dave'
         assert m.model_dump() == {
             'name': 'Alice',
