@@ -31,6 +31,10 @@ class GraphDimensions(BaseGraphModel):
     def from_mm(cls, width: int, height: int, dpi: int = 100) -> GraphDimensions:
         return GraphDimensions(width=int(width / MM_PER_INCH * dpi), height=int(height / MM_PER_INCH * dpi), dpi=dpi)
 
+    @property
+    def to_inches(self) -> tuple[float, float]:
+        return self.width / self.dpi, self.height / self.dpi
+
 
 class Graph(BaseGraphModel):
     title: Optional[str] = Option(
@@ -58,6 +62,8 @@ class Graph(BaseGraphModel):
             traces=traces,
         )
 
-        graph = Graph(layout=GridLayout.from_panels(panel), panels={'0': panel})
+        graph = Graph(
+            layout=GridLayout.from_panels(panel),
+        )
 
         return graph
