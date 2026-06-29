@@ -39,12 +39,12 @@ class Data2D(DataArray):
 class DataSeries(BaseGraphModel):
     kind: str
 
+    @property
     def arrays(self) -> dict[str, Data1D]:
         return {k: v for k, v in self.__dict__.items() if isinstance(v, Data1D)}
 
     def _check_same_shape(self, *names):
-        arrays = self.arrays()
-        shapes = {name: arrays[name].data.shape for name in names if name in arrays}
+        shapes = {name: self.arrays[name].data.shape for name in names if name in self.arrays}
         if len(set(shapes.values())) > 1:
             raise ValueError(f'Arrays must have the same shape: {shapes!r}')
 
