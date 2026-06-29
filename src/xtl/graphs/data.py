@@ -7,7 +7,6 @@ from numpydantic import NDArray, Shape
 from numpydantic.dtype import Number
 from pydantic import field_validator, model_validator, Field, ValidationInfo
 
-from xtl.common.options import Option, Options
 from .base import BaseGraphModel
 
 
@@ -22,6 +21,11 @@ class DataArray(BaseGraphModel):
         if not isinstance(value, np.ndarray):
             return np.array(value, dtype=float)
         return value
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, DataArray):
+            return False
+        return np.allclose(self.data, other.data, equal_nan=True) and self.label == other.label
 
 
 class Data1D(DataArray):
