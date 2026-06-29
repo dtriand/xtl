@@ -80,6 +80,10 @@ class AxesType(StrEnum):
 class PanelAxes(BaseGraphModel):
     kind: AxesType = Option(desc='The kind of axes in the plot')
 
+    @property
+    def axes(self) -> dict[str, AxisOptions]:
+        return {k: v for k, v in self.__dict__.items() if isinstance(v, AxisOptions)}
+
 
 class CartesianAxes(PanelAxes):
     kind: Literal[AxesType.CARTESIAN] = AxesType.CARTESIAN

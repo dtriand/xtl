@@ -37,12 +37,35 @@ class Layout(ABC, BaseGraphModel):
     @abstractmethod
     def panels(self) -> dict[str, GraphPanel]: ...
 
+    @abstractmethod
+    def _validate_panels(self) -> Self: ...
+
     @model_validator(mode='after')
     def _validate_links(self) -> Self:
         for i, link in enumerate(self.links):
             for panel_id in link.panel_ids:
                 if panel_id not in self.panels.keys():
                     raise ValueError(f'Panel {panel_id!r} in link {i + 1} is not included in the layout')
+        return self
+
+    @model_validator(mode='after')
+    def _validate_traces(self) -> Self:
+        trace_ids: dict[str, list[str]] = {}
+        for panel_id, panel in self.panels.items():
+            for trace in panel.traces:
+                if trace.id in trace_ids:
+                    trace_ids[trace.id].append(panel_id)
+                else:
+                    trace_ids[trace.id] = [panel_id]
+
+        counts: dict[str, int] = {trace_id: len(panel_ids) for trace_id, panel_ids in trace_ids.items()}
+        for trace_id, count in counts.items():
+            if count > 1:
+                raise ValueError(
+                    f'Trace ID {trace_id!r} is not unique: appears in the following panels: '
+                    f'{", ".join(trace_ids[trace_id])}'
+                )
+
         return self
 
 
@@ -90,6 +113,15 @@ class GridLayout(Layout):
                 raise ValueError(
                     f'Cell {cell.panel.id!r} exceeds grid height: idx={cell.idx}, span={cell.span}, rows={self.rows}'
                 )
+        return self
+
+    @model_validator(mode='after')
+    def _validate_panels(self) -> Self:
+        panel_ids = [cell.panel.id for cell in self.cells]
+        counts = {panel_id: panel_ids.count(panel_id) for panel_id in set(panel_ids)}
+        for panel_id, count in counts.items():
+            if count > 1:
+                raise ValueError(f'Panel ID {panel_id!r} is not unique: appears {count} times in the layout')
         return self
 
     @property
