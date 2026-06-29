@@ -51,6 +51,10 @@ class GraphDimensions(BaseGraphModel):
             dpi=dpi
         )
 
+    @property
+    def to_inches(self) -> tuple[float, float]:
+        return self.width / self.dpi, self.height / self.dpi
+
 
 class Graph(BaseGraphModel):
 
@@ -91,9 +95,6 @@ class Graph(BaseGraphModel):
 
         graph = Graph(
             layout=GridLayout.from_panels(panel),
-            panels={
-                '0': panel
-            }
         )
 
         return graph
