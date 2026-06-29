@@ -110,3 +110,10 @@ class PolarAxes(PanelAxes):
 
 
 TPanelAxes = Annotated[Union[CartesianAxes, PolarAxes], Field(discriminator='kind')]
+
+
+class AxisName(StrEnum):
+    X = 'x'
+    Y = 'y'
+    R = 'r'
+    THETA = 'theta'
