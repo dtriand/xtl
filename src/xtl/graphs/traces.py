@@ -5,7 +5,7 @@ from pydantic import Field
 
 from xtl.common.options import Option
 from xtl.common.compatibility import PY310_OR_LESS
-from .base import BaseGraphModel
+from .base import BaseGraphModel, random_uid
 from .data import TDataSeries
 
 if PY310_OR_LESS:
@@ -21,6 +21,12 @@ class TraceType(StrEnum):
 
 
 class Trace(BaseGraphModel):
+
+    id: str = \
+        Option(
+            desc='A unique identifier for the trace',
+            default_factory=random_uid
+        )
 
     kind: TraceType = \
         Option(
