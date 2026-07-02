@@ -1,5 +1,6 @@
 autodoc_pydantic==2.2.0
 click==8.1.8
+colorspacious==1.1.2
 defusedxml==0.7.1
 distro==1.9.0
 fabio==2023.6.0
