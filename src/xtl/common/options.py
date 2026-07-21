@@ -580,9 +580,10 @@ class Options(BaseModel):
             # Check for parsing of environment variables
             parse_env = data._parse_env
         else:
-            raise TypeError(f'Invalid data type for validation, expected '
-                            f'{dict.__class__.__name__} or {cls.__class__.__name__}'
-                            f'but got {type(data)} instead')
+            # Let Pydantic's own pipeline deal with data that are neither a dict nor
+            #  a model instance. This deals properly with custom before validators
+            #  implemented by the models themselves
+            return handler(data)
 
         # Apply before validators for raw data only
         if mode == 'dict':
@@ -617,7 +618,7 @@ class Options(BaseModel):
 
             # Check for environment variables in fields that were instantiated with
             #   `default` or `default_value` and no actual value
-            #   NOTE: this skips the before validators
+            #   NB: this skips the before validators
             if parse_env:
                 new_value = cls._get_envvar(value)
                 if new_value is value:
@@ -752,7 +753,7 @@ class Options(BaseModel):
         :param data: Dictionary containing the values to create the config with.
         :return: An |Options| object.
         """
-        return cls(**data)
+        return cls.model_validate(data)
 
     def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
                 keep_file_ext: bool = False, indent: Optional[int] = 4,
@@ -797,26 +798,19 @@ class Options(BaseModel):
         :raises json.JSONDecodeError: If the JSON is invalid.
         :raises FileNotFoundError: If the file does not exist.
         """
-        data = {}
         if isinstance(s, str):
-            # Check if the string is a valid TOML
+            # Try parsing as a JSON string first
             try:
-                data = json.loads(s)
-            except json.JSONDecodeError as e:
-                # If not, check if it's an existing file path
+                return cls.model_validate_json(s)
+            except (json.JSONDecodeError, ValueError):
+                # Not a valid JSON string — treat as a file path
                 s = Path(s)
                 if not s.exists():
-                    # It was probably an invalid JSON string
-                    raise e
-                else:
-                    pass
-        # If data is still empty, then try interpreting s as a file
-        if not data:
-            s = Path(s)
-            if not s.exists():
-                raise FileNotFoundError(f'File not found: {s}')
-            data = json.loads(s.read_text())
-        return cls.from_dict(data)
+                    raise FileNotFoundError(f'File not found: {s}')
+        s = Path(s)
+        if not s.exists():
+            raise FileNotFoundError(f'File not found: {s}')
+        return cls.model_validate_json(s.read_text())
 
     def _field_to_comment_value(self, name: str, field: FieldInfo,
                                 keep_comments: bool = False) -> \
