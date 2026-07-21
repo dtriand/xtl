@@ -3,9 +3,9 @@ from __future__ import annotations
 import colorsys
 from typing import Any
 
-import numpy as np
-from pydantic import field_validator, ValidationInfo
 from colorspacious import cspace_convert
+import numpy as np
+from pydantic import field_validator, ValidationInfo, model_validator, model_serializer
 
 from xtl_core.options import Option
 from .base import BaseGraphModel
@@ -46,6 +46,18 @@ class Color(BaseGraphModel):
         if value > 1.0:
             return round(value / 255.0, 10)
         return float(value)
+
+    @model_validator(mode='before')
+    @classmethod
+    def _from_hex(cls, values):
+        if isinstance(values, str):
+            r, g, b, a = cls._parse_hex(values)
+            return {'r': r, 'g': g, 'b': b, 'alpha': a}
+        return values
+
+    @model_serializer(when_used='json')
+    def _to_hex(self) -> str:
+        return self.to_hexa() if self.alpha < 1.0 else self.to_hex()
 
     @staticmethod
     def _parse_hex(value: str) -> tuple[float, float, float, float]:
