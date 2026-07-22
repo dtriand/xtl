@@ -10,7 +10,7 @@ else:
     from enum import StrEnum
 
 
-from .base import BaseGraphModel
+from ..base import BaseGraphModel
 
 
 class GraphStyle(BaseGraphModel):
