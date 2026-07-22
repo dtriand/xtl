@@ -2,9 +2,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Generic, TypeVar, Any
+from typing import Generic, TypeVar, Any, Callable
 import warnings
 
+from ..traces import Trace, TraceType
+from ..data import TDataSeries
 from ..graph import Graph
 
 
@@ -18,6 +20,12 @@ class GraphEnumMapper:
         self._warn = bool(warn)
 
     def convert(self, value: Enum, default: Any = _Unset) -> Any:
+        if value is None:
+            # Handle optional values in models
+            if default is not _Unset:
+                return default
+            raise TypeError(f'Not enum type: {value!r}')
+
         enum_type = type(value)
         if not issubclass(enum_type, Enum):
             if default is not _Unset:
@@ -66,7 +74,7 @@ class GraphRenderable(ABC):
         self._ctx = ctx or RenderContext()
 
     @abstractmethod
-    def show(self) -> None: ...
+    def display(self) -> None: ...
 
     @abstractmethod
     def save(self, filename: str | Path) -> None: ...
