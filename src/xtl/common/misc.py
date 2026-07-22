@@ -56,3 +56,21 @@ def is_picklable(obj: Any, path: str | None = None) -> tuple[bool, tuple[str, ty
     if bad is not None:
         return False, bad
     return True, None
+
+
+def slice_to_str(s: slice) -> str:
+    if s.start is None and s.stop is None and s.step is None:
+        return ":"
+
+    if s.stop == s.start + 1 and s.step is None:
+        return str(s.start)
+
+    parts = [
+        "" if s.start is None else str(s.start),
+        "" if s.stop is None else str(s.stop),
+    ]
+
+    if s.step is not None:
+        parts.append(str(s.step))
+
+    return ":".join(parts)

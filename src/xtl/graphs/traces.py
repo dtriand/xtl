@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Union, Annotated, Literal
+from typing import Any, Union, Annotated, Literal, Callable
 
 from pydantic import Field
 
@@ -7,6 +9,7 @@ from xtl.common.options import Option
 from xtl.common.compatibility import PY310_OR_LESS
 from .base import BaseGraphModel, random_uid
 from .data import TDataSeries
+from .styles import TraceStyle, LineTraceStyle, PointStyle, LineStyle, LineStyleType, PointStyleType
 
 if PY310_OR_LESS:
     class StrEnum(str, Enum): ...
@@ -38,13 +41,37 @@ class Trace(BaseGraphModel):
             desc='The data series to plot'
         )
 
+    style: TraceStyle = \
+        Option(
+            desc='The style of the trace',
+            default_factory=TraceStyle
+        )
+
 
 class LineTrace(Trace):
     kind: Literal[TraceType.LINE] = TraceType.LINE
 
+    style: LineTraceStyle = Option(
+        desc='The style of the trace',
+        default_factory=lambda: LineTraceStyle(
+            points=PointStyle(
+                style=PointStyleType.NONE
+            )
+        )
+    )
+
 
 class ScatterTrace(Trace):
     kind: Literal[TraceType.SCATTER] = TraceType.SCATTER
+
+    style: LineTraceStyle = Option(
+        desc='The style of the trace',
+        default_factory=lambda: LineTraceStyle(
+            points=PointStyle(
+                style=PointStyleType.CIRCLE
+            )
+        )
+    )
 
 
 class HeatmapTrace(Trace):
