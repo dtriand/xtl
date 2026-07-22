@@ -8,7 +8,7 @@ import numpy as np
 from pydantic import field_validator, ValidationInfo, model_validator, model_serializer
 
 from xtl_core.options import Option
-from .base import BaseGraphModel
+from xtl.graphs.base import BaseGraphModel
 
 
 class Color(BaseGraphModel):
