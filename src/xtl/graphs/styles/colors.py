@@ -10,6 +10,7 @@ from pydantic import field_validator, ValidationInfo, model_validator, model_ser
 
 from xtl.common.options import Option
 from .base import BaseGraphModel
+from xtl.graphs.base import BaseGraphModel
 
 
 class Color(BaseGraphModel):

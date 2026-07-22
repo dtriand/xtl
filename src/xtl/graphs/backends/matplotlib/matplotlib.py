@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 from xtl import settings
 from xtl.common.compatibility import OS_POSIX
 from xtl.common.misc import slice_to_str
-from .base import GraphBackend, GraphRenderable, GraphEnumMapper, RenderContext
-from ..axes import AxesType, AxisScaleType, AxisName, AxisOptions, SymLogScale
-from ..colors import Colormap
-from ..data import XYData
-from ..graph import Graph
-from ..layouts import GridLayout
-from ..styles import LineStyleType, PointStyleType
-from ..traces import Trace, LineTrace, ScatterTrace
+from xtl.graphs.backends.base import GraphBackend, GraphRenderable, GraphEnumMapper, RenderContext
+from xtl.graphs.axes import AxesType, AxisScaleType, AxisName, AxisOptions, SymLogScale
+from xtl.graphs.styles.colors import Colormap
+from xtl.graphs.data import XYData
+from xtl.graphs.graph import Graph
+from xtl.graphs.layouts import GridLayout
+from xtl.graphs.styles import LineStyleType, PointStyleType
+from xtl.graphs.traces import LineTrace, ScatterTrace
 
 
 @dataclass
