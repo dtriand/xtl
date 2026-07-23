@@ -1,0 +1,14 @@
+# Matplotlib stylesheet for Helvetica font
+
+# Font
+font.family:  Helvetica World
+
+# Math font
+mathtext.fontset:   custom
+mathtext.rm:        Helvetica World
+mathtext.it:        Helvetica World:italic
+mathtext.bf:        Helvetica World:bold
+mathtext.sf:        Helvetica World
+mathtext.tt:        Helvetica World
+mathtext.cal:       Helvetica World:italic
+mathtext.fallback:  stixsans

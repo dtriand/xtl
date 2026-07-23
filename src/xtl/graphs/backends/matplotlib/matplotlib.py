@@ -12,6 +12,7 @@ from xtl import settings
 from xtl.common.compatibility import OS_POSIX
 from xtl.common.misc import slice_to_str
 from xtl.graphs.backends.base import GraphBackend, GraphRenderable, GraphEnumMapper, RenderContext
+from xtl.graphs.backends.matplotlib.stylesheet import MatplotlibStyleSheetMixin
 from xtl.graphs.axes import AxesType, AxisScaleType, AxisName, AxisOptions, SymLogScale
 from xtl.graphs.styles.colors import Colormap
 from xtl.graphs.data import XYData
@@ -202,7 +203,7 @@ class MatplotlibRenderable(GraphRenderable):
             f.chmod(settings.jobs.permissions.files.decimal)
 
 
-class MatplotlibBackend(GraphBackend[MatplotlibRenderable]):
+class MatplotlibBackend(GraphBackend[MatplotlibRenderable], MatplotlibStyleSheetMixin):
 
     _MAPPER: GraphEnumMapper = GraphEnumMapper(
         {
