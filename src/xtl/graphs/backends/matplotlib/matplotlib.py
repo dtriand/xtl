@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Callable
 import warnings
 
 import matplotlib
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 
-from xtl import settings
+from xtl import settings, Logger
 from xtl.common.compatibility import OS_POSIX
+from xtl.common.environment import XTL_FONTS_DIR
 from xtl.common.misc import slice_to_str
 from xtl.graphs.backends.base import GraphBackend, GraphRenderable, GraphEnumMapper, RenderContext
 from xtl.graphs.backends.matplotlib.stylesheet import MatplotlibStyleSheetMixin
@@ -20,6 +23,9 @@ from xtl.graphs.graph import Graph
 from xtl.graphs.layouts import GridLayout
 from xtl.graphs.styles import LineStyleType, PointStyleType
 from xtl.graphs.traces import LineTrace, ScatterTrace
+
+
+logger = Logger(__name__)
 
 
 @dataclass
@@ -254,7 +260,62 @@ class MatplotlibBackend(GraphBackend[MatplotlibRenderable], MatplotlibStyleSheet
         if backend is not None:
             matplotlib.use(backend)
         self._ctx = RenderContext(MatplotlibBackend._MAPPER)
+        self._registered_fonts = self._register_fonts()
 
     def render(self, graph: Graph) -> MatplotlibRenderable:
         return MatplotlibRenderable(graph, ctx=self._ctx)
 
+    @staticmethod
+    def _register_fonts(fonts_dir: Path | None = None) -> list[Path]:
+
+        def _normalize_dir(dir_: str | Path):
+            dir_ = Path(dir_).expanduser().resolve()
+            if not dir_.exists():
+                logger.warn(f'Path does not exist: {dir_}')
+                return None
+            elif not dir_.is_dir():
+                logger.warn(f'Path is not a directory: {dir_}')
+                return None
+            return dir_
+
+        # Resolve directories
+        directories: list[Path] = []
+
+        # Local scope
+        fonts_dir = _normalize_dir(fonts_dir) if fonts_dir else None
+        if fonts_dir:
+            logger.debug(f'Adding directory for font lookup: {fonts_dir}')
+            directories.append(fonts_dir)
+
+        # Directories from environment variable
+        if XTL_FONTS_DIR:
+            for fdir in XTL_FONTS_DIR.split(os.pathsep):
+                fdir = _normalize_dir(fdir) if fdir else None
+                if fdir:
+                    logger.debug(f'Adding directory for font lookup: {fdir}')
+                    directories.append(fdir)
+
+        # Current directory
+        directories.append(Path.cwd().expanduser().resolve())
+        logger.debug('Adding current working directory for font lookup: %s', directories[-1])
+
+        # Check for fonts that are already registered
+        known = set(entry.fname for entry in fm.fontManager.ttflist)
+
+        # Add all system fonts and all extra directories
+        registered: list[Path] = []
+        for font_paths in [None, directories]:
+            for fpath in fm.findSystemFonts(fontpaths=font_paths, fontext='ttf'):
+                # ttf maps to ttf, otf and ttc within matplotlib
+                try:
+                    if fpath not in known:
+                        fm.fontManager.addfont(fpath)
+                        logger.debug('Registered font: %s', fpath)
+                        registered.append(Path(fpath))
+                except Exception as e:
+                    logger.warn('Failed to register font: %(fpath) - %(exc)',
+                                {'fpath': fpath, 'exc': e})
+
+        if registered:
+            logger.debug('Registered %d fonts, %d in total', len(registered), len(fm.fontManager.ttflist))
+        return registered
