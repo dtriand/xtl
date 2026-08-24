@@ -282,7 +282,7 @@ class Simulator:
         crystal = self._config['crystal']
         simulator.xtal_shape = self._get_crystal_shape()
         simulator.xtal_size_mm = crystal['size']
-        simulator.Ncells_abs = crystal['no_unit_cells']
+        simulator.Ncells_abc = crystal['no_unit_cells']
         # NB: Mosaic spread must be initialized prior to mosaic domains, otherwise it won't work
         simulator.mosaic_spread_deg = crystal['mosaic_domain_spread']
         simulator.mosaic_domains = crystal['no_mosaic_domains']
@@ -411,7 +411,7 @@ class Simulator:
         mosaic_seed = mosaic_seed or self._config['simulation']['mosaic_seed']
         orientation = self._config['experiment']['crystal_orientation_mode'].lower()
 
-        logger.debug('Setting random seeds: seed=%(seed)d, mosaic_seed=%(seed)d',
+        logger.debug('Setting random seeds: seed=%(seed)d, mosaic_seed=%(mosaic_seed)d',
                      {'seed': seed, 'mosaic_seed': mosaic_seed})
         self._simulator.seed = seed
         self._simulator.mosaic_seed = mosaic_seed
