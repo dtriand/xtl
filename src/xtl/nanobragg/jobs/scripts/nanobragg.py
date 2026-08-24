@@ -80,7 +80,7 @@ class Simulator:
             'resolution': 2.0,
         },
         'crystal': {
-            'shape': 'gauss',
+            'shape_transform': 'gaussian',
             'size': [0., 0., 0.],
             'no_unit_cells': [100, 100, 100],
             'no_mosaic_domains': 1,
@@ -88,9 +88,9 @@ class Simulator:
         },
         'amorphous_content': [
             {
-                'material': 'water',
+                'name': 'water',
                 'density': 1.,
-                'sample_size': [0., 0.001, 0.001],
+                'size': [0., 0.001, 0.001],
                 'molecular_weight': 18.
             }
         ],
@@ -255,9 +255,9 @@ class Simulator:
 
         return hkl.amplitudes()
 
-    def _get_crystal_shape(self) -> shapetype:
+    def _get_shape_transform(self) -> shapetype:
         """
-        Get the crystal shape type based on the configuration parameters.
+        Get the crystal shape transform based on the configuration parameters.
         """
         shapes = {
             'square': shapetype.Square,
@@ -266,7 +266,7 @@ class Simulator:
             'gaussian_argchk': shapetype.Gauss_argchk,
             'tophat': shapetype.Tophat
         }
-        return shapes.get(self._config['crystal']['shape'], shapes.get('gaussian'))
+        return shapes.get(self._config['crystal']['shape_transform'], shapes.get('gaussian'))
 
     def _get_nanobragg_simulator(self) -> simtbx.nanoBragg.nanoBragg:
         """
@@ -280,7 +280,7 @@ class Simulator:
 
         # Set crystal properties
         crystal = self._config['crystal']
-        simulator.xtal_shape = self._get_crystal_shape()
+        simulator.xtal_shape = self._get_shape_transform()
         simulator.xtal_size_mm = crystal['size']
         simulator.Ncells_abc = crystal['no_unit_cells']
         # NB: Mosaic spread must be initialized prior to mosaic domains, otherwise it won't work
