@@ -158,11 +158,12 @@ class Simulator:
         self._simulator = self._get_nanobragg_simulator()
 
         if self.has_cuda:
-            logger.info('CUDA available. Using GPU acceleration.')
+            logger.info('CUDA available.')
         else:
-            logger.info('CUDA not available. Using CPU for simulation.')
+            logger.info('CUDA not available.')
 
         self._image = None
+        self._bkg = None
         logger.info('Initialization complete.')
 
     @staticmethod
@@ -366,6 +367,9 @@ class Simulator:
 
             self._simulator.add_background()
 
+        # Store the background intensities
+        self._bkg = self._simulator.raw_pixels.deep_copy()
+
     def _calculate_spots(self, use_gpu: bool = False):
         """
         Calculate the diffraction spots using the nanoBragg simulator, either with GPU acceleration if available or
@@ -377,6 +381,13 @@ class Simulator:
             self._simulator.add_nanoBragg_spots_cuda()
         else:
             self._simulator.add_nanoBragg_spots()
+
+    def _reset_intensities(self):
+        """
+        Reset the raw pixel intensities in the simulator to zero or to the background if it has been calculated.
+        """
+        self._simulator.raw_pixels *= 0.
+        self._simulator.raw_pixels += self._bkg
 
     def simulate(self, n: int = None, output: Union[str, Path] = None, seed: int = None, mosaic_seed: int = None,
                  save_cbf: bool = True, save_npy: bool = False, plot: bool = False, use_gpu: bool = False) -> None:
@@ -492,8 +503,13 @@ class Simulator:
                 timings['plot'].append(t_plot - t2)
                 timings['save_png'].append(t_png - t_plot)
 
-            # Clear the stored data on the simulator
-            self._simulator.free_all()
+            # Reset the simulator for the next frame
+            self._reset_intensities()
+
+        # Clear the stored data on the simulator
+        # NB: Only call at the end of simulation, otherwise it will cause a segmentation fault when
+        #     trying to call `add_nanoBragg_spots(_cuda)` again
+        self._simulator.free_all()
 
         t_end = time.time()
         logger.info(f'Simulation completed in {(t_end - t0):,.2f} seconds.')
