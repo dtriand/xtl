@@ -876,7 +876,9 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
                                  {'i': i, 'n': len(self._steps), 'step': spec.name})
                 self.logger.debug('Preparing %(config_cls)s', {'config_cls': spec.config_cls.__name__})
             else:
-                self.logger.info('Skipping step %(i)d/%(n)d: %(step)s')
+                self.logger.info('Skipping step %(i)d/%(n)d: %(step)s',
+                                 {'i': i, 'n': len(self._steps), 'step': spec.name})
+                continue
 
             # Get the config for the current step, merging defaults and dynamic defaults from the StepSpec with any
             #  overrides from the JobConfig
