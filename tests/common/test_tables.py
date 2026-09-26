@@ -1374,3 +1374,198 @@ class TestTable:
             assert sample_table.headers == []
             assert sample_table.no_cols == 0
             assert sample_table.no_rows == 5  # Rows remain, just with no columns
+
+    class TestFormats:
+        """Tests for column formats of the Table class."""
+
+        @pytest.fixture
+        def fmt_table(self):
+            """Create a table with formatted columns."""
+            return Table(data=[
+                [1, 'Alpha', 10.5, 1234567],
+                [22, 'B', None, 3],
+                [3, 'Gamma', 3.14159, 'x']
+            ], headers=['ID', 'Name', 'Value', 'Count'],
+               missing_values=[None], missing_value_repr='-',
+               formats={'Value': '.2f', 'Count': '>8,d'})
+
+        @pytest.mark.parametrize(
+            'fmt,           value,      expected', [
+            ('.2f',         3.14159,    '3.14'),
+            ('.3e',         1234.5,     '1.234e+03'),
+            (',d',          1234567,    '1,234,567'),
+            ('{:.1f} keV',  12.345,     '12.3 keV'),
+            ('.2f',         'abc',      'abc'),   # fallback on incompatible type
+            ('{0} {1}',     1,          '1'),     # fallback on invalid format string
+        ])
+        def test_format_cell(self, fmt, value, expected):
+            """Test that format specs and format strings are applied to values."""
+            table = Table(data=[[value]], headers=['A'], formats={'A': fmt})
+            assert table._format_cell(0, table._data[0][0]) == expected
+
+        def test_raw_data_unchanged(self, fmt_table):
+            """Test that formats do not affect the stored data."""
+            assert fmt_table.get_col('Value') == [10.5, '-', 3.14159]
+            assert fmt_table.data[0] == [1, 'Alpha', 10.5, 1234567]
+
+        def test_missing_values_not_formatted(self, fmt_table):
+            """Test that missing values are rendered with their representation."""
+            assert fmt_table._format_cell(2, fmt_table._data[1][2]) == '-'
+
+        def test_str(self, fmt_table):
+            """Test the string representation with formats and alignment."""
+            assert str(fmt_table) == '\n'.join([
+                'ID | Name  | Value |     Count',
+                '---+-------+-------+----------',
+                '1  | Alpha | 10.50 | 1,234,567',
+                '22 | B     |     - |         3',
+                '3  | Gamma |  3.14 |         x',
+            ])
+
+        @pytest.mark.parametrize(
+            'fmt,           expected', [
+            ('<.2f',        '<'),
+            ('*^10',        '^'),
+            ('=+8',         '>'),
+            ('{:>6.1f} A',  '>'),
+            ('.2f',         '>'),   # numeric default
+        ])
+        def test_col_align(self, fmt, expected):
+            """Test that the column alignment is extracted from the format."""
+            table = Table(data=[[1.0], [2.0]], headers=['A'], formats={'A': fmt})
+            assert table._col_align(0) == expected
+
+        def test_col_align_defaults(self):
+            """Test the default alignment of formatted and unformatted columns."""
+            table = Table(data=[[1, 'a', 'b']], headers=['A', 'B', 'C'],
+                          formats={'B': '5'})
+            assert table._col_align(0) == '<'  # unformatted
+            assert table._col_align(1) == '<'  # formatted, non-numeric
+
+        def test_set_format(self, fmt_table):
+            """Test setting, getting and clearing column formats."""
+            fmt_table.set_format('ID', '03d')
+            assert fmt_table.get_format('ID') == '03d'
+            fmt_table.set_format(0, None)
+            assert fmt_table.get_format('ID') is None
+            fmt_table.set_format(-1, ',d')  # index keys are converted to names
+            assert fmt_table.formats['Count'] == ',d'
+
+            with pytest.raises(KeyError):
+                fmt_table.set_format('Missing', '.2f')
+            with pytest.raises(TypeError):
+                fmt_table.set_format('ID', 2)
+            with pytest.raises(KeyError):
+                Table(headers=['A'], formats={'B': '.2f'})
+
+        def test_formats_without_headers(self):
+            """Test index-keyed formats on tables without headers."""
+            table = Table(data=[[1.0, 2.0], [3.0, 4.0]], formats={1: '.1e'})
+            assert str(table) == '1.0 | 2.0e+00\n3.0 | 4.0e+00'
+            table.del_col(0)
+            assert table.formats == {0: '.1e'}
+            table.headers = ['B']
+            assert table.formats == {'B': '.1e'}
+
+        def test_headers_setter_rekeys_formats(self, fmt_table):
+            """Test that renaming headers keeps the formats by position."""
+            fmt_table.headers = ['a', 'b', 'c', 'd']
+            assert fmt_table.formats == {'c': '.2f', 'd': '>8,d'}
+
+        def test_add_col_with_format(self, fmt_table):
+            """Test adding a column with a format."""
+            fmt_table.add_col([1.0, 2.0, 3.0], col_name='E', fmt='{:.1f} keV')
+            assert fmt_table.get_format('E') == '{:.1f} keV'
+            assert fmt_table._format_cell(4, fmt_table._data[0][4]) == '1.0 keV'
+
+        def test_del_col_removes_format(self, fmt_table):
+            """Test that deleting a column removes its format."""
+            fmt_table.del_col('Value')
+            assert fmt_table.formats == {'Count': '>8,d'}
+
+        def test_to_csv(self, fmt_table):
+            """Test CSV output with and without formats."""
+            assert fmt_table.to_csv(delimiter=';') == \
+                'ID;Name;Value;Count\n' \
+                '1;Alpha;10.50;1,234,567\n' \
+                '22;B;-;3\n' \
+                '3;Gamma;3.14;x\n'
+            assert fmt_table.to_csv(delimiter=';', formatted=False) == \
+                'ID;Name;Value;Count\n' \
+                '1;Alpha;10.5;1234567\n' \
+                '22;B;-;3\n' \
+                '3;Gamma;3.14159;x\n'
+
+        def test_to_rich(self):
+            """Test that rich output uses formats and alignment."""
+            pytest.importorskip('rich')
+            table = Table(data=[[0, 0.0, False, None]], headers=['A', 'B', 'C', 'D'],
+                          missing_values=[None], formats={'B': '.2f'})
+            rich_table = table.to_rich()
+            assert [col.justify for col in rich_table.columns] == \
+                   ['left', 'right', 'left', 'left']
+            assert [list(col.cells)[0] for col in rich_table.columns] == \
+                   ['0', '0.00', 'False', '']
+
+        def test_formats_preserved_by_slicing(self, fmt_table):
+            """Test that formats are carried over to sliced tables."""
+            assert fmt_table['Value':'Count'].formats == {'Value': '.2f', 'Count': '>8,d'}
+            assert fmt_table['Value'].formats == {'Value': '.2f'}
+            assert fmt_table[2, 0:2].formats == {'Value': '.2f'}
+            assert fmt_table['ID':'Name', 0:2].formats == {}
+
+        @pytest.mark.parametrize('key', [
+            'Value',
+            slice('Name', 'Value'),
+            ('Value', slice(0, 3)),
+            (slice('Name', 'Value'), slice(0, 3)),
+            (slice('Name', 'Value'), 1),
+        ])
+        def test_slicing_preserves_missing_values(self, fmt_table, key):
+            """Test that missing values remain missing in sliced tables."""
+            sliced = fmt_table[key]
+            assert sliced.has_missing
+            assert isinstance(sliced._data[1 if sliced.no_rows > 1 else 0][-1],
+                              MissingValue)
+
+            # Changing the representation of the slice should affect the missing values
+            sliced.missing = MissingValueConfig(values=[None], repr='N/A')
+            assert 'N/A' in sliced.get_col('Value')
+
+        def test_slicing_single_cell_returns_repr(self, fmt_table):
+            """Test that indexing a single missing cell returns its representation."""
+            assert fmt_table['Value', 1] == '-'
+
+        def test_setitem_preserves_missing_values(self, fmt_table):
+            """Test that setting a cell does not convert other missing values in the
+            column to their representation."""
+            fmt_table['Value', 0] = 1.0
+            assert isinstance(fmt_table._data[1][2], MissingValue)
+            fmt_table['Value', 0:1] = [2.0]
+            assert isinstance(fmt_table._data[1][2], MissingValue)
+            assert fmt_table.get_col('Value') == [2.0, '-', 3.14159]
+
+        def test_formats_preserved_by_operations(self, fmt_table):
+            """Test that formats are carried over by table operations."""
+            assert (fmt_table + fmt_table).formats == fmt_table.formats
+            assert (fmt_table - 'Value').formats == {'Count': '>8,d'}
+
+            other = Table(data=[[1], [2], [3]], headers=['E'], formats={'E': '.1f'})
+            assert (fmt_table | other).formats == \
+                   {'Value': '.2f', 'Count': '>8,d', 'E': '.1f'}
+
+            fmt_table |= other
+            assert fmt_table.formats == {'Value': '.2f', 'Count': '>8,d', 'E': '.1f'}
+
+        def test_formats_or_without_headers(self):
+            """Test that index-keyed formats are shifted when concatenating columns."""
+            t1 = Table(data=[[1.0]], formats={0: '.1f'})
+            t2 = Table(data=[[2.0]], formats={0: '.2f'})
+            assert (t1 | t2).formats == {0: '.1f', 1: '.2f'}
+            t1 |= t2
+            assert t1.formats == {0: '.1f', 1: '.2f'}
+
+        def test_from_dict_with_formats(self):
+            """Test passing formats to alternative constructors."""
+            table = Table.from_dict({'A': [1.234]}, formats={'A': '.1f'})
+            assert str(table) == '  A\n---\n1.2'

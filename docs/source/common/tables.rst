@@ -311,6 +311,78 @@ You can update the missing values configuration at any time, and all values will
    # 2  | Beta  | ?
    # 3  | Gamma | None
 
+.. _tables-formatting:
+
+Formatting
+^^^^^^^^^^
+
+The way values are rendered can be customized on a per-column basis with the ``formats`` argument, which maps column
+names to standard Python `format strings <https://docs.python.org/3/library/string.html#formatspec>`_. A format can
+either be a format spec (e.g. ``'.2f'``, ``'>8,d'``), which is applied with :func:`format`, or a full format string
+containing a replacement field (e.g. ``'{:.1f} keV'``), which is applied with :meth:`str.format`:
+
+.. code-block:: python
+
+   table = Table(
+       data=[
+           [1, 'Alpha', 10.5, 1234567, 8.04778],
+           [2, 'Beta', None, 42, 17.47934],
+           [3, 'Gamma', 3.14159, 'n/a', 12.39842]
+       ],
+       headers=['ID', 'Name', 'Value', 'Counts', 'Energy'],
+       missing_values=[None],
+       missing_value_repr='-',
+       formats={
+           'Value': '.2f',            # Two decimal digits
+           'Counts': ',d',            # Thousands separator
+           'Energy': '{:.1f} keV',    # Format string with units
+           'Name': '^'                # Centered text
+       }
+   )
+
+   print(table)
+   # ID |  Name | Value |    Counts |   Energy
+   # ---+-------+-------+-----------+---------
+   # 1  | Alpha | 10.50 | 1,234,567 |  8.0 keV
+   # 2  |  Beta |     - |        42 | 17.5 keV
+   # 3  | Gamma |  3.14 |       n/a | 12.4 keV
+
+A few things to note:
+
+- Formats only affect the rendering of the table, *i.e.* printing, :func:`to_rich() <xtl.common.tables.Table.to_rich>`
+  and :func:`to_csv() <xtl.common.tables.Table.to_csv>`. The stored data remain unchanged, so
+  :attr:`data <xtl.common.tables.Table.data>`, :func:`get_col() <xtl.common.tables.Table.get_col>`,
+  :func:`to_numpy() <xtl.common.tables.Table.to_numpy>`, *etc.* return the original values.
+- Missing values are never formatted and are always rendered with their representation.
+- If a format cannot be applied to a value (*e.g.* ``'.2f'`` on a string), the value is rendered with :class:`str`
+  instead.
+- The column alignment is determined by the alignment of the format (``<``, ``>`` or ``^``). If the format does not
+  specify an alignment, then columns containing numbers are right-aligned and all other columns are left-aligned.
+  Columns without a format are always left-aligned.
+
+Formats can also be modified after the table has been created:
+
+.. code-block:: python
+
+   table.set_format('ID', '03d')  # Set the format of a column (by name or index)
+   table.set_format('Name', None)  # Clear the format of a column
+   table.get_format('Value')       # '.2f'
+   table.formats                   # {'Value': '.2f', 'Counts': ',d', 'Energy': '{:.1f} keV', 'ID': '03d'}
+
+   # Add a new column along with its format
+   table.add_col([0.1, 0.2, 0.3], col_name='Error', fmt='.1e')
+
+   print(table)
+   #  ID | Name  | Value |    Counts |   Energy |   Error
+   # ----+-------+-------+-----------+----------+--------
+   # 001 | Alpha | 10.50 | 1,234,567 |  8.0 keV | 1.0e-01
+   # 002 | Beta  |     - |        42 | 17.5 keV | 2.0e-01
+   # 003 | Gamma |  3.14 |       n/a | 12.4 keV | 3.0e-01
+
+Formats are carried over when slicing, combining or subtracting tables, and are updated accordingly when columns are
+deleted or the headers are renamed. For tables without headers, formats are specified by column index instead, *e.g.*
+``formats={0: '.2f'}``.
+
 Table operations
 ^^^^^^^^^^^^^^^^
 
@@ -450,6 +522,7 @@ Export to third-party libraries:
    rich_table = table.to_rich()
 
    # Custom formatting can be applied when creating a rich table
+   # (this overrides any column formats)
    rich_table = table.to_rich(cast_as=lambda v: f"Value: {v}")
 
 Export to CSV:
@@ -489,6 +562,20 @@ But the CSV export can also be customized with various parameters:
    1;Alpha;10.5
    2;Beta;-
    3;Gamma;-
+
+If the table has any :ref:`formats <tables-formatting>`, these are also applied to the CSV output (without any
+padding). Use ``formatted=False`` to write the raw values instead:
+
+.. code-block:: python
+
+   table.set_format('Value', '.2f')
+   table.to_csv()                 # 1,Alpha,10.50 ...
+   table.to_csv(formatted=False)  # 1,Alpha,10.5 ...
+
+.. note::
+
+   Formats that include a thousands separator (*e.g.* ``',d'``) will produce values that contain commas. Make sure to
+   use a different ``delimiter`` in such cases.
 
 Console
 ^^^^^^^
