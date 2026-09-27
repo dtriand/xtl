@@ -15,25 +15,25 @@ class OptionsValidationError(ValueError):
 
     def _extract_errors(self, exc: ValidationError) -> list[dict[str, Any]]:
         errors = []
-        for e in exc.errors(include_url=False):
-            ctx = e.get('ctx', {})
+        for error in exc.errors(include_url=False):
+            ctx = error.get('ctx', {})
             cause = ctx.get('error')
             if isinstance(cause, OptionsValidationError):
                 # Prepend the outer loc to all inner errors
-                outer = self._format_location(e['loc'])
-                for e in cause.errors:
+                outer = self._format_location(error['loc'])
+                for inner_error in cause.errors:
                     # Drop the inner model name
-                    inner = e['loc'].split('.', 1)[1]
+                    _, _, inner = inner_error['loc'].partition('.')  # inner is empty for model level errors
                     errors.append({
-                        **e,
-                        'loc': f'{outer}.{inner}',  # Re-prefix with outer model name
+                        **inner_error,
+                        'loc': f'{outer}.{inner}' if inner else outer,  # Re-prefix with outer model name
                     })
             else:
                 errors.append({
-                    'loc': self._format_location(e['loc']),
-                    'msg': e['msg'],
-                    'type': e['type'],
-                    'input': e.get('input', None),
+                    'loc': self._format_location(error['loc']),
+                    'msg': error['msg'],
+                    'type': error['type'],
+                    'input': error.get('input', None),
                 })
         return errors
 
