@@ -253,3 +253,97 @@ class TestOptions:
         assert c0.to_dict() == c1.to_dict()
 
         os.environ.pop('XTLMAGIC')
+
+    class Inner(Options):
+        a: int = 1
+        tags: list[str] = Option(default_factory=lambda: ['x', 'y'])
+
+    class Outer(Options):
+        items: list['TestOptions.Inner'] = Option(default_factory=list)
+        mapping: dict[str, 'TestOptions.Inner'] = Option(default_factory=dict)
+        scalars: dict[str, int] = Option(default_factory=dict)
+        records: list[dict[str, int]] = Option(default_factory=list)
+        nested: list[list[int]] = Option(default_factory=list)
+
+    class Deep(Options):
+        outers: list['TestOptions.Outer'] = Option(default_factory=list)
+
+    def test_toml_nested(self):
+        o0 = self.Outer(items=[self.Inner(), self.Inner(a=2, tags=[])],
+                        mapping={'k': self.Inner(a=3)},
+                        scalars={'x': 1, 'y': 2},
+                        records=[{'p': 1}, {'p': 2}],
+                        nested=[[1, 2], [3]])
+        s = o0.to_toml()
+        # Lists of Options/dicts as arrays of tables, dicts as tables
+        assert '[[items]]' in s
+        assert '[[records]]' in s
+        assert '[mapping.k]' in s
+        assert '[scalars]' in s
+
+        o1 = self.Outer.from_toml(s)
+        assert o0.to_dict() == o1.to_dict()
+
+        # Nested arrays of tables
+        d0 = self.Deep(outers=[o0, self.Outer(items=[self.Inner(a=5)])])
+        s = d0.to_toml()
+        assert '[[outers]]' in s
+        assert '[[outers.items]]' in s
+
+        d1 = self.Deep.from_toml(s)
+        assert d0.to_dict() == d1.to_dict()
+
+    def test_toml_formatter(self):
+        class FormatModel(Options):
+            joined: list[str] = Option(default_factory=lambda: ['a', 'b'],
+                                       formatter=lambda x: ' '.join(x))
+            spec: tuple[int, ...] = Option(default=(1, 2), formatter=lambda x: [str(i) for i in x])
+            dropped: int = Option(default=0, formatter=lambda x: x or None)
+            none_ok: int | None = Option(default=None, formatter=lambda x: 'auto' if x is None else x)
+
+        m = FormatModel()
+        # Formatters apply to iterables too, and their output is converted recursively
+        assert m.to_toml() == ('joined = "a b" \n'
+                               'spec = [ "1" , "2" ,]\n'
+                               'none_ok = "auto" \n')
+
+        # Fields formatted as None are left out
+        assert 'dropped' not in FormatModel(dropped=0).to_toml()
+        assert 'dropped = 3' in FormatModel(dropped=3).to_toml()
+
+    def test_toml_none(self):
+        class NoneModel(Options):
+            name: str | None = Option(default='default', desc='A name')
+            value: int | None = Option(default=None)
+            values: list[int | None] = Option(default_factory=list)
+            mapping: dict[str, int | None] = Option(default_factory=dict)
+            nested: list[list[int | None]] = Option(default_factory=list)
+
+        # None fields are left out and load as the field's default
+        m0 = NoneModel(name=None, value=None, values=[1, 2], mapping={'a': 1})
+        s = m0.to_toml(comments=True)
+        assert 'name' not in s
+        assert 'value =' not in s
+        m1 = NoneModel.from_toml(s)
+        assert m1.name == 'default'
+        assert m1.value is None
+        assert m1.values == [1, 2]
+        assert m1.mapping == {'a': 1}
+
+        # None inside iterables or dicts cannot be left out without changing the data
+        with pytest.raises(ValueError, match=r'Cannot serialize None at `values\[1\]`'):
+            NoneModel(values=[1, None, 3]).to_toml()
+        with pytest.raises(ValueError, match=r'Cannot serialize None at `mapping\.a`'):
+            NoneModel(mapping={'a': None}).to_toml()
+        with pytest.raises(ValueError, match=r'Cannot serialize None at `nested\[0\]\[1\]`'):
+            NoneModel(nested=[[1, None]]).to_toml()
+
+        # The location includes nested Options and serialization aliases
+        class ParentModel(Options):
+            child: NoneModel = Option(default_factory=NoneModel, alias='kid')
+            children: list[NoneModel] = Option(default_factory=list)
+
+        with pytest.raises(ValueError, match=r'Cannot serialize None at `kid\.values\[0\]`'):
+            ParentModel(kid=NoneModel(values=[None])).to_toml()
+        with pytest.raises(ValueError, match=r'Cannot serialize None at `children\[1\]\.mapping\.a`'):
+            ParentModel(children=[NoneModel(), NoneModel(mapping={'a': None})]).to_toml()
