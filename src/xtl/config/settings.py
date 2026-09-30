@@ -134,7 +134,7 @@ class ResourcesSettings(Settings):
     # Model attributes
     max_jobs: int = \
         Option(
-            default=10,
+            default=CPU_CORES,
             desc='Maximum number of jobs to run concurrently in a pool'
         )
     max_threads: int = \
