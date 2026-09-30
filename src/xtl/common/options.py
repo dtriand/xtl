@@ -4,6 +4,7 @@
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
 """
+from __future__ import annotations
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
@@ -353,6 +354,10 @@ def Option(
     else:
         f = partial_field(default=default)
     return f
+
+
+_TOML_SKIP = object()
+"""Marks values that are left out of a TOML file (None, since TOML has no null)."""
 
 
 class Options(BaseModel):
@@ -812,58 +817,87 @@ class Options(BaseModel):
             raise FileNotFoundError(f'File not found: {s}')
         return cls.model_validate_json(s.read_text())
 
-    def _field_to_comment_value(self, name: str, field: FieldInfo,
-                                keep_comments: bool = False) -> \
-            CommentValue | dict[str, Any] | list[dict[str, Any] | Any]:
+    @staticmethod
+    def _toml_key(name: str, field: FieldInfo | ComputedFieldInfo) -> str:
         """
-        Cast a pydantic.FieldInfo to toml.CommentValue, where the comment is set to the
-        field's description
+        Key of a field in a TOML file: its serialization alias, if any, else its name.
+        """
+        if isinstance(field, FieldInfo) and field.serialization_alias:
+            return field.serialization_alias
+        if isinstance(field, ComputedFieldInfo) and field.alias:
+            return field.alias
+        return name
+
+    @classmethod
+    def _value_to_toml(cls, value: Any, field: FieldInfo | ComputedFieldInfo | None = None,
+                       keep_comments: bool = False, path: str = '') -> Any:
+        """
+        Convert a value to TOML data: nested |Options| and dictionaries to tables, iterables to lists (element-wise),
+        and anything else to a ``toml.CommentValue``, with the field's description as comment. Since TOML has no
+        null, ``None`` fields are returned as ``_TOML_SKIP``, so that they are left out (they then load as the
+        default of the field), while ``None`` inside dictionaries and iterables raises an error, since leaving it
+        out would change the data.
+
+        :param value: The value to convert.
+        :param field: The field of the value, for its serializer and description, or None for values inside
+            dictionaries and iterables.
+        :param keep_comments: Whether to include comments in the output.
+        :param path: Location of the value in the TOML data (e.g. ``table.key[0]``), for error messages.
+        :return: The TOML data, or ``_TOML_SKIP``.
+        :raises ValueError: If a dictionary or iterable contains ``None``.
+        """
+        # Apply serialization function
+        if field is not None and field.json_schema_extra and 'serializer' in field.json_schema_extra:
+            value = field.json_schema_extra['serializer'](value)
+
+        if value is None:
+            if field is None:
+                raise ValueError(f'Cannot serialize None at `{path}` to TOML, since TOML has no null. Use a '
+                                 f'formatter on the field that holds it to replace None with a placeholder.')
+            return _TOML_SKIP
+
+        # Nested Options: a table with one entry per field
+        if isinstance(value, Options):
+            table = {}
+            for name, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items():
+                key = cls._toml_key(name, vfield)
+                item = cls._value_to_toml(getattr(value, name), field=vfield, keep_comments=keep_comments,
+                                          path=f'{path}.{key}' if path else key)
+                if item is not _TOML_SKIP:
+                    table[key] = item
+            return table
+
+        # Dictionaries: a table with one entry per key (keys must be strings in TOML)
+        if isinstance(value, dict):
+            return {str(key): cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}')
+                    for key, v in value.items()}
+
+        # Iterables: cast to lists, since TOML doesn't differentiate
+        if isinstance(value, (list, tuple, set, frozenset, TypedIterable)):
+            return [cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]')
+                    for i, v in enumerate(value)]
+
+        comment = f'# {field.description}' if field is not None and field.description and keep_comments else ''
+        return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
+
+    def _field_to_comment_value(self, name: str, field: FieldInfo | ComputedFieldInfo,
+                                keep_comments: bool = False) -> Any:
+        """
+        Convert a field to TOML data, see ``_value_to_toml()``.
 
         :param name: Name of the field.
         :param field: FieldInfo object.
         :param keep_comments: Whether to include comments in the output.
-        :return: A CommentValue object or a dictionary of nested CommentValue objects.
+        :return: A CommentValue, a (nested) dictionary or a list, or ``_TOML_SKIP`` for None.
         """
-        # Check if the field is another Options object
-        value = getattr(self, name)
-        if isinstance(value, Options):
-            # Recursively convert nested Options objects to CommentValue
-            return {vname: value._field_to_comment_value(name=vname, field=vfield,
-                                                         keep_comments=keep_comments)
-                    for vname, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items()}
-
-        elif isinstance(value, TypedIterable):
-            data = []  # we can cast all iterables to lists, since TOML doesn't differentiate
-            for i, item in enumerate(value):
-                if isinstance(item, Options):
-                    nested = {}
-                    for vname, vfield in {**item.__pydantic_fields__, **item.__pydantic_computed_fields__}.items():
-                        nested[vname] = item._field_to_comment_value(
-                            name=vname, field=vfield, keep_comments=keep_comments
-                        )
-                    data.append(nested)
-                else:
-                    data.append(item)
-            return data
-
-        # BUG: Lists of dicts are not getting properly serialized as array tables
-
-        # Prepare comment
-        comment = f'# {field.description}' if field.description and keep_comments else ''
-
-        # Apply serialization function
-        if field.json_schema_extra:
-            if 'serializer' in field.json_schema_extra:
-                serializer = field.json_schema_extra['serializer']
-                value = serializer(value)
-
-        return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
+        return self._value_to_toml(getattr(self, name), field=field, keep_comments=keep_comments)
 
     def to_toml(self, filename: Optional[str | Path] = None, comments: bool = False,
                 overwrite: bool = False, keep_file_ext: bool = False) -> str | Path:
         """
         Write the |Options| to a TOML file. If ``filename`` is not provided, then the
-        TOML will be returned as a string.
+        TOML will be returned as a string. Fields that are None are left out, since TOML
+        has no null; they load as the default of the field.
 
         :param filename: Optional output path for the TOML file.
         :param comments: Include comments in the TOML file.
@@ -872,16 +906,8 @@ class Options(BaseModel):
         :return: Either the TOML string or the output path.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
-        # Cast all fields to toml.CommentValue
-        data = {}
-        for name, field in {**self.__pydantic_fields__, **self.__pydantic_computed_fields__}.items():
-            alias = name
-            # Ensure serialization aliases are kept
-            if isinstance(field, FieldInfo) and field.serialization_alias:
-                alias = field.serialization_alias
-            elif isinstance(field, ComputedFieldInfo) and field.alias:
-                alias = field.alias
-            data[alias] = self._field_to_comment_value(name=name, field=field, keep_comments=comments)
+        # Cast all fields to toml.CommentValue (nested Options and dicts to tables)
+        data = self._value_to_toml(self, keep_comments=comments)
 
         # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
