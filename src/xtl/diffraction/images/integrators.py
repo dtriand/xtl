@@ -6,7 +6,7 @@ from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
+from pyFAI.integrator.azimuthal import AzimuthalIntegrator as _AzimuthalIntegrator
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 from .images import Image
@@ -119,7 +119,7 @@ class AzimuthalIntegrator1D(_Integrator):
 
     def integrate(self, check: bool = True, keep: bool = True, **kwargs) -> Integrate1dResult:
         """
-        Perform 1D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate1d_ng`` on the ``Image``,
+        Perform 1D azimuthal integration using ``pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate1d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
         pyFAI integration method is ``('bbox', 'csr', 'cython')`` (aka ``'csr'``).
@@ -185,8 +185,8 @@ class AzimuthalIntegrator1D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
+            header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
+        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
 
         if self.results.sigma is not None:
             header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.), sigma (a.u.)'
@@ -354,7 +354,7 @@ class AzimuthalIntegrator2D(_Integrator):
 
     def integrate(self, check=True, keep: bool = True, **kwargs) -> Integrate2dResult:
         """
-        Perform 2D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
+        Perform 2D azimuthal integration using ``pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
         pyFAI integration method is ``('bbox', 'histogram', 'cython')`` (aka ``'bbox'``).
@@ -421,9 +421,9 @@ class AzimuthalIntegrator2D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_azim: {self.points_azimuthal}\n'
+            header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
+        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
+        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_azim: {self.points_azimuthal}\n'
 
         if self.results.sigma is not None:
             header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, intensity (a.u.), sigma (a.u.)'

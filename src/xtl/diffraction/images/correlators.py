@@ -227,9 +227,9 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self._ai2.results, key)}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self._ai2.points_radial}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_azim: {self._ai2.points_azimuthal}\n'
+            header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.{key}: {getattr(self._ai2.results, key)}\n'
+        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_rad: {self._ai2.points_radial}\n'
+        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_azim: {self._ai2.points_azimuthal}\n'
 
         header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, cross-correlation function'
         return header
