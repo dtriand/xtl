@@ -9,8 +9,13 @@ import numpy as np
 from pydantic import field_validator, ValidationInfo, model_validator, model_serializer
 
 from xtl.common.options import Option
-from .base import BaseGraphModel
+from xtl.common.compatibility import PY310_OR_LESS
 from xtl.graphs.base import BaseGraphModel
+
+if PY310_OR_LESS:
+    class StrEnum(str, Enum): ...
+else:
+    from enum import StrEnum
 
 
 class Color(BaseGraphModel):
@@ -287,3 +292,8 @@ Named color lists for use in graphs.
 """
 
 COLORS['default'] = COLORS['pop']
+
+
+class Colormap(StrEnum):
+    NONE = 'none'
+    VIRIDIS = 'viridis'
