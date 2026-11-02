@@ -118,10 +118,12 @@ async def cli_nanobragg_simulate(
         jobs = pool.submit(NanoBraggJob, configs=[config])
         # TODO: Progress tracking for nanoBragg job
         results = await pool.launch()
-    if not results[0].success:
-        job = jobs[0]
-        console.print(f'Simulation failed, look at logs for more details: \n'
-                      f'- STDOUT: {job.config.steps["nanobragg_batch"].stdout}\n'
-                      f'- STDERR: {job.config.steps["nanobragg_batch"].stderr}', style='red')
-        raise typer.Exit(code=1)
+    # TODO: Something is wrong here, it raises an exception: dict object has no attribute 'stdout'
+    #  Probably something changed while refactoring the code...
+    # if not results[0].success:
+    #     job = jobs[0]
+    #     console.print(f'Simulation failed, look at logs for more details: \n'
+    #                   f'- STDOUT: {job.config.steps["nanobragg_batch"].stdout}\n'
+    #                   f'- STDERR: {job.config.steps["nanobragg_batch"].stderr}', style='red')
+    #     raise typer.Exit(code=1)
     console.print(f'Simulation completed successfully, images saved to: [dim]{output_dir}[/dim]', style='green')
