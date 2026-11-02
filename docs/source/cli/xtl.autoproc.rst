@@ -43,7 +43,7 @@ where ``datasets.csv`` is a CSV file containing the paths the first image of eac
 .. code-block:: csv
    :caption: ``datasets.csv``
 
-    # fist_image
+    # first_image
     /path/to/dataset1/dataset1_00001.cbf.gz
     /path/to/dataset2/dataset2_00001.cbf.gz
     /path/to/dataset3/dataset3_00001.cbf.gz

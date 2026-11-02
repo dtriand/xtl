@@ -17,7 +17,7 @@ from xtl.automate import ComputeSite
 from xtl.cli.cliio import Console, epilog
 from xtl.cli.utils import typer_async, parser_permissions
 import xtl.cli.autoproc.cli_utils as apu
-from xtl.common.os import get_permissions_in_decimal, FilePermissions
+from xtl.common.os import get_permissions_in_decimal, FilePermissions, get_username
 from xtl.diffraction.automate.autoproc import AutoPROCWorkflowJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.exceptions.utils import Catcher
@@ -108,7 +108,7 @@ async def cli_autoproc_process_wf(
     '''
     if log_file is None and settings.cli.autoproc.collect_logs:
         log_file = Path(settings.cli.autoproc.logs_dir)
-    log_filename = f'xtl.autoproc.process_wf_{os.getlogin()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+    log_filename = f'xtl.autoproc.process_wf_{get_username()}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
     log_permissions = chmod_files if chmod else None
 
     cli = Console(verbose=verbose, debug=debug, log_file=log_file, log_filename=log_filename,
@@ -393,7 +393,8 @@ async def cli_autoproc_process_wf(
             message += f' in batches of {no_concurrent_jobs}'
         message += '?'
         cli.print(message, log_only=True)
-        cli.confirm(message, default=False)
+        if not cli.confirm(message, default=False):
+            raise typer.Abort()
 
         # Prepare output csv
         csv_out = (out_dir / f'datasets_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv').resolve()
