@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl.autoproc &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>xtl.autoproc &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -161,8 +161,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -203,6 +203,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -421,7 +427,7 @@ containing paths to the first image of each dataset. In the simplest case, the c
 <p>where <code class="docutils literal notranslate"><span class="pre">datasets.csv</span></code> is a CSV file containing the paths the first image of each dataset to be processed, <em>i.e.</em></p>
 <div class="literal-block-wrapper docutils container" id="id3">
 <div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">datasets.csv</span></code></span><a class="headerlink" href="#id3" title="Link to this code">#</a></div>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span><span class="o"> # fist_image</span>
+<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span><span class="o"> # first_image</span>
 <span class="o"> /path/to/dataset1/dataset1_00001.cbf.gz</span>
 <span class="o"> /path/to/dataset2/dataset2_00001.cbf.gz</span>
 <span class="o"> /path/to/dataset3/dataset3_00001.cbf.gz</span>
@@ -449,14 +455,14 @@ explicitly overridden in the CSV file. Some frequently used options are:</p>
 <section id="unit-cell-space-group">
 <h4>Unit-cell &amp; space group<a class="headerlink" href="#unit-cell-space-group" title="Link to this heading">#</a></h4>
 <p>Specify starting unit-cell parameters and space group for indexing:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--unit-cell<span class="o">=</span><span class="s2">&quot;78 78 37 90 90 90&quot;</span><span class="w"> </span>--space-group<span class="o">=</span><span class="s2">&quot;P43212&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--unit-cell<span class="o">=</span><span class="s2">"78 78 37 90 90 90"</span><span class="w"> </span>--space-group<span class="o">=</span><span class="s2">"P43212"</span>
 </pre></div>
 </div>
 </section>
 <section id="reference-mtz-file">
 <h4>Reference MTZ file<a class="headerlink" href="#reference-mtz-file" title="Link to this heading">#</a></h4>
 <p>Specify a reference MTZ file to use for unit-cell parameters, space group and R-free flags:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--mtz-ref<span class="o">=</span><span class="s2">&quot;/path/to/reference.mtz&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--mtz-ref<span class="o">=</span><span class="s2">"/path/to/reference.mtz"</span>
 </pre></div>
 </div>
 </section>
@@ -495,7 +501,7 @@ contaminated with ice, one can force the ice ring exclusion:</p>
 <section id="beamline-macros">
 <h4>Beamline macros<a class="headerlink" href="#beamline-macros" title="Link to this heading">#</a></h4>
 <p>Certain beamline-specific macros exist in autoPROC. These can be selected as follows:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--beamline<span class="o">=</span><span class="s2">&quot;PetraIIIP14&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--beamline<span class="o">=</span><span class="s2">"PetraIIIP14"</span>
 </pre></div>
 </div>
 <p>This is equivalent to <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">PetraIIIP14</span></code> when running directly the autoPROC <code class="docutils literal notranslate"><span class="pre">process</span></code> command.</p>
@@ -528,7 +534,7 @@ since they have they same <code class="docutils literal notranslate"><span class
 <h4>Output directory<a class="headerlink" href="#output-directory" title="Link to this heading">#</a></h4>
 <p>By default, the output of <code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span> <span class="pre">process</span></code> will be saved in the current working directory. To specify a
 different output directory:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--out-dir<span class="o">=</span><span class="s2">&quot;/path/to/output&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--out-dir<span class="o">=</span><span class="s2">"/path/to/output"</span>
 </pre></div>
 </div>
 <p>This will create subdirectories for each dataset in the specified output directory.</p>
@@ -549,7 +555,7 @@ PROCESSED: /path/to/processed/datasets/dataset1/
 <p>Here, the top level directory is different (<code class="docutils literal notranslate"><span class="pre">/path/to/raw_data</span></code> vs. <code class="docutils literal notranslate"><span class="pre">/path/to/processed</span></code>), but the file tree is the
 same after some point (<code class="docutils literal notranslate"><span class="pre">datasets/dataset1/</span></code>). In this case, one can specify both <code class="docutils literal notranslate"><span class="pre">--raw-dir</span></code> and <code class="docutils literal notranslate"><span class="pre">--out-dir</span></code> to
 influence the dataset discovery process and ensure that all output files will be saved in the correct subdirectory:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--raw-dir<span class="o">=</span><span class="s2">&quot;/path/to/raw_data&quot;</span><span class="w"> </span>--out-dir<span class="o">=</span><span class="s2">&quot;/path/to/processed&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--raw-dir<span class="o">=</span><span class="s2">"/path/to/raw_data"</span><span class="w"> </span>--out-dir<span class="o">=</span><span class="s2">"/path/to/processed"</span>
 </pre></div>
 </div>
 <p>If we run the above command with the following CSV file:</p>
@@ -626,7 +632,7 @@ collected images will follow the file structure of the light source. If the data
 location (<em>e.g.</em> a local drive), then all the paths in the NML file would be invalid. However, the NML file still
 contains valuable information and should be the preferred way of processing GPhL workflow data.</p>
 <p>In order to update the image directories within an NML file, a simple command is provided:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>fixnml<span class="w"> </span>stratcal_gen.nml<span class="w"> </span>--from<span class="o">=</span><span class="s2">&quot;/synchrotron/path/to/raw_data&quot;</span><span class="w"> </span>--to<span class="o">=</span><span class="s2">&quot;/local/path/to/raw_data&quot;</span><span class="w"> </span>--check
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>fixnml<span class="w"> </span>stratcal_gen.nml<span class="w"> </span>--from<span class="o">=</span><span class="s2">"/synchrotron/path/to/raw_data"</span><span class="w"> </span>--to<span class="o">=</span><span class="s2">"/local/path/to/raw_data"</span><span class="w"> </span>--check
 </pre></div>
 </div>
 <p>This will read the <code class="docutils literal notranslate"><span class="pre">stratcal_gen.nml</span></code> file, and update the <code class="docutils literal notranslate"><span class="pre">NAME_TEMPLATE</span></code> for each sweep, by replacing the
@@ -634,7 +640,7 @@ value of <code class="docutils literal notranslate"><span class="pre">--from</sp
 <div class="literal-block-wrapper docutils container" id="id7">
 <div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">stratcal_gen.nml</span></code></span><a class="headerlink" href="#id7" title="Link to this code">#</a></div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&amp;</span><span class="n">SIMCAL_SWEEP_LIST</span>
-    <span class="n">NAME_TEMPLATE</span> <span class="o">=</span> <span class="s1">&#39;/synchrotron/path/to/raw_data/datasets/dataset1/dataset1_####.cbf.gz&#39;</span>
+    <span class="n">NAME_TEMPLATE</span> <span class="o">=</span> <span class="s1">'/synchrotron/path/to/raw_data/datasets/dataset1/dataset1_####.cbf.gz'</span>
 </pre></div>
 </div>
 </div>
@@ -642,7 +648,7 @@ value of <code class="docutils literal notranslate"><span class="pre">--from</sp
 <div class="literal-block-wrapper docutils container" id="id8">
 <div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">stratcal_gen_updated.nml</span></code></span><a class="headerlink" href="#id8" title="Link to this code">#</a></div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&amp;</span><span class="n">SIMCAL_SWEEP_LIST</span>
-    <span class="n">NAME_TEMPLATE</span> <span class="o">=</span> <span class="s1">&#39;/local/path/to/raw_data/datasets/dataset1/dataset1_####.cbf.gz&#39;</span>
+    <span class="n">NAME_TEMPLATE</span> <span class="o">=</span> <span class="s1">'/local/path/to/raw_data/datasets/dataset1/dataset1_####.cbf.gz'</span>
 </pre></div>
 </div>
 </div>
@@ -694,7 +700,7 @@ semicolon-separated list of values.</p>
 <p>Any dataset-specific options specified on the CSV file will first be merged with the global options passed along the
 <code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span> <span class="pre">process</span></code> command,. If an option is specified both on a global and a dataset level, then the dataset one
 will take precedence. For example, running the above CSV file with:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--space-group<span class="o">=</span><span class="s2">&quot;P 21&quot;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.autoproc<span class="w"> </span>process<span class="w"> </span>datasets.csv<span class="w"> </span>--space-group<span class="o">=</span><span class="s2">"P 21"</span>
 </pre></div>
 </div>
 <p>then the first dataset will be processed with space group <span class="math notranslate nohighlight">\(P 4_3 2_1 2\)</span>, while the rest with <span class="math notranslate nohighlight">\(P 2_1\)</span>.</p>
@@ -807,11 +813,11 @@ process<span class="w"> </span>-M<span class="w"> </span>/path/to/processed/data
 <span class="c1">#   idn = xtl7156,/path/to/raw_data/datasets/dataset1/,dataset1_measurement1_#####.cbf.gz,1,3600</span>
 
 <span class="c1">### CLI arguments (including dataset definitions and macros)</span>
-<span class="n">__args</span><span class="o">=</span><span class="s1">&#39;-Id &quot;xtl7156,/path/to/raw_data/datasets/dataset1/,dataset1_measurement1_#####.cbf.gz,1,3600&quot; -B -M HighResCutOnCChalf&#39;</span>
+<span class="n">__args</span><span class="o">=</span><span class="s1">'-Id "xtl7156,/path/to/raw_data/datasets/dataset1/,dataset1_measurement1_#####.cbf.gz,1,3600" -B -M HighResCutOnCChalf'</span>
 
 <span class="c1">### User parameters</span>
-<span class="n">cell</span><span class="o">=</span><span class="s2">&quot;79.0 79.0 37.0 90.0 90.0 90.0&quot;</span>
-<span class="n">symm</span><span class="o">=</span><span class="s2">&quot;P43212&quot;</span>
+<span class="n">cell</span><span class="o">=</span><span class="s2">"79.0 79.0 37.0 90.0 90.0 90.0"</span>
+<span class="n">symm</span><span class="o">=</span><span class="s2">"P43212"</span>
 <span class="n">nres</span><span class="o">=</span><span class="mi">129</span>
 
 <span class="c1">### XDS parameters</span>
@@ -982,7 +988,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -996,7 +1002,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

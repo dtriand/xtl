@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>Options &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>Options &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -361,13 +367,13 @@ document.write(`
                   
   <section id="options">
 <h1>Options<a class="headerlink" href="#options" title="Link to this heading">#</a></h1>
-<p>The <a class="reference internal" href="../api/xtl.common.options.html#module-xtl.common.options" title="xtl.common.options"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.common.options</span></code></a> module provides an API around <a class="reference external" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a> that extends the existing validation and
+<p>The <a class="reference internal" href="../api/xtl.common.options.html#module-xtl.common.options" title="xtl.common.options"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.common.options</span></code></a> module provides an API around <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a> that extends the existing validation and
 serialization capabilities in a user-friendly format. <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> is a powerful data container that, in combination with
 <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a>, can facilitate arbitrary validators and serializers in a slim syntax. This module is used internally to parse
 configuration from the <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> file and to validate any modifications on the <a class="reference internal" href="../api/xtl.html#xtl.settings" title="xtl.settings"><code class="xref py py-attr docutils literal notranslate"><span class="pre">xtl.settings</span></code></a> object.</p>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">#</a></h2>
-<p>The module provides two objects: <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a> and <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a>, which are wrappers around <a class="reference external" href="https://docs.pydantic.dev/latest/api/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> and <a class="reference external" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a>,
+<p>The module provides two objects: <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a> and <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a>, which are wrappers around <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> and <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a>,
 respectively. Below is a simple example that showcases what is possible with this API:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span>
@@ -384,8 +390,8 @@ respectively. Below is a simple example that showcases what is possible with thi
     <span class="p">)</span>
     <span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;junior&#39;</span><span class="p">,</span> <span class="s1">&#39;senior&#39;</span><span class="p">],</span>
-        <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;job_level&#39;</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">'junior'</span><span class="p">,</span> <span class="s1">'senior'</span><span class="p">],</span>
+        <span class="n">alias</span><span class="o">=</span><span class="s1">'job_level'</span>
     <span class="p">)</span>
     <span class="n">contract_file</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -395,21 +401,21 @@ respectively. Below is a simple example that showcases what is possible with thi
     <span class="p">)</span>
 
 <span class="n">employee</span> <span class="o">=</span> <span class="n">Employee</span><span class="p">(</span>
-    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;john doe&#39;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">'john doe'</span><span class="p">,</span>
     <span class="n">age</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-    <span class="n">level</span><span class="o">=</span><span class="s1">&#39;senior&#39;</span><span class="p">,</span>
-    <span class="n">contract_file</span><span class="o">=</span><span class="s1">&#39;/path/to/contract.txt&#39;</span>
+    <span class="n">level</span><span class="o">=</span><span class="s1">'senior'</span><span class="p">,</span>
+    <span class="n">contract_file</span><span class="o">=</span><span class="s1">'/path/to/contract.txt'</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>Now if we call <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options.to_dict" title="xtl.common.options.Options.to_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">employee.to_dict()</span></code></a> (which is equivalent to
-<a class="reference external" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_dump" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">employee.model_dump()</span></code></a> if you prefer the <cite>Pydantic</cite> API),
+<code class="xref py py-func docutils literal notranslate"><span class="pre">employee.model_dump()</span></code> if you prefer the <cite>Pydantic</cite> API),
 we get the following back:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<span class="go">{&#39;name&#39;: &#39;John Doe&#39;,</span>
-<span class="go">&#39;age&#39;: 30,</span>
-<span class="go">&#39;contract_file&#39;: Path(&#39;/path/to/contract.txt&#39;),</span>
-<span class="go">&#39;job_level&#39;: &#39;senior&#39;}</span>
+<span class="go">{'name': 'John Doe',</span>
+<span class="go">'age': 30,</span>
+<span class="go">'contract_file': Path('/path/to/contract.txt'),</span>
+<span class="go">'job_level': 'senior'}</span>
 </pre></div>
 </div>
 <p>We notice a few things:</p>
@@ -417,33 +423,33 @@ we get the following back:</p>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">name</span></code> attribute got formatted in title case (due to <code class="docutils literal notranslate"><span class="pre">formatter</span></code>), however the stored value is still
 <code class="docutils literal notranslate"><span class="pre">'john</span> <span class="pre">doe'</span></code>:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">name</span>
-<span class="go">&#39;john doe&#39;</span>
+<span class="go">'john doe'</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">formatter</span></code> option only affects the serialization of the field.</p>
 </li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">age</span></code> attribute was defined as a <a class="reference external" href="https://docs.pydantic.dev/latest/api/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> instead and it is still compatible with our model</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">age</span></code> attribute was defined as a <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> instead and it is still compatible with our model</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">level</span></code> attribute was renamed to <code class="docutils literal notranslate"><span class="pre">job_level</span></code> (due to <code class="docutils literal notranslate"><span class="pre">alias='job_level'</span></code> which sets the
 <code class="docutils literal notranslate"><span class="pre">serialization_alias</span></code> on the <cite>Pydantic</cite> field), however the attribute is still accessible through its original name:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">level</span>
-<span class="go">&#39;senior&#39;</span>
+<span class="go">'senior'</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">job_level</span>
-<span class="go">AttributeError: &#39;Employee&#39; object has no attribute &#39;job_level&#39;</span>
+<span class="go">AttributeError: 'Employee' object has no attribute 'job_level'</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">alias</span></code> option affects only model serialization.</p>
 </li>
 <li><p>We checked whether the value for <code class="docutils literal notranslate"><span class="pre">level</span></code> is one of <code class="docutils literal notranslate"><span class="pre">['junior',</span> <span class="pre">'senior']</span></code> (due to <code class="docutils literal notranslate"><span class="pre">choices</span></code>). If we try to
 change the value to something not in the list of choices we get a validation error:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="s1">&#39;ceo&#39;</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">employee</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="s1">'ceo'</span>
 <span class="go">pydantic_core._pydantic_core.ValidationError: 1 validation error for Employee</span>
 <span class="go">level</span>
-<span class="go">  Value error, Value is not in choices: [&#39;junior&#39;, &#39;senior&#39;] [type=value_error, input_value=&#39;ceo&#39;, input_type=str]</span>
+<span class="go">  Value error, Value is not in choices: ['junior', 'senior'] [type=value_error, input_value='ceo', input_type=str]</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> class has <code class="xref py py-attr docutils literal notranslate"><span class="pre">validate_assignment</span></code> set
+<p>The <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> class has <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/config/#pydantic.config.ConfigDict.validate_assignment" title="(in Pydantic v0.0.0)"><code class="xref py py-attr docutils literal notranslate"><span class="pre">validate_assignment</span></code></a> set
 to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
 </div>
 </li>
@@ -455,7 +461,7 @@ type casting before <cite>Pydantic</cite>'s model validation)</p></li>
 </section>
 <section id="data-validation">
 <h2>Data validation<a class="headerlink" href="#data-validation" title="Link to this heading">#</a></h2>
-<p><cite>Pydantic</cite> comes with a variety of prebuilt validators that can be defined on the <a class="reference external" href="https://docs.pydantic.dev/latest/api/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> level. <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a> provides
+<p><cite>Pydantic</cite> comes with a variety of prebuilt validators that can be defined on the <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> level. <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a> provides
 support for all the existing <cite>Pydantic</cite> validators, plus a few extra ones. The complete list of validators is as
 follows:</p>
 <ol class="arabic simple">
@@ -507,10 +513,10 @@ follows:</p>
 <section id="type-casting">
 <h3>Type casting<a class="headerlink" href="#type-casting" title="Link to this heading">#</a></h3>
 <p>A special case of validator is generated when using the <code class="docutils literal notranslate"><span class="pre">cast_as</span></code> argument. This creates a
-<a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> that is called on the raw input data before any other validation is performed, and
+<a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> that is called on the raw input data before any other validation is performed, and
 enables type casting.</p>
 <p><cite>Pydantic</cite> already performs type coercion on certain values by default, unless <code class="docutils literal notranslate"><span class="pre">strict=True</span></code> is explicitly set either
-on <a class="reference external" href="https://docs.pydantic.dev/latest/api/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> or <a class="reference external" href="https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a>. For example, in if a model field is defined as <code class="docutils literal notranslate"><span class="pre">int</span></code>, then passing a integer as <code class="docutils literal notranslate"><span class="pre">str</span></code> or
+on <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.Field" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">pydantic.Field()</span></code></a> or <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></a>. For example, in if a model field is defined as <code class="docutils literal notranslate"><span class="pre">int</span></code>, then passing a integer as <code class="docutils literal notranslate"><span class="pre">str</span></code> or
 as <code class="docutils literal notranslate"><span class="pre">float</span></code> will be coerced into type <code class="docutils literal notranslate"><span class="pre">int</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
 
@@ -521,7 +527,7 @@ as <code class="docutils literal notranslate"><span class="pre">float</span></co
 <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
 
-<span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">'1'</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
 </pre></div>
@@ -536,12 +542,12 @@ type, and only attempts to type cast if not. An exemplary use case would be when
  <span class="k">class</span><span class="w"> </span><span class="nc">CoercionModel</span><span class="p">(</span><span class="n">Options</span><span class="p">):</span>
      <span class="n">x</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_as</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
 
-<span class="hll"> <span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">)</span>
-</span> <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span>
+<span class="hll"> <span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">'1'</span><span class="p">)</span>
+</span> <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="p">[</span><span class="s1">'1'</span><span class="p">]</span>
  <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
 
- <span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">])</span>
- <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]</span>
+ <span class="n">model</span> <span class="o">=</span> <span class="n">CoercionModel</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="s1">'1'</span><span class="p">])</span>
+ <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="p">[</span><span class="s1">'1'</span><span class="p">]</span>
  <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -557,22 +563,22 @@ type, and only attempts to type cast if not. An exemplary use case would be when
     <span class="n">animal</span><span class="p">:</span> <span class="n">Animal</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_as</span><span class="o">=</span><span class="n">Animal</span><span class="p">)</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
-<span class="n">pet</span> <span class="o">=</span> <span class="n">Pet</span><span class="p">(</span><span class="n">animal</span><span class="o">=</span><span class="s1">&#39;Tyrannosaurus rex&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Otto&#39;</span><span class="p">)</span>
+<span class="n">pet</span> <span class="o">=</span> <span class="n">Pet</span><span class="p">(</span><span class="n">animal</span><span class="o">=</span><span class="s1">'Tyrannosaurus rex'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'Otto'</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pet</span><span class="o">.</span><span class="n">animal</span><span class="p">,</span> <span class="n">Animal</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> has <code class="xref py py-attr docutils literal notranslate"><span class="pre">arbitrary_types_allowed</span></code> set to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<p><a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> has <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/config/#pydantic.config.ConfigDict.arbitrary_types_allowed" title="(in Pydantic v0.0.0)"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arbitrary_types_allowed</span></code></a> set to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
 </div>
 </section>
 <section id="custom-validation">
 <h3>Custom validation<a class="headerlink" href="#custom-validation" title="Link to this heading">#</a></h3>
 <p>In <cite>Pydantic</cite> custom field validation can be done by defining methods that have been decorated with the
-<a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.field_validator" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">&#64;field_validator</span></code></a> decorator. In <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> this can additionally be achieved by passing
+<a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.field_validator" title="(in Pydantic v0.0.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">&#64;field_validator</span></code></a> decorator. In <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> this can additionally be achieved by passing
 a custom validation function to the <code class="docutils literal notranslate"><span class="pre">validator</span></code> argument of <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Option" title="xtl.common.options.Option"><code class="xref py py-func docutils literal notranslate"><span class="pre">Option()</span></code></a>.</p>
-<p>Any custom validation function should be first wrapped in a <a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> or
-<a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a>, depending on whether it should be run on the raw input data, or the already
+<p>Any custom validation function should be first wrapped in a <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> or
+<a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a>, depending on whether it should be run on the raw input data, or the already
 validated data.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterValidator</span>
@@ -580,7 +586,7 @@ validated data.</p>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">is_odd</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">value</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Value must be odd&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'Value must be odd'</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">value</span>
 
 <span class="n">IsOddValidator</span> <span class="o">=</span> <span class="n">AfterValidator</span><span class="p">(</span><span class="n">is_odd</span><span class="p">)</span>
@@ -595,9 +601,9 @@ validated data.</p>
 </pre></div>
 </div>
 <p>Note the signature of the <code class="xref py py-func docutils literal notranslate"><span class="pre">is_odd()</span></code> function: It accepts a single argument, and returns it as is if the validation
-is passed, otherwise it raises a <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code>. Once all <a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> have been executed, any
+is passed, otherwise it raises a <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code>. Once all <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> have been executed, any
 <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code> that might have been raised will get aggregated into a single
-<a class="reference external" href="https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.ValidationError</span></code></a>.</p>
+<a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic-core/pydantic_core/#pydantic_core.ValidationError" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.ValidationError</span></code></a>.</p>
 <p>A few more important notes about crafting custom validators:</p>
 <ul>
 <li><p><strong>Value immutability</strong>: <a class="reference internal" href="../api/xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> allows for validators to mutate the value. This is, for example, the case for the
@@ -619,11 +625,11 @@ the way the value is output upon serialization, you should be creating a <code c
 <li><p><strong>Validation order</strong>: Validators are applied sequentially. The order of execution is as follows:</p>
 <ol class="arabic simple">
 <li><p><em>Raw data received</em></p></li>
-<li><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> by XTL (if any)</p></li>
-<li><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> by user (if any)</p></li>
+<li><p><a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> by XTL (if any)</p></li>
+<li><p><a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.BeforeValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BeforeValidator</span></code></a> by user (if any)</p></li>
 <li><p><cite>Pydantic</cite>'s internal validation and model initialization logic</p></li>
-<li><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> by XTL (if any)</p></li>
-<li><p><a class="reference external" href="https://docs.pydantic.dev/latest/api/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> by user (if any)</p></li>
+<li><p><a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> by XTL (if any)</p></li>
+<li><p><a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/functional_validators/#pydantic.functional_validators.AfterValidator" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.AfterValidator</span></code></a> by user (if any)</p></li>
 <li><p><em>Model instance is returned</em></p></li>
 </ol>
 </li>
@@ -644,16 +650,16 @@ controlled by the <code class="docutils literal notranslate"><span class="pre">f
     <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">as_uri</span><span class="p">()</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">(</span><span class="n">Options</span><span class="p">):</span>
-    <span class="n">a</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;param_a&#39;</span><span class="p">)</span>
-    <span class="n">b</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;param_b&#39;</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+    <span class="n">a</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">'param_a'</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">'param_b'</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
     <span class="n">file</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="n">PathUri</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">&#39;/path/to/file&#39;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">'value'</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s1">'/path/to/file'</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<span class="go">{&#39;param_a&#39;: 1,</span>
-<span class="go">&#39;param_b&#39;: &#39;VALUE&#39;,</span>
-<span class="go">&#39;file&#39;: &#39;file:///path/to/file&#39;}</span>
+<span class="go">{'param_a': 1,</span>
+<span class="go">'param_b': 'VALUE',</span>
+<span class="go">'file': 'file:///path/to/file'}</span>
 </pre></div>
 </div>
 </section>
@@ -665,15 +671,15 @@ There are aptly named methods (<code class="docutils literal notranslate"><span 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">NestedModel</span><span class="p">(</span><span class="n">Options</span><span class="p">):</span>
     <span class="n">a</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span>
-                    <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;This is 10 times the original&#39;</span><span class="p">)</span>
+                    <span class="n">desc</span><span class="o">=</span><span class="s1">'This is 10 times the original'</span><span class="p">)</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">ParentModel</span><span class="p">(</span><span class="n">Options</span><span class="p">):</span>
-    <span class="n">b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">,</span>
-                      <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;This is an aliased value&#39;</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">'c'</span><span class="p">,</span>
+                      <span class="n">desc</span><span class="o">=</span><span class="s1">'This is an aliased value'</span><span class="p">)</span>
     <span class="n">nested</span><span class="p">:</span> <span class="n">NestedModel</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">NestedModel</span><span class="p">)</span>
 
-<span class="n">p</span> <span class="o">=</span> <span class="n">ParentModel</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="mf">3.</span><span class="p">,</span> <span class="s1">&#39;nested&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}})</span>
-<span class="n">p</span><span class="o">.</span><span class="n">to_toml</span><span class="p">(</span><span class="s1">&#39;output.toml&#39;</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">ParentModel</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="s1">'c'</span><span class="p">:</span> <span class="mf">3.</span><span class="p">,</span> <span class="s1">'nested'</span><span class="p">:</span> <span class="p">{</span><span class="s1">'a'</span><span class="p">:</span> <span class="mi">2</span><span class="p">}})</span>
+<span class="n">p</span><span class="o">.</span><span class="n">to_toml</span><span class="p">(</span><span class="s1">'output.toml'</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This will output an <code class="docutils literal notranslate"><span class="pre">output.toml</span></code> file, which will include all the field descriptions as inline comments to the
@@ -701,11 +707,11 @@ respective environment variable.</p>
     <span class="n">a</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Option</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;SECRET&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;alakazam&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Settings</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;secret is $</span><span class="si">{SECRET}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<span class="go">{&#39;a&#39;: &#39;secret is ${SECRET}&#39;}</span>
-<span class="hll"><span class="gp">&gt;&gt;&gt; </span><span class="n">Settings</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;secret is $</span><span class="si">{SECRET}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">_parse_env</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span class="go">{&#39;a&#39;: &#39;secret is alakazam&#39;}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">'SECRET'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'alakazam'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Settings</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="s1">'secret is $</span><span class="si">{SECRET}</span><span class="s1">'</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<span class="go">{'a': 'secret is ${SECRET}'}</span>
+<span class="hll"><span class="gp">&gt;&gt;&gt; </span><span class="n">Settings</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="s1">'secret is $</span><span class="si">{SECRET}</span><span class="s1">'</span><span class="p">,</span> <span class="n">_parse_env</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span class="go">{'a': 'secret is alakazam'}</span>
 </pre></div>
 </div>
 <p>If an environment variable is not set, then the content will be replaced with an empty string. The parsing of
@@ -798,7 +804,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -812,7 +818,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

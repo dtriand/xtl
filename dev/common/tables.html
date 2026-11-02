@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>Tables &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>Tables &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -346,6 +352,7 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removing-data">Removing data</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#accessing-data">Accessing data</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-values">Missing values</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#formatting">Formatting</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#table-operations">Table operations</a></li>
 </ul>
 </li>
@@ -369,7 +376,7 @@ document.write(`
   <section id="tables">
 <h1>Tables<a class="headerlink" href="#tables" title="Link to this heading">#</a></h1>
 <p>The <a class="reference internal" href="../api/xtl.common.tables.html#module-xtl.common.tables" title="xtl.common.tables"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.common.tables</span></code></a> module provides the <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class for handling 2D tabular data. <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> provides slicing
-capabilities similar to <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, handles serialization of missing values and supports various import/export options.</p>
+capabilities similar to <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, handles serialization of missing values and supports various import/export options.</p>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">#</a></h2>
 <p>The module provides three main classes: <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>, <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.MissingValue" title="xtl.common.tables.MissingValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">MissingValue</span></code></a> and <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig" title="xtl.common.tables.MissingValueConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">MissingValueConfig</span></code></a>.
@@ -379,20 +386,20 @@ Below is a simple example:</p>
 <span class="c1"># Create a table with data and headers</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="mf">20.3</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">,</span> <span class="mf">30.7</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="mf">20.3</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="mf">30.7</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
     <span class="p">],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="s1">&#39;Active&#39;</span><span class="p">]</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">,</span> <span class="s1">'Active'</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="c1"># Access data using pandas-like slicing</span>
-<span class="n">subset</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span><span class="s1">&#39;Active&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Slice by column names and row indices</span>
-<span class="n">single_value</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># Get the name in the third row: &#39;Gamma&#39;</span>
+<span class="n">subset</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">:</span><span class="s1">'Active'</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Slice by column names and row indices</span>
+<span class="n">single_value</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># Get the name in the third row: 'Gamma'</span>
 
 <span class="c1"># Modify data</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">35.0</span>  <span class="c1"># Update a single value</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">]</span>  <span class="c1"># Update an entire column</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Value'</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">35.0</span>  <span class="c1"># Update a single value</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">]</span>  <span class="c1"># Update an entire column</span>
 
 <span class="c1"># Export to different formats</span>
 <span class="n">csv_string</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">()</span>
@@ -404,13 +411,13 @@ Below is a simple example:</p>
 <p>Missing values are handled automatically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">],</span>
-        <span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">],</span>
-        <span class="p">[</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">[</span><span class="s1">'A'</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">'x'</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">'B'</span><span class="p">,</span> <span class="s1">'N/A'</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">'C'</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
     <span class="p">],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Col1&#39;</span><span class="p">,</span> <span class="s1">&#39;Col2&#39;</span><span class="p">,</span> <span class="s1">&#39;Col3&#39;</span><span class="p">],</span>
-    <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Treat these as missing</span>
-    <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">&#39;-&#39;</span>         <span class="c1"># And represent them as &#39;-&#39;</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Col1'</span><span class="p">,</span> <span class="s1">'Col2'</span><span class="p">,</span> <span class="s1">'Col3'</span><span class="p">],</span>
+    <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">'N/A'</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Treat these as missing</span>
+    <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">'-'</span>         <span class="c1"># And represent them as '-'</span>
 <span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
@@ -430,36 +437,36 @@ Below is a simple example:</p>
 <ol class="arabic">
 <li><p>Directly with data and headers:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">]],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span> <span class="s1">&#39;Letter&#39;</span><span class="p">]</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'A'</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'B'</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">]],</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Number'</span><span class="p">,</span> <span class="s1">'Letter'</span><span class="p">]</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 </li>
 <li><p>Empty table with predefined headers:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create an empty table first, then add rows one by one</span>
-<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Age&#39;</span><span class="p">,</span> <span class="s1">&#39;City&#39;</span><span class="p">])</span>
-<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="s1">&#39;New York&#39;</span><span class="p">])</span>
-<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="s1">&#39;Alice&#39;</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="s1">&#39;London&#39;</span><span class="p">])</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Age'</span><span class="p">,</span> <span class="s1">'City'</span><span class="p">])</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="s1">'John'</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="s1">'New York'</span><span class="p">])</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="s1">'Alice'</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="s1">'London'</span><span class="p">])</span>
 </pre></div>
 </div>
 </li>
 <li><p>From other data structures:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create from a dictionary with column names as keys</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span>
-    <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="s1">&#39;Alice&#39;</span><span class="p">,</span> <span class="s1">&#39;Bob&#39;</span><span class="p">],</span>
-    <span class="s1">&#39;Age&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">35</span><span class="p">],</span>
-    <span class="s1">&#39;City&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;New York&#39;</span><span class="p">,</span> <span class="s1">&#39;London&#39;</span><span class="p">,</span> <span class="s1">&#39;Paris&#39;</span><span class="p">]</span>
+    <span class="s1">'Name'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'John'</span><span class="p">,</span> <span class="s1">'Alice'</span><span class="p">,</span> <span class="s1">'Bob'</span><span class="p">],</span>
+    <span class="s1">'Age'</span><span class="p">:</span> <span class="p">[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">35</span><span class="p">],</span>
+    <span class="s1">'City'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'New York'</span><span class="p">,</span> <span class="s1">'London'</span><span class="p">,</span> <span class="s1">'Paris'</span><span class="p">]</span>
 <span class="p">})</span>
 
 <span class="c1"># Create from a numpy array with optional headers</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]])</span>
-<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">])</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'A'</span><span class="p">,</span> <span class="s1">'B'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">])</span>
 
 <span class="c1"># Create from a pandas DataFrame</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]})</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">'A'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s1">'B'</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]})</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -470,16 +477,16 @@ Below is a simple example:</p>
 <h3>Appending data<a class="headerlink" href="#appending-data" title="Link to this heading">#</a></h3>
 <p>Data can easily be appended to an existing <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> using either dedicated methods or Python built-in operations:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
-       <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]],</span>
-       <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span> <span class="s1">&#39;Letter&#39;</span><span class="p">],</span>
+       <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'A'</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'B'</span><span class="p">]],</span>
+       <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Number'</span><span class="p">,</span> <span class="s1">'Letter'</span><span class="p">],</span>
        <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
-       <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">&#39;?&#39;</span>
+       <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">'?'</span>
    <span class="p">)</span>
 
 <span class="c1"># Append a row</span>
-<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">])</span>
-<span class="n">table</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">]</span>       <span class="c1"># Using the += operator</span>
-<span class="n">table</span> <span class="o">+=</span> <span class="p">{</span><span class="s1">&#39;Number&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>  <span class="c1"># Only appends the &#39;Number&#39; column, &#39;Letter&#39; will be MissingValue</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">])</span>
+<span class="n">table</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="s1">'D'</span><span class="p">]</span>       <span class="c1"># Using the += operator</span>
+<span class="n">table</span> <span class="o">+=</span> <span class="p">{</span><span class="s1">'Number'</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>  <span class="c1"># Only appends the 'Number' column, 'Letter' will be MissingValue</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 <span class="c1"># Number | Letter</span>
 <span class="c1"># -------+-------</span>
@@ -490,9 +497,9 @@ Below is a simple example:</p>
 <span class="c1"># 0      | ?</span>
 
 <span class="c1"># Append a column</span>
-<span class="n">table</span><span class="o">.</span><span class="n">add_col</span><span class="p">([</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">col_name</span><span class="o">=</span><span class="s1">&#39;Lowercase&#39;</span><span class="p">)</span>
-<span class="n">table</span> <span class="o">|=</span> <span class="p">{</span><span class="s1">&#39;IsEven&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]}</span>  <span class="c1"># Using the |= operator</span>
-<span class="n">table</span><span class="o">.</span><span class="n">add_col</span><span class="p">(</span><span class="s1">&#39;Empty&#39;</span><span class="p">)</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_col</span><span class="p">([</span><span class="s1">'a'</span><span class="p">,</span> <span class="s1">'b'</span><span class="p">,</span> <span class="s1">'c'</span><span class="p">,</span> <span class="s1">'d'</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">col_name</span><span class="o">=</span><span class="s1">'Lowercase'</span><span class="p">)</span>
+<span class="n">table</span> <span class="o">|=</span> <span class="p">{</span><span class="s1">'IsEven'</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]}</span>  <span class="c1"># Using the |= operator</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_col</span><span class="p">(</span><span class="s1">'Empty'</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 <span class="c1"># Number | Letter | Lowercase | IsEven | Empty</span>
 <span class="c1"># -------+--------+-----------+--------+------</span>
@@ -518,9 +525,9 @@ Below is a simple example:</p>
 <span class="c1"># 4      | D      | d         | True   | ?</span>
 
 <span class="c1"># Remove a column</span>
-<span class="n">table</span><span class="o">.</span><span class="n">del_col</span><span class="p">(</span><span class="s1">&#39;Lowercase&#39;</span><span class="p">)</span>    <span class="c1"># By name</span>
+<span class="n">table</span><span class="o">.</span><span class="n">del_col</span><span class="p">(</span><span class="s1">'Lowercase'</span><span class="p">)</span>    <span class="c1"># By name</span>
 <span class="n">table</span><span class="o">.</span><span class="n">del_col</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>              <span class="c1"># By index</span>
-<span class="n">table</span> <span class="o">-=</span> <span class="p">[</span><span class="s1">&#39;IsEven&#39;</span><span class="p">,</span> <span class="s1">&#39;Empty&#39;</span><span class="p">]</span>  <span class="c1"># Using the -= operator</span>
+<span class="n">table</span> <span class="o">-=</span> <span class="p">[</span><span class="s1">'IsEven'</span><span class="p">,</span> <span class="s1">'Empty'</span><span class="p">]</span>  <span class="c1"># Using the -= operator</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 <span class="c1"># Letter</span>
 <span class="c1"># ------</span>
@@ -533,36 +540,36 @@ Below is a simple example:</p>
 </section>
 <section id="accessing-data">
 <h3>Accessing data<a class="headerlink" href="#accessing-data" title="Link to this heading">#</a></h3>
-<p><a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> implements a slicing syntax inspired by <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, allowing slicing either by name or by index:</p>
+<p><a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> implements a slicing syntax inspired by <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, allowing slicing either by name or by index:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="mf">20.3</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">,</span> <span class="mf">30.7</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="mf">20.3</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="mf">30.7</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
     <span class="p">],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="s1">&#39;Active&#39;</span><span class="p">]</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">,</span> <span class="s1">'Active'</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="c1"># Get a single column as a Table</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">]</span>
 
 <span class="c1"># Get multiple columns</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">:</span><span class="s1">&#39;Value&#39;</span><span class="p">]</span>  <span class="c1"># Columns from &#39;ID&#39; through &#39;Value&#39;</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">:</span><span class="s1">'Value'</span><span class="p">]</span>  <span class="c1"># Columns from 'ID' through 'Value'</span>
 <span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># First three columns</span>
 
 <span class="c1"># Get a single cell</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># Value at &#39;Name&#39; column, row index 2</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># Value at 'Name' column, row index 2</span>
 <span class="n">table</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># Value at column index 1, row index 2</span>
 
 <span class="c1"># Get a subset of rows from a column</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Values from rows 1, 2 in &#39;Value&#39; column</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Value'</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Values from rows 1, 2 in 'Value' column</span>
 
 <span class="c1"># Get a rectangular subset</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">:</span><span class="s1">&#39;Active&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Columns &#39;Name&#39; through &#39;Active&#39;, rows 1, 2</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">:</span><span class="s1">'Active'</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Columns 'Name' through 'Active', rows 1, 2</span>
 
 <span class="c1"># Using negative indices (from the end)</span>
 <span class="n">table</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Last column</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Last row in &#39;Name&#39; column</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Last row in 'Name' column</span>
 
 <span class="c1"># Using step in slices</span>
 <span class="n">table</span><span class="p">[::</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># Every other column</span>
@@ -571,13 +578,13 @@ Below is a simple example:</p>
 </div>
 <p>You can also set values using similar syntax:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set a single cell</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">35.0</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Value'</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">35.0</span>
 
 <span class="c1"># Set multiple cells in a column</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">25.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">]</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Value'</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">25.0</span><span class="p">,</span> <span class="mf">35.0</span><span class="p">]</span>
 
 <span class="c1"># Set an entire column</span>
-<span class="n">table</span><span class="p">[</span><span class="s1">&#39;Active&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+<span class="n">table</span><span class="p">[</span><span class="s1">'Active'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -589,14 +596,14 @@ Below is a simple example:</p>
 <span class="n">table</span><span class="o">.</span><span class="n">get_row</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Returns the second row</span>
 
 <span class="c1"># Get a column by name or index</span>
-<span class="n">table</span><span class="o">.</span><span class="n">get_col</span><span class="p">(</span><span class="s1">&#39;Name&#39;</span><span class="p">)</span>  <span class="c1"># By name</span>
+<span class="n">table</span><span class="o">.</span><span class="n">get_col</span><span class="p">(</span><span class="s1">'Name'</span><span class="p">)</span>  <span class="c1"># By name</span>
 <span class="n">table</span><span class="o">.</span><span class="n">get_col</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># By index (0-based)</span>
 
 <span class="c1"># Set data for a row</span>
-<span class="n">table</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;Alpha Prime&#39;</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
+<span class="n">table</span><span class="o">.</span><span class="n">set_row</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="s1">'Alpha Prime'</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
 
 <span class="c1"># Set data for a column</span>
-<span class="n">table</span><span class="o">.</span><span class="n">set_col</span><span class="p">(</span><span class="s1">&#39;Active&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
+<span class="n">table</span><span class="o">.</span><span class="n">set_col</span><span class="p">(</span><span class="s1">'Active'</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
 </pre></div>
 </div>
 </section>
@@ -607,31 +614,31 @@ be treated as missing and their serialization are defined during table initializ
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a table with potentially missing data</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">],</span>
-        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="s1">'N/A'</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
     <span class="p">],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">],</span>
-    <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Values to treat as missing</span>
-    <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">&#39;-&#39;</span>         <span class="c1"># Representation for missing values</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">],</span>
+    <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">'N/A'</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Values to treat as missing</span>
+    <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">'-'</span>         <span class="c1"># Representation for missing values</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>When you access the data, missing values are returned using the specified representation:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-<span class="c1"># [[1, &#39;Alpha&#39;, 10.5], [2, &#39;Beta&#39;, &#39;-&#39;], [3, &#39;Gamma&#39;, &#39;-&#39;]]</span>
+<span class="c1"># [[1, 'Alpha', 10.5], [2, 'Beta', '-'], [3, 'Gamma', '-']]</span>
 
 <span class="c1"># Original values are preserved internally</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
-<span class="c1"># [[1, &#39;Alpha&#39;, 10.5], [2, &#39;Beta&#39;, MissingValue(&#39;N/A&#39;)], [3, &#39;Gamma&#39;, MissingValue(None)]]</span>
+<span class="c1"># [[1, 'Alpha', 10.5], [2, 'Beta', MissingValue('N/A')], [3, 'Gamma', MissingValue(None)]]</span>
 </pre></div>
 </div>
 <p>You can update the missing values configuration at any time, and all values will update accordingly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change which values are considered missing</span>
-<span class="n">table</span><span class="o">.</span><span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;N/A&#39;</span><span class="p">]</span>  <span class="c1"># We no longer treat &#39;None&#39; as missing</span>
+<span class="n">table</span><span class="o">.</span><span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'N/A'</span><span class="p">]</span>  <span class="c1"># We no longer treat 'None' as missing</span>
 
 <span class="c1"># Change the representation</span>
-<span class="n">table</span><span class="o">.</span><span class="n">missing</span><span class="o">.</span><span class="n">repr</span> <span class="o">=</span> <span class="s1">&#39;?&#39;</span>
+<span class="n">table</span><span class="o">.</span><span class="n">missing</span><span class="o">.</span><span class="n">repr</span> <span class="o">=</span> <span class="s1">'?'</span>
 
 <span class="c1"># All values have been re-evaluated</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
@@ -643,18 +650,83 @@ be treated as missing and their serialization are defined during table initializ
 </pre></div>
 </div>
 </section>
+<section id="formatting">
+<span id="tables-formatting"></span><h3>Formatting<a class="headerlink" href="#formatting" title="Link to this heading">#</a></h3>
+<p>The way values are rendered can be customized on a per-column basis with the <code class="docutils literal notranslate"><span class="pre">formats</span></code> argument, which maps column
+names to standard Python <a class="reference external" href="https://docs.python.org/3/library/string.html#formatspec">format strings</a>. A format can
+either be a format spec (e.g. <code class="docutils literal notranslate"><span class="pre">'.2f'</span></code>, <code class="docutils literal notranslate"><span class="pre">'&gt;8,d'</span></code>), which is applied with <code class="xref py py-func docutils literal notranslate"><span class="pre">format()</span></code>, or a full format string
+containing a replacement field (e.g. <code class="docutils literal notranslate"><span class="pre">'{:.1f}</span> <span class="pre">keV'</span></code>), which is applied with <code class="xref py py-meth docutils literal notranslate"><span class="pre">str.format()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="mi">1234567</span><span class="p">,</span> <span class="mf">8.04778</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mf">17.47934</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="mf">3.14159</span><span class="p">,</span> <span class="s1">'n/a'</span><span class="p">,</span> <span class="mf">12.39842</span><span class="p">]</span>
+    <span class="p">],</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">,</span> <span class="s1">'Counts'</span><span class="p">,</span> <span class="s1">'Energy'</span><span class="p">],</span>
+    <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
+    <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">'-'</span><span class="p">,</span>
+    <span class="n">formats</span><span class="o">=</span><span class="p">{</span>
+        <span class="s1">'Value'</span><span class="p">:</span> <span class="s1">'.2f'</span><span class="p">,</span>            <span class="c1"># Two decimal digits</span>
+        <span class="s1">'Counts'</span><span class="p">:</span> <span class="s1">',d'</span><span class="p">,</span>            <span class="c1"># Thousands separator</span>
+        <span class="s1">'Energy'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.1f}</span><span class="s1"> keV'</span><span class="p">,</span>    <span class="c1"># Format string with units</span>
+        <span class="s1">'Name'</span><span class="p">:</span> <span class="s1">'^'</span>                <span class="c1"># Centered text</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+<span class="c1"># ID |  Name | Value |    Counts |   Energy</span>
+<span class="c1"># ---+-------+-------+-----------+---------</span>
+<span class="c1"># 1  | Alpha | 10.50 | 1,234,567 |  8.0 keV</span>
+<span class="c1"># 2  |  Beta |     - |        42 | 17.5 keV</span>
+<span class="c1"># 3  | Gamma |  3.14 |       n/a | 12.4 keV</span>
+</pre></div>
+</div>
+<p>A few things to note:</p>
+<ul class="simple">
+<li><p>Formats only affect the rendering of the table, <em>i.e.</em> printing, <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table.to_rich" title="xtl.common.tables.Table.to_rich"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_rich()</span></code></a>
+and <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table.to_csv" title="xtl.common.tables.Table.to_csv"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_csv()</span></code></a>. The stored data remain unchanged, so
+<a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table.data" title="xtl.common.tables.Table.data"><code class="xref py py-attr docutils literal notranslate"><span class="pre">data</span></code></a>, <a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table.get_col" title="xtl.common.tables.Table.get_col"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_col()</span></code></a>,
+<a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table.to_numpy" title="xtl.common.tables.Table.to_numpy"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_numpy()</span></code></a>, <em>etc.</em> return the original values.</p></li>
+<li><p>Missing values are never formatted and are always rendered with their representation.</p></li>
+<li><p>If a format cannot be applied to a value (<em>e.g.</em> <code class="docutils literal notranslate"><span class="pre">'.2f'</span></code> on a string), the value is rendered with <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>
+instead.</p></li>
+<li><p>The column alignment is determined by the alignment of the format (<code class="docutils literal notranslate"><span class="pre">&lt;</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">^</span></code>). If the format does not
+specify an alignment, then columns containing numbers are right-aligned and all other columns are left-aligned.
+Columns without a format are always left-aligned.</p></li>
+</ul>
+<p>Formats can also be modified after the table has been created:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span><span class="o">.</span><span class="n">set_format</span><span class="p">(</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'03d'</span><span class="p">)</span>  <span class="c1"># Set the format of a column (by name or index)</span>
+<span class="n">table</span><span class="o">.</span><span class="n">set_format</span><span class="p">(</span><span class="s1">'Name'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># Clear the format of a column</span>
+<span class="n">table</span><span class="o">.</span><span class="n">get_format</span><span class="p">(</span><span class="s1">'Value'</span><span class="p">)</span>       <span class="c1"># '.2f'</span>
+<span class="n">table</span><span class="o">.</span><span class="n">formats</span>                   <span class="c1"># {'Value': '.2f', 'Counts': ',d', 'Energy': '{:.1f} keV', 'ID': '03d'}</span>
+
+<span class="c1"># Add a new column along with its format</span>
+<span class="n">table</span><span class="o">.</span><span class="n">add_col</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span> <span class="n">col_name</span><span class="o">=</span><span class="s1">'Error'</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">'.1e'</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+<span class="c1">#  ID | Name  | Value |    Counts |   Energy |   Error</span>
+<span class="c1"># ----+-------+-------+-----------+----------+--------</span>
+<span class="c1"># 001 | Alpha | 10.50 | 1,234,567 |  8.0 keV | 1.0e-01</span>
+<span class="c1"># 002 | Beta  |     - |        42 | 17.5 keV | 2.0e-01</span>
+<span class="c1"># 003 | Gamma |  3.14 |       n/a | 12.4 keV | 3.0e-01</span>
+</pre></div>
+</div>
+<p>Formats are carried over when slicing, combining or subtracting tables, and are updated accordingly when columns are
+deleted or the headers are renamed. For tables without headers, formats are specified by column index instead, <em>e.g.</em>
+<code class="docutils literal notranslate"><span class="pre">formats={0:</span> <span class="pre">'.2f'}</span></code>.</p>
+</section>
 <section id="table-operations">
 <h3>Table operations<a class="headerlink" href="#table-operations" title="Link to this heading">#</a></h3>
 <p><a class="reference internal" href="../api/xtl.common.tables.html#xtl.common.tables.Table" title="xtl.common.tables.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> supports operations for combining tables:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create two tables with the same structure</span>
 <span class="n">table1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span> <span class="s1">&#39;Letter&#39;</span><span class="p">]</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'A'</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'B'</span><span class="p">]],</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Number'</span><span class="p">,</span> <span class="s1">'Letter'</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="n">table2</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">]],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span> <span class="s1">&#39;Letter&#39;</span><span class="p">]</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="s1">'D'</span><span class="p">]],</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Number'</span><span class="p">,</span> <span class="s1">'Letter'</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="c1"># Concatenate rows (tables must have the same columns)</span>
@@ -666,7 +738,7 @@ be treated as missing and their serialization are defined during table initializ
 <span class="c1"># Table with different columns</span>
 <span class="n">table3</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="kc">True</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="mi">20</span><span class="p">]],</span>
-    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Active&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">]</span>
+    <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'Active'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">]</span>
 <span class="p">)</span>
 
 <span class="c1"># Concatenate columns (tables must have the same number of rows)</span>
@@ -686,9 +758,9 @@ be treated as missing and their serialization are defined during table initializ
 <p>Import from Python built-in types:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create from a dictionary with column names as keys</span>
 <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;ID&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
-    <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">],</span>
-    <span class="s1">&#39;Value&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.5</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
+    <span class="s1">'ID'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="s1">'Name'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Alpha'</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">],</span>
+    <span class="s1">'Value'</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.5</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">]</span>
 <span class="p">}</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data_dict</span><span class="p">)</span>
 </pre></div>
@@ -696,36 +768,36 @@ be treated as missing and their serialization are defined during table initializ
 <p>Import from third-party libraries:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import from a numpy array</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]])</span>
-<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">])</span>
+<span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="s1">'N/A'</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="kc">None</span><span class="p">]])</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">])</span>
 
 <span class="c1"># Import from a pandas DataFrame</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s1">&#39;ID&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
-    <span class="s1">&#39;Name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">],</span>
-    <span class="s1">&#39;Value&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.5</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
+    <span class="s1">'ID'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="s1">'Name'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'Alpha'</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">],</span>
+    <span class="s1">'Value'</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.5</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">]</span>
 <span class="p">})</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Import from CSV:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># From a file</span>
-<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span> <span class="n">header_line</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s1">'data.csv'</span><span class="p">,</span> <span class="n">header_line</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># From a string</span>
-<span class="n">csv_content</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;ID,Name,Value</span>
+<span class="n">csv_content</span> <span class="o">=</span> <span class="s2">"""ID,Name,Value</span>
 <span class="s2">1,Alpha,10.5</span>
 <span class="s2">2,Beta,20.3</span>
-<span class="s2">3,Gamma,30.7&quot;&quot;&quot;</span>
+<span class="s2">3,Gamma,30.7"""</span>
 <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="n">csv_content</span><span class="p">,</span> <span class="n">header_line</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># With custom parameters</span>
-<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span>
-                      <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">,</span>         <span class="c1"># Use semicolon as delimiter</span>
+<span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s1">'data.csv'</span><span class="p">,</span>
+                      <span class="n">delimiter</span><span class="o">=</span><span class="s1">';'</span><span class="p">,</span>         <span class="c1"># Use semicolon as delimiter</span>
                       <span class="n">header_line</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>      <span class="c1"># No header line</span>
-                      <span class="n">header_char</span><span class="o">=</span><span class="s1">&#39;#&#39;</span><span class="p">,</span>       <span class="c1"># Headers prefixed with # character</span>
-                      <span class="n">new_line</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>       <span class="c1"># Custom newline character</span>
+                      <span class="n">header_char</span><span class="o">=</span><span class="s1">'#'</span><span class="p">,</span>       <span class="c1"># Headers prefixed with # character</span>
+                      <span class="n">new_line</span><span class="o">=</span><span class="s1">'</span><span class="se">\r\n</span><span class="s1">'</span><span class="p">)</span>       <span class="c1"># Custom newline character</span>
 </pre></div>
 </div>
 </section>
@@ -734,26 +806,26 @@ be treated as missing and their serialization are defined during table initializ
 <p>Export to Python built-in types:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
    <span class="n">data</span><span class="o">=</span><span class="p">[</span>
-       <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Alpha&#39;</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span>
-       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Beta&#39;</span><span class="p">,</span> <span class="s1">&#39;N/A&#39;</span><span class="p">],</span>
-       <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+       <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s1">'Alpha'</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="s1">'Beta'</span><span class="p">,</span> <span class="s1">'N/A'</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'Gamma'</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
    <span class="p">],</span>
-   <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">],</span>
-   <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Values to treat as missing</span>
-   <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">&#39;-&#39;</span>         <span class="c1"># Representation for missing values</span>
+   <span class="n">headers</span><span class="o">=</span><span class="p">[</span><span class="s1">'ID'</span><span class="p">,</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="s1">'Value'</span><span class="p">],</span>
+   <span class="n">missing_values</span><span class="o">=</span><span class="p">[</span><span class="s1">'N/A'</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># Values to treat as missing</span>
+   <span class="n">missing_value_repr</span><span class="o">=</span><span class="s1">'-'</span>         <span class="c1"># Representation for missing values</span>
 <span class="p">)</span>
 
 <span class="c1"># Get raw data as nested lists</span>
 <span class="n">data</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">data</span>
-<span class="c1"># [[1, &#39;Alpha&#39;, 10.5], [2, &#39;Beta&#39;, &#39;-&#39;], [3, &#39;Gamma&#39;, &#39;-&#39;]]</span>
+<span class="c1"># [[1, 'Alpha', 10.5], [2, 'Beta', '-'], [3, 'Gamma', '-']]</span>
 
 <span class="c1"># Get all values as a flattened list</span>
 <span class="n">flat_list</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
-<span class="c1"># [1, &#39;Alpha&#39;, 10.5, 2, &#39;Beta&#39;, &#39;-&#39;, 3, &#39;Gamma&#39;, &#39;-&#39;]</span>
+<span class="c1"># [1, 'Alpha', 10.5, 2, 'Beta', '-', 3, 'Gamma', '-']</span>
 
 <span class="c1"># Get dictionary with column names as keys</span>
 <span class="n">data_dict</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-<span class="c1"># {&#39;ID&#39;: [1, 2, 3], &#39;Name&#39;: [&#39;Alpha&#39;, &#39;Beta&#39;, &#39;Gamma&#39;], &#39;Value&#39;: [10.5, &#39;-&#39;, &#39;-&#39;]}</span>
+<span class="c1"># {'ID': [1, 2, 3], 'Name': ['Alpha', 'Beta', 'Gamma'], 'Value': [10.5, '-', '-']}</span>
 </pre></div>
 </div>
 <p>Export to third-party libraries:</p>
@@ -767,7 +839,8 @@ be treated as missing and their serialization are defined during table initializ
 <span class="n">rich_table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_rich</span><span class="p">()</span>
 
 <span class="c1"># Custom formatting can be applied when creating a rich table</span>
-<span class="n">rich_table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_rich</span><span class="p">(</span><span class="n">cast_as</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1"># (this overrides any column formats)</span>
+<span class="n">rich_table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_rich</span><span class="p">(</span><span class="n">cast_as</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Value: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Export to CSV:</p>
@@ -775,7 +848,7 @@ be treated as missing and their serialization are defined during table initializ
 <span class="n">csv_string</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">()</span>
 
 <span class="c1"># Write to CSV file</span>
-<span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;data.csv&#39;</span><span class="p">)</span>
+<span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">'data.csv'</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="literal-block-wrapper docutils container" id="id1">
@@ -790,10 +863,10 @@ be treated as missing and their serialization are defined during table initializ
 <p>But the CSV export can also be customized with various parameters:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Customize CSV output with various parameters</span>
 <span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
-    <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span>
-    <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">,</span>
-    <span class="n">new_line</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span>
-    <span class="n">header_char</span><span class="o">=</span><span class="s1">&#39;# &#39;</span><span class="p">,</span>  <span class="c1"># Add a character before the header line</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s1">'data.csv'</span><span class="p">,</span>
+    <span class="n">delimiter</span><span class="o">=</span><span class="s1">';'</span><span class="p">,</span>
+    <span class="n">new_line</span><span class="o">=</span><span class="s1">'</span><span class="se">\r\n</span><span class="s1">'</span><span class="p">,</span>
+    <span class="n">header_char</span><span class="o">=</span><span class="s1">'# '</span><span class="p">,</span>  <span class="c1"># Add a character before the header line</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -805,6 +878,18 @@ be treated as missing and their serialization are defined during table initializ
 <span class="o">3;Gamma;-</span>
 </pre></div>
 </div>
+</div>
+<p>If the table has any <a class="reference internal" href="#tables-formatting"><span class="std std-ref">formats</span></a>, these are also applied to the CSV output (without any
+padding). Use <code class="docutils literal notranslate"><span class="pre">formatted=False</span></code> to write the raw values instead:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">table</span><span class="o">.</span><span class="n">set_format</span><span class="p">(</span><span class="s1">'Value'</span><span class="p">,</span> <span class="s1">'.2f'</span><span class="p">)</span>
+<span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">()</span>                 <span class="c1"># 1,Alpha,10.50 ...</span>
+<span class="n">table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">formatted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># 1,Alpha,10.5 ...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Formats that include a thousands separator (<em>e.g.</em> <code class="docutils literal notranslate"><span class="pre">',d'</span></code>) will produce values that contain commas. Make sure to
+use a different <code class="docutils literal notranslate"><span class="pre">delimiter</span></code> in such cases.</p>
 </div>
 </section>
 <section id="console">
@@ -883,6 +968,7 @@ be treated as missing and their serialization are defined during table initializ
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#removing-data">Removing data</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#accessing-data">Accessing data</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-values">Missing values</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#formatting">Formatting</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#table-operations">Table operations</a></li>
 </ul>
 </li>
@@ -916,7 +1002,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -930,7 +1016,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

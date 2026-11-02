@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl.common package &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>xtl.common package &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -370,19 +376,32 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.compatibility.html#xtl.common.compatibility.PY311_OR_LESS"><code class="docutils literal notranslate"><span class="pre">PY311_OR_LESS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.compatibility.html#xtl.common.compatibility.PY312_OR_LESS"><code class="docutils literal notranslate"><span class="pre">PY312_OR_LESS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.compatibility.html#xtl.common.compatibility.PY313_OR_LESS"><code class="docutils literal notranslate"><span class="pre">PY313_OR_LESS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.common.compatibility.html#xtl.common.compatibility.PY314_OR_LESS"><code class="docutils literal notranslate"><span class="pre">PY314_OR_LESS</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.compatibility.html#xtl.common.compatibility.PY_VERS"><code class="docutils literal notranslate"><span class="pre">PY_VERS</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.LegacyOptions"><code class="docutils literal notranslate"><span class="pre">LegacyOptions</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.LegacyOptions.upgrade"><code class="docutils literal notranslate"><span class="pre">LegacyOptions.upgrade()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Option"><code class="docutils literal notranslate"><span class="pre">Option()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options"><code class="docutils literal notranslate"><span class="pre">Options</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.__init__"><code class="docutils literal notranslate"><span class="pre">Options.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_dict"><code class="docutils literal notranslate"><span class="pre">Options.from_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_json"><code class="docutils literal notranslate"><span class="pre">Options.from_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.from_toml"><code class="docutils literal notranslate"><span class="pre">Options.from_toml()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.model_validate"><code class="docutils literal notranslate"><span class="pre">Options.model_validate()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.to_dict"><code class="docutils literal notranslate"><span class="pre">Options.to_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.to_json"><code class="docutils literal notranslate"><span class="pre">Options.to_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options.to_toml"><code class="docutils literal notranslate"><span class="pre">Options.to_toml()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.VersionedOptions"><code class="docutils literal notranslate"><span class="pre">VersionedOptions</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.VersionedOptions.from_dict"><code class="docutils literal notranslate"><span class="pre">VersionedOptions.from_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.VersionedOptions.from_json"><code class="docutils literal notranslate"><span class="pre">VersionedOptions.from_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.VersionedOptions.legacy_versions"><code class="docutils literal notranslate"><span class="pre">VersionedOptions.legacy_versions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.options.html#xtl.common.options.VersionedOptions.register_legacy"><code class="docutils literal notranslate"><span class="pre">VersionedOptions.register_legacy()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -424,11 +443,13 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.data"><code class="docutils literal notranslate"><span class="pre">Table.data</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.del_col"><code class="docutils literal notranslate"><span class="pre">Table.del_col()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.del_row"><code class="docutils literal notranslate"><span class="pre">Table.del_row()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.formats"><code class="docutils literal notranslate"><span class="pre">Table.formats</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.from_csv"><code class="docutils literal notranslate"><span class="pre">Table.from_csv()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.from_dict"><code class="docutils literal notranslate"><span class="pre">Table.from_dict()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.from_numpy"><code class="docutils literal notranslate"><span class="pre">Table.from_numpy()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.from_pandas"><code class="docutils literal notranslate"><span class="pre">Table.from_pandas()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.get_col"><code class="docutils literal notranslate"><span class="pre">Table.get_col()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.get_format"><code class="docutils literal notranslate"><span class="pre">Table.get_format()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.get_row"><code class="docutils literal notranslate"><span class="pre">Table.get_row()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.has_missing"><code class="docutils literal notranslate"><span class="pre">Table.has_missing</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.headers"><code class="docutils literal notranslate"><span class="pre">Table.headers</span></code></a></li>
@@ -437,6 +458,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.no_cols"><code class="docutils literal notranslate"><span class="pre">Table.no_cols</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.no_rows"><code class="docutils literal notranslate"><span class="pre">Table.no_rows</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.set_col"><code class="docutils literal notranslate"><span class="pre">Table.set_col()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.set_format"><code class="docutils literal notranslate"><span class="pre">Table.set_format()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.set_row"><code class="docutils literal notranslate"><span class="pre">Table.set_row()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.shape"><code class="docutils literal notranslate"><span class="pre">Table.shape</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.common.tables.html#xtl.common.tables.Table.size"><code class="docutils literal notranslate"><span class="pre">Table.size</span></code></a></li>
@@ -526,7 +548,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -540,7 +562,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

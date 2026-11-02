@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>xtl &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -370,7 +376,7 @@ document.write(`
 
 <dl class="py data">
 <dt class="sig sig-object py" id="xtl.version">
-<span class="sig-prename descclassname"><span class="pre">xtl.</span></span><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo" title="xtl.config.version.VersionInfo"><span class="pre">xtl.config.version.VersionInfo</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">VersionInfo(&quot;0.1.0rc1&quot;,</span> <span class="pre">hex=&quot;0x000100d1&quot;,</span> <span class="pre">date=&quot;01/06/2025&quot;)</span></em><a class="headerlink" href="#xtl.version" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">xtl.</span></span><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo" title="xtl.config.version.VersionInfo"><span class="pre">xtl.config.version.VersionInfo</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">VersionInfo('0.2.0dev0',</span> <span class="pre">hex='0x00020000',</span> <span class="pre">date='01/06/2025')</span></em><a class="headerlink" href="#xtl.version" title="Link to this definition">#</a></dt>
 <dd><p>Version information for XTL.</p>
 </dd></dl>
 
@@ -396,6 +402,39 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="xtl.jobs.html#module-xtl.jobs">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.AsyncPool"><code class="docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.BashShell"><code class="docutils literal notranslate"><span class="pre">BashShell</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.BatchFile"><code class="docutils literal notranslate"><span class="pre">BatchFile</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.BatchJob"><code class="docutils literal notranslate"><span class="pre">BatchJob</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.BatchJobConfig"><code class="docutils literal notranslate"><span class="pre">BatchJobConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.CmdShell"><code class="docutils literal notranslate"><span class="pre">CmdShell</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.CommandPolicy"><code class="docutils literal notranslate"><span class="pre">CommandPolicy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.ComputeSite"><code class="docutils literal notranslate"><span class="pre">ComputeSite</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.Job"><code class="docutils literal notranslate"><span class="pre">Job</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.JobConfig"><code class="docutils literal notranslate"><span class="pre">JobConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.JobPool"><code class="docutils literal notranslate"><span class="pre">JobPool</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.LocalSite"><code class="docutils literal notranslate"><span class="pre">LocalSite</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.ModulesSite"><code class="docutils literal notranslate"><span class="pre">ModulesSite</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.MultiprocessPool"><code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.PowerShell"><code class="docutils literal notranslate"><span class="pre">PowerShell</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.Shell"><code class="docutils literal notranslate"><span class="pre">Shell</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.SimplePool"><code class="docutils literal notranslate"><span class="pre">SimplePool</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.StepSpec"><code class="docutils literal notranslate"><span class="pre">StepSpec</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.SteppedJob"><code class="docutils literal notranslate"><span class="pre">SteppedJob</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.SteppedJobConfig"><code class="docutils literal notranslate"><span class="pre">SteppedJobConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.html#xtl.jobs.ThreadedPool"><code class="docutils literal notranslate"><span class="pre">ThreadedPool</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.jobs.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </li>
 </ul>
@@ -480,7 +519,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -494,7 +533,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

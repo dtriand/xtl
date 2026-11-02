@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl.config package &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>xtl.config package &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 current active has-children"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -365,11 +371,14 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.directories"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.directories</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.files"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.files</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.scripts"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.scripts</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.update"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.update</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomateSettings"><code class="docutils literal notranslate"><span class="pre">AutomateSettings</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomateSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.compute_site</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomateSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.job_digits</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomateSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.keep_temp</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.AutomateSettings.permissions"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.permissions</span></code></a></li>
 </ul>
 </li>
@@ -386,15 +395,36 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.CLISettings"><code class="docutils literal notranslate"><span class="pre">CLISettings</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.CLISettings.autoproc"><code class="docutils literal notranslate"><span class="pre">CLISettings.autoproc</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.CLISettings.format"><code class="docutils literal notranslate"><span class="pre">CLISettings.format</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.CLISettings.max_fps"><code class="docutils literal notranslate"><span class="pre">CLISettings.max_fps</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependenciesSettings"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependenciesSettings.atsas"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.atsas</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependenciesSettings.autoproc"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.autoproc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependenciesSettings.easybragg"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.easybragg</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependenciesSettings.resolution"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolution</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings"><code class="docutils literal notranslate"><span class="pre">DependencySettings</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings.modules"><code class="docutils literal notranslate"><span class="pre">DependencySettings.modules</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings.path"><code class="docutils literal notranslate"><span class="pre">DependencySettings.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings.provides"><code class="docutils literal notranslate"><span class="pre">DependencySettings.provides</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings"><code class="docutils literal notranslate"><span class="pre">JobsSettings</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">JobsSettings.compute_site</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">JobsSettings.job_digits</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">JobsSettings.keep_temp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.permissions"><code class="docutils literal notranslate"><span class="pre">JobsSettings.permissions</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.resources"><code class="docutils literal notranslate"><span class="pre">JobsSettings.resources</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.threading_debug"><code class="docutils literal notranslate"><span class="pre">JobsSettings.threading_debug</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.JobsSettings.tracebacks"><code class="docutils literal notranslate"><span class="pre">JobsSettings.tracebacks</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.ResourcesSettings"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_jobs"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_jobs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_processes"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_processes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_threads"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_threads</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.Settings"><code class="docutils literal notranslate"><span class="pre">Settings</span></code></a></li>
@@ -406,6 +436,7 @@ document.write(`
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.automate"><code class="docutils literal notranslate"><span class="pre">XTLSettings.automate</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.cli"><code class="docutils literal notranslate"><span class="pre">XTLSettings.cli</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.dependencies"><code class="docutils literal notranslate"><span class="pre">XTLSettings.dependencies</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.jobs"><code class="docutils literal notranslate"><span class="pre">XTLSettings.jobs</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.units"><code class="docutils literal notranslate"><span class="pre">XTLSettings.units</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.version"><code class="docutils literal notranslate"><span class="pre">XTLSettings.version</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.XTLSettings.initialize"><code class="docutils literal notranslate"><span class="pre">XTLSettings.initialize()</span></code></a></li>
@@ -429,6 +460,9 @@ document.write(`
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo"><code class="docutils literal notranslate"><span class="pre">VersionInfo</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.__init__"><code class="docutils literal notranslate"><span class="pre">VersionInfo.__init__()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.date"><code class="docutils literal notranslate"><span class="pre">VersionInfo.date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.from_hex"><code class="docutils literal notranslate"><span class="pre">VersionInfo.from_hex()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.from_str"><code class="docutils literal notranslate"><span class="pre">VersionInfo.from_str()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.from_value"><code class="docutils literal notranslate"><span class="pre">VersionInfo.from_value()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.hex"><code class="docutils literal notranslate"><span class="pre">VersionInfo.hex</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.level"><code class="docutils literal notranslate"><span class="pre">VersionInfo.level</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.major"><code class="docutils literal notranslate"><span class="pre">VersionInfo.major</span></code></a></li>
@@ -444,8 +478,6 @@ document.write(`
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.version"><code class="docutils literal notranslate"><span class="pre">version</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.version_from_hex"><code class="docutils literal notranslate"><span class="pre">version_from_hex()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="xtl.config.version.html#xtl.config.version.version_from_str"><code class="docutils literal notranslate"><span class="pre">version_from_str()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -524,7 +556,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -538,7 +570,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   

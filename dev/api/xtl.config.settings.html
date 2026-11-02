@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
     <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
-    <title>xtl.config.settings module &#8212; xtl 0.1.0rc1 documentation</title>
+    <title>xtl.config.settings module &#8212; xtl 0.2.0dev0 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=370c4a40"></script>
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
     <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
@@ -160,8 +160,8 @@
       
     
     
-    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.1.0rc1 documentation - Home"/>
-    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.1.0rc1 documentation - Home"/>`);</script>
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <script>document.write(`<img src="../_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -202,6 +202,12 @@
 <li class="toctree-l3 current active has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -342,11 +348,14 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.directories"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.directories</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.files"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.files</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.scripts"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.scripts</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.update"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.update</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings"><code class="docutils literal notranslate"><span class="pre">AutomateSettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.compute_site</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.job_digits</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.keep_temp</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.permissions"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.permissions</span></code></a></li>
 </ul>
 </li>
@@ -363,15 +372,36 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings"><code class="docutils literal notranslate"><span class="pre">CLISettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.autoproc"><code class="docutils literal notranslate"><span class="pre">CLISettings.autoproc</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.format"><code class="docutils literal notranslate"><span class="pre">CLISettings.format</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.max_fps"><code class="docutils literal notranslate"><span class="pre">CLISettings.max_fps</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.atsas"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.atsas</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.autoproc"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.autoproc</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.easybragg"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.easybragg</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolution"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolution</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings"><code class="docutils literal notranslate"><span class="pre">DependencySettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.modules"><code class="docutils literal notranslate"><span class="pre">DependencySettings.modules</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.path"><code class="docutils literal notranslate"><span class="pre">DependencySettings.path</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.provides"><code class="docutils literal notranslate"><span class="pre">DependencySettings.provides</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings"><code class="docutils literal notranslate"><span class="pre">JobsSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">JobsSettings.compute_site</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">JobsSettings.job_digits</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">JobsSettings.keep_temp</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.permissions"><code class="docutils literal notranslate"><span class="pre">JobsSettings.permissions</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.resources"><code class="docutils literal notranslate"><span class="pre">JobsSettings.resources</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.threading_debug"><code class="docutils literal notranslate"><span class="pre">JobsSettings.threading_debug</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.tracebacks"><code class="docutils literal notranslate"><span class="pre">JobsSettings.tracebacks</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_jobs"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_jobs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_processes"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_processes</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_threads"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_threads</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.Settings"><code class="docutils literal notranslate"><span class="pre">Settings</span></code></a></li>
@@ -383,6 +413,7 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.automate"><code class="docutils literal notranslate"><span class="pre">XTLSettings.automate</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.cli"><code class="docutils literal notranslate"><span class="pre">XTLSettings.cli</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.dependencies"><code class="docutils literal notranslate"><span class="pre">XTLSettings.dependencies</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.jobs"><code class="docutils literal notranslate"><span class="pre">XTLSettings.jobs</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.units"><code class="docutils literal notranslate"><span class="pre">XTLSettings.units</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.version"><code class="docutils literal notranslate"><span class="pre">XTLSettings.version</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.initialize"><code class="docutils literal notranslate"><span class="pre">XTLSettings.initialize()</span></code></a></li>
@@ -408,7 +439,7 @@ models that are used to configure various aspects of XTL. The main class that ho
 settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a>.</p>
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomatePermissionsSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomatePermissionsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L62-L78"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomatePermissionsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L68-L99"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Permission handling when using :mod:xtl.automate</p>
 <dl class="field-list simple">
@@ -425,6 +456,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings.directories" title="xtl.config.settings.AutomatePermissionsSettings.directories"><code class="xref py py-obj docutils literal notranslate"><span class="pre">directories</span> <span class="pre">(xtl.common.os.FilePermissions)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings.files" title="xtl.config.settings.AutomatePermissionsSettings.files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">files</span> <span class="pre">(xtl.common.os.FilePermissions)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings.scripts" title="xtl.config.settings.AutomatePermissionsSettings.scripts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scripts</span> <span class="pre">(xtl.common.os.FilePermissions)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings.update" title="xtl.config.settings.AutomatePermissionsSettings.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span> <span class="pre">(bool)</span></code></a></p></li>
 </ul>
 </dd>
@@ -461,6 +493,19 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd></dl>
 
 <dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.AutomatePermissionsSettings.scripts">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scripts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">FilePermissions</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">FilePermissions(value='rwx------')</span></em><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings.scripts" title="Link to this definition">#</a></dt>
+<dd><p>Permissions octal for scripts</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomatePermissionsSettings.update">
 <em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings.update" title="Link to this definition">#</a></dt>
 <dd><p>Update permissions of the output files after execution of external jobs</p>
@@ -477,7 +522,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomateSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L81-L89"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomateSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomateSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L102-L126"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomateSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for <code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.automate</span></code></p>
 <dl class="field-list simple">
@@ -493,6 +538,8 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 <dt class="field-even">Fields<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="#xtl.config.settings.AutomateSettings.compute_site" title="xtl.config.settings.AutomateSettings.compute_site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_site</span> <span class="pre">(xtl.automate.ComputeSite)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.AutomateSettings.job_digits" title="xtl.config.settings.AutomateSettings.job_digits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">job_digits</span> <span class="pre">(int)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.AutomateSettings.keep_temp" title="xtl.config.settings.AutomateSettings.keep_temp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_temp</span> <span class="pre">(bool)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.AutomateSettings.permissions" title="xtl.config.settings.AutomateSettings.permissions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">permissions</span> <span class="pre">(xtl.config.settings.AutomatePermissionsSettings)</span></code></a></p></li>
 </ul>
 </dd>
@@ -504,8 +551,35 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dl>
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings.compute_site">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compute_site</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ComputeSite</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ComputeSite.LOCAL</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.compute_site" title="Link to this definition">#</a></dt>
-<dd><dl class="field-list simple">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compute_site</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.html#xtl.jobs.ComputeSite" title="xtl.jobs.ComputeSite"><span class="pre">ComputeSite</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ComputeSite.LOCAL</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.compute_site" title="Link to this definition">#</a></dt>
+<dd><p>Default compute site for job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings.job_digits">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">job_digits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.job_digits" title="Link to this definition">#</a></dt>
+<dd><p>Number of digits to use for generation of random job IDs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings.keep_temp">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">keep_temp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.keep_temp" title="Link to this definition">#</a></dt>
+<dd><p>Keep temporary files after job execution</p>
+<dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
@@ -516,7 +590,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings.permissions">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">permissions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings" title="xtl.config.settings.AutomatePermissionsSettings"><span class="pre">AutomatePermissionsSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">AutomatePermissionsSettings(update=False,</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------'))</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.permissions" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">permissions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings" title="xtl.config.settings.AutomatePermissionsSettings"><span class="pre">AutomatePermissionsSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">AutomatePermissionsSettings(update=False,</span> <span class="pre">scripts=FilePermissions(value='rwx------'),</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------'))</span></em><a class="headerlink" href="#xtl.config.settings.AutomateSettings.permissions" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -530,7 +604,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.CLIAutoprocSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIAutoprocSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L117-L128"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIAutoprocSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIAutoprocSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L265-L276"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIAutoprocSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for <code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code> CLI</p>
 <dl class="field-list simple">
@@ -585,7 +659,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.CLIConsoleFormatSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIConsoleFormatSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L131-L139"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIConsoleFormatSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIConsoleFormatSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L279-L287"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIConsoleFormatSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>CLI console formatting settings</p>
 <dl class="field-list simple">
@@ -640,7 +714,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.CLISettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLISettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L142-L149"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLISettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLISettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L290-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLISettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for CLI tools</p>
 <dl class="field-list simple">
@@ -657,6 +731,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="#xtl.config.settings.CLISettings.autoproc" title="xtl.config.settings.CLISettings.autoproc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autoproc</span> <span class="pre">(xtl.config.settings.CLIAutoprocSettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.CLISettings.format" title="xtl.config.settings.CLISettings.format"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format</span> <span class="pre">(xtl.config.settings.CLIConsoleFormatSettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.CLISettings.max_fps" title="xtl.config.settings.CLISettings.max_fps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_fps</span> <span class="pre">(int)</span></code></a></p></li>
 </ul>
 </dd>
 <dt class="field-odd">Validators<span class="colon">:</span></dt>
@@ -689,11 +764,30 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dl>
 </dd></dl>
 
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.CLISettings.max_fps">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_fps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#xtl.config.settings.CLISettings.max_fps" title="Link to this definition">#</a></dt>
+<dd><p>Maximum refreshes (per s) for live console elements</p>
+<dl class="field-list simple">
+<dt class="field-odd">Constraints<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gt</strong> = 1</p></li>
+<li><p><strong>lt</strong> = 60</p></li>
+</ul>
+</dd>
+<dt class="field-even">Validated by<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependenciesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L108-L114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependenciesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L228-L262"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for external tools and dependencies</p>
 <dl class="field-list simple">
@@ -708,7 +802,10 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd>
 <dt class="field-even">Fields<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#xtl.config.settings.DependenciesSettings.atsas" title="xtl.config.settings.DependenciesSettings.atsas"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atsas</span> <span class="pre">(xtl.config.settings.DependencySettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.DependenciesSettings.autoproc" title="xtl.config.settings.DependenciesSettings.autoproc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autoproc</span> <span class="pre">(xtl.config.settings.DependencySettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.DependenciesSettings.easybragg" title="xtl.config.settings.DependenciesSettings.easybragg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">easybragg</span> <span class="pre">(xtl.config.settings.DependencySettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.DependenciesSettings.resolution" title="xtl.config.settings.DependenciesSettings.resolution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolution</span> <span class="pre">(str)</span></code></a></p></li>
 </ul>
 </dd>
 <dt class="field-odd">Validators<span class="colon">:</span></dt>
@@ -718,9 +815,46 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd>
 </dl>
 <dl class="py attribute pydantic_field">
-<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.autoproc">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">autoproc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependencySettings(path=None,</span> <span class="pre">modules=None)</span></em><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.autoproc" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.atsas">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">atsas</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependencySettings(provides={'datcmp'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set())</span></em><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.atsas" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.autoproc">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">autoproc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependencySettings(provides={'process',</span> <span class="pre">'process_wf'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set())</span></em><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.autoproc" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.easybragg">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">easybragg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependencySettings(provides={'easyBragg.python'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set())</span></em><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.easybragg" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.resolution">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resolution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'loose'</span></em><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.resolution" title="Link to this definition">#</a></dt>
+<dd><p>Dependency resolution strategy. If “strict”, jobs requiring missing dependencies will fail to run. If “loose”, missing dependencies will be ignored.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
@@ -733,7 +867,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.DependencySettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependencySettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L92-L105"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependencySettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependencySettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L201-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependencySettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Generic external dependency settings</p>
 <dl class="field-list simple">
@@ -748,8 +882,9 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd>
 <dt class="field-even">Fields<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference internal" href="#xtl.config.settings.DependencySettings.modules" title="xtl.config.settings.DependencySettings.modules"><code class="xref py py-obj docutils literal notranslate"><span class="pre">modules</span> <span class="pre">(list[str]</span> <span class="pre">|</span> <span class="pre">None)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.DependencySettings.modules" title="xtl.config.settings.DependencySettings.modules"><code class="xref py py-obj docutils literal notranslate"><span class="pre">modules</span> <span class="pre">(set[str])</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.DependencySettings.path" title="xtl.config.settings.DependencySettings.path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">path</span> <span class="pre">(pathlib.Path</span> <span class="pre">|</span> <span class="pre">None)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.DependencySettings.provides" title="xtl.config.settings.DependencySettings.provides"><code class="xref py py-obj docutils literal notranslate"><span class="pre">provides</span> <span class="pre">(set[str])</span></code></a></p></li>
 </ul>
 </dd>
 <dt class="field-odd">Validators<span class="colon">:</span></dt>
@@ -760,7 +895,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dl>
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.DependencySettings.modules">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">modules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#xtl.config.settings.DependencySettings.modules" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">modules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">[Optional]</span></em><a class="headerlink" href="#xtl.config.settings.DependencySettings.modules" title="Link to this definition">#</a></dt>
 <dd><p>Modules that provide the dependency</p>
 <dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
@@ -784,11 +919,218 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dl>
 </dd></dl>
 
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.DependencySettings.provides">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">provides</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">[Optional]</span></em><a class="headerlink" href="#xtl.config.settings.DependencySettings.provides" title="Link to this definition">#</a></dt>
+<dd><p>List of executables provided by this dependency</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class pydantic_model">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings">
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">JobsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L152-L198"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.JobsSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
+<p>Settings for jobs in <a class="reference internal" href="xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Config<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arbitrary_types_allowed</strong>: <em>bool = True</em></p></li>
+<li><p><strong>validate_default</strong>: <em>bool = True</em></p></li>
+<li><p><strong>validate_assignment</strong>: <em>bool = True</em></p></li>
+<li><p><strong>use_enum_values</strong>: <em>bool = True</em></p></li>
+<li><p><strong>extra</strong>: <em>str = allow</em></p></li>
+</ul>
+</dd>
+<dt class="field-even">Fields<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.compute_site" title="xtl.config.settings.JobsSettings.compute_site"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_site</span> <span class="pre">(xtl.jobs.sites.ComputeSite)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.job_digits" title="xtl.config.settings.JobsSettings.job_digits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">job_digits</span> <span class="pre">(int)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.keep_temp" title="xtl.config.settings.JobsSettings.keep_temp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_temp</span> <span class="pre">(bool)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.permissions" title="xtl.config.settings.JobsSettings.permissions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">permissions</span> <span class="pre">(xtl.config.settings.AutomatePermissionsSettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.resources" title="xtl.config.settings.JobsSettings.resources"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resources</span> <span class="pre">(xtl.config.settings.ResourcesSettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.threading_debug" title="xtl.config.settings.JobsSettings.threading_debug"><code class="xref py py-obj docutils literal notranslate"><span class="pre">threading_debug</span> <span class="pre">(bool)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.JobsSettings.tracebacks" title="xtl.config.settings.JobsSettings.tracebacks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tracebacks</span> <span class="pre">(bool)</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-odd">Validators<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code> » <code class="xref py py-obj docutils literal notranslate"><span class="pre">all</span> <span class="pre">fields</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.compute_site">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compute_site</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ComputeSite2</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ComputeSite.LOCAL</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.compute_site" title="Link to this definition">#</a></dt>
+<dd><p>Default compute site for job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.job_digits">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">job_digits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.job_digits" title="Link to this definition">#</a></dt>
+<dd><p>Number of digits to use for generation of random job IDs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.keep_temp">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">keep_temp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.keep_temp" title="Link to this definition">#</a></dt>
+<dd><p>Keep temporary files after job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.permissions">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">permissions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomatePermissionsSettings" title="xtl.config.settings.AutomatePermissionsSettings"><span class="pre">AutomatePermissionsSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">AutomatePermissionsSettings(update=False,</span> <span class="pre">scripts=FilePermissions(value='rwx------'),</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------'))</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.permissions" title="Link to this definition">#</a></dt>
+<dd><p>Permissions settings for jobs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.resources">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resources</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.ResourcesSettings" title="xtl.config.settings.ResourcesSettings"><span class="pre">ResourcesSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">ResourcesSettings(max_jobs=4,</span> <span class="pre">max_threads=4,</span> <span class="pre">max_processes=4)</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.resources" title="Link to this definition">#</a></dt>
+<dd><p>Default resource settings for job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.threading_debug">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">threading_debug</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.threading_debug" title="Link to this definition">#</a></dt>
+<dd><p>Enable thread and process names in job logs for debugging concurrency issues</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.JobsSettings.tracebacks">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tracebacks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#xtl.config.settings.JobsSettings.tracebacks" title="Link to this definition">#</a></dt>
+<dd><p>Whether to include tracebacks in job logs when exceptions occur</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class pydantic_model">
+<dt class="sig sig-object py" id="xtl.config.settings.ResourcesSettings">
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">ResourcesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L129-L149"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.ResourcesSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
+<p>Resource settings for jobs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Config<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arbitrary_types_allowed</strong>: <em>bool = True</em></p></li>
+<li><p><strong>validate_default</strong>: <em>bool = True</em></p></li>
+<li><p><strong>validate_assignment</strong>: <em>bool = True</em></p></li>
+<li><p><strong>use_enum_values</strong>: <em>bool = True</em></p></li>
+<li><p><strong>extra</strong>: <em>str = allow</em></p></li>
+</ul>
+</dd>
+<dt class="field-even">Fields<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#xtl.config.settings.ResourcesSettings.max_jobs" title="xtl.config.settings.ResourcesSettings.max_jobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_jobs</span> <span class="pre">(int)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.ResourcesSettings.max_processes" title="xtl.config.settings.ResourcesSettings.max_processes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_processes</span> <span class="pre">(int)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.ResourcesSettings.max_threads" title="xtl.config.settings.ResourcesSettings.max_threads"><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_threads</span> <span class="pre">(int)</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-odd">Validators<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code> » <code class="xref py py-obj docutils literal notranslate"><span class="pre">all</span> <span class="pre">fields</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.ResourcesSettings.max_jobs">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_jobs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#xtl.config.settings.ResourcesSettings.max_jobs" title="Link to this definition">#</a></dt>
+<dd><p>Maximum number of jobs to run concurrently in a pool</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.ResourcesSettings.max_processes">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_processes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#xtl.config.settings.ResourcesSettings.max_processes" title="Link to this definition">#</a></dt>
+<dd><p>Maximum number of processes to use for job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.ResourcesSettings.max_threads">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_threads</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#xtl.config.settings.ResourcesSettings.max_threads" title="Link to this definition">#</a></dt>
+<dd><p>Maximum number of threads to use for job execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.Settings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">Settings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L38-L49"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.Settings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">Settings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L41-L55"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.Settings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a></p>
 <p>Base class for settings in XTL.</p>
 <dl class="field-list simple">
@@ -811,7 +1153,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.UnitsSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">UnitsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L52-L59"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.UnitsSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">UnitsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L58-L65"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.UnitsSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Physical units</p>
 <dl class="field-list simple">
@@ -852,7 +1194,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class pydantic_model">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">XTLSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L152-L242"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">XTLSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L306-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for XTL</p>
 <dl class="field-list simple">
@@ -870,6 +1212,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 <li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.automate" title="xtl.config.settings.XTLSettings.automate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">automate</span> <span class="pre">(xtl.config.settings.AutomateSettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.cli" title="xtl.config.settings.XTLSettings.cli"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cli</span> <span class="pre">(xtl.config.settings.CLISettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.dependencies" title="xtl.config.settings.XTLSettings.dependencies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dependencies</span> <span class="pre">(xtl.config.settings.DependenciesSettings)</span></code></a></p></li>
+<li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.jobs" title="xtl.config.settings.XTLSettings.jobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">jobs</span> <span class="pre">(xtl.config.settings.JobsSettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.units" title="xtl.config.settings.XTLSettings.units"><code class="xref py py-obj docutils literal notranslate"><span class="pre">units</span> <span class="pre">(xtl.config.settings.UnitsSettings)</span></code></a></p></li>
 <li><p><a class="reference internal" href="#xtl.config.settings.XTLSettings.version" title="xtl.config.settings.XTLSettings.version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">version</span> <span class="pre">(str)</span></code></a></p></li>
 </ul>
@@ -882,7 +1225,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dl>
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.automate">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">automate</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomateSettings" title="xtl.config.settings.AutomateSettings"><span class="pre">AutomateSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">AutomateSettings(compute_site='local',</span> <span class="pre">permissions=AutomatePermissionsSettings(update=False,</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------')))</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.automate" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">automate</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomateSettings" title="xtl.config.settings.AutomateSettings"><span class="pre">AutomateSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">AutomateSettings(job_digits=5,</span> <span class="pre">compute_site='local',</span> <span class="pre">permissions=AutomatePermissionsSettings(update=False,</span> <span class="pre">scripts=FilePermissions(value='rwx------'),</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------')),</span> <span class="pre">keep_temp=False)</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.automate" title="Link to this definition">#</a></dt>
 <dd><p>Settings for the <code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.automate</span></code> module</p>
 <dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
@@ -895,7 +1238,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.cli">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cli</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.CLISettings" title="xtl.config.settings.CLISettings"><span class="pre">CLISettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">CLISettings(format=CLIConsoleFormatSettings(rich=True,</span> <span class="pre">striped_tables=True),</span> <span class="pre">autoproc=CLIAutoprocSettings(collect_logs=False,</span> <span class="pre">logs_dir=None))</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.cli" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cli</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.CLISettings" title="xtl.config.settings.CLISettings"><span class="pre">CLISettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">CLISettings(format=CLIConsoleFormatSettings(rich=True,</span> <span class="pre">striped_tables=True),</span> <span class="pre">autoproc=CLIAutoprocSettings(collect_logs=False,</span> <span class="pre">logs_dir=None),</span> <span class="pre">max_fps=10)</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.cli" title="Link to this definition">#</a></dt>
 <dd><p>Settings for CLI tools provided by XTL</p>
 <dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
@@ -908,8 +1251,21 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.dependencies">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dependencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependenciesSettings" title="xtl.config.settings.DependenciesSettings"><span class="pre">DependenciesSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependenciesSettings(autoproc=DependencySettings(path=None,</span> <span class="pre">modules=None))</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.dependencies" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dependencies</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependenciesSettings" title="xtl.config.settings.DependenciesSettings"><span class="pre">DependenciesSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">DependenciesSettings(resolution='loose',</span> <span class="pre">atsas=DependencySettings(provides={'datcmp'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set()),</span> <span class="pre">autoproc=DependencySettings(provides={'process',</span> <span class="pre">'process_wf'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set()),</span> <span class="pre">easybragg=DependencySettings(provides={'easyBragg.python'},</span> <span class="pre">path=None,</span> <span class="pre">modules=set()))</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.dependencies" title="Link to this definition">#</a></dt>
 <dd><p>Settings for external tools and dependencies used by XTL</p>
+<dl class="field-list simple">
+<dt class="field-odd">Validated by<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_custom_validation</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute pydantic_field">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.jobs">
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">jobs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.JobsSettings" title="xtl.config.settings.JobsSettings"><span class="pre">JobsSettings</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">JobsSettings(job_digits=5,</span> <span class="pre">compute_site='local',</span> <span class="pre">keep_temp=False,</span> <span class="pre">tracebacks=False,</span> <span class="pre">threading_debug=False,</span> <span class="pre">permissions=AutomatePermissionsSettings(update=False,</span> <span class="pre">scripts=FilePermissions(value='rwx------'),</span> <span class="pre">files=FilePermissions(value='rw-------'),</span> <span class="pre">directories=FilePermissions(value='rwx------')),</span> <span class="pre">resources=ResourcesSettings(max_jobs=4,</span> <span class="pre">max_threads=4,</span> <span class="pre">max_processes=4))</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.jobs" title="Link to this definition">#</a></dt>
+<dd><p>Settings for jobs in <a class="reference internal" href="xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -934,7 +1290,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py attribute pydantic_field">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.version">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'0.1.0rc1'</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.version" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'0.2.0dev0'</span></em><a class="headerlink" href="#xtl.config.settings.XTLSettings.version" title="Link to this definition">#</a></dt>
 <dd><p>Version string of the XTL package</p>
 <dl class="field-list simple">
 <dt class="field-odd">Validated by<span class="colon">:</span></dt>
@@ -947,7 +1303,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.initialize">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L195-L242"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L352-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
 <dd><p>Initialize by reading an <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> file. Determines whether to load a
 local or global configuration file, and initializes the settings accordingly.
 If neither file exists, it initializes with default values.</p>
@@ -1031,11 +1387,14 @@ directory.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.directories"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.directories</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.files"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.files</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.scripts"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.scripts</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.update"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.update</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings"><code class="docutils literal notranslate"><span class="pre">AutomateSettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.compute_site</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.job_digits</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.keep_temp</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.permissions"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.permissions</span></code></a></li>
 </ul>
 </li>
@@ -1052,15 +1411,36 @@ directory.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings"><code class="docutils literal notranslate"><span class="pre">CLISettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.autoproc"><code class="docutils literal notranslate"><span class="pre">CLISettings.autoproc</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.format"><code class="docutils literal notranslate"><span class="pre">CLISettings.format</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.max_fps"><code class="docutils literal notranslate"><span class="pre">CLISettings.max_fps</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.atsas"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.atsas</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.autoproc"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.autoproc</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.easybragg"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.easybragg</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolution"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolution</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings"><code class="docutils literal notranslate"><span class="pre">DependencySettings</span></code></a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.modules"><code class="docutils literal notranslate"><span class="pre">DependencySettings.modules</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.path"><code class="docutils literal notranslate"><span class="pre">DependencySettings.path</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.provides"><code class="docutils literal notranslate"><span class="pre">DependencySettings.provides</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings"><code class="docutils literal notranslate"><span class="pre">JobsSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">JobsSettings.compute_site</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">JobsSettings.job_digits</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.keep_temp"><code class="docutils literal notranslate"><span class="pre">JobsSettings.keep_temp</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.permissions"><code class="docutils literal notranslate"><span class="pre">JobsSettings.permissions</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.resources"><code class="docutils literal notranslate"><span class="pre">JobsSettings.resources</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.threading_debug"><code class="docutils literal notranslate"><span class="pre">JobsSettings.threading_debug</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.tracebacks"><code class="docutils literal notranslate"><span class="pre">JobsSettings.tracebacks</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings</span></code></a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_jobs"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_jobs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_processes"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_processes</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ResourcesSettings.max_threads"><code class="docutils literal notranslate"><span class="pre">ResourcesSettings.max_threads</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.Settings"><code class="docutils literal notranslate"><span class="pre">Settings</span></code></a></li>
@@ -1072,6 +1452,7 @@ directory.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.automate"><code class="docutils literal notranslate"><span class="pre">XTLSettings.automate</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.cli"><code class="docutils literal notranslate"><span class="pre">XTLSettings.cli</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.dependencies"><code class="docutils literal notranslate"><span class="pre">XTLSettings.dependencies</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.jobs"><code class="docutils literal notranslate"><span class="pre">XTLSettings.jobs</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.units"><code class="docutils literal notranslate"><span class="pre">XTLSettings.units</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.version"><code class="docutils literal notranslate"><span class="pre">XTLSettings.version</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.initialize"><code class="docutils literal notranslate"><span class="pre">XTLSettings.initialize()</span></code></a></li>
@@ -1103,7 +1484,7 @@ By Dimitris P. Triandafillidis
 
   <p class="copyright">
     
-      © Copyright 2020-2025, Dimitris P. Triandafillidis.
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
       <br/>
     
   </p>
@@ -1117,7 +1498,7 @@ By Dimitris P. Triandafillidis
   <div class="footer-item">
     
 <div class="extra_footer">
-  XTL v0.1.0rc1 (Jun 01, 2025)
+  XTL v0.2.0dev0 (Jun 01, 2025)
 </div>
   </div>
   
