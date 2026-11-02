@@ -36,6 +36,16 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
                     '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
                     'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
                         '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__',
+                # TODO: Remove WINDOWS
+                Shell.CMD:
+                    '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
+                    'echo __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
+                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__'
+                    '@echo off __XTL_NL__'
+                    'for /L %%i in (1,1,9) do (__XTL_NL__'
+                    '    call echo.>%~dp0image_000%%i.cbf__XTL_NL__'
+                    '    call echo.>%~dp0image_000%%i.npy__XTL_NL__'
+                    ') __XTL_NL__'
             },
             desc='Templates for the content of the batch file for different shells'
         )
@@ -63,6 +73,7 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
             extra.append('--gpu')
         if self.debug:
             extra.append('--debug')
+        extra.append('--fmt=npy --fmt=png')
         return ' '.join(extra).rstrip(' ')
 
     def get_context(self):
