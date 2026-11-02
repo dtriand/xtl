@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import colorsys
+from enum import Enum
 from typing import Any
 
 from colorspacious import cspace_convert
@@ -8,7 +9,14 @@ import numpy as np
 from pydantic import field_validator, ValidationInfo, model_validator, model_serializer
 
 from xtl_core.options import Option
+from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.graphs.base import BaseGraphModel
+
+if PY310_OR_LESS:
+
+    class StrEnum(str, Enum): ...
+else:
+    from enum import StrEnum
 
 
 class Color(BaseGraphModel):
@@ -281,3 +289,8 @@ Named color lists for use in graphs.
 """
 
 COLORS['default'] = COLORS['pop']
+
+
+class Colormap(StrEnum):
+    NONE = 'none'
+    VIRIDIS = 'viridis'
