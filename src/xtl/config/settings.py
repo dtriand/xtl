@@ -15,7 +15,7 @@ logger = Logger(__name__)
 from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
-from xtl.config.version import version_from_str
+from xtl.config.version import VersionInfo
 from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
@@ -376,7 +376,7 @@ class XTLSettings(Settings):
             _settings = cls()
 
         # Check settings version
-        _v = version_from_str(_settings.version)
+        _v = VersionInfo.from_str(_settings.version)
         if _v.tuple_safe < current_version.tuple_safe:
             logger.warning('Using settings from an older version of XTL %(version)s.',
                            {'version': _v.string})
