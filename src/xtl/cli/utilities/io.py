@@ -1,11 +1,10 @@
 import glob
 from pathlib import Path
-from typing import Any
 
 import typer
 
 
-def resolve_paths_or_glob(raw: list[Any]) -> list[Path]:
+def resolve_paths_or_glob(raw: list) -> list[Path]:
     """
     Resolve a list of literal paths or glob patterns to a flat list of Paths.
 
