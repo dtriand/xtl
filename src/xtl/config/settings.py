@@ -240,6 +240,13 @@ class DependenciesSettings(Settings):
                  'If "loose", missing dependencies will be ignored.'
         )
 
+    atsas: DependencySettings = \
+        Option(
+            default=DependencySettings(
+                provides={'datcmp'}
+            )
+        )
+
     autoproc: DependencySettings = \
         Option(
             default=DependencySettings(
