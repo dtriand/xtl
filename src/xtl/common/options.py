@@ -14,6 +14,7 @@ import inspect
 import os
 from pathlib import Path
 import re
+from types import EllipsisType
 from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload, ClassVar
 from typing_extensions import Self
 
@@ -23,7 +24,6 @@ from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict, ExtraValues
 from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
-from pydantic._internal._typing_extra import EllipsisType
 import toml
 from toml.decoder import CommentValue
 
