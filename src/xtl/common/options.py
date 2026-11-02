@@ -4,7 +4,9 @@
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
 """
+from __future__ import annotations
 
+import abc
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import json
@@ -12,31 +14,186 @@ import inspect
 import os
 from pathlib import Path
 import re
-from typing import Any, Callable, Iterable, Optional, Union
+from types import EllipsisType
+from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload, ClassVar
 from typing_extensions import Self
 
 from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
                       BeforeValidator, AfterValidator, ModelWrapValidatorHandler,
                       model_serializer, SerializerFunctionWrapHandler, SerializationInfo)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
-from pydantic.config import JsonDict
-from pydantic.fields import _Unset, Deprecated, FieldInfo
+from pydantic.config import JsonDict, ExtraValues
+from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
 import toml
 from toml.decoder import CommentValue
 
 from xtl.common.validators import *
+from xtl.config.version import VersionInfo, version as xtl_version
+from xtl.logging import Logger
 from xtl.files.toml import ExtendedTomlEncoder
+from xtl.common.typed_vars import TypedIterable
+from xtl.exceptions.pydantic import OptionsValidationError
 
+
+logger = Logger(__name__)
 
 _Validator = Union[BeforeValidator, AfterValidator]
+_T = TypeVar('_T')
 
+# Overload signatures for different initialization scenarios
+# Option(...)
+@overload
+def Option(
+        default: EllipsisType,
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> Any: ...
 
+# Option(default=_T)
+@overload
+def Option(
+        default: _T,
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> _T: ...
+
+# Option(default_factory=callable)
+@overload
 def Option(
         *,
+        default_factory: Callable[[], _T] | Callable[[dict[str, Any]], _T],
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> _T: ...
+
+# Option()
+@overload
+def Option(
+        *,
+        name: str | None = _Unset,
+        desc: str | None = _Unset,
+        examples: list[Any] | None = _Unset,
+        alias: str | None = _Unset,
+        exclude: bool | None = _Unset,
+        repr: bool = _Unset,
+        deprecated: Deprecated | str | bool | None = _Unset,
+        validate_default: bool | None = _Unset,
+        choices: Iterable[Any] | None = _Unset,
+        gt: SupportsGt | None = _Unset,
+        ge: SupportsGe | None = _Unset,
+        lt: SupportsLt | None = _Unset,
+        le: SupportsLe | None = _Unset,
+        multiple_of: float | None = _Unset,
+        allow_inf_nan: bool | None = _Unset,
+        max_digits: int | None = _Unset,
+        decimal_places: int | None = _Unset,
+        length: int | None = _Unset,
+        min_length: int | None = _Unset,
+        max_length: int | None = _Unset,
+        regex: str | re.Pattern[str] | None = _Unset,
+        path_exists: bool | None = _Unset,
+        path_is_file: bool | None = _Unset,
+        path_is_dir: bool | None = _Unset,
+        path_is_absolute: bool | None = _Unset,
+        cast_as: type | Callable | None = _Unset,
+        validator: _Validator | Iterable[_Validator] | None = _Unset,
+        strict: bool | None = _Unset,
+        formatter: Callable | None = _Unset,
+        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+) -> Any: ...
+
+def Option(
+        default: Any = PydanticUndefined,
+        *,
         # Default value
-        default: Any | None = PydanticUndefined,
-        default_factory: Callable[[], Any] | Callable[
-            [dict[str, Any]], Any] | None = _Unset,
+        default_factory: Callable[[], Any] | Callable[[dict[str, Any]], Any] | \
+                         None = _Unset,
         # Metadata
         name: str | None = _Unset,
         desc: str | None = _Unset,
@@ -49,7 +206,7 @@ def Option(
         deprecated: Deprecated | str | bool | None = _Unset,  # deprecation message
         # Validation
         validate_default: bool | None = _Unset,  # validate default value
-        choices: str | tuple[Any, ...] | None = _Unset,  # iterable of choices
+        choices: Iterable[Any] | None = _Unset,  # iterable of choices
         #  for numbers
         gt: SupportsGt | None = _Unset,  # greater than
         ge: SupportsGe | None = _Unset,  # greater than or equal to
@@ -130,9 +287,6 @@ def Option(
         custom validation and metadata handling.
     :raises ValueError: If neither ``default`` nor ``default_factory`` is provided.
     """
-    if default is PydanticUndefined and default_factory is _Unset:
-        raise ValueError('Either \'default\' or \'default_factory\' must be provided')
-
     if extra is _Unset:
         extra = {}
 
@@ -140,7 +294,9 @@ def Option(
     if any([v is not _Unset for v in (length, choices, path_exists, path_is_file,
                                       path_is_dir, path_is_absolute, cast_as,
                                       validator)]):
-        extra['validators'] = []
+        # Ensure we don't overwrite existing validators
+        if not isinstance(extra.get('validators', None), list):
+            extra['validators'] = []
     # Before validators
     if cast_as is not _Unset:
         extra['validators'].append(CastAsValidator(cast_as))
@@ -149,14 +305,14 @@ def Option(
         extra['validators'].append(LengthValidator(length))
     if choices is not _Unset:
         extra['validators'].append(ChoicesValidator(choices))
-    if path_exists is not _Unset:
-        extra['validators'].append(PathExistsValidator)
-    if path_is_file is not _Unset:
-        extra['validators'].append(PathIsFileValidator)
-    if path_is_dir is not _Unset:
-        extra['validators'].append(PathIsDirValidator)
-    if path_is_absolute is not _Unset:
-        extra['validators'].append(PathIsAbsoluteValidator)
+    if path_exists is not _Unset and path_exists:
+        extra['validators'].append(PathExistsValidator())
+    if path_is_file is not _Unset and path_is_file:
+        extra['validators'].append(PathIsFileValidator())
+    if path_is_dir is not _Unset and path_is_dir:
+        extra['validators'].append(PathIsDirValidator())
+    if path_is_absolute is not _Unset and path_is_absolute:
+        extra['validators'].append(PathIsAbsoluteValidator())
     # Either before or after validators
     if validator is not _Unset:
         validators = []
@@ -205,6 +361,10 @@ def Option(
     return f
 
 
+_TOML_SKIP = object()
+"""Marks values that are left out of a TOML file (None, since TOML has no null)."""
+
+
 class Options(BaseModel):
     """
     Base class for storing various configuration options. This class provides
@@ -245,7 +405,10 @@ class Options(BaseModel):
                 if alias and alias in data and name not in data:
                     # Swap the alias key with the original name
                     data[name] = data.pop(alias)
-        super().__init__(**data)
+        try:
+            super().__init__(**data)
+        except ValidationError as e:
+            raise OptionsValidationError(e, type(self).__name__) from e
 
     @staticmethod
     def _get_envvar(data: Any) -> Any:
@@ -427,9 +590,10 @@ class Options(BaseModel):
             # Check for parsing of environment variables
             parse_env = data._parse_env
         else:
-            raise TypeError(f'Invalid data type for validation, expected '
-                            f'{dict.__class__.__name__} or {cls.__class__.__name__}'
-                            f'but got {type(data)} instead')
+            # Let Pydantic's own pipeline deal with data that are neither a dict nor
+            #  a model instance. This deals properly with custom before validators
+            #  implemented by the models themselves
+            return handler(data)
 
         # Apply before validators for raw data only
         if mode == 'dict':
@@ -464,7 +628,7 @@ class Options(BaseModel):
 
             # Check for environment variables in fields that were instantiated with
             #   `default` or `default_value` and no actual value
-            #   NOTE: this skips the before validators
+            #   NB: this skips the before validators
             if parse_env:
                 new_value = cls._get_envvar(value)
                 if new_value is value:
@@ -568,6 +732,18 @@ class Options(BaseModel):
         except ValidationError as e:
             raise e
 
+    @classmethod
+    def model_validate(cls, obj: Any, *, strict: bool | None = None, extra: ExtraValues | None = None,
+                       from_attributes: bool | None = None, context: Any | None = None, by_alias: bool | None = None,
+                       by_name: bool | None = None):
+        try:
+            return super().model_validate(
+                obj, strict=strict, extra=extra, from_attributes=from_attributes, context=context, by_alias=by_alias,
+                by_name=by_name
+            )
+        except ValidationError as e:
+            raise OptionsValidationError(e, cls.__name__) from e
+
     def to_dict(self, by_alias: bool = True) -> dict[str, Any]:
         """
         Convert the |Options| to a dictionary. Nested |Options| objects will be
@@ -587,7 +763,7 @@ class Options(BaseModel):
         :param data: Dictionary containing the values to create the config with.
         :return: An |Options| object.
         """
-        return cls(**data)
+        return cls.model_validate(data)
 
     def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
                 keep_file_ext: bool = False, indent: Optional[int] = 4,
@@ -632,67 +808,101 @@ class Options(BaseModel):
         :raises json.JSONDecodeError: If the JSON is invalid.
         :raises FileNotFoundError: If the file does not exist.
         """
-        data = {}
         if isinstance(s, str):
-            # Check if the string is a valid TOML
+            # Try parsing as a JSON string first
             try:
-                data = json.loads(s)
-            except json.JSONDecodeError as e:
-                # If not, check if it's an existing file path
+                return cls.model_validate_json(s)
+            except (json.JSONDecodeError, ValueError):
+                # Not a valid JSON string — treat as a file path
                 s = Path(s)
                 if not s.exists():
-                    # It was probably an invalid JSON string
-                    raise e
-                else:
-                    pass
-        # If data is still empty, then try interpreting s as a file
-        if not data:
-            s = Path(s)
-            if not s.exists():
-                raise FileNotFoundError(f'File not found: {s}')
-            data = json.loads(s.read_text())
-        return cls.from_dict(data)
+                    raise FileNotFoundError(f'File not found: {s}')
+        s = Path(s)
+        if not s.exists():
+            raise FileNotFoundError(f'File not found: {s}')
+        return cls.model_validate_json(s.read_text())
 
-    def _field_to_comment_value(self, name: str, field: FieldInfo,
-                                keep_comments: bool = False) -> \
-            CommentValue | dict[str, Any]:
+    @staticmethod
+    def _toml_key(name: str, field: FieldInfo | ComputedFieldInfo) -> str:
         """
-        Cast a pydantic.FieldInfo to toml.CommentValue, where the comment is set to the
-        field's description
+        Key of a field in a TOML file: its serialization alias, if any, else its name.
+        """
+        if isinstance(field, FieldInfo) and field.serialization_alias:
+            return field.serialization_alias
+        if isinstance(field, ComputedFieldInfo) and field.alias:
+            return field.alias
+        return name
+
+    @classmethod
+    def _value_to_toml(cls, value: Any, field: FieldInfo | ComputedFieldInfo | None = None,
+                       keep_comments: bool = False, path: str = '') -> Any:
+        """
+        Convert a value to TOML data: nested |Options| and dictionaries to tables, iterables to lists (element-wise),
+        and anything else to a ``toml.CommentValue``, with the field's description as comment. Since TOML has no
+        null, ``None`` fields are returned as ``_TOML_SKIP``, so that they are left out (they then load as the
+        default of the field), while ``None`` inside dictionaries and iterables raises an error, since leaving it
+        out would change the data.
+
+        :param value: The value to convert.
+        :param field: The field of the value, for its serializer and description, or None for values inside
+            dictionaries and iterables.
+        :param keep_comments: Whether to include comments in the output.
+        :param path: Location of the value in the TOML data (e.g. ``table.key[0]``), for error messages.
+        :return: The TOML data, or ``_TOML_SKIP``.
+        :raises ValueError: If a dictionary or iterable contains ``None``.
+        """
+        # Apply serialization function
+        if field is not None and field.json_schema_extra and 'serializer' in field.json_schema_extra:
+            value = field.json_schema_extra['serializer'](value)
+
+        if value is None:
+            if field is None:
+                raise ValueError(f'Cannot serialize None at `{path}` to TOML, since TOML has no null. Use a '
+                                 f'formatter on the field that holds it to replace None with a placeholder.')
+            return _TOML_SKIP
+
+        # Nested Options: a table with one entry per field
+        if isinstance(value, Options):
+            table = {}
+            for name, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items():
+                key = cls._toml_key(name, vfield)
+                item = cls._value_to_toml(getattr(value, name), field=vfield, keep_comments=keep_comments,
+                                          path=f'{path}.{key}' if path else key)
+                if item is not _TOML_SKIP:
+                    table[key] = item
+            return table
+
+        # Dictionaries: a table with one entry per key (keys must be strings in TOML)
+        if isinstance(value, dict):
+            return {str(key): cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}')
+                    for key, v in value.items()}
+
+        # Iterables: cast to lists, since TOML doesn't differentiate
+        if isinstance(value, (list, tuple, set, frozenset, TypedIterable)):
+            return [cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]')
+                    for i, v in enumerate(value)]
+
+        comment = f'# {field.description}' if field is not None and field.description and keep_comments else ''
+        return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
+
+    def _field_to_comment_value(self, name: str, field: FieldInfo | ComputedFieldInfo,
+                                keep_comments: bool = False) -> Any:
+        """
+        Convert a field to TOML data, see ``_value_to_toml()``.
 
         :param name: Name of the field.
         :param field: FieldInfo object.
         :param keep_comments: Whether to include comments in the output.
-        :return: A CommentValue object or a dictionary of nested CommentValue objects.
+        :return: A CommentValue, a (nested) dictionary or a list, or ``_TOML_SKIP`` for None.
         """
-        # Check if the field is a valid pydantic field
-        if name not in self.__pydantic_fields__:
-            raise KeyError(f'Field {name!r} not defined')
-
-        # Check if the field is another Options object
-        value = getattr(self, name)
-        if isinstance(value, Options):
-            # Recursively convert nested Options objects to CommentValue
-            return {vname: value._field_to_comment_value(name=vname, field=vfield,
-                                                         keep_comments=keep_comments)
-                    for vname, vfield in value.__pydantic_fields__.items()}
-
-        # Prepare comment
-        comment = f'# {field.description}' if field.description and keep_comments else ''
-
-        # Apply serialization function
-        if field.json_schema_extra:
-            if 'serializer' in field.json_schema_extra:
-                serializer = field.json_schema_extra['serializer']
-                value = serializer(value)
-
-        return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
+        return self._value_to_toml(getattr(self, name), field=field, keep_comments=keep_comments)
 
     def to_toml(self, filename: Optional[str | Path] = None, comments: bool = False,
                 overwrite: bool = False, keep_file_ext: bool = False) -> str | Path:
         """
         Write the |Options| to a TOML file. If ``filename`` is not provided, then the
-        TOML will be returned as a string.
+        TOML will be returned as a string. Fields that are None are left out, since TOML
+        has no null; they load as the default of the field.
 
         :param filename: Optional output path for the TOML file.
         :param comments: Include comments in the TOML file.
@@ -701,15 +911,8 @@ class Options(BaseModel):
         :return: Either the TOML string or the output path.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
-        # Cast all fields to toml.CommentValue
-        data = {}
-        for name, field in self.__pydantic_fields__.items():
-            alias = name
-            # Ensure serialization aliases are kept
-            if field.serialization_alias:
-                alias = field.serialization_alias
-            data[alias] = self._field_to_comment_value(name=name, field=field,
-                                                       keep_comments=comments)
+        # Cast all fields to toml.CommentValue (nested Options and dicts to tables)
+        data = self._value_to_toml(self, keep_comments=comments)
 
         # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
@@ -761,3 +964,139 @@ class Options(BaseModel):
                 raise FileNotFoundError(f'File not found: {s}')
             data = toml.loads(s.read_text(), decoder=decoder)
         return cls.from_dict(data)
+
+
+class LegacyOptions(Options, abc.ABC):
+
+    _version_path: ClassVar[str] = None
+
+    def __init_subclass__(cls, **kwargs):
+        if cls._version_path is None:
+            raise ValueError(f'{cls.__name__} must define a `_version_path`')
+
+    @abc.abstractmethod
+    def upgrade(self) -> VersionedOptions:
+        raise NotImplementedError
+
+
+class VersionedOptions(Options):
+
+    _version_path: ClassVar[str] = None
+    _legacy_versions: ClassVar[dict[tuple[int, int, int], type[LegacyOptions]]] = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        cls._legacy_versions = {}
+        # if cls._version_path is None:
+        #     raise ValueError(f'{cls.__name__} must define a `_version_path`')
+
+    @classmethod
+    def register_legacy(cls, up_to: VersionInfo | str):
+        version = VersionInfo.from_value(up_to)
+
+        def decorator(legacy_cls: type[LegacyOptions]) -> type[LegacyOptions]:
+            if not (isinstance(legacy_cls, type) and issubclass(legacy_cls, LegacyOptions)):
+                raise TypeError(f'{legacy_cls.__name__} must be a subclass of {LegacyOptions.__name__} '
+                                f'to be registered as a legacy model of {cls.__name__}')
+
+            if version.tuple_safe in cls._legacy_versions:
+                raise ValueError(f'{cls.__name__} already has a legacy model for version `{version}`')
+
+            cls._legacy_versions[version.tuple_safe] = legacy_cls
+            return legacy_cls
+
+    @classmethod
+    def legacy_versions(cls) -> dict[tuple[int, int, int], type[LegacyOptions]]:
+        return dict(sorted(cls._legacy_versions.items()))
+
+    @classmethod
+    def _get_legacy_model(cls, version: VersionInfo) -> type[LegacyOptions] | None:
+        version_tuple = version.tuple_safe
+        for v, legacy_cls in cls.legacy_versions().items():
+            if v <= version_tuple:
+                return legacy_cls
+        return None
+
+    @classmethod
+    def _resolve_version(cls, data: dict) -> VersionInfo:
+
+        def get_nested_value(data_: dict, path_: str) -> Any:
+            node = data_
+            for part in path_.split('.'):
+                if not isinstance(node, dict) or part not in node:
+                    raise KeyError(f'Could not find key `{part}` in the data at path `{path_}`')
+                node = node[part]
+            return node
+
+        candidate_paths: list[str] = [cls._version_path]
+        for _, legacy_cls in cls.legacy_versions().items():
+            path = legacy_cls._version_path
+            if path not in candidate_paths:
+                candidate_paths.append(path)
+
+        for path in candidate_paths:
+            try:
+                version_str = get_nested_value(data, path)
+                return VersionInfo.from_value(version_str)
+            except KeyError:
+                continue
+        raise KeyError(f'Could not find version information in the data. Checked paths: {", ".join(candidate_paths)}')
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], upgrade: bool = False) -> Self | LegacyOptions:
+        version = cls._resolve_version(data)
+        if version.tuple_safe > xtl_version.tuple_safe:
+            logger.warning('%(model_cls) version is %(version)s, which is newer than the current XTL version '
+                           '%(xtl_version)s.',
+                           {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version})
+
+        legacy_cls = cls._get_legacy_model(version)
+        if legacy_cls is None:
+            return super().from_dict(data)
+
+        legacy = legacy_cls.from_dict(data)
+        if not upgrade:
+            return legacy
+
+        upgraded = legacy.upgrade()
+        if not isinstance(upgraded, cls):
+            raise TypeError(f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
+                            f'got {type(upgraded).__name__}')
+        return upgraded
+
+    @classmethod
+    def from_json(cls, s: str | Path, upgrade: bool = False) -> Self | LegacyOptions:
+        if isinstance(s, str):
+            try:
+                data = json.loads(s)
+            except json.JSONDecodeError:
+                # Not a valid JSON string, treat as a file path
+                path = Path(s)
+                if not path.exists():
+                    raise FileNotFoundError(f'File not found: {path}')
+                data = json.loads(path.read_text())
+        else:
+            path = Path(s)
+            if not path.exists():
+                raise FileNotFoundError(f'File not found: {path}')
+            data = json.loads(path.read_text())
+
+        version = cls._resolve_version(data)
+        if version.tuple_safe > xtl_version.tuple_safe:
+            logger.warning('%(model_cls) version is %(version)s, which is newer than the current XTL version '
+                           '%(xtl_version)s.',
+                           {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version})
+
+        legacy_cls = cls._get_legacy_model(version)
+        if legacy_cls is None:
+            return super().from_json(s)
+
+        legacy = legacy_cls.from_json(s)
+        if not upgrade:
+            return legacy
+
+        upgraded = legacy.upgrade()
+        if not isinstance(upgraded, cls):
+            raise TypeError(f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
+                            f'got {type(upgraded).__name__}')
+        return upgraded

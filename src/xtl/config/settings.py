@@ -3,17 +3,20 @@ This module defines a set of :class:`Options <xtl.common.options.Options>` `Pyda
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """
-
+from __future__ import annotations
 from pathlib import Path
-from pprint import pprint
 from typing import ClassVar, Optional
 
 from pydantic import PrivateAttr
 
+from xtl import Logger
+logger = Logger(__name__)
+
 from xtl import version as current_version
 from xtl.automate import ComputeSite
-from xtl.config.version import version_from_str
-from xtl.common.os import FilePermissions
+from xtl.jobs.sites import ComputeSite as ComputeSite2
+from xtl.config.version import VersionInfo
+from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
@@ -48,6 +51,9 @@ class Settings(Options):
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
 
+    # Make Settings hashable so that it can be used in sets or as dict keys
+    __hash__ = object.__hash__
+
 
 class UnitsSettings(Settings):
     """
@@ -65,17 +71,32 @@ class AutomatePermissionsSettings(Settings):
     """
 
     # Model attributes
-    update: bool = Option(default=False,
-                          desc='Update permissions of the output files '
-                               'after execution of external jobs')
-    files: FilePermissions = Option(default=FilePermissions(0o600),
-                                    desc='Permissions octal for files',
-                                    cast_as=FilePermissions,
-                                    formatter=PermissionOctal)
-    directories: FilePermissions = Option(default=FilePermissions(0o700),
-                                          desc='Permissions octal for directories',
-                                          cast_as=FilePermissions,
-                                          formatter=PermissionOctal)
+    update: bool = \
+        Option(
+            default=False,
+            desc='Update permissions of the output files after execution of external jobs'
+        )
+    scripts: FilePermissions = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions octal for scripts',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+    files: FilePermissions = \
+        Option(
+            default=FilePermissions(0o600),
+            desc='Permissions octal for files',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
+    directories: FilePermissions = \
+        Option(
+            default=FilePermissions(0o700),
+            desc='Permissions octal for directories',
+            cast_as=FilePermissions,
+            formatter=PermissionOctal
+        )
 
 
 class AutomateSettings(Settings):
@@ -84,9 +105,97 @@ class AutomateSettings(Settings):
     """
 
     # Model attributes
-    compute_site: ComputeSite = Option(default=ComputeSite.LOCAL)
-    permissions: AutomatePermissionsSettings = Option(
-        default=AutomatePermissionsSettings())
+    job_digits: int = \
+        Option(
+            default=5,
+            desc='Number of digits to use for generation of random job IDs'
+        )
+    compute_site: ComputeSite = \
+        Option(
+            default=ComputeSite.LOCAL,
+            desc='Default compute site for job execution'
+        )
+    permissions: AutomatePermissionsSettings = \
+        Option(
+            default=AutomatePermissionsSettings()
+        )
+    keep_temp: bool = \
+        Option(
+            default=False,
+            desc='Keep temporary files after job execution'
+        )
+
+
+class ResourcesSettings(Settings):
+    """
+    Resource settings for jobs
+    """
+
+    # Model attributes
+    max_jobs: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of jobs to run concurrently in a pool'
+        )
+    max_threads: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of threads to use for job execution'
+        )
+    max_processes: int = \
+        Option(
+            default=CPU_CORES,
+            desc='Maximum number of processes to use for job execution'
+        )
+
+
+class JobsSettings(Settings):
+    """
+    Settings for jobs in :mod:`xtl.jobs`
+    """
+
+    # Model attributes
+    job_digits: int = \
+        Option(
+            default=5,
+            desc='Number of digits to use for generation of random job IDs'
+        )
+
+    compute_site: ComputeSite2 = \
+        Option(
+            default=ComputeSite2.LOCAL,
+            desc='Default compute site for job execution'
+        )
+
+    keep_temp: bool = \
+        Option(
+            default=False,
+            desc='Keep temporary files after job execution'
+        )
+
+    tracebacks: bool = \
+        Option(
+            default=False,
+            desc='Whether to include tracebacks in job logs when exceptions occur'
+        )
+
+    threading_debug: bool = \
+        Option(
+            default=False,
+            desc='Enable thread and process names in job logs for debugging concurrency issues'
+        )
+
+    permissions: AutomatePermissionsSettings = \
+        Option(
+            default=AutomatePermissionsSettings(),
+            desc='Permissions settings for jobs'
+        )
+
+    resources: ResourcesSettings = \
+        Option(
+            default=ResourcesSettings(),
+            desc='Default resource settings for job execution'
+        )
 
 
 class DependencySettings(Settings):
@@ -95,14 +204,25 @@ class DependencySettings(Settings):
     """
 
     # Model attributes
-    path: Optional[Path] = Option(default=None,
-                                  desc='Directory containing binaries',
-                                  validator=CastAsNoneIfEmpty())
-    # TODO: Enable when ModuleSite is implemented
-    modules: Optional[list[str]] = Option(default=None,
-                                          desc='Modules that provide the dependency',
-                                          validator=CastAsNoneIfEmpty(),
-                                          exclude=True)
+    provides: set[str] = \
+        Option(
+            default_factory=set,
+            desc='List of executables provided by this dependency',
+            exclude=True
+        )
+
+    path: Optional[Path] = \
+        Option(
+            default=None,
+            desc='Directory containing binaries',
+            validator=CastAsNoneIfEmpty()
+        )
+
+    modules: set[str] = \
+        Option(
+            default_factory=set,
+            desc='Modules that provide the dependency'
+        )
 
 
 class DependenciesSettings(Settings):
@@ -111,7 +231,21 @@ class DependenciesSettings(Settings):
     """
 
     # Model attributes
-    autoproc: DependencySettings = Option(default=DependencySettings())
+    resolution: str = \
+        Option(
+            default='loose',
+            choices={'strict', 'loose'},
+            desc='Dependency resolution strategy. '
+                 'If "strict", jobs requiring missing dependencies will fail to run. '
+                 'If "loose", missing dependencies will be ignored.'
+        )
+
+    autoproc: DependencySettings = \
+        Option(
+            default=DependencySettings(
+                provides={'process', 'process_wf'}
+            )
+        )
 
 
 class CLIAutoprocSettings(Settings):
@@ -147,6 +281,12 @@ class CLISettings(Settings):
     # Model attributes
     format: CLIConsoleFormatSettings = Option(default=CLIConsoleFormatSettings())
     autoproc: CLIAutoprocSettings = Option(default=CLIAutoprocSettings())
+
+    max_fps: int = \
+        Option(
+            default=10, gt=1, lt=60,
+            desc='Maximum refreshes (per s) for live console elements'
+        )
 
 
 class XTLSettings(Settings):
@@ -185,6 +325,9 @@ class XTLSettings(Settings):
     automate: AutomateSettings = Option(default=AutomateSettings())
     """Settings for the :mod:`xtl.automate` module"""
 
+    jobs: JobsSettings = Option(default=JobsSettings())
+    """Settings for jobs in :mod:`xtl.jobs`"""
+
     dependencies: DependenciesSettings = Option(default=DependenciesSettings())
     """Settings for external tools and dependencies used by XTL"""
 
@@ -203,40 +346,36 @@ class XTLSettings(Settings):
 
         :return: An instance of :class:`XTLSettings`
         """
-        # TODO: Change all print statements to use a proper logging system when
-        #  implemented
         if cls.local_config.exists():
-            print(f'Reading local config: {cls.local_config}')
+            logger.info('Reading local config: %(local_config)s',
+                        {'local_config': cls.local_config})
             _settings = cls.from_toml(cls.local_config)
             _settings._file = cls.local_config
         elif cls.global_config.exists():
-            print(f'Reading global config: {cls.global_config}')
+            logger.info('Reading global config: %(global_config)s',
+                        {'global_config': cls.global_config})
             _settings = cls.from_toml(cls.global_config)
             _settings._file = cls.global_config
         else:
-            print(f'No local or global {cls._toml} found, initializing with defaults.')
+            logger.info('Initializing with default settings (no %(toml)s was found)',
+                        {'toml': cls._toml})
             _settings = cls()
-            try:
-                _settings.to_toml(filename=cls.global_config, comments=True)
-                print(f'Saved as global config: {cls.global_config}')
-            except Exception as e:
-                raise Exception(f'Failed to save global config: '
-                                f'{cls.global_config}') from e
 
         # Check settings version
-        _v = version_from_str(_settings.version)
+        _v = VersionInfo.from_str(_settings.version)
         if _v.tuple_safe < current_version.tuple_safe:
-            print(f'Using settings from an older version of XTL ({_v.string}).')
+            logger.warning('Using settings from an older version of XTL %(version)s.',
+                           {'version': _v.string})
         elif _v.tuple_safe > current_version.tuple_safe:
-            print(f'Using settings from a future version of XTL ({_v.string}). '
-                  f'XTL might not behave as intended. Use at your own risk!')
+            logger.warning('Using settings from a newer version of XTL %(version)s. '
+                           'XTL might not behave as intended. Use at your own risk!',
+                           {'version': _v.string})
 
         # Check for extra keys in the nested Options
         extra = _settings.__pydantic_extra__ or dict()
         extra.update(_get_extra_keys(_settings))
         if extra:
-            print(f'Warning: Found unknown keys in the config file:')
-            pprint(extra)
-            print('These keys where ignored during initialization.')
+            logger.warning('Found and ignored unknown keys in the config file',
+                           extra=extra)
 
         return _settings

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from enum import IntEnum
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 
 
 class ReleaseLevel(IntEnum):
@@ -22,7 +24,7 @@ class ReleaseLevel(IntEnum):
     """Final version, ready for production use."""
 
 
-@dataclass
+@dataclass(frozen=True)
 class VersionInfo:
     """
     Dataclass to hold version information.
@@ -107,78 +109,93 @@ class VersionInfo:
         return self.string
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__name__}("{self.string}", hex="{self.hex}", '
-                f'date="{self.release_date}")')
+        return (f'{self.__class__.__name__}({self.string!r}, hex={self.hex!r}, '
+                f'date={self.release_date!r})')
 
+    @classmethod
+    def from_str(cls, version_str: str, date_str: str | None = None) -> VersionInfo:
+        """
+        Create a VersionInfo object from a version string.
+        """
+        parts = version_str.split('.')
+        major = int(parts[0])
+        minor = int(parts[1])
 
-def version_from_str(version_str: str, date_str: str = None) -> VersionInfo:
-    """
-    Create a VersionInfo object from a version string.
-    """
-    parts = version_str.split('.')
-    major = int(parts[0])
-    minor = int(parts[1])
+        i = 0
+        for i in range(len(parts[2])):
+            if not parts[2][i].isdigit():
+                break
+        if i == 0:
+            raise ValueError('Invalid version string. '
+                             'Expected {MAJOR}.{MINOR}.{MICRO}{LEVEL}{SERIAL} but did not '
+                             'find {LEVEL}')
 
-    i = 0
-    for i in range(len(parts[2])):
-        if not parts[2][i].isdigit():
-            break
-    if i == 0:
-        raise ValueError('Invalid version string. '
-                         'Expected {MAJOR}.{MINOR}.{MICRO}{LEVEL}{SERIAL} but did not '
-                         'find {LEVEL}')
+        micro = int(parts[2][:i])
 
-    micro = int(parts[2][:i])
+        level_bit = parts[2][i]
+        if level_bit == 'a':
+            level, serial = ReleaseLevel.ALPHA, int(parts[2][i + 1:])
+        elif level_bit == 'b':
+            level, serial = ReleaseLevel.BETA, int(parts[2][i + 1:])
+        elif level_bit == 'g':
+            level, serial = ReleaseLevel.GAMMA, int(parts[2][i + 1:])
+        elif level_bit == 'r':
+            level, serial = ReleaseLevel.RC, int(parts[2][i + 2:])
+        elif level_bit == 'f':
+            level, serial = ReleaseLevel.FINAL, int(parts[2][i + 5:])
+        elif level_bit == 'd':
+            level, serial = ReleaseLevel.DEV, int(parts[2][i + 3:])
+        else:
+            raise ValueError(f'Invalid version string. Unknown level: {level_bit}')
 
-    level_bit = parts[2][i]
-    if level_bit == 'a':
-        level, serial = ReleaseLevel.ALPHA, int(parts[2][i + 1:])
-    elif level_bit == 'b':
-        level, serial = ReleaseLevel.BETA, int(parts[2][i + 1:])
-    elif level_bit == 'g':
-        level, serial = ReleaseLevel.GAMMA, int(parts[2][i + 1:])
-    elif level_bit == 'r':
-        level, serial = ReleaseLevel.RC, int(parts[2][i + 2:])
-    elif level_bit == 'f':
-        level, serial = ReleaseLevel.FINAL, int(parts[2][i + 5:])
-    elif level_bit == 'd':
-        level, serial = ReleaseLevel.DEV, int(parts[2][i + 3:])
-    else:
-        raise ValueError(f'Invalid version string. Unknown level: {level_bit}')
+        if date_str is not None:
+            date = datetime.strptime(date_str, '%d/%m/%Y')
+        else:
+            date = None
+        return cls(major=major, minor=minor, micro=micro, level=level,
+                   serial=serial, date=date)
 
-    if date_str is not None:
-        date = datetime.strptime(date_str, '%d/%m/%Y')
-    else:
-        date = None
-    return VersionInfo(major=major, minor=minor, micro=micro, level=level,
-                       serial=serial, date=date)
+    @classmethod
+    def from_hex(cls, hex_str: str, date_str: str | None = None) -> VersionInfo:
+        """
+        Create a VersionInfo object from a 32-bit hexadecimal string.
+        """
+        h = int(hex_str, 16)
+        major = (h >> 24) & 0xff
+        minor = (h >> 16) & 0xff
+        micro = (h >> 8) & 0xff
+        level = ReleaseLevel((h >> 4) & 0xf)
+        serial = h & 0xf
+        if date_str is not None:
+            date = datetime.strptime(date_str, '%d/%m/%Y')
+        else:
+            date = None
+        return cls(major=major, minor=minor, micro=micro, level=level,
+                   serial=serial, date=date)
 
-
-def version_from_hex(hex_str: str, date_str: str = None) -> VersionInfo:
-    """
-    Create a VersionInfo object from a 32-bit hexadecimal string.
-    """
-    h = int(hex_str, 16)
-    major = (h >> 24) & 0xff
-    minor = (h >> 16) & 0xff
-    micro = (h >> 8) & 0xff
-    level = ReleaseLevel((h >> 4) & 0xf)
-    serial = h & 0xf
-    if date_str is not None:
-        date = datetime.strptime(date_str, '%d/%m/%Y')
-    else:
-        date = None
-    return VersionInfo(major=major, minor=minor, micro=micro, level=level,
-                       serial=serial, date=date)
+    @classmethod
+    def from_value(cls, value: str | dict | VersionInfo) -> VersionInfo:
+        if isinstance(value, VersionInfo):
+            return value
+        elif isinstance(value, dict):
+            return cls(**value)
+        elif isinstance(value, str):
+            try:
+                int(value, 16)
+                return cls.from_hex(value)
+            except ValueError:
+                return cls.from_str(value)
+        else:
+            raise TypeError(f'Cannot convert {value!r} to {cls.__name__!r}')
 
 
 # Unique place for version definition
 version = VersionInfo(
     major=0,
-    minor=1,
+    minor=2,
     micro=0,
-    level=ReleaseLevel.RC,
-    serial=1,  # < 16
+    level=ReleaseLevel.DEV,
+    serial=0,  # < 16
     date=datetime(year=2025, month=6, day=1),
 )
 """XTL version information"""

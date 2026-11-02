@@ -1,5 +1,7 @@
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field
+from numbers import Number
 from pathlib import Path
 from typing import (List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple,
                     Callable, Set)
@@ -84,13 +86,17 @@ class Table:
     def __init__(self, data: Optional[List[List[Any]]] = None, *,
                  headers: Optional[List[str]] = None,
                  missing_values: MissingValueConfig | Any = XTLUndefined,
-                 missing_value_repr: Any = None):
+                 missing_value_repr: Any = None,
+                 formats: Optional[Dict[Union[str, int], str]] = None):
         """Initialize a Table object.
 
         :param data: Optional data as a list of rows
         :param headers: Optional list of column names
         :param missing_values: Values to consider as missing
         :param missing_value_repr: Value to use for missing data when outputting
+        :param formats: Optional mapping of column names (or indices) to Python format
+            strings used when rendering the table. Either a format spec (e.g.
+            ``'.2f'``, ``'>8,d'``) or a full format string (e.g. ``'{:.1f} keV'``)
         """
         self._headers = list(headers) if headers is not None else []
         self._data = []
@@ -99,6 +105,12 @@ class Table:
         self.default_missing_value: Any = None
         self._missing: MissingValueConfig
         self._set_missing(value=missing_values, value_repr=missing_value_repr)
+
+        # Handle column formats
+        self._formats: Dict[Union[str, int], str] = {}
+        if formats:
+            for col, fmt in formats.items():
+                self.set_format(col, fmt)
 
         # Process initial data if provided
         if data:
@@ -169,6 +181,139 @@ class Table:
             return self._missing.to_repr(value)
         return value
 
+    def _format_key(self, col: Union[str, int]) -> Union[str, int]:
+        """Resolve the key under which the format of a column is stored. Tables with
+        headers store formats by column name, tables without headers by column index."""
+        if isinstance(col, str):
+            if col not in self._headers:
+                raise KeyError(f'Column {col!r} does not exist')
+            return col
+        if isinstance(col, int):
+            if not self._headers:
+                return col
+            try:
+                return self._headers[col]
+            except IndexError:
+                raise IndexError(f'Column index {col} is out of bounds')
+        raise TypeError(f'Column must be a name or an index, not {type(col).__name__}')
+
+    @property
+    def formats(self) -> Dict[Union[str, int], str]:
+        """Get the column formats used when rendering the table.
+
+        :return: A copy of the column formats
+        """
+        return dict(self._formats)
+
+    def set_format(self, col: Union[str, int], fmt: Optional[str]):
+        """Set the format of a column used when rendering the table.
+
+        :param col: Column name or index
+        :param fmt: Python format spec (e.g. ``'.2f'``) or full format string (e.g.
+            ``'{:.1f} keV'``). Use ``None`` to clear the format.
+        :raises KeyError: If the column name does not exist
+        :raises TypeError: If the format is not a string
+        """
+        key = self._format_key(col)
+        if fmt is None:
+            self._formats.pop(key, None)
+            return
+        if not isinstance(fmt, str):
+            raise TypeError(f'Format must be a string, not {type(fmt).__name__}')
+        self._formats[key] = fmt
+
+    def get_format(self, col: Union[str, int]) -> Optional[str]:
+        """Get the format of a column.
+
+        :param col: Column name or index
+        :return: The format string or None if the column has no format
+        """
+        return self._formats.get(self._format_key(col))
+
+    def _get_format(self, col_idx: int) -> Optional[str]:
+        """Get the format of a column by index, without validation."""
+        if self._headers:
+            if col_idx >= len(self._headers):
+                return None
+            return self._formats.get(self._headers[col_idx])
+        return self._formats.get(col_idx)
+
+    def _subset_formats(self, col_indices: Iterable[int],
+                        headers: Optional[List[str]] = None) -> Dict[Union[str, int], str]:
+        """Get the formats of a subset of columns, keyed for a new table.
+
+        :param col_indices: Indices of the columns in this table
+        :param headers: Headers of the new table (defaults to the headers of the selected
+            columns)
+        :return: Formats keyed by the new column names, or by the new column indices if
+            there are no headers
+        """
+        col_indices = list(col_indices)
+        if headers is None and self._headers:
+            headers = [self._headers[i] for i in col_indices]
+        formats = {}
+        for j, i in enumerate(col_indices):
+            fmt = self._get_format(i)
+            if fmt is not None:
+                formats[headers[j] if headers else j] = fmt
+        return formats
+
+    def _format_cell(self, col_idx: int, value: Any) -> str:
+        """Convert a value to a string for output, applying the column format. Missing
+        values are never formatted. If the format cannot be applied to the value, then
+        ``str(value)`` is returned instead."""
+        if isinstance(value, MissingValue):
+            return str(self._missing.to_repr(value))
+        fmt = self._get_format(col_idx)
+        if fmt is None:
+            return str(value)
+        try:
+            if '{' in fmt:
+                return fmt.format(value)
+            return format(value, fmt)
+        except (ValueError, TypeError, IndexError, KeyError):
+            return str(value)
+
+    @staticmethod
+    def _spec_align(fmt: str) -> Optional[str]:
+        """Extract the alignment character from a format spec or the first replacement
+        field of a format string."""
+        if '{' in fmt:
+            match = re.search(r'\{[^{}:]*:([^{}]*)\}', fmt)
+            if not match:
+                return None
+            fmt = match.group(1)
+        if len(fmt) >= 2 and fmt[1] in '<>^=':
+            return fmt[1]
+        if fmt and fmt[0] in '<>^=':
+            return fmt[0]
+        return None
+
+    def _col_align(self, col_idx: int) -> str:
+        """Get the alignment of a column (``'<'``, ``'>'`` or ``'^'``). Unformatted
+        columns are left-aligned. Formatted columns use the alignment of the format, or
+        default to right-aligned if the column contains numbers and left-aligned
+        otherwise."""
+        fmt = self._get_format(col_idx)
+        if fmt is None:
+            return '<'
+        align = self._spec_align(fmt)
+        if align is not None:
+            return '>' if align == '=' else align
+        if any(isinstance(row[col_idx], Number) and not isinstance(row[col_idx], bool)
+               for row in self._data):
+            return '>'
+        return '<'
+
+    @staticmethod
+    def _pad(s: str, width: int, align: str) -> str:
+        """Pad a string to the given width with the given alignment."""
+        if align == '>':
+            return s.rjust(width)
+        if align == '^':
+            return s.center(width)
+        return s.ljust(width)
+
     @property
     def headers(self) -> List[str]:
         """Get the column headers.
@@ -186,7 +331,14 @@ class Table:
         """
         if len(self._data) > 0 and len(headers) != len(self._data[0]):
             raise ValueError('Number of headers does not match row width')
+        # Re-key the column formats by position
+        n = min(len(headers), max(len(self._headers), self.no_cols))
+        formats = [self._get_format(i) for i in range(n)]
         self._headers = list(headers)
+        self._formats = {}
+        for i, fmt in enumerate(formats):
+            if fmt is not None:
+                self._formats[self._headers[i] if self._headers else i] = fmt
 
     @property
     def no_rows(self) -> int:
@@ -285,11 +437,12 @@ class Table:
             self._data.append(processed_row)
 
     def add_col(self, data: List[Any] | Dict[str, Any] | str = None, *,
-                col_name: Optional[str] = None):
+                col_name: Optional[str] = None, fmt: Optional[str] = None):
         """Append a new column to the table.
 
         :param data: The column data to append
         :param col_name: The name of the new column
+        :param fmt: Optional format of the new column (see :meth:`set_format`)
         :raises ValueError: If the number of values does not match the number of rows
         :raises ValueError: If the table has headers but no column name is provided
         """
@@ -327,6 +480,9 @@ class Table:
         for i, val in enumerate(processed_values):
             self._data[i].append(val)
 
+        if fmt is not None:
+            self.set_format(-1 if self._headers else self.no_cols - 1, fmt)
+
     def get_row(self, idx: int) -> List[Any]:
         """Get a row by index.
 
@@ -336,6 +492,17 @@ class Table:
 
     def get_col(self, idx: Union[str, int]) -> List[Any]:
         """Get a column by name or index.
+
+        :param idx: The column name or index
+        :raises KeyError: If the column name does not exist
+        :raises IndexError: If the column index is out of range
+        """
+        # Process output values to handle missing values
+        return [self._to_repr(v) for v in self._get_col_raw(idx)]
+
+    def _get_col_raw(self, idx: Union[str, int]) -> List[Any]:
+        """Get a column by name or index, keeping missing values as
+        :class:`MissingValue` instances.
 
         :param idx: The column name or index
         :raises KeyError: If the column name does not exist
@@ -356,8 +523,7 @@ class Table:
                     (not self._data and col_idx > 0):
                 raise IndexError(f'Column index {col_idx} out of range')
 
-        # Process output values to handle missing values
-        return [self._to_repr(row[col_idx]) for row in self._data]
+        return [row[col_idx] for row in self._data]
 
     def set_row(self, idx: int, row: List[Any]):
         """Set the data for a row at a given index.
@@ -419,8 +585,6 @@ class Table:
         :return: The table data as a dictionary
         """
         headers = self._headers if self._headers else list(range(len(self._data[0])))
-        print(headers)
-
         return {col: self.get_col(col) for col in headers}
 
     def to_numpy(self) -> 'numpy.ndarray':
@@ -459,22 +623,24 @@ class Table:
         except ModuleNotFoundError:
             raise ImportError('rich is not installed')
 
+        justify = {'<': 'left', '>': 'right', '^': 'center'}
         table = RichTable()
         if self._headers:
-            for col in self._headers:
-                table.add_column(col)
+            for i, col in enumerate(self._headers):
+                table.add_column(col, justify=justify[self._col_align(i)])
 
-        for row in self.data:
+        for row in self._data:
             if cast_as:
-                values = [cast_as(v) for v in row]
+                values = [cast_as(self._to_repr(v)) for v in row]
             else:
-                values = [str(v) if v else None for v in row]
+                values = [None if self._to_repr(v) is None
+                          else self._format_cell(i, v) for i, v in enumerate(row)]
             table.add_row(*values)
         return table
 
     def to_csv(self, filename: str | Path = None, delimiter: str = ',',
                new_line: str = '\n', header_char: str = '', overwrite: bool = False,
-               keep_file_ext: bool = False) -> str | Path:
+               keep_file_ext: bool = False, formatted: bool = True) -> str | Path:
         """Write the table to a CSV file. If ``filename`` is not provided, then the
         CSV will be returned as a string.
 
@@ -484,6 +650,7 @@ class Table:
         :param header_char: Character to prepend to the header line (e.g., '#').
         :param overwrite: Overwrite the file if it already exists.
         :param keep_file_ext: Keep the file extension if ``filename`` is provided.
+        :param formatted: Apply the column formats to the values (without padding).
         :return: Either the CSV string or the output path.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False
         """
@@ -495,8 +662,11 @@ class Table:
             result += header_char + delimiter.join(self._headers) + new_line
 
         for row in self._data:
-            for val in row:
-                result += str(self._to_repr(val)) + delimiter
+            for i, val in enumerate(row):
+                if formatted:
+                    result += self._format_cell(i, val).strip() + delimiter
+                else:
+                    result += str(self._to_repr(val)) + delimiter
             result = result[:-delimiter_len]  # Remove trailing delimiter
             result += new_line
 
@@ -519,18 +689,20 @@ class Table:
     @classmethod
     def from_dict(cls, data: Dict[str | int, List[Any]], *,
                   missing_values: MissingValueConfig | Any = XTLUndefined,
-                  missing_value_repr: Any = None) -> 'Table':
+                  missing_value_repr: Any = None,
+                  formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
         """Create a Table from a dictionary of columns.
 
         :param data: Dictionary with column names as keys and column data as values
         :param missing_values: Values to consider as missing
         :param missing_value_repr: Value to use for missing data when outputting
+        :param formats: Column formats used when rendering the table
         :return: A new Table instance
         :raises ValueError: If the columns are not of equal length
         """
         if not data:
             return cls(headers=[], missing_values=missing_values,
-                       missing_value_repr=missing_value_repr)
+                       missing_value_repr=missing_value_repr, formats=formats)
 
         # Extract headers and check column lengths
         headers = list(data.keys())
@@ -548,19 +720,21 @@ class Table:
             rows.append(row)
 
         return cls(data=rows, headers=headers, missing_values=missing_values,
-                   missing_value_repr=missing_value_repr)
+                   missing_value_repr=missing_value_repr, formats=formats)
 
     @classmethod
     def from_numpy(cls, array: 'np.ndarray', *,
                    headers: Optional[List[str]] = None,
                    missing_values: MissingValueConfig | Any = XTLUndefined,
-                   missing_value_repr: Any = None) -> 'Table':
+                   missing_value_repr: Any = None,
+                   formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
         """Create a Table from a numpy ndarray.
 
         :param array: 2D numpy array
         :param headers: Optional list of column names
         :param missing_values: Values to consider as missing
         :param missing_value_repr: Value to use for missing data when outputting
+        :param formats: Column formats used when rendering the table
         :return: A new Table instance
         :raises ImportError: If numpy is not installed
         :raises ValueError: If the array is not 2D
@@ -577,17 +751,19 @@ class Table:
 
         return cls(data=data, headers=headers, missing_values=MissingValueConfig(
             values=missing_values, repr=missing_value_repr, checker=lambda v: v is np.nan
-        ))
+        ), formats=formats)
 
     @classmethod
     def from_pandas(cls, df: 'pd.DataFrame', *,
                     missing_values: MissingValueConfig | Any = XTLUndefined,
-                    missing_value_repr: Any = None) -> 'Table':
+                    missing_value_repr: Any = None,
+                    formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
         """Create a Table from a pandas DataFrame.
 
         :param df: pandas DataFrame
         :param missing_values: Values to consider as missing
         :param missing_value_repr: Value to use for missing data when outputting
+        :param formats: Column formats used when rendering the table
         :return: A new Table instance
         :raises ImportError: If pandas is not installed
         """
@@ -601,22 +777,24 @@ class Table:
 
         return cls(data=data, headers=headers, missing_values=MissingValueConfig(
             values=missing_values, repr=missing_value_repr, checker=lambda v: pd.isna(v)
-        ))
+        ), formats=formats)
 
     @classmethod
     def from_csv(cls, s: str | Path, *, delimiter: str = ',', new_line: str = '\n',
-                 header_line: int = None, header_char: str = '') -> 'Table':
+                 header_line: int = None, header_char: str = '',
+                 formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
         """Create a Table from a CSV file or string.
 
         :param s: Path to CSV file or CSV string content
         :param delimiter: Delimiter used in the CSV (default: ',')
         :param header_line: Line that contains headers (default: None)
         :param header_char: Character that might prefix the header line (e.g., '#')
+        :param formats: Column formats used when rendering the table
         :return: A new Table instance
         """
         # Check if the input is empty
         if not s:
-            return cls(headers=[])
+            return cls(headers=[], formats=formats)
 
         # Check if s is a file path or string content
         is_file = isinstance(s, (str, Path)) and Path(s).exists()
@@ -631,7 +809,7 @@ class Table:
         # Split into lines and process
         lines = content.split(new_line)
         if not lines:
-            return cls(headers=[])
+            return cls(headers=[], formats=formats)
 
         # Process headers
         headers = None
@@ -656,7 +834,7 @@ class Table:
             # Split by delimiter
             data.append(line.split(delimiter))
 
-        return cls(data=data, headers=headers)
+        return cls(data=data, headers=headers, formats=formats)
 
     def __str__(self):
         """Return a pretty-printed string representation of the table.
@@ -666,17 +844,19 @@ class Table:
         if not self._data:
             return '(Empty table)'
 
-        # Process output values to handle missing values
-        data = self.data
+        # Convert values to strings, handling missing values and column formats
+        data = [[self._format_cell(i, v) for i, v in enumerate(row)]
+                for row in self._data]
 
         if not self._headers:
             # Print as plain rows
-            return '\n'.join(' | '.join(str(x) for x in row) for row in data)
+            return '\n'.join(' | '.join(row) for row in data)
 
-        col_widths = [max(len(str(col)), max((len(str(row[i])) for row in data), default=0)) for i, col in enumerate(self._headers)]
-        header = ' | '.join(col.ljust(col_widths[i]) for i, col in enumerate(self._headers))
+        col_widths = [max(len(str(col)), max((len(row[i]) for row in data), default=0)) for i, col in enumerate(self._headers)]
+        col_aligns = [self._col_align(i) for i in range(len(self._headers))]
+        header = ' | '.join(self._pad(str(col), col_widths[i], col_aligns[i]) for i, col in enumerate(self._headers))
         sep = '-+-'.join('-' * w for w in col_widths)
-        rows = [' | '.join(str(row[i]).ljust(col_widths[i]) for i in range(len(self._headers))) for row in data]
+        rows = [' | '.join(self._pad(row[i], col_widths[i], col_aligns[i]) for i in range(len(self._headers))) for row in data]
         return '\n'.join([header, sep] + rows)
 
     def __len__(self):
@@ -706,18 +886,21 @@ class Table:
             if isinstance(col_spec, slice):
                 # Handle column slicing: table[col0:col1, ...]
                 col_indices = self._resolve_column_slice(col_spec)
-                columns = [self.get_col(i) for i in col_indices]
+                columns = [self._get_col_raw(i) for i in col_indices]
                 col_headers = [self._headers[i] for i in col_indices]
             else:
                 # Handle single column: table[col, ...]
                 try:
-                    columns = [self.get_col(col_spec)]
+                    columns = [self._get_col_raw(col_spec)]
                     if isinstance(col_spec, int):
                         col_headers = [self._headers[col_spec]]
+                        col_indices = [col_spec]
                     else:
                         col_headers = [col_spec]
+                        col_indices = [self._headers.index(col_spec)]
                 except (KeyError, IndexError) as e:
                     raise e
+            formats = self._subset_formats(col_indices, col_headers)
 
             # Now handle the row specification
             if isinstance(row_spec, slice):
@@ -734,13 +917,13 @@ class Table:
                     # Create a new table with the column data
                     new_data = [[val] for val in result[0]]
                     return Table(data=new_data, headers=col_headers,
-                                 missing_values=self._missing)
+                                 missing_values=self._missing, formats=formats)
 
                 # Otherwise, transpose the result to get rows and create a new table
                 new_data = [[result[c][r] for c in range(len(result))]
                             for r in range(len(result[0]))]
                 return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing)
+                             missing_values=self._missing, formats=formats)
             else:
                 # Handle single row: table[..., row]
                 if not isinstance(row_spec, int):
@@ -758,12 +941,12 @@ class Table:
 
                 # If only one column was requested, return the single value
                 if len(columns) == 1:
-                    return columns[0][row_idx]
+                    return self._to_repr(columns[0][row_idx])
 
                 # Otherwise, return a new table with the single row
                 new_data = [[col[row_idx] for col in columns]]
                 return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing)
+                             missing_values=self._missing, formats=formats)
 
         # Case 2: table[col] or table[col0:col1]
         elif isinstance(key, (str, int, slice)):
@@ -771,30 +954,35 @@ class Table:
                 # Handle column slicing: table[col0:col1]
                 col_indices = self._resolve_column_slice(key)
                 col_headers = [self._headers[i] for i in col_indices]
+                formats = self._subset_formats(col_indices, col_headers)
 
                 # Get each column and transpose to rows
-                columns = [self.get_col(i) for i in col_indices]
+                columns = [self._get_col_raw(i) for i in col_indices]
                 if not columns:
                     # Empty table with selected headers
-                    return Table(headers=col_headers, missing_values=self._missing)
+                    return Table(headers=col_headers, missing_values=self._missing,
+                                 formats=formats)
 
                 new_data = [[columns[c][r] for c in range(len(columns))]
                             for r in range(len(columns[0]))]
                 return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing)
+                             missing_values=self._missing, formats=formats)
             else:
                 # Handle single column: table[col]
                 try:
-                    column_data = self.get_col(key)
+                    column_data = self._get_col_raw(key)
                     # Create and return a new table with this single column
                     if isinstance(key, int):
                         col_header = [self._headers[key]]
+                        col_idx = key
                     else:
                         col_header = [key]
+                        col_idx = self._headers.index(key)
                     # Create the data as a list of single-item rows
                     new_data = [[val] for val in column_data]
                     return Table(data=new_data, headers=col_header,
-                                 missing_values=self._missing)
+                                 missing_values=self._missing,
+                                 formats=self._subset_formats([col_idx], col_header))
                 except (KeyError, IndexError) as e:
                     raise e
 
@@ -893,7 +1081,7 @@ class Table:
 
             # Get the current column data
             try:
-                col_data = self.get_col(col_spec)
+                col_data = self._get_col_raw(col_spec)
             except (KeyError, IndexError) as e:
                 raise e
 
@@ -988,7 +1176,8 @@ class Table:
 
         # Use the same missing value configuration
         return Table(data=combined_data, headers=self._headers[:],
-                     missing_values=self._missing)
+                     missing_values=self._missing,
+                     formats=self._subset_formats(range(self.no_cols)))
 
     def __or__(self, other: 'Table') -> 'Table':
         """Concatenate columns from another table to this table.
@@ -1017,10 +1206,16 @@ class Table:
             combined_row = self._data[i] + other._data[i]
             combined_data.append(combined_row)
 
+        # Combine formats, preferring the formats of the first table
+        formats = other._subset_formats(range(other.no_cols))
+        if not other._headers:
+            formats = {k + self.no_cols: v for k, v in formats.items()}
+        formats.update(self._subset_formats(range(self.no_cols)))
+
         # Create a new table with combined data
         # For missing values, prefer the configuration from the first table
         return Table(data=combined_data, headers=combined_headers,
-                     missing_values=self._missing)
+                     missing_values=self._missing, formats=formats)
 
     def __iadd__(self, other: Union['Table', List[Any], Dict[Union[str, int], Any]]) -> 'Table':
         """In-place row concatenation (append rows from another table or add a new row).
@@ -1082,6 +1277,12 @@ class Table:
                 raise ValueError('Tables must have the same number of rows to concatenate '
                                  'columns')
 
+            # Append the formats from other table, keeping existing ones
+            no_cols = self.no_cols
+            formats = other._subset_formats(range(other.no_cols))
+            for key, fmt in formats.items():
+                self._formats.setdefault(key if headers else key + no_cols, fmt)
+
             # Append the headers from other table
             self._headers.extend(headers)
 
@@ -1141,7 +1342,13 @@ class Table:
 
         # Remove the header if it exists
         if self._headers and col_idx < len(self._headers):
-            self._headers.pop(col_idx)
+            col_name = self._headers.pop(col_idx)
+            if col_name not in self._headers:
+                self._formats.pop(col_name, None)
+        elif not self._headers:
+            # Shift index-keyed formats
+            self._formats = {(k - 1 if k > col_idx else k): v
+                             for k, v in self._formats.items() if k != col_idx}
 
     def __sub__(self, other: Union['Table', str, List[str], Tuple[str, ...]]) -> 'Table':
         """Remove columns from the table or compute the column-wise difference with another table.
@@ -1177,7 +1384,8 @@ class Table:
                 new_data.append([row[i] for i in keep_indices])
 
             # Create and return new table
-            return Table(data=new_data, headers=new_headers, missing_values=self._missing)
+            return Table(data=new_data, headers=new_headers, missing_values=self._missing,
+                         formats=self._subset_formats(keep_indices))
 
         # Case 2: Column-wise difference with another table
         elif isinstance(other, Table):
@@ -1197,7 +1405,8 @@ class Table:
                 new_data.append([row[i] for i in keep_indices])
 
             # Create and return new table
-            return Table(data=new_data, headers=diff_cols, missing_values=self._missing)
+            return Table(data=new_data, headers=diff_cols, missing_values=self._missing,
+                         formats=self._subset_formats(keep_indices))
 
         else:
             raise TypeError(f'Cannot subtract {type(other).__name__} from Table')

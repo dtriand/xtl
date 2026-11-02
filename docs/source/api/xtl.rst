@@ -17,3 +17,4 @@ Subpackages
 
    xtl.common
    xtl.config
+   xtl.jobs

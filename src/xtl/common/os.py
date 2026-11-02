@@ -3,6 +3,7 @@ from enum import Enum
 import os
 from pathlib import Path
 import platform
+import tempfile
 from types import NoneType
 from typing import Optional
 
@@ -11,6 +12,10 @@ if PY311_OR_LESS:
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
+
+
+CPU_CORES: int | None = os.cpu_count()
+"""Number of CPU cores available on the system, used for parallel job execution."""
 
 
 def get_os_name_and_version() -> str:
@@ -32,6 +37,24 @@ def get_username() -> str:
         import getpass
         return getpass.getuser()
 
+
+def get_temp_location() -> Path:
+    """
+    Get the system's temporary directory as a `Path` object.
+    """
+    temp_dir = tempfile.gettempdir()
+    return Path(temp_dir)
+
+
+def is_temp(f: str | Path) -> bool:
+    """
+    Check if the given file path is located within the system's temporary directory.
+
+    :param f: The path to check.
+    """
+    temp_location = get_temp_location()
+    f = Path(f).resolve()
+    return temp_location in f.parents
 
 
 class FileType(StrEnum):
@@ -244,7 +267,12 @@ class FilePermissions:
     def __post_init__(self):
         # Check if a single value is provided that contains all permissions
         value = getattr(self, 'owner')
-        if isinstance(value, int):
+        if isinstance(value, FilePermissions):
+            self.owner = value.owner
+            self.group = value.group
+            self.other = value.other
+            self.file_type = value.file_type
+        elif isinstance(value, int):
             if value <= 0o7:
                 # Single digit octal
                 pass
@@ -281,8 +309,8 @@ class FilePermissions:
                                      f'not {value!r}') from e
             elif not isinstance(value, FilePermissionsBit):
                 raise TypeError(f'\'{name}\' must be an int, str or '
-                                f'{FilePermissionsBit.__class__.__name__}, not '
-                                f'{type(value)}')
+                                f'{FilePermissionsBit.__name__}, not '
+                                f'{type(value).__name__}')
         if self.file_type is not None:
             if isinstance(self.file_type, str) and self.file_type in _file_type_mappings:
                 self.file_type = _file_type_mappings[self.file_type]
@@ -396,6 +424,17 @@ class FilePermissions:
             file_type=file_type
         )
 
+    @classmethod
+    def from_string(cls, s: str) -> 'FilePermissions':
+        """
+        Create a `FilePermissions` object from a string representation of permissions.
+
+        :param s: The string representation of permissions, e.g., `'rwxr-xr--'` or
+            `'700'`.
+        :return: A `FilePermissions` object.
+        """
+        return cls(s)
+
 
 def get_permissions_in_decimal(value: int | str | FilePermissions) -> int:
     """
@@ -405,18 +444,8 @@ def get_permissions_in_decimal(value: int | str | FilePermissions) -> int:
         raise TypeError(f'\'value\' must be an int, str or '
                         f'{FilePermissions.__class__.__name__}, not {type(value)}')
 
-    # Convert to string and check if it is a number
-    value = str(value)
-    if value.startswith('0o'):  # Remove the '0o' octal representation prefix if present
-        value = value[2:]
-    if not value.isdigit() or len(value) != 3:
-        raise ValueError(f'\'value\' must be a 3-digit integer')
-
-    # Check for a valid permission value
-    for digit in value:
-        if int(digit) not in range(8):
-            raise ValueError(f'\'value\' must be a 3-digit integer with each digit in the range 0-7')
-    return int(f'0o{value}', 8)  # Return octal in the decimal representation
+    value = FilePermissions(value)
+    return value.decimal
 
 
 def chmod_recursively(path: str | Path,

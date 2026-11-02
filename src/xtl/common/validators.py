@@ -11,11 +11,12 @@ __all__ = [
     'PathIsAbsoluteValidator',
     'CastAsValidator',
     'CastAsNoneIfEmpty',
-    'CastAsPathOrNone',
+    'CastAsPathOrNone'
 ]
 
 from functools import partial
 from pathlib import Path
+import tempfile
 from typing import Any, Callable, Iterable, Optional
 
 from pydantic import AfterValidator, BeforeValidator
@@ -32,7 +33,7 @@ def validate_length(value: Any, length: int) -> Any:
     return value
 
 
-def validate_choices(value: Any, choices: str | tuple[Any]) -> Any:
+def validate_choices(value: Any, choices: Iterable[Any]) -> Any:
     """
     Check if the value is contained in the provided choices.
     """
@@ -41,39 +42,71 @@ def validate_choices(value: Any, choices: str | tuple[Any]) -> Any:
     return value
 
 
-def validate_path_exists(value: Path) -> Path:
+def validate_path_exists(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path exists.
     """
-    if not value.exists():
-        raise ValueError(f'Path does not exist: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.exists():
+                raise ValueError(f'Path[{i}] does not exist: {v!r}') from None
+    else:
+        if not value.exists():
+            raise ValueError(f'Path does not exist: {value!r}') from None
     return value
 
 
-def validate_path_is_file(value: Path) -> Path:
+def validate_path_is_file(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if a path is a file.
     """
-    if not value.is_file():
-        raise ValueError(f'Path is not a file: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_file():
+                raise ValueError(f'Path[{i}] is not a file: {v!r}') from None
+    else:
+        if not value.is_file():
+            raise ValueError(f'Path is not a file: {value!r}') from None
     return value
 
 
-def validate_path_is_dir(value: Path) -> Path:
+def validate_path_is_dir(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path is a directory.
     """
-    if not value.is_dir():
-        raise ValueError(f'Path is not a directory: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_dir():
+                raise ValueError(f'Path[{i}] is not a directory: {v!r}') from None
+    else:
+        if not value.is_dir():
+                raise ValueError(f'Path is not a directory: {value!r}') from None
     return value
 
 
-def validate_path_is_absolute(value: Path) -> Path:
+def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> \
+        None | Path | Iterable[Path]:
     """
     Check if the path is absolute.
     """
-    if not value.is_absolute():
-        raise ValueError(f'Path is not absolute: {value!r}') from None
+    if value is None:
+        return value
+    elif isinstance(value, Iterable):
+        for i, v in enumerate(value):
+            if not v.is_file():
+                raise ValueError(f'Path[{i}] is not absolute: {v!r}') from None
+    else:
+        if not value.is_absolute():
+                raise ValueError(f'Path is not absolute: {value!r}') from None
     return value
 
 
@@ -108,6 +141,16 @@ def cast_as_path_or_none(value: Any) -> Optional[Path]:
     return None
 
 
+def cast_as_temp_dir_if_none(value: Any, prefix: str = 'xtl_') -> Path:
+    """
+    Cast the value to a temporary directory if it is ``None``.
+    """
+    if value is None:
+        temp_dir = tempfile.TemporaryDirectory(prefix=prefix)
+        return Path(temp_dir.name)
+    return Path(value)
+
+
 # Custom validator classes
 def LengthValidator(length: int) -> AfterValidator:
     """
@@ -116,7 +159,7 @@ def LengthValidator(length: int) -> AfterValidator:
     return AfterValidator(partial(validate_length, length=length))
 
 
-def ChoicesValidator(choices: str | tuple[Any, ...]) -> AfterValidator:
+def ChoicesValidator(choices: Iterable[Any]) -> AfterValidator:
     """
     `Pydantic` validator to check if a value is in the provided choices.
     """
@@ -171,3 +214,4 @@ def CastAsPathOrNone() -> BeforeValidator:
     value is empty.
     """
     return BeforeValidator(cast_as_path_or_none)
+

@@ -38,20 +38,34 @@ tth_to_d = lambda x, w: w / (2 * np.sin(np.radians(x / 2)))
 d_to_tth = lambda x, w: 2 * np.degrees(np.arcsin(w / (2 * x)))
 d_to_q = lambda x, w: 2 * np.pi / x
 q_to_d = lambda x, w: 2 * np.pi / x
+d_to_s = lambda x, w: 1 / x
+s_to_d = lambda x, w: 1 / x
 tth_to_q = lambda x, w: d_to_q(tth_to_d(x, w), w)
 q_to_tth = lambda x, w: d_to_tth(q_to_d(x, w), w)
+tth_to_s = lambda x, w: d_to_s(tth_to_d(x, w), w)
+s_to_tth = lambda x, w: d_to_tth(s_to_d(x, w), w)
+q_to_s = lambda x, w: x / (2 * np.pi)
+s_to_q = lambda x, w: 2 * np.pi * x
 radial_converters = {
     '2theta': {
         'd': tth_to_d,
-        'q': tth_to_q
+        'q': tth_to_q,
+        's': tth_to_s
     },
     'd': {
         '2theta': d_to_tth,
-        'q': d_to_q
+        'q': d_to_q,
+        's': d_to_s
     },
     'q': {
         '2theta': q_to_tth,
-        'd': q_to_d
+        'd': q_to_d,
+        's': q_to_s
+    },
+    's': {
+        '2theta': s_to_tth,
+        'd': s_to_d,
+        'q': s_to_q
     }
 }
 

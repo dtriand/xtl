@@ -1,12 +1,12 @@
 ### Development
-playground/
-utils/
-tests/cache
-src/xtl/scripts
-src/xtl/chemistry
-src/xtl/chemistry2
-src/xtl/crystallization2
-src/xtl/plots
+/playground
+/utils
+/scripts
+/tests/cache
+/src/xtl/chemistry
+/src/xtl/chemistry2
+/src/xtl/crystallization2
+/src/xtl/plots
 
 ### Temporary
 docs_/
@@ -46,8 +46,6 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-MANIFEST.in
 
 ## Sphinx documentation
 docs/build/

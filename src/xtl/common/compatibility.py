@@ -4,6 +4,7 @@ Central location for various compatibility checks.
 import platform
 import sys
 
+
 #########################
 # Python version checks #
 #########################
@@ -14,7 +15,9 @@ PY_VERS: tuple[int, int, int] = sys.version_info[:3]
 PY310_OR_LESS: bool = (PY_VERS < (3, 11))
 """Python version is 3.10 or less"""
 # Features missing in Python 3.10:
-# - ``enum.StrEnum`` (available in Python 3.11+)
+# - ``enum.StrEnum``
+# - ``asyncio.TaskGroup``
+# - ``from typing import Self``
 
 # TODO: Remove when dropping support for Python 3.11 (EOL: 10/2027)
 PY311_OR_LESS: bool = (PY_VERS < (3, 12))
@@ -27,9 +30,13 @@ PY312_OR_LESS: bool = (PY_VERS < (3, 13))
 # TODO: Remove when dropping support for Python 3.13 (EOL: 10/2029)
 PY313_OR_LESS: bool = (PY_VERS < (3, 14))
 """Python version is 3.13 or less"""
+# Features missing in Python 3.13:
+# - Deferred evaluation of annotations (`from __future__ import annotations`)
 
 # TODO: Remove when dropping support for Python 3.14 (EOL: 10/2030)
 PY314_OR_LESS: bool = (PY_VERS < (3, 15))
+"""Python version is 3.14 or less"""
+
 
 #############
 # OS checks #
@@ -45,3 +52,4 @@ OS_MACOS: bool = platform.system() == 'Darwin'
 
 OS_POSIX: bool = OS_LINUX or OS_MACOS
 """Operating system is POSIX compliant (Linux or macOS)"""
+
