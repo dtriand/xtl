@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import computed_field
+from pydantic import field_serializer
 
-from xtl.common.options import Option
-from xtl.common.typed_vars import TypedList, TypedDict
+from xtl import version
+from xtl.config.version import VersionInfo
+from xtl.common.options import Option, VersionedOptions
 from xtl.math.constants import MM_PER_INCH
 
 from .base import BaseGraphModel
@@ -13,6 +14,20 @@ from .layouts import TLayout, GridLayout
 from .traces import TTrace
 from .panels import GraphPanel, GraphPanelLink
 from .styles import GraphStyle
+
+
+class GraphMetadata(BaseGraphModel):
+
+    version: VersionInfo = \
+        Option(
+            desc='The version of XTL used to create the graph',
+            default=version,
+            cast_as=lambda x: VersionInfo.from_str(x) if isinstance(x, str) else x,
+        )
+
+    @field_serializer('version')
+    def _serialize_version(self, value: VersionInfo) -> str:
+        return str(value)
 
 
 class GraphDimensions(BaseGraphModel):
@@ -56,12 +71,20 @@ class GraphDimensions(BaseGraphModel):
         return self.width / self.dpi, self.height / self.dpi
 
 
-class Graph(BaseGraphModel):
+class Graph(BaseGraphModel, VersionedOptions):
+
+    _version_path = 'metadata.version'
 
     title: Optional[str] = \
         Option(
             desc='The title of the graph',
             default=None,
+        )
+
+    metadata: GraphMetadata = \
+        Option(
+            desc='The metadata of the graph',
+            default_factory=GraphMetadata,
         )
 
     dimensions: GraphDimensions = \
