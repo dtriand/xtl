@@ -61,7 +61,6 @@ homepage = "https://github.com/dtriand/xtl"
 
 [project.scripts]
 xtl = "xtl.cli.cli:cli_main"
-gsas2 = "xtl.cli.cli_gsas2:cli_gsas"
 pdbapi = "xtl.cli.cli_pdbapi:cli_pdbapi"
 diffplot = "xtl.cli.cli_diffplot:app"
 difftegrate = "xtl.cli.cli_difftegrate:app"

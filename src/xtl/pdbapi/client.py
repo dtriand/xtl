@@ -157,7 +157,7 @@ class Client:
         if not issubclass(query.__class__, SearchQueryNode):
             raise InvalidArgument(raiser='query', message='Must be QueryField or QueryGroup')
         self._query = query
-        response = requests.post(url=Client.SEARCH_URL, data=json.dumps(self.request))
+        response = requests.post(url=Client.SEARCH_URL, json=self.request)
 
         if not response.ok:
             warnings.warn(f'It appears request failed with status {response.status_code}:\n{response.text}')

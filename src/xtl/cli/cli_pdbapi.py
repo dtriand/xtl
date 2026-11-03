@@ -4,7 +4,7 @@ import warnings
 
 import click
 
-from xtl import cfg
+from xtl import __version__
 from xtl.cli.utils import GroupWithCommandOptions, OutputQueue, update_docstring
 
 from xtl.pdbapi import Client
@@ -174,7 +174,7 @@ def schema_interrogate(ctx: click.core.Context, schema_cls: SearchSchema or Data
 @click.pass_context
 @click.option('-d', '--debug', is_flag=True, default=False, help='Run on debug mode.')
 @click.option('-v', '--verbose', count=True, type=click.IntRange(0, 3, clamp=True), help='Display additional info.')
-@update_docstring(field='{version}', value=cfg['xtl']['version'].value)
+@update_docstring(field='{version}', value=__version__)
 def cli_pdbapi(ctx: click.core.Context, debug: bool, verbose: int):
     """
     \b
