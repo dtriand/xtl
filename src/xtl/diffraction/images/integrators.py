@@ -6,7 +6,10 @@ from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
-from pyFAI.integrator.azimuthal import AzimuthalIntegrator as _AzimuthalIntegrator
+try:  # pyFAI >= 2025.01
+    from pyFAI.integrator.azimuthal import AzimuthalIntegrator as _AzimuthalIntegrator
+except ImportError:  # pyFAI < 2025.01
+    from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 from .images import Image
