@@ -108,38 +108,34 @@ env_list = ["py310", "py311", "py312", "py313", "py314"]
 description = "Python 3.10"
 python = "3.10"
 dependency_groups = ["test"]
-change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
 
 [tool.tox.env.py311]
 description = "Python 3.11"
 python = "3.11"
 dependency_groups = ["test"]
-change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
 
 [tool.tox.env.py312]
 description = "Python 3.12"
 python = "3.12"
 dependency_groups = ["test"]
-change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
 
 [tool.tox.env.py313]
 description = "Python 3.13"
 python = "3.13"
 dependency_groups = ["test"]
-change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
 
 [tool.tox.env.py314]
 description = "Python 3.14"
 python = "3.14"
 dependency_groups = ["test"]
-change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = [
     "requires_network: Tests requiring a network connection",
     "make_temp_files: Tests that create temporary files"
