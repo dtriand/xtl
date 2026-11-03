@@ -15,38 +15,49 @@
     document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
     document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
   </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
-<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
-
-  
-  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+  <link href="_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
   
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
-  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
 
     <script src="_static/documentation_options.js?v=36b89599"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="_static/js/version-selector.js?v=b659abb7"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
     
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
     <style>
         /* Version selector styles */
         .version-selector-nav {
@@ -67,34 +78,23 @@
     <script src="_static/js/version-selector.js"></script>
 
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
     
   
   <div id="pst-scroll-pixel-helper"></div>
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
-
   
-  <input type="checkbox"
-          class="sidebar-toggle"
-          id="pst-primary-sidebar-checkbox"/>
-  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
   
-  <input type="checkbox"
-          class="sidebar-toggle"
-          id="pst-secondary-sidebar-checkbox"/>
-  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
   
-  <div class="search-button__wrapper">
-    <div class="search-button__overlay"></div>
-    <div class="search-button__search-container">
+  
+  <dialog id="pst-search-dialog">
+    
 <form class="bd-search d-flex align-items-center"
       action="search.html"
       method="get">
@@ -102,7 +102,6 @@
   <input type="search"
          class="form-control"
          name="q"
-         id="search-input"
          placeholder="Search..."
          aria-label="Search..."
          autocomplete="off"
@@ -110,15 +109,55 @@
          autocapitalize="off"
          spellcheck="false"/>
   <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
-</form></div>
-  </div>
+</form>
+  </dialog>
 
   <div class="pst-async-banner-revealer d-none">
   <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
     </header>
   
 
@@ -129,7 +168,8 @@
       
         
       
-      <div class="bd-sidebar-primary bd-sidebar">
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -159,21 +199,17 @@
     
     
     <img src="_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
-    <script>document.write(`<img src="_static/icon.png" class="logo__image only-dark" alt="xtl 0.2.0dev0 documentation - Home"/>`);</script>
+    <img src="_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
   
   
 </a></div>
         <div class="sidebar-primary-item">
 
- <script>
- document.write(`
-   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <i class="fa-solid fa-magnifying-glass"></i>
-    <span class="search-button__default-text">Search</span>
-    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
-   </button>
- `);
- </script></div>
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
         <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
@@ -220,9 +256,14 @@
   
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
   </div>
-  
-  <div id="rtd-footer-container"></div>
 
 
       </div>
@@ -302,24 +343,23 @@
 
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
-    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
-    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
   </button>
-`);
-</script>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <i class="fa-solid fa-magnifying-glass fa-lg"></i>
-  </button>
-`);
-</script>
+</button>
 
 </div></div>
       
@@ -442,10 +482,10 @@ document.write(`
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_lines">(xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.add_row">add_row() (xtl.common.tables.Table method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.ALPHA">ALPHA (xtl.config.version.ReleaseLevel attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.ASYNC">ASYNC (xtl.jobs.JobPool attribute)</a>
@@ -455,6 +495,10 @@ document.write(`
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.atsas">atsas (xtl.config.settings.DependenciesSettings attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.automate">automate (xtl.config.settings.XTLSettings attribute)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings">AutomatePermissionsSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomateSettings">AutomateSettings (class in xtl.config.settings)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings.autoproc">autoproc (xtl.config.settings.CLISettings attribute)</a>
 
@@ -528,6 +572,8 @@ document.write(`
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob">BatchJob (class in xtl.jobs)</a>
 </li>
+      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig">BatchJobConfig (class in xtl.jobs)</a>
+</li>
       <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.BETA">BETA (xtl.config.version.ReleaseLevel attribute)</a>
 </li>
   </ul></td>
@@ -566,6 +612,12 @@ document.write(`
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.cli">cli (xtl.config.settings.XTLSettings attribute)</a>
 </li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIAutoprocSettings">CLIAutoprocSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIConsoleFormatSettings">CLIConsoleFormatSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings">CLISettings (class in xtl.config.settings)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.CMD">CMD (xtl.jobs.Shell attribute)</a>
 
       <ul>
@@ -586,10 +638,10 @@ document.write(`
         <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy">(class in xtl.jobs.policies)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicyType">CommandPolicyType (in module xtl.jobs.policies)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicyType">CommandPolicyType (in module xtl.jobs.policies)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.comment_char">comment_char (xtl.jobs.BashShell attribute)</a>
 
       <ul>
@@ -658,6 +710,8 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.DEFAULT">(xtl.jobs.shells.Shell attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.default_missing_value">default_missing_value (xtl.common.tables.Table attribute)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.default_shell">default_shell (xtl.jobs.BatchJobConfig attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.DefaultCommandPolicy">DefaultCommandPolicy (class in xtl.jobs.policies)</a>
@@ -682,6 +736,8 @@ document.write(`
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings">DependenciesSettings (class in xtl.config.settings)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.dependency_command">dependency_command (xtl.jobs.BashShell attribute)</a>
 
       <ul>
@@ -698,6 +754,8 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.dependency_command">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings">DependencySettings (class in xtl.config.settings)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.desc">desc (xtl.jobs.StepSpec attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.description">description (xtl.jobs.BatchJobConfig attribute)</a>
@@ -986,19 +1044,23 @@ document.write(`
         <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.job_digits">(xtl.config.settings.JobsSettings attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.job_directory">job_directory (xtl.jobs.BatchJobConfig attribute)</a>
 
       <ul>
         <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.job_directory">(xtl.jobs.JobConfig attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.Job.job_id">job_id (xtl.jobs.Job property)</a>
+</li>
+      <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig">JobConfig (class in xtl.jobs)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool">JobPool (class in xtl.jobs)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.jobs">jobs (xtl.config.settings.XTLSettings attribute)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings">JobsSettings (class in xtl.config.settings)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1019,6 +1081,8 @@ document.write(`
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions.legacy_versions">legacy_versions() (xtl.common.options.VersionedOptions class method)</a>
+</li>
+      <li><a href="api/xtl.common.options.html#xtl.common.options.LegacyOptions">LegacyOptions (class in xtl.common.options)</a>
 </li>
       <li><a href="api/xtl.common.validators.html#xtl.common.validators.LengthValidator">LengthValidator() (in module xtl.common.validators)</a>
 </li>
@@ -1064,6 +1128,16 @@ document.write(`
 </li>
       <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig">MissingValueConfig (class in xtl.common.tables)</a>
 </li>
+      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.model_config">model_config (xtl.jobs.BatchJobConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.model_config">(xtl.jobs.JobConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig.model_config">(xtl.jobs.SteppedJobConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.model_config">(xtl.jobs.StepSpec attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.model_post_init">model_post_init() (xtl.jobs.BatchJobConfig method)</a>
 
       <ul>
@@ -1074,6 +1148,8 @@ document.write(`
         <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.model_post_init">(xtl.jobs.StepSpec method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.common.options.html#xtl.common.options.Options.model_validate">model_validate() (xtl.common.options.Options class method)</a>
 </li>
       <li>
@@ -1083,8 +1159,6 @@ document.write(`
         <li><a href="api/xtl.html#module-xtl">xtl</a>
 </li>
         <li><a href="api/xtl.common.html#module-xtl.common">xtl.common</a>
-</li>
-        <li><a href="api/xtl.common.compatibility.html#module-xtl.common.compatibility">xtl.common.compatibility</a>
 </li>
         <li><a href="api/xtl.common.options.html#module-xtl.common.options">xtl.common.options</a>
 </li>
@@ -1109,8 +1183,6 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#module-xtl.jobs.shells">xtl.jobs.shells</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.modules">modules (xtl.config.settings.DependencySettings attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.MODULES">MODULES (xtl.jobs.ComputeSite attribute)</a>
@@ -1191,15 +1263,9 @@ document.write(`
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.common.options.html#xtl.common.options.Option">Option() (in module xtl.common.options)</a>
 </li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.OS_LINUX">OS_LINUX (in module xtl.common.compatibility)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.OS_MACOS">OS_MACOS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.OS_POSIX">OS_POSIX (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.OS_WINDOWS">OS_WINDOWS (in module xtl.common.compatibility)</a>
+      <li><a href="api/xtl.common.options.html#xtl.common.options.Options">Options (class in xtl.common.options)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1217,6 +1283,8 @@ document.write(`
 </li>
       <li><a href="api/xtl.common.validators.html#xtl.common.validators.PathIsFileValidator">PathIsFileValidator() (in module xtl.common.validators)</a>
 </li>
+      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.pep440">pep440 (xtl.config.version.VersionInfo property)</a>
+</li>
       <li><a href="api/xtl.common.serializers.html#xtl.common.serializers.PermissionOctal">PermissionOctal() (in module xtl.common.serializers)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomateSettings.permissions">permissions (xtl.config.settings.AutomateSettings attribute)</a>
@@ -1233,6 +1301,8 @@ document.write(`
       </ul></li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.Job.pool">pool (xtl.jobs.Job property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.post_processor">post_processor (xtl.jobs.StepSpec attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell">PowerShell (class in xtl.jobs)</a>
@@ -1247,8 +1317,6 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.POWERSHELL">(xtl.jobs.shells.Shell attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_command">prepare_command() (xtl.jobs.LocalSite method)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_content">prepare_content() (xtl.jobs.LocalSite method)</a>
@@ -1270,18 +1338,6 @@ document.write(`
       <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.PROCESSES">PROCESSES (xtl.jobs.JobPool attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.provides">provides (xtl.config.settings.DependencySettings attribute)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY310_OR_LESS">PY310_OR_LESS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY311_OR_LESS">PY311_OR_LESS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY312_OR_LESS">PY312_OR_LESS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY313_OR_LESS">PY313_OR_LESS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY314_OR_LESS">PY314_OR_LESS (in module xtl.common.compatibility)</a>
-</li>
-      <li><a href="api/xtl.common.compatibility.html#xtl.common.compatibility.PY_VERS">PY_VERS (in module xtl.common.compatibility)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1313,6 +1369,8 @@ document.write(`
         <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.resources">(xtl.jobs.JobConfig attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.ResourcesSettings">ResourcesSettings (class in xtl.config.settings)</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIConsoleFormatSettings.rich">rich (xtl.config.settings.CLIConsoleFormatSettings attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.Job.run">run() (xtl.jobs.Job method)</a>
@@ -1351,6 +1409,8 @@ document.write(`
 </li>
       <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.set_row">set_row() (xtl.common.tables.Table method)</a>
 </li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.Settings">Settings (class in xtl.config.settings)</a>
+</li>
       <li><a href="api/xtl.html#xtl.settings">settings (in module xtl)</a>
 </li>
       <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.shape">shape (xtl.common.tables.Table property)</a>
@@ -1371,14 +1431,14 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.shebang">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.Shell">Shell (class in xtl.jobs)</a>
 
       <ul>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell">(class in xtl.jobs.shells)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.shell">shell (xtl.jobs.BatchFile property)</a>
 
       <ul>
@@ -1411,7 +1471,11 @@ document.write(`
 </li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJob">SteppedJob (class in xtl.jobs)</a>
 </li>
+      <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig">SteppedJobConfig (class in xtl.jobs)</a>
+</li>
       <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig.steps">steps (xtl.jobs.SteppedJobConfig attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec">StepSpec (class in xtl.jobs)</a>
 </li>
       <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.string">string (xtl.config.version.VersionInfo property)</a>
 </li>
@@ -1477,6 +1541,8 @@ document.write(`
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.units">units (xtl.config.settings.XTLSettings attribute)</a>
 </li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.UnitsSettings">UnitsSettings (class in xtl.config.settings)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.update">update (xtl.config.settings.AutomatePermissionsSettings attribute)</a>
@@ -1503,6 +1569,8 @@ document.write(`
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions">VersionedOptions (class in xtl.common.options)</a>
+</li>
       <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo">VersionInfo (class in xtl.config.version)</a>
 </li>
   </ul></td>
@@ -1538,13 +1606,6 @@ document.write(`
 </li>
       </ul></li>
       <li>
-    xtl.common.compatibility
-
-      <ul>
-        <li><a href="api/xtl.common.compatibility.html#module-xtl.common.compatibility">module</a>
-</li>
-      </ul></li>
-      <li>
     xtl.common.options
 
       <ul>
@@ -1572,8 +1633,6 @@ document.write(`
         <li><a href="api/xtl.common.validators.html#module-xtl.common.validators">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     xtl.config
 
@@ -1581,6 +1640,8 @@ document.write(`
         <li><a href="api/xtl.config.html#module-xtl.config">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     xtl.config.settings
 
@@ -1623,6 +1684,8 @@ document.write(`
         <li><a href="api/xtl.jobs.shells.html#module-xtl.jobs.shells">module</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings">XTLSettings (class in xtl.config.settings)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1691,8 +1754,8 @@ By Dimitris P. Triandafillidis
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
-<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+  <script defer src="_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
 
 
     
