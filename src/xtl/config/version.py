@@ -129,25 +129,30 @@ class VersionInfo:
     @classmethod
     def from_str(cls, version_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
-        Create a VersionInfo object from a version string.
+        Create a VersionInfo object from a version string. A string without a release
+        level (e.g. '1.2.3') is interpreted as a final release ('1.2.3final0').
         """
         parts = version_str.split('.')
+        if len(parts) != 3:
+            raise ValueError('Invalid version string. '
+                             'Expected {MAJOR}.{MINOR}.{MICRO}{LEVEL}{SERIAL} but found '
+                             f'{len(parts)} parts')
         major = int(parts[0])
         minor = int(parts[1])
 
-        i = 0
-        for i in range(len(parts[2])):
-            if not parts[2][i].isdigit():
-                break
+        # Index of the first non-digit character after {MICRO}
+        i = next((j for j, c in enumerate(parts[2]) if not c.isdigit()), len(parts[2]))
         if i == 0:
             raise ValueError('Invalid version string. '
                              'Expected {MAJOR}.{MINOR}.{MICRO}{LEVEL}{SERIAL} but did not '
-                             'find {LEVEL}')
+                             'find {MICRO}')
 
         micro = int(parts[2][:i])
 
-        level_bit = parts[2][i]
-        if level_bit == 'a':
+        level_bit = parts[2][i] if i < len(parts[2]) else None
+        if level_bit is None:
+            level, serial = ReleaseLevel.FINAL, 0
+        elif level_bit == 'a':
             level, serial = ReleaseLevel.ALPHA, int(parts[2][i + 1:])
         elif level_bit == 'b':
             level, serial = ReleaseLevel.BETA, int(parts[2][i + 1:])
