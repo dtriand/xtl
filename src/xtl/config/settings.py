@@ -4,8 +4,9 @@ models that are used to configure various aspects of XTL. The main class that ho
 settings is :class:`XTLSettings`.
 """
 from __future__ import annotations
+from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Literal
 
 from pydantic import PrivateAttr
 
@@ -16,6 +17,7 @@ from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import VersionInfo
+from xtl.common.environment import XTL_CONFIG
 from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
@@ -26,7 +28,7 @@ def _get_extra_keys(options: Options) -> dict:
     """
     Helper function to recursively collect __pydantic_extra__ keys from nested Options.
     """
-    extra = options.__pydantic_extra__ or dict()
+    extra = dict(options.__pydantic_extra__ or {})
     for name in options.__pydantic_fields__:
         value = getattr(options, name)
         if isinstance(value, Options):
@@ -303,6 +305,20 @@ class CLISettings(Settings):
         )
 
 
+@dataclass(frozen=True)
+class ConfigFileInfo:
+    """
+    A candidate location for the ``xtl.toml`` configuration file.
+    """
+    name: Literal['env', 'local', 'user', 'global']
+    path: Path
+    creatable: bool
+
+    @property
+    def exists(self) -> bool:
+        return self.path.is_file()
+
+
 class XTLSettings(Settings):
     """
     Settings for XTL
@@ -318,16 +334,9 @@ class XTLSettings(Settings):
     :meta hide-value:
     """
 
-    local_config: ClassVar[Path] = (Path.cwd() / _toml).absolute()
-    """
-    Path to the local configuration file, located in the current working directory.
-    
-    :meta hide-value:
-    """
-
     # Private attributes are also ignored by Pydantic
     _parse_env: bool = PrivateAttr(default=False)
-    _file: Optional[Path] = PrivateAttr(default=None)  # Path to the input file, if any
+    _source: Optional[ConfigFileInfo] = PrivateAttr(default=None)  # source of settings
 
     # Model attributes
     version: str = Option(default=current_version.string)
@@ -348,48 +357,170 @@ class XTLSettings(Settings):
     cli: CLISettings = Option(default=CLISettings())
     """Settings for CLI tools provided by XTL"""
 
+    @property
+    def source(self) -> Optional[ConfigFileInfo]:
+        """
+        The source of the settings. This is either a :class:`ConfigFileInfo` object
+        representing the configuration file that was loaded, or ``None`` for in-memory
+        defaults.
+        """
+        return self._source
 
     @classmethod
-    def initialize(cls) -> 'XTLSettings':
+    def _load(cls, location: ConfigFileInfo) -> XTLSettings:
         """
-        Initialize by reading an ``xtl.toml`` file. Determines whether to load a
-        local or global configuration file, and initializes the settings accordingly.
-        If neither file exists, it initializes with default values.
+        Load settings from a given configuration file location. If the file cannot be
+        read (missing, invalid TOML or invalid values), it logs an error and returns
+        default settings.
 
-        Once the settings are loaded, a version compatibility check is performed.
-
+        :param location: A :class:`ConfigFileInfo` object representing the configuration
+                         file location to load.
         :return: An instance of :class:`XTLSettings`
         """
-        if cls.local_config.exists():
-            logger.info('Reading local config: %(local_config)s',
-                        {'local_config': cls.local_config})
-            _settings = cls.from_toml(cls.local_config)
-            _settings._file = cls.local_config
-        elif cls.global_config.exists():
-            logger.info('Reading global config: %(global_config)s',
-                        {'global_config': cls.global_config})
-            _settings = cls.from_toml(cls.global_config)
-            _settings._file = cls.global_config
-        else:
-            logger.info('Initializing with default settings (no %(toml)s was found)',
-                        {'toml': cls._toml})
-            _settings = cls()
+        logger.info('Reading %(name)s config: %(path)s',
+                    {'name': location.name, 'path': location.path})
+
+        try:
+            _settings = cls.from_toml(location.path)
+        except (OSError, ValueError) as e:
+            # Capture any errors and log them, but don't fall back to the next
+            #  available location
+            logger.error('Failed to read %(name)s config %(path)s, using default '
+                         'settings instead: %(error)s',
+                         {'name': location.name, 'path': location.path, 'error': e})
+            return cls()  # Return default settings if reading fails
+
+        # Set provenance
+        _settings._source = location
+
+        # Check for issues in the loaded settings and warn
+        for problem in _settings.check():
+            logger.warning(problem)
+        return _settings
+
+    def check(self) -> list[str]:
+        """
+        Check the settings for potential issues, such as version mismatches or unknown
+        keys. Returns a list of warning messages for any issues found.
+
+        :return: A list of warning messages for any issues found in the settings.
+        """
+        problems = []
 
         # Check settings version
-        _v = VersionInfo.from_str(_settings.version)
-        if _v.tuple_safe < current_version.tuple_safe:
-            logger.warning('Using settings from an older version of XTL %(version)s.',
-                           {'version': _v.string})
-        elif _v.tuple_safe > current_version.tuple_safe:
-            logger.warning('Using settings from a newer version of XTL %(version)s. '
-                           'XTL might not behave as intended. Use at your own risk!',
-                           {'version': _v.string})
+        try:
+            _v = VersionInfo.from_str(self.version)
+        except ValueError:
+            problems.append(f'Invalid settings version: {self.version!r}')
+        else:
+            if _v.tuple_safe < current_version.tuple_safe:
+                problems.append(f'Using settings from an older version of XTL '
+                                f'{_v.string}.')
+            elif _v.tuple_safe > current_version.tuple_safe:
+                problems.append(f'Using settings from a newer version of XTL '
+                                f'{_v.string}. XTL might not behave as intended. '
+                                'Use at your own risk!')
 
         # Check for extra keys in the nested Options
-        extra = _settings.__pydantic_extra__ or dict()
-        extra.update(_get_extra_keys(_settings))
+        extra = _get_extra_keys(self)
         if extra:
-            logger.warning('Found and ignored unknown keys in the config file',
-                           extra=extra)
+            problems.append('Found and ignored unknown keys in the config file: '
+                            f'{extra}')
 
+        return problems
+
+    @classmethod
+    def initialize(cls, create: bool = True) -> 'XTLSettings':
+        """
+        Initialize from the first existing ``xtl.toml`` in :meth:`locations`, in
+        lookup order: ``XTL_CONFIG``, local, user and global. Once loaded, the
+        problems found by :meth:`check` are logged as warnings.
+
+        If no file exists and ``create`` is True, the default settings are written
+        to the first creatable location that succeeds (``XTL_CONFIG``, user, global;
+        never local), logging a warning for each one that fails. If all of them fail,
+        or ``create`` is False, the default settings are used in-memory.
+
+        This method never raises: a file that cannot be read is logged as an error
+        and the default settings are used instead.
+
+        :param create: Whether to create a config file if none is found
+        :return: An instance of :class:`XTLSettings`
+        """
+        locs = cls.locations()
+        # Check for the first existing config file in the lookup order
+        for loc in locs:
+            if loc.exists:
+                return cls._load(loc)
+
+        # If no config file exists, initialize with defaults
+        _settings = cls()
+        if not create:
+            logger.info('No %(toml)s found, initializing with default settings',
+                        {'toml': cls._toml})
+            return _settings
+
+        # Save config to the first creatable location
+        for loc in locs:
+            if not loc.creatable:
+                continue
+            try:
+                _settings.to_toml(loc.path, comments=True, keep_file_ext=True)
+            except OSError as e:
+                # Another process might have created the file in the meantime
+                if isinstance(e, FileExistsError) and loc.exists:
+                    return cls._load(loc)
+                logger.warning('Failed to create %(name)s config at %(path)s: '
+                               '%(error)s', {'name': loc.name, 'path': loc.path,
+                                             'error': e})
+                continue
+            logger.info('Created %(name)s config at %(path)s',
+                        {'name': loc.name, 'path': loc.path})
+            _settings._source = loc
+            return _settings
+
+        logger.warning('Failed to create a config file in any of the candidate '
+                       'locations, using default settings in-memory')
         return _settings
+
+    @classmethod
+    def locations(cls) -> list[ConfigFileInfo]:
+        """
+        Candidate config file locations in lookup order: ``XTL_CONFIG``, local, user
+        and global. Computed on every call, so that changes to the environment or the
+        working directory are picked up.
+
+        :return: A list of :class:`ConfigFileInfo`, whether the files exist or not
+        """
+        from platformdirs import user_config_dir
+
+        locations = []
+
+        # Environment variable (if set)
+        env_path = XTL_CONFIG.value
+        if env_path is not None:
+            if env_path.is_dir():
+                logger.warning('Ignoring XTL_CONFIG, it points to a directory: '
+                               '%(path)s', {'path': env_path})
+            else:
+                locations.append(
+                    ConfigFileInfo(name='env', path=env_path, creatable=True))
+
+        # Local config (never create automatically)
+        locations.append(ConfigFileInfo(name='local', path=Path.cwd() / cls._toml,
+                                        creatable=False))
+
+        # User config (platform-dependent)
+        locations.append(
+            ConfigFileInfo(
+                name='user',
+                path=Path(user_config_dir('xtl', appauthor=False)) / cls._toml,
+                creatable=True
+            )
+        )
+
+        # Global config (installation directory)
+        locations.append(ConfigFileInfo(name='global', path=cls.global_config,
+                                        creatable=True))
+
+        return locations
