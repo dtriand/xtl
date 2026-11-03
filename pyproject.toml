@@ -76,7 +76,8 @@ h5peek = "xtl.cli.cli_h5peek:app"
 test = [
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
-    "pytest-mock>=3.10.0"
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.3.1",
 ]
 docs = [
     "autodoc_pydantic>=2.2.0",
@@ -124,6 +125,7 @@ commands = [["sphinx-build", "-q", "-b", "html", "docs/source", "{env_tmp_dir}/h
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+timeout = 300
 markers = [
     "requires_network: Tests requiring a network connection",
     "make_temp_files: Tests that create temporary files"
