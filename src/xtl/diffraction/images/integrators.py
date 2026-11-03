@@ -98,7 +98,8 @@ class AzimuthalIntegrator1D(_Integrator):
 
         :param int points_radial: Number of points along the radial axis
         :param str units_radial: Units for the radial axis (``'2theta'`` or ``'q'``)
-        :param float masked_pixels_value: Value for masked or ignored pixels (default: ``numpy.nan``)
+        :param float masked_pixels_value: Value for empty bins, i.e. bins without any unmasked pixels (default:
+                                          ``numpy.nan``)
         :param str error_model: Error model for calculating intensities uncertainties (``None``, ``'poisson'``, or
                                 ``'azimuthal'``)
         :raises ValueError: When an unsupported unit is provided to ``units_radial``
@@ -142,9 +143,9 @@ class AzimuthalIntegrator1D(_Integrator):
         :param bool check: Check whether the integrator has already been initialized
         :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
-                       ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
-                       ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
-                       provided.
+                       ``azimuth_range``, ``dummy``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``,
+                       ``method``, ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are
+                       chosen if not provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
         :return: Integrate1dResult
         """
@@ -155,6 +156,7 @@ class AzimuthalIntegrator1D(_Integrator):
         variance = kwargs.get('variance', None)
         radial_range = kwargs.get('radial_range', None)
         azimuth_range = kwargs.get('azimuth_range', None)
+        dummy = kwargs.get('dummy', None)
         delta_dummy = kwargs.get('delta_dummy', None)
         polarization_factor = kwargs.get('polarization_factor', None)
         dark = kwargs.get('dark', None)
@@ -168,7 +170,7 @@ class AzimuthalIntegrator1D(_Integrator):
                                                  correctSolidAngle=correctSolidAngle, variance=variance,
                                                  error_model=self.error_model, radial_range=radial_range,
                                                  azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
+                                                 dummy=dummy, delta_dummy=delta_dummy,
                                                  polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                  method=method, unit=self.units_radial, safe=safe,
                                                  normalization_factor=normalization_factor, metadata=metadata)
@@ -327,7 +329,8 @@ class AzimuthalIntegrator2D(_Integrator):
         :param int points_radial: Number of points along the radial axis
         :param int points_azimuthal: Number of points along the azimuthal axis
         :param str units_radial: Units for the radial axis (``'2theta'`` or ``'q'``)
-        :param float masked_pixels_value: Value for masked or ignored pixels (default: ``numpy.nan``)
+        :param float masked_pixels_value: Value for empty bins, i.e. bins without any unmasked pixels (default:
+                                          ``numpy.nan``)
         :param str error_model: Error model for calculating intensities uncertainties (``None``, ``'poisson'``, or
                                 ``'azimuthal'``)
         :raises ValueError: When an unsupported unit is provided to ``units_radial``
@@ -379,9 +382,9 @@ class AzimuthalIntegrator2D(_Integrator):
         :param bool check: Check whether the integrator has already been initialized
         :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
-                       ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
-                       ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
-                       provided.
+                       ``azimuth_range``, ``dummy``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``,
+                       ``method``, ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are
+                       chosen if not provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
         :return: Integrate2dResult
         """
@@ -392,6 +395,7 @@ class AzimuthalIntegrator2D(_Integrator):
         variance = kwargs.get('variance', None)
         radial_range = kwargs.get('radial_range', None)
         azimuth_range = kwargs.get('azimuth_range', None)
+        dummy = kwargs.get('dummy', None)
         delta_dummy = kwargs.get('delta_dummy', None)
         polarization_factor = kwargs.get('polarization_factor', None)
         dark = kwargs.get('dark', None)
@@ -406,7 +410,7 @@ class AzimuthalIntegrator2D(_Integrator):
                                                  correctSolidAngle=correctSolidAngle, variance=variance,
                                                  error_model=self.error_model, radial_range=radial_range,
                                                  azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=self.masked_pixels_value,  delta_dummy=delta_dummy,
+                                                 dummy=dummy, delta_dummy=delta_dummy,
                                                  polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                  method=method, unit=self.units_radial, safe=safe,
                                                  normalization_factor=normalization_factor, metadata=metadata)
