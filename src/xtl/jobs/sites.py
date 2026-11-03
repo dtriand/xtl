@@ -43,7 +43,7 @@ class ComputeSite(StrEnum):
     SLURM_LOCAL = 'slurm_local'
 
     # Specialized compute sites
-    if XTL_COMPUTE_SITE == 'BIOTIX_HPC':
+    if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
         BIOTIX = 'biotix'
 
     def get(self) -> ComputeSiteType:
@@ -53,7 +53,7 @@ class ComputeSite(StrEnum):
             ComputeSite.SLURM: SlurmModulesSite,
             ComputeSite.SLURM_LOCAL: SlurmLocalSite,
         }
-        if XTL_COMPUTE_SITE == 'BIOTIX_HPC':
+        if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
             mapping[ComputeSite.BIOTIX] = BiotixHPC
         return mapping[self]()
 
