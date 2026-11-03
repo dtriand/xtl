@@ -105,6 +105,22 @@ class VersionInfo:
         h |= int(self.major) * 1 << 24
         return f'0x{h:08x}'
 
+    @property
+    def pep440(self) -> str:
+        """
+        Return a PEP 440 compliant string representation of the version (e.g., '1.2.3a4').
+        See: `PEP 440 <https://peps.python.org/pep-0440/#public-version-identifiers>`_
+        """
+        if self.level == ReleaseLevel.GAMMA:
+            raise ValueError('PEP 440 does not support gamma release level')
+        if self.level == ReleaseLevel.DEV:
+            # MAJOR.MINOR.MICRO.devN
+            return f'{self.string_safe}.dev{self.serial}'
+        if self.level == ReleaseLevel.FINAL:
+            # MAJOR.MINOR.MICRO for serial == 0, otherwise MAJOR.MINOR.MICRO.postN
+            return f'{self.string_safe}' if self.serial == 0 else f'{self.string_safe}.post{self.serial}'
+        return f'{self.string_safe}{self.release_level}{self.serial}'
+
     def __str__(self) -> str:
         return self.string
 
