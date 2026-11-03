@@ -128,6 +128,8 @@ class AzimuthalIntegrator1D(_Integrator):
 
         self._integrator = _AzimuthalIntegrator()
         self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
+        # Value for empty bins; since pyFAI 2025.03 this is no longer set by ``dummy``
+        self._integrator.empty = self.masked_pixels_value
         self._is_initialized = True
 
     def integrate(self, check: bool = True, keep: bool = True, **kwargs) -> Integrate1dResult:
@@ -363,6 +365,8 @@ class AzimuthalIntegrator2D(_Integrator):
 
         self._integrator = _AzimuthalIntegrator()
         self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
+        # Value for empty bins; since pyFAI 2025.03 this is no longer set by ``dummy``
+        self._integrator.empty = self.masked_pixels_value
         self._is_initialized = True
 
     def integrate(self, check=True, keep: bool = True, **kwargs) -> Integrate2dResult:
