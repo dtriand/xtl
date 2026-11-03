@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=75"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "xtl"
@@ -12,11 +12,11 @@ description = "A collection of tools for macromolecular crystallography"
 keywords = ["x-ray", "diffraction", "crystallography", "macromolecular", "structural", "biology",
             "autoPROC", "PDB"]
 readme = {file = "README.md", content-type = "text/markdown"}
-license = {file = "LICENSE"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
@@ -82,14 +82,16 @@ dev = [
     "sphinx-favicon>=1.0.1"
 ]
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.version]
+source = "code"
+path = "src/xtl/config/version.py"
+expression = "version.pep440"
 
-[tool.setuptools.dynamic]
-version = {attr = "xtl.__version__"}
+[tool.hatch.build.targets.wheel]
+packages = ["src/xtl"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.tox]
 min_version = "4.0"

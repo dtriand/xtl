@@ -47,4 +47,4 @@ An, admittedly incomplete, API and CLI documentation is available at
 - Issue tracker: [github.com/dtriand/xtl/issues](https://github.com/dtriand/xtl/issues)
 
 ## License
-XTL is licensed under GNU GPLv3.
+XTL is licensed under GNU GPLv3 or later.

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import IntEnum
 from dataclasses import dataclass
 from datetime import datetime
@@ -129,7 +127,7 @@ class VersionInfo:
                 f'date={self.release_date!r})')
 
     @classmethod
-    def from_str(cls, version_str: str, date_str: str | None = None) -> VersionInfo:
+    def from_str(cls, version_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
         Create a VersionInfo object from a version string.
         """
@@ -172,7 +170,7 @@ class VersionInfo:
                    serial=serial, date=date)
 
     @classmethod
-    def from_hex(cls, hex_str: str, date_str: str | None = None) -> VersionInfo:
+    def from_hex(cls, hex_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
         Create a VersionInfo object from a 32-bit hexadecimal string.
         """
@@ -190,7 +188,7 @@ class VersionInfo:
                    serial=serial, date=date)
 
     @classmethod
-    def from_value(cls, value: str | dict | VersionInfo) -> VersionInfo:
+    def from_value(cls, value: 'str | dict | VersionInfo') -> 'VersionInfo':
         if isinstance(value, VersionInfo):
             return value
         elif isinstance(value, dict):
