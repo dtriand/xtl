@@ -1,0 +1,112 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!gh-pages'
+  pull_request:
+    branches:
+      - '**'
+      - '!gh-pages'
+  schedule:
+    - cron: '0 4 * * 1'  # Mondays 04:00 UTC: test against the newest dependency versions
+  workflow_dispatch:
+
+jobs:
+  # Locked dependencies (uv.lock) through tox-uv, as when testing locally
+  uv:
+    name: uv / ${{ matrix.os }} / py${{ matrix.python-version }}
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Check that uv.lock is up to date
+        run: uv lock --check
+
+      - name: Test with tox
+        shell: bash
+        run: uvx --with tox-uv tox -e "py${PYTHON_VERSION//./}"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+
+  # Lowest supported versions of the direct dependencies (the `>=` bounds in pyproject.toml)
+  # Runs on Python 3.10, since older releases often have no wheels for newer Pythons.
+  lowest:
+    name: lowest / ${{ matrix.os }}
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Test with tox
+        run: uvx --with tox-uv tox -e lowest
+
+  # Non-editable install of the built package with pip, as users install it
+  pip:
+    name: pip / ${{ matrix.os }} / py${{ matrix.python-version }}
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install xtl and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install . --group test
+
+      - name: Test with pytest
+        run: pytest -v
+
+  # Newest versions of all dependencies, ignoring uv.lock (weekly or on demand)
+  upgrade:
+    name: upgrade / ${{ matrix.os }} / py${{ matrix.python-version }}
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Upgrade uv.lock to the newest versions
+        run: uv lock --upgrade
+
+      - name: Test with tox
+        shell: bash
+        run: uvx --with tox-uv tox -e "py${PYTHON_VERSION//./}"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}

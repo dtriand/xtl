@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=75"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "xtl"
@@ -12,11 +12,11 @@ description = "A collection of tools for macromolecular crystallography"
 keywords = ["x-ray", "diffraction", "crystallography", "macromolecular", "structural", "biology",
             "autoPROC", "PDB"]
 readme = {file = "README.md", content-type = "text/markdown"}
-license = {file = "LICENSE"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
@@ -24,6 +24,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Physics",
@@ -34,7 +36,7 @@ dependencies = [
     "click>=8.4.1",
     "defusedxml>=0.7.1",
     "distro>=1.9.0",
-    "fabio>=2023.6.0",
+    "fabio>=2024.4.0",
     "f90nml>=1.5.0",
     "gemmi>=0.5.5",
     "h5py>=3.16.0",
@@ -59,7 +61,6 @@ homepage = "https://github.com/dtriand/xtl"
 
 [project.scripts]
 xtl = "xtl.cli.cli:cli_main"
-gsas2 = "xtl.cli.cli_gsas2:cli_gsas"
 pdbapi = "xtl.cli.cli_pdbapi:cli_pdbapi"
 diffplot = "xtl.cli.cli_diffplot:app"
 difftegrate = "xtl.cli.cli_difftegrate:app"
@@ -71,59 +72,60 @@ h5peek = "xtl.cli.cli_h5peek:app"
 "xtl.nanobragg" = "xtl.cli.nanobragg:app"
 "xtl.saxs" = "xtl.cli.saxs:app"
 
-[project.optional-dependencies]
-dev = [
-    "autodoc_pydantic>=2.2.0",
+[dependency-groups]
+test = [
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
     "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.3.1",
+]
+docs = [
+    "autodoc_pydantic>=2.2.0",
     "sphinx>=8.1.3",
     "sphinx-book-theme>=1.1.3",
     "sphinx-favicon>=1.0.1"
 ]
+dev = [
+    {include-group = "test"},
+    {include-group = "docs"}
+]
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.version]
+source = "code"
+path = "src/xtl/config/version.py"
+expression = "version.pep440"
 
-[tool.setuptools.dynamic]
-version = {attr = "xtl.__version__"}
+[tool.hatch.build.targets.wheel]
+packages = ["src/xtl"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.tox]
-min_version = "4.0"
-env_list = ["py310", "py311", "py312", "py313"]
+requires = ["tox>=4.22", "tox-uv>=1.11"]
+env_list = ["py310", "py311", "py312", "py313", "py314", "lowest"]
 
-[tool.tox.env.py310]
-description = "Python 3.10"
-python = "3.10"
-extras = ["dev"]
-change_dir = "tests"
-commands = [["pytest", "-xvs", "{posargs}"]]
+[tool.tox.env_run_base]
+description = "Run tests on {env_name} with the locked dependencies"
+runner = "uv-venv-lock-runner"
+dependency_groups = ["test"]
+commands = [["pytest", "-xvs", { replace = "posargs", extend = true }]]
 
-[tool.tox.env.py311]
-description = "Python 3.11"
-python = "3.11"
-extras = ["dev"]
-change_dir = "tests"
-commands = [["pytest", "-xvs", "{posargs}"]]
+[tool.tox.env.lowest]
+description = "Run tests with the lowest supported versions of the direct dependencies"
+runner = "uv-venv-runner"
+base_python = ["3.10"]
+uv_resolution = "lowest-direct"
 
-[tool.tox.env.py312]
-description = "Python 3.12"
-python = "3.12"
-extras = ["dev"]
-change_dir = "tests"
-commands = [["pytest", "-xvs", "{posargs}"]]
-
-[tool.tox.env.py313]
-description = "Python 3.13"
-python = "3.13"
-extras = ["dev"]
-change_dir = "tests"
-commands = [["pytest", "-xvs", "{posargs}"]]
+[tool.tox.env.docs]
+description = "Build the documentation"
+base_python = ["3.11"]
+dependency_groups = ["docs"]
+commands = [["sphinx-build", "-q", "-b", "html", "docs/source", "{env_tmp_dir}/html"]]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 300
 markers = [
     "requires_network: Tests requiring a network connection",
     "make_temp_files: Tests that create temporary files"

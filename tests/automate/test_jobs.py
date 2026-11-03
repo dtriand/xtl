@@ -3,6 +3,7 @@ import pytest_asyncio
 
 from pathlib import Path
 import subprocess
+from uuid import uuid4
 
 from tests.conftest import skipif_not_linux, skipif_not_windows, skipif_not_wsl, supported_distros, wsl_distro_exists
 from xtl.automate.sites import LocalSite, BiotixHPC
@@ -150,8 +151,8 @@ class TestJob:
         if not wsl_distro_exists(distro):
             pytest.skip(f'{distro} distro not installed')
 
-        # Create a test script
-        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest\test.sh')
+        # Create a test script in a unique directory, so that parallel test runs don't collide
+        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest-{uuid4().hex[:8]}\test.sh')
         script.parent.mkdir(parents=True, exist_ok=True)
         script.touch()
         assert script.exists()
@@ -182,6 +183,7 @@ class TestJob:
         for f in [script, stdout, stderr]:
             f.unlink()
             assert not f.exists()
+        script.parent.rmdir()
 
     @skipif_not_linux
     @pytest.mark.make_temp_files('test_job', 'test_job/test_job.stdout.log', 'test_job/test_job.stderr.log')

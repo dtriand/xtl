@@ -1,6 +1,6 @@
 import click
 
-from xtl import cfg
+from xtl import __version__
 from xtl.cli.utils import update_docstring
 
 # Verbosity settings
@@ -16,7 +16,7 @@ from xtl.cli.utils import update_docstring
 @click.pass_context
 @click.option('-d', '--debug', is_flag=True, default=False, help='Run on debug mode.')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Display additional info.')
-@update_docstring(field='{version}', value=cfg['xtl']['version'].value)
+@update_docstring(field='{version}', value=__version__)
 def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
     """
     \b
@@ -41,33 +41,6 @@ def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
         'debug': debug,
         'verbose': verbose
     }
-
-
-@cli_main.command(short_help='Utilities for manipulating GSAS2 .gpx files.',
-                  context_settings=dict(ignore_unknown_options=True, allow_interspersed_args=False))
-@click.pass_context
-@click.argument('argopts', nargs=-1, type=click.UNPROCESSED)  # consumes all arguments and options
-def gsas2(ctx: click.core.Context, argopts):
-    """
-    \b
-    Alias for command: gsas2.
-    For help try: gsas2 -h
-    \f
-    :param ctx:
-    :param argopts:
-    :return:
-    """
-
-    if not argopts:
-        # from xtl.cli.gsas2_commands import cli_gsas
-        # print(cli_gsas.get_help(ctx))
-        print(ctx.get_help())
-        return
-
-    # Call the relevant command with all arguments and options
-    from subprocess import call
-    cmd = ['gsas2'] + list(argopts)
-    call(cmd)
 
 
 @cli_main.command(short_help='Access to RCSB PDB Search API.',

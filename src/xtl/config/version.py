@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from enum import IntEnum
 from dataclasses import dataclass
 from datetime import datetime
@@ -105,6 +103,22 @@ class VersionInfo:
         h |= int(self.major) * 1 << 24
         return f'0x{h:08x}'
 
+    @property
+    def pep440(self) -> str:
+        """
+        Return a PEP 440 compliant string representation of the version (e.g., '1.2.3a4').
+        See: `PEP 440 <https://peps.python.org/pep-0440/#public-version-identifiers>`_
+        """
+        if self.level == ReleaseLevel.GAMMA:
+            raise ValueError('PEP 440 does not support gamma release level')
+        if self.level == ReleaseLevel.DEV:
+            # MAJOR.MINOR.MICRO.devN
+            return f'{self.string_safe}.dev{self.serial}'
+        if self.level == ReleaseLevel.FINAL:
+            # MAJOR.MINOR.MICRO for serial == 0, otherwise MAJOR.MINOR.MICRO.postN
+            return f'{self.string_safe}' if self.serial == 0 else f'{self.string_safe}.post{self.serial}'
+        return f'{self.string_safe}{self.release_level}{self.serial}'
+
     def __str__(self) -> str:
         return self.string
 
@@ -113,7 +127,7 @@ class VersionInfo:
                 f'date={self.release_date!r})')
 
     @classmethod
-    def from_str(cls, version_str: str, date_str: str | None = None) -> VersionInfo:
+    def from_str(cls, version_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
         Create a VersionInfo object from a version string.
         """
@@ -156,7 +170,7 @@ class VersionInfo:
                    serial=serial, date=date)
 
     @classmethod
-    def from_hex(cls, hex_str: str, date_str: str | None = None) -> VersionInfo:
+    def from_hex(cls, hex_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
         Create a VersionInfo object from a 32-bit hexadecimal string.
         """
@@ -174,7 +188,7 @@ class VersionInfo:
                    serial=serial, date=date)
 
     @classmethod
-    def from_value(cls, value: str | dict | VersionInfo) -> VersionInfo:
+    def from_value(cls, value: 'str | dict | VersionInfo') -> 'VersionInfo':
         if isinstance(value, VersionInfo):
             return value
         elif isinstance(value, dict):
