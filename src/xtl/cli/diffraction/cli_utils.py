@@ -59,39 +59,36 @@ def get_geometry_from_header(header: str) -> 'Geometry':
     Return a pyFAI Geometry object from the header of an NPX file written by
     AzimuthalCrossCorrelatorQQ_1 or Integrator.
     """
+    import ast
     from pyFAI.geometry import Geometry
-    from pyFAI.detectors import Detector
 
-    lines = []
+    config = {}
     for line in header.splitlines():
-        if line.startswith('pyFAI.Geometry'):
-            contents = line.replace('pyFAI.Geometry.', '')
-            key, value = contents.split(':')
-            lines.append((key.strip(), value.strip()))
-
-    kwargs = {}
-    detector_config = {}
-    for key, value in lines:
-        if key in ['poni_version']:
+        key, _, value = line.partition(':')
+        if not key.startswith('pyFAI.Geometry.'):
             continue
-        elif key == 'detector_config':
-            if value.startswith('OrderedDict'):
-                pixel1 = float(re.search(r"'pixel1', ([\d.e-]+)\)", value).group(1))
-                pixel2 = float(re.search(r"'pixel2', ([\d.e-]+)\)", value).group(1))
-                max_shape = list(map(int, re.search(r"'max_shape', \[(\d+), (\d+)\]", value).groups()))
-                detector_config = {'pixel1': pixel1, 'pixel2': pixel2, 'max_shape': max_shape}
-                continue
-        try:
-            value = float(value)
-        except ValueError:
-            pass
-        kwargs[key] = value
+        key, value = key.removeprefix('pyFAI.Geometry.').strip(), value.strip()
+        if key == 'detector_config':
+            # repr() of a dict, or an OrderedDict in older pyFAI versions; enums are written as <Orientation.BottomRight: 3>
+            value = re.sub(r'<\w+\.\w+: (-?\d+)>', r'\1', value)
+            value = re.sub(r'^OrderedDict\((.*)\)$', r'\1', value)
+            value = dict(ast.literal_eval(value)) if value else {}
+        else:
+            try:
+                value = ast.literal_eval(value)
+            except (ValueError, SyntaxError):
+                pass  # e.g. detector names
+        config[key] = value
 
-    if detector_config:
-        detector_config['detector'] = kwargs['detector']
-        detector = Detector.from_dict(detector_config)
-        kwargs['detector'] = detector
-    return Geometry(**kwargs)
+    geometry = Geometry()
+    try:
+        geometry.set_config(config)
+    except TypeError:
+        # Older pyFAI versions don't support detector orientation, but their implicit one is BottomRight (3)
+        if config.get('detector_config', {}).pop('orientation', 3) != 3:
+            raise
+        geometry.set_config(config)
+    return geometry
 
 
 def get_radial_units_from_header(header: str) -> Optional['RadialUnits']:
