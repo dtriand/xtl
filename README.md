@@ -23,7 +23,7 @@ XTL is a collection of library code for everyday tasks in the workflow of the ma
 - `xtl.math spacing` : Convert between various definitions of scattering angle (2θ, d, q, etc.)
 
 ## Requirements
-- Python 3.10
+- Python 3.10 or newer (3.11 or newer recommended)
 
 ## Installation
 XTL can be installed using:

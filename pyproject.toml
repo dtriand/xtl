@@ -24,6 +24,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Physics",
@@ -34,7 +36,7 @@ dependencies = [
     "click>=8.4.1",
     "defusedxml>=0.7.1",
     "distro>=1.9.0",
-    "fabio>=2023.6.0",
+    "fabio>=2024.4.0",
     "f90nml>=1.5.0",
     "gemmi>=0.5.5",
     "h5py>=3.16.0",
@@ -100,8 +102,8 @@ packages = ["src/xtl"]
 include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.tox]
-env_list = ["py310", "py311", "py312", "py313"]
 min_version = "4.22"
+env_list = ["py310", "py311", "py312", "py313", "py314"]
 
 [tool.tox.env.py310]
 description = "Python 3.10"
@@ -127,6 +129,13 @@ commands = [["pytest", "-xvs", "{posargs}"]]
 [tool.tox.env.py313]
 description = "Python 3.13"
 python = "3.13"
+dependency_groups = ["test"]
+change_dir = "tests"
+commands = [["pytest", "-xvs", "{posargs}"]]
+
+[tool.tox.env.py314]
+description = "Python 3.14"
+python = "3.14"
 dependency_groups = ["test"]
 change_dir = "tests"
 commands = [["pytest", "-xvs", "{posargs}"]]
