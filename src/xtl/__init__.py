@@ -20,22 +20,11 @@ __version_hex__ = version.hex
 __date__ = version.date
 
 
-# Import guard for build tools
-import sys
-try:
-    from .config.settings import XTLSettings
+from .config.settings import XTLSettings
 
-    settings: XTLSettings = XTLSettings.initialize()
-    """
-    Shared settings across XTL, initialized from ``xtl.toml``.
+settings: XTLSettings = XTLSettings.initialize()
+"""
+Shared settings across XTL, initialized from ``xtl.toml``.
 
-    :meta hide-value:
-    """
-except ModuleNotFoundError as e:
-    if any(tool in arg for tool in ['setuptools', 'pip', 'egg_info', 'bdist_wheel',
-                                    'sdist', 'tox']
-           for arg in sys.argv):
-        # Skip imports if running any build tools because no dependencies are available
-        pass
-    else:
-        raise e
+:meta hide-value:
+"""
