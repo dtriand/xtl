@@ -61,6 +61,16 @@ class _Integrator:
         if not self.is_initialized:
             raise Exception('No integration settings set. Run initialize() method first.')
 
+    @property
+    def _header_prefix(self) -> str:
+        """
+        Fully qualified name of the pyFAI integrator class, used as a prefix for the keys in file headers.
+        """
+        # pyFAI >= 2025.01 -> pyFAI.integrator.azimuthal.AzimuthalIntegrator
+        # pyFAI <  2025.01 -> pyFAI.azimuthalIntegrator.AzimuthalIntegrator
+        cls = type(self._integrator) if self._integrator is not None else _AzimuthalIntegrator
+        return f'{cls.__module__}.{cls.__qualname__}'
+
     def _max_radial_pixels(self) -> int:
         """
         Number of pixels between 2\u03b8 = 0\u00b0 and 2\u03b8_max
@@ -188,8 +198,8 @@ class AzimuthalIntegrator1D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
+            header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
+        header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
 
         if self.results.sigma is not None:
             header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.), sigma (a.u.)'
@@ -424,9 +434,9 @@ class AzimuthalIntegrator2D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
-        header += f'pyFAI.integrator.azimuthal.AzimuthalIntegrator.npt_azim: {self.points_azimuthal}\n'
+            header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
+        header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
+        header += f'{self._header_prefix}.npt_azim: {self.points_azimuthal}\n'
 
         if self.results.sigma is not None:
             header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, intensity (a.u.), sigma (a.u.)'

@@ -98,8 +98,11 @@ def get_radial_units_from_header(header: str) -> Optional['RadialUnits']:
     from xtl.units.scattering.radial import RadialUnits
 
     for line in header.splitlines():
-        if line.startswith('pyFAI.integrator.azimuthal.AzimuthalIntegrator.unit'):
-            units = line.split(':')[-1].strip()
+        key, _, value = line.partition(':')
+        # The prefix depends on the pyFAI version (e.g. pyFAI.integrator.azimuthal.AzimuthalIntegrator.unit) and is
+        # pyFAI.AzimuthalIntegrator.unit in files written by older versions of xtl
+        if key.startswith('pyFAI.') and key.endswith('AzimuthalIntegrator.unit'):
+            units = value.strip().strip('()').split(',')[0].strip()  # 2D integrations: (radial, azimuthal)
             if units in ['2th_deg', '2theta', '2th']:
                 return RadialUnits.TWOTHETA_DEG
             elif units in ['q_nm', 'q', 'q_nm^-1']:
