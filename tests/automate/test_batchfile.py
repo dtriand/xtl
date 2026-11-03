@@ -3,6 +3,7 @@ import pytest
 import os
 from pathlib import Path
 import stat
+from uuid import uuid4
 
 from tests.conftest import skipif_not_windows, skipif_not_wsl, supported_distros, wsl_distro_exists
 from xtl.automate.sites import LocalSite, BiotixHPC
@@ -47,19 +48,21 @@ class TestBatchFile:
         if not wsl_distro_exists(distro):
             pytest.skip(f'{distro} distro not installed')
 
-        # Create a test script
-        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest\test.sh')
+        # Create a test script in a unique directory, so that parallel test runs don't collide
+        tmp_dir = f'pytest-{uuid4().hex[:8]}'
+        script = Path(fr'\\wsl.localhost\{distro}\tmp\{tmp_dir}\test.sh')
         script.parent.mkdir(parents=True, exist_ok=True)
         script.touch()
         assert script.exists()
 
         # Create batch file
         b = BatchFile(filename=script, shell=WslShell(distro=distro, shell=BashShell))
-        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash "/tmp/pytest/test.sh"'
+        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash "/tmp/{tmp_dir}/test.sh"'
 
         # Delete test script
         script.unlink()
         assert not script.exists()
+        script.parent.rmdir()
 
     def test_compute_site(self):
         b = BatchFile(filename='test')
