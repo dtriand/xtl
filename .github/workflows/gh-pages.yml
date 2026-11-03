@@ -32,14 +32,13 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install XTL and docs dependencies
         run: |
-          pip install sphinx sphinx-book-theme myst_parser
-
-      - name: Install XTL
-        run: |
-          pip install -e .[dev]
+          python -m pip install --upgrade pip
+          pip install -e . --group docs
 
       # Version detection
       - name: Get package version
