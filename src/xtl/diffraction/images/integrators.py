@@ -6,7 +6,10 @@ from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
-from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
+try:  # pyFAI >= 2025.01
+    from pyFAI.integrator.azimuthal import AzimuthalIntegrator as _AzimuthalIntegrator
+except ImportError:  # pyFAI < 2025.01
+    from pyFAI.azimuthalIntegrator import AzimuthalIntegrator as _AzimuthalIntegrator
 from pyFAI.containers import Integrate1dResult, Integrate2dResult
 
 from .images import Image
@@ -58,6 +61,16 @@ class _Integrator:
         if not self.is_initialized:
             raise Exception('No integration settings set. Run initialize() method first.')
 
+    @property
+    def _header_prefix(self) -> str:
+        """
+        Fully qualified name of the pyFAI integrator class, used as a prefix for the keys in file headers.
+        """
+        # pyFAI >= 2025.01 -> pyFAI.integrator.azimuthal.AzimuthalIntegrator
+        # pyFAI <  2025.01 -> pyFAI.azimuthalIntegrator.AzimuthalIntegrator
+        cls = type(self._integrator) if self._integrator is not None else _AzimuthalIntegrator
+        return f'{cls.__module__}.{cls.__qualname__}'
+
     def _max_radial_pixels(self) -> int:
         """
         Number of pixels between 2\u03b8 = 0\u00b0 and 2\u03b8_max
@@ -85,7 +98,8 @@ class AzimuthalIntegrator1D(_Integrator):
 
         :param int points_radial: Number of points along the radial axis
         :param str units_radial: Units for the radial axis (``'2theta'`` or ``'q'``)
-        :param float masked_pixels_value: Value for masked or ignored pixels (default: ``numpy.nan``)
+        :param float masked_pixels_value: Value for empty bins, i.e. bins without any unmasked pixels (default:
+                                          ``numpy.nan``)
         :param str error_model: Error model for calculating intensities uncertainties (``None``, ``'poisson'``, or
                                 ``'azimuthal'``)
         :raises ValueError: When an unsupported unit is provided to ``units_radial``
@@ -115,11 +129,13 @@ class AzimuthalIntegrator1D(_Integrator):
 
         self._integrator = _AzimuthalIntegrator()
         self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
+        # Value for empty bins; since pyFAI 2025.03 this is no longer set by ``dummy``
+        self._integrator.empty = self.masked_pixels_value
         self._is_initialized = True
 
     def integrate(self, check: bool = True, keep: bool = True, **kwargs) -> Integrate1dResult:
         """
-        Perform 1D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate1d_ng`` on the ``Image``,
+        Perform 1D azimuthal integration using ``pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate1d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
         pyFAI integration method is ``('bbox', 'csr', 'cython')`` (aka ``'csr'``).
@@ -127,9 +143,9 @@ class AzimuthalIntegrator1D(_Integrator):
         :param bool check: Check whether the integrator has already been initialized
         :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
-                       ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
-                       ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
-                       provided.
+                       ``azimuth_range``, ``dummy``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``,
+                       ``method``, ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are
+                       chosen if not provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
         :return: Integrate1dResult
         """
@@ -140,6 +156,7 @@ class AzimuthalIntegrator1D(_Integrator):
         variance = kwargs.get('variance', None)
         radial_range = kwargs.get('radial_range', None)
         azimuth_range = kwargs.get('azimuth_range', None)
+        dummy = kwargs.get('dummy', None)
         delta_dummy = kwargs.get('delta_dummy', None)
         polarization_factor = kwargs.get('polarization_factor', None)
         dark = kwargs.get('dark', None)
@@ -153,7 +170,7 @@ class AzimuthalIntegrator1D(_Integrator):
                                                  correctSolidAngle=correctSolidAngle, variance=variance,
                                                  error_model=self.error_model, radial_range=radial_range,
                                                  azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=self.masked_pixels_value, delta_dummy=delta_dummy,
+                                                 dummy=dummy, delta_dummy=delta_dummy,
                                                  polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                  method=method, unit=self.units_radial, safe=safe,
                                                  normalization_factor=normalization_factor, metadata=metadata)
@@ -185,8 +202,8 @@ class AzimuthalIntegrator1D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
+            header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
+        header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
 
         if self.results.sigma is not None:
             header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.), sigma (a.u.)'
@@ -312,7 +329,8 @@ class AzimuthalIntegrator2D(_Integrator):
         :param int points_radial: Number of points along the radial axis
         :param int points_azimuthal: Number of points along the azimuthal axis
         :param str units_radial: Units for the radial axis (``'2theta'`` or ``'q'``)
-        :param float masked_pixels_value: Value for masked or ignored pixels (default: ``numpy.nan``)
+        :param float masked_pixels_value: Value for empty bins, i.e. bins without any unmasked pixels (default:
+                                          ``numpy.nan``)
         :param str error_model: Error model for calculating intensities uncertainties (``None``, ``'poisson'``, or
                                 ``'azimuthal'``)
         :raises ValueError: When an unsupported unit is provided to ``units_radial``
@@ -350,11 +368,13 @@ class AzimuthalIntegrator2D(_Integrator):
 
         self._integrator = _AzimuthalIntegrator()
         self._integrator.set_config(self.image.geometry.get_config())  # pyFAI bug: to properly load detector info
+        # Value for empty bins; since pyFAI 2025.03 this is no longer set by ``dummy``
+        self._integrator.empty = self.masked_pixels_value
         self._is_initialized = True
 
     def integrate(self, check=True, keep: bool = True, **kwargs) -> Integrate2dResult:
         """
-        Perform 2D azimuthal integration using ``pyFAI.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
+        Perform 2D azimuthal integration using ``pyFAI.integrator.azimuthal.AzimuthalIntegrator.integrate2d_ng`` on the ``Image``,
         excluding the regions defined in ``Image.mask``. Integration settings are defined from the initialize() method.
         This method is just a wrapper around the pyFAI method, without any additional initialization. The default
         pyFAI integration method is ``('bbox', 'histogram', 'cython')`` (aka ``'bbox'``).
@@ -362,9 +382,9 @@ class AzimuthalIntegrator2D(_Integrator):
         :param bool check: Check whether the integrator has already been initialized
         :param bool keep: Whether to store the integration results or return them
         :param kwargs: Any of the following pyFAI arguments: ``correctSolidAngle``, ``variance``, ``radial_range``,
-                       ``azimuth_range``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``, ``method``,
-                       ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are chosen if not
-                       provided.
+                       ``azimuth_range``, ``dummy``, ``delta_dummy``, ``polarization_factor``, ``dark``, ``flat``,
+                       ``method``, ``safe``, ``normalization_factor``, ``metadata``. The default pyFAI values are
+                       chosen if not provided.
         :raises Exception: When the integrator hasn't been initialized and ``check=True``
         :return: Integrate2dResult
         """
@@ -375,6 +395,7 @@ class AzimuthalIntegrator2D(_Integrator):
         variance = kwargs.get('variance', None)
         radial_range = kwargs.get('radial_range', None)
         azimuth_range = kwargs.get('azimuth_range', None)
+        dummy = kwargs.get('dummy', None)
         delta_dummy = kwargs.get('delta_dummy', None)
         polarization_factor = kwargs.get('polarization_factor', None)
         dark = kwargs.get('dark', None)
@@ -389,7 +410,7 @@ class AzimuthalIntegrator2D(_Integrator):
                                                  correctSolidAngle=correctSolidAngle, variance=variance,
                                                  error_model=self.error_model, radial_range=radial_range,
                                                  azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=self.masked_pixels_value,  delta_dummy=delta_dummy,
+                                                 dummy=dummy, delta_dummy=delta_dummy,
                                                  polarization_factor=polarization_factor, dark=dark, flat=flat,
                                                  method=method, unit=self.units_radial, safe=safe,
                                                  normalization_factor=normalization_factor, metadata=metadata)
@@ -421,9 +442,9 @@ class AzimuthalIntegrator2D(_Integrator):
         for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
                     'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
                     'normalization_factor', 'metadata']:
-            header += f'pyFAI.AzimuthalIntegrator.{key}: {getattr(self.results, key)}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_rad: {self.points_radial}\n'
-        header += f'pyFAI.AzimuthalIntegrator.npt_azim: {self.points_azimuthal}\n'
+            header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
+        header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
+        header += f'{self._header_prefix}.npt_azim: {self.points_azimuthal}\n'
 
         if self.results.sigma is not None:
             header += f'\nDatasets: {self.units_radial}, {self.units_azimuthal}, intensity (a.u.), sigma (a.u.)'
