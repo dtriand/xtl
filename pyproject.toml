@@ -101,38 +101,26 @@ packages = ["src/xtl"]
 include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.tox]
-min_version = "4.22"
-env_list = ["py310", "py311", "py312", "py313", "py314"]
+requires = ["tox>=4.22", "tox-uv>=1.11"]
+env_list = ["py310", "py311", "py312", "py313", "py314", "lowest"]
 
-[tool.tox.env.py310]
-description = "Python 3.10"
-python = "3.10"
+[tool.tox.env_run_base]
+description = "Run tests on {env_name} with the locked dependencies"
+runner = "uv-venv-lock-runner"
 dependency_groups = ["test"]
-commands = [["pytest", "-xvs", "{posargs}"]]
+commands = [["pytest", "-xvs", { replace = "posargs", extend = true }]]
 
-[tool.tox.env.py311]
-description = "Python 3.11"
-python = "3.11"
-dependency_groups = ["test"]
-commands = [["pytest", "-xvs", "{posargs}"]]
+[tool.tox.env.lowest]
+description = "Run tests with the lowest supported versions of the direct dependencies"
+runner = "uv-venv-runner"
+base_python = ["3.10"]
+uv_resolution = "lowest-direct"
 
-[tool.tox.env.py312]
-description = "Python 3.12"
-python = "3.12"
-dependency_groups = ["test"]
-commands = [["pytest", "-xvs", "{posargs}"]]
-
-[tool.tox.env.py313]
-description = "Python 3.13"
-python = "3.13"
-dependency_groups = ["test"]
-commands = [["pytest", "-xvs", "{posargs}"]]
-
-[tool.tox.env.py314]
-description = "Python 3.14"
-python = "3.14"
-dependency_groups = ["test"]
-commands = [["pytest", "-xvs", "{posargs}"]]
+[tool.tox.env.docs]
+description = "Build the documentation"
+base_python = ["3.11"]
+dependency_groups = ["docs"]
+commands = [["sphinx-build", "-q", "-b", "html", "docs/source", "{env_tmp_dir}/html"]]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
