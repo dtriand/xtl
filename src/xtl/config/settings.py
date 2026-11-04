@@ -380,23 +380,37 @@ class XTLSettings(Settings):
         logger.info('Reading %(name)s config: %(path)s',
                     {'name': location.name, 'path': location.path})
 
-        try:
-            _settings = cls.from_toml(location.path)
-        except (OSError, ValueError) as e:
-            # Capture any errors and log them, but don't fall back to the next
-            #  available location
+        _settings, errors, warnings = cls._read(location.path)
+        if _settings is None:
+            # Log the error, but don't fall back to the next available location
             logger.error('Failed to read %(name)s config %(path)s, using default '
                          'settings instead: %(error)s',
-                         {'name': location.name, 'path': location.path, 'error': e})
+                         {'name': location.name, 'path': location.path,
+                          'error': errors[0]})
             return cls()  # Return default settings if reading fails
 
         # Set provenance
         _settings._source = location
 
-        # Check for issues in the loaded settings and warn
-        for problem in _settings.check():
+        # Warn about any issues in the loaded settings
+        for problem in warnings:
             logger.warning(problem)
         return _settings
+
+    @classmethod
+    def _read(cls, path: Path) -> tuple[Optional['XTLSettings'], list[str], list[str]]:
+        """
+        Read a configuration file without logging.
+
+        :param path: Path to the configuration file to read.
+        :return: A tuple of the loaded settings (``None`` if the file cannot be read),
+                 a list of errors and a list of warnings.
+        """
+        try:
+            _settings = cls.from_toml(path)
+        except (OSError, ValueError) as e:
+            return None, [str(e)], []
+        return _settings, [], _settings.check()
 
     def check(self) -> list[str]:
         """
@@ -428,6 +442,20 @@ class XTLSettings(Settings):
                             f'{extra}')
 
         return problems
+
+    @classmethod
+    def check_file(cls, path: Path) -> tuple[list[str], list[str]]:
+        """
+        Check a given configuration file for potential issues, such as version
+        mismatches, unknown keys, or file read errors. Returns a tuple containing a list
+        of errors and warnings for any issues found.
+
+        :param path: Path to the configuration file to check.
+        :return: A tuple containing a list of errors and a list of warnings for any
+                 issues found in the configuration file.
+        """
+        _, errors, warnings = cls._read(path)
+        return errors, warnings
 
     @classmethod
     def initialize(cls, create: bool = True) -> 'XTLSettings':
