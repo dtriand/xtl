@@ -6,9 +6,9 @@ settings is :class:`XTLSettings`.
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Optional, Literal
+from typing import ClassVar, Iterable, Optional, Literal
 
-from pydantic import PrivateAttr, model_validator
+from pydantic import PrivateAttr
 
 from xtl import Logger
 logger = Logger(__name__)
@@ -218,17 +218,14 @@ class JobsSettings(Settings):
 
 class DependencySettings(Settings):
     """
-    Generic external dependency settings
+    Generic external dependency settings. Each known dependency is a subclass that
+    defines the executables it provides.
     """
 
-    # Model attributes
-    provides: set[str] = \
-        Option(
-            default_factory=set,
-            desc='List of executables provided by this dependency',
-            exclude=True
-        )
+    # Executables provided by the dependency; defined by XTL, not configurable
+    _provides: ClassVar[frozenset[str]] = frozenset()
 
+    # Model attributes
     path: Optional[Path] = \
         Option(
             default=None,
@@ -241,6 +238,35 @@ class DependencySettings(Settings):
             default_factory=set,
             desc='Modules that provide the dependency'
         )
+
+    @property
+    def provides(self) -> frozenset[str]:
+        """
+        Executables provided by this dependency. These are defined by XTL for each
+        dependency and cannot be changed in the config file.
+        """
+        return self._provides
+
+
+class AtsasSettings(DependencySettings):
+    """
+    Settings for `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_
+    """
+    _provides = frozenset({'datcmp'})
+
+
+class AutoprocSettings(DependencySettings):
+    """
+    Settings for `autoPROC <https://www.globalphasing.com/autoproc/>`_
+    """
+    _provides = frozenset({'process', 'process_wf'})
+
+
+class EasyBraggSettings(DependencySettings):
+    """
+    Settings for easyBragg
+    """
+    _provides = frozenset({'easyBragg.python'})
 
 
 class DependenciesSettings(Settings):
@@ -258,39 +284,66 @@ class DependenciesSettings(Settings):
                  'If "loose", missing dependencies will be ignored.'
         )
 
-    atsas: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'datcmp'}
-            )
-        )
+    atsas: AtsasSettings = Option(default=AtsasSettings())
+    autoproc: AutoprocSettings = Option(default=AutoprocSettings())
+    easybragg: EasyBraggSettings = Option(default=EasyBraggSettings())
 
-    autoproc: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'process', 'process_wf'}
-            )
-        )
+    @classmethod
+    def names(cls) -> list[str]:
+        """
+        Names of the known dependencies, in definition order.
+        """
+        return [name for name, field in cls.model_fields.items()
+                if isinstance(field.annotation, type)
+                and issubclass(field.annotation, DependencySettings)]
 
-    easybragg: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'easyBragg.python'}
-            )
-        )
+    def __contains__(self, name: object) -> bool:
+        return name in self.names()
 
-    @model_validator(mode='after')
-    def _restore_provides(self) -> 'DependenciesSettings':
-        # `provides` is not written to config files (exclude=True), so a dependency
-        #  table read from a file would otherwise have no executables
-        # TODO: Temporary, replaced by one DependencySettings subclass per dependency
-        for name, field in type(self).model_fields.items():
-            value, default = getattr(self, name), field.default
-            if isinstance(value, DependencySettings) and \
-                    isinstance(default, DependencySettings) and \
-                    value.provides != default.provides:
-                value.provides = set(default.provides)
-        return self
+    def get(self, name: str) -> Optional[DependencySettings]:
+        """
+        Get the settings of a known dependency by name.
+
+        :param name: Name of the dependency, *e.g.* ``'atsas'``
+        :return: The dependency settings, or ``None`` if there is no such dependency
+        """
+        return getattr(self, name) if name in self else None
+
+    def items(self) -> list[tuple[str, DependencySettings]]:
+        """
+        The known dependencies as ``(name, settings)`` pairs, in definition order.
+        """
+        return [(name, getattr(self, name)) for name in self.names()]
+
+    def resolve(self, dependencies: Iterable[DependencySettings | str]
+                                    | DependencySettings | str | None) \
+            -> set[DependencySettings]:
+        """
+        Resolve dependency names to their settings. Instances of
+        :class:`DependencySettings` are passed through. Unknown names are skipped with a
+        warning, or raise an error if :attr:`resolution` is ``'strict'``.
+
+        :param dependencies: Dependency names or settings, or ``None``
+        :return: The set of resolved dependency settings
+        :raises ValueError: If a name is unknown and the resolution is ``'strict'``
+        """
+        resolved: set[DependencySettings] = set()
+        if dependencies is None:
+            return resolved
+        if isinstance(dependencies, (str, DependencySettings)):
+            dependencies = [dependencies]
+
+        for dependency in dependencies:
+            dep = self.get(dependency) if isinstance(dependency, str) else dependency
+            if dep is None:
+                logger.warning('Dependency `%s` not found in settings', dependency)
+                if self.resolution == 'strict':
+                    logger.error('Strict dependency resolution enabled; missing '
+                                 'dependency `%s`', dependency)
+                    raise ValueError(f'Missing dependency `{dependency}`')
+                continue
+            resolved.add(dep)
+        return resolved
 
 
 class CLIAutoprocSettings(Settings):

@@ -138,32 +138,8 @@ class BaseComputeSite(ABC):
         """
         # Imports to avoid circular dependencies
         from xtl import settings
-        from xtl.config.settings import DependencySettings
 
-        resolved_deps: set[DependencySettings] = set()
-        if dependencies is None:
-            return resolved_deps
-        if isinstance(dependencies, (str, DependencySettings)):
-            dependencies = [dependencies]
-
-        for depname in dependencies:
-            # Resolve dependency from settings
-            if isinstance(depname, str):
-                dep = getattr(settings.dependencies, depname, None)
-            else:
-                dep = depname
-
-            # Check if dependency was found in settings
-            if dep is None:
-                logger.warning('Dependency `%s` not found in settings', depname)
-                if settings.dependencies.resolution == 'strict':
-                    logger.error('Strict dependency resolution enabled; missing '
-                                 'dependency `%s`', depname)
-                    raise ValueError(f'Missing dependency `{depname}`')
-                continue
-
-            resolved_deps.add(dep)
-        return resolved_deps
+        return settings.dependencies.resolve(dependencies)
 
     @abstractmethod
     def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
