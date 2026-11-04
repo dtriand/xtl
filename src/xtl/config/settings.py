@@ -22,6 +22,7 @@ from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
+from xtl.exceptions.pydantic import OptionsValidationError
 
 
 def _get_extra_keys(options: Options) -> dict:
@@ -38,6 +39,21 @@ def _get_extra_keys(options: Options) -> dict:
                 extra.update({name: sub_extra})
     extra.pop('_parse_env', None)
     return extra
+
+
+def _flatten_keys(data: dict, prefix: str = '') -> list[str]:
+    """
+    Helper function to flatten nested dictionary keys to dotted paths, *e.g.*
+    ``{'units': {'colour': 'blue'}} -> ['units.colour']``.
+    """
+    keys = []
+    for key, value in data.items():
+        path = f'{prefix}.{key}' if prefix else str(key)
+        if isinstance(value, dict) and value:
+            keys.extend(_flatten_keys(value, path))
+        else:
+            keys.append(path)
+    return keys
 
 
 class Settings(Options):
@@ -386,7 +402,7 @@ class XTLSettings(Settings):
             logger.error('Failed to read %(name)s config %(path)s, using default '
                          'settings instead: %(error)s',
                          {'name': location.name, 'path': location.path,
-                          'error': errors[0]})
+                          'error': '; '.join(errors)})
             return cls()  # Return default settings if reading fails
 
         # Set provenance
@@ -408,6 +424,12 @@ class XTLSettings(Settings):
         """
         try:
             _settings = cls.from_toml(path)
+        except OptionsValidationError as e:
+            # One error per invalid value, located without the model name
+            #  (e.g. 'units.temperature' instead of 'XTLSettings.units.temperature')
+            errors = [f'{error["loc"].partition(".")[2] or error["loc"]}: '
+                      f'{error["msg"]}' for error in e.errors]
+            return None, errors, []
         except (OSError, ValueError) as e:
             return None, [str(e)], []
         return _settings, [], _settings.check()
@@ -429,17 +451,18 @@ class XTLSettings(Settings):
         else:
             if _v.tuple_safe < current_version.tuple_safe:
                 problems.append(f'Using settings from an older version of XTL '
-                                f'{_v.string}.')
+                                f'({_v.string}, current {current_version.string}).')
             elif _v.tuple_safe > current_version.tuple_safe:
                 problems.append(f'Using settings from a newer version of XTL '
-                                f'{_v.string}. XTL might not behave as intended. '
+                                f'({_v.string}, current {current_version.string}). '
+                                'XTL might not behave as intended. '
                                 'Use at your own risk!')
 
         # Check for extra keys in the nested Options
-        extra = _get_extra_keys(self)
+        extra = _flatten_keys(_get_extra_keys(self))
         if extra:
             problems.append('Found and ignored unknown keys in the config file: '
-                            f'{extra}')
+                            f'{", ".join(extra)}')
 
         return problems
 
