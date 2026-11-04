@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Optional, Literal
 
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, model_validator
 
 from xtl import Logger
 logger = Logger(__name__)
@@ -278,6 +278,19 @@ class DependenciesSettings(Settings):
                 provides={'easyBragg.python'}
             )
         )
+
+    @model_validator(mode='after')
+    def _restore_provides(self) -> 'DependenciesSettings':
+        # `provides` is not written to config files (exclude=True), so a dependency
+        #  table read from a file would otherwise have no executables
+        # TODO: Temporary, replaced by one DependencySettings subclass per dependency
+        for name, field in type(self).model_fields.items():
+            value, default = getattr(self, name), field.default
+            if isinstance(value, DependencySettings) and \
+                    isinstance(default, DependencySettings) and \
+                    value.provides != default.provides:
+                value.provides = set(default.provides)
+        return self
 
 
 class CLIAutoprocSettings(Settings):
