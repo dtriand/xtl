@@ -183,11 +183,10 @@ def cli_config_show(
     parts = tuple(key.split('.')) if key else ()
     value = _resolve(settings, parts)
     if value is _MISSING:
-        known = ['.'.join(p) for p in _paths(_plain(data)) + _paths(_plain(default_data))]
+        # Suggest keys at the same depth, e.g. not the keys of a matched table
+        known = ['.'.join(p) for p in _paths(_plain(data)) + _paths(_plain(default_data))
+                 if len(p) == len(parts)]
         matches = difflib.get_close_matches(key, sorted(set(known)), n=3)
-        # Skip the keys of a matched table
-        matches = [m for m in matches
-                   if not any(m.startswith(f'{n}.') for n in matches)]
         hint = f' Did you mean: {", ".join(matches)}?' if matches else ''
         raise typer.BadParameter(f'Unknown key: {key}.{hint}', param_hint="'[KEY]'")
 
@@ -207,7 +206,7 @@ def cli_config_show(
             item = _get(data, path)
             default = _get(default_data, path)
             default_str = 'not set' if default is _MISSING else \
-                encoder.dump_value(default).strip()
+                str(encoder.dump_value(default)).strip()  # ints are not converted
             if item is _MISSING:
                 notes.append(f'{".".join(path)} is not set (default: {default_str})')
                 continue
