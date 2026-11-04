@@ -98,7 +98,9 @@ def cli_config_where(
         })
 
     # Find the active config file (if any)
-    active = next((loc for loc in output['locations'] if loc['exists']), None)
+    active_loc = XTLSettings.active(locations)
+    active = next((loc for loc in output['locations']
+                   if active_loc is not None and loc['name'] == active_loc.name), None)
 
     # Determine the status of each location
     for loc in output['locations']:

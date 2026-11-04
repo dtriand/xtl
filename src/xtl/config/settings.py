@@ -500,9 +500,9 @@ class XTLSettings(Settings):
         """
         locs = cls.locations()
         # Check for the first existing config file in the lookup order
-        for loc in locs:
-            if loc.exists:
-                return cls._load(loc)
+        active = cls.active(locs)
+        if active is not None:
+            return cls._load(active)
 
         # If no config file exists, initialize with defaults
         _settings = cls()
@@ -533,6 +533,22 @@ class XTLSettings(Settings):
         logger.warning('Failed to create a config file in any of the candidate '
                        'locations, using default settings in-memory')
         return _settings
+
+    @classmethod
+    def active(cls, locations: Optional[list[ConfigFileInfo]] = None) \
+            -> Optional[ConfigFileInfo]:
+        """
+        The active config file: the first existing one in :meth:`locations`, which is
+        the file that :meth:`initialize` loads. Whether the file can be read is not
+        checked (see :meth:`check_file`).
+
+        :param locations: Candidate locations to search, as returned
+            by :meth:`locations` (default: computed now)
+        :return: A :class:`ConfigFileInfo`, or ``None`` if no config file exists
+        """
+        if locations is None:
+            locations = cls.locations()
+        return next((loc for loc in locations if loc.exists), None)
 
     @classmethod
     def locations(cls) -> list[ConfigFileInfo]:

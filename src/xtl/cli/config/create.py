@@ -110,7 +110,7 @@ def cli_config_create(
         settings = XTLSettings()
         origin = 'the default settings'
     else:
-        active = next((loc for loc in XTLSettings.locations() if loc.exists), None)
+        active = XTLSettings.active()
         if active is None:
             settings = XTLSettings()
             origin = 'the default settings (no config file found)'
@@ -138,11 +138,11 @@ def cli_config_create(
     console.print(f'Created config at {escape(str(target))} from {origin}')
 
     # Tell whether the new file will actually be used
-    existing = [loc for loc in XTLSettings.locations() if loc.exists]
-    if not any(loc.path.samefile(target) for loc in existing):
+    locations = XTLSettings.locations()
+    active = XTLSettings.active(locations)
+    if not any(loc.exists and loc.path.samefile(target) for loc in locations):
         console.print('[dim]This file is not in the lookup path; set XTL_CONFIG to '
                       'use it.[/]')
-    elif not existing[0].path.samefile(target):
-        console.print(f'[yellow]Note:[/] the [b]{existing[0].name}[/b] config at '
-                      f'{escape(str(existing[0].path))} takes precedence over this '
-                      f'file.')
+    elif not active.path.samefile(target):
+        console.print(f'[yellow]Note:[/] the [b]{active.name}[/b] config at '
+                      f'{escape(str(active.path))} takes precedence over this file.')

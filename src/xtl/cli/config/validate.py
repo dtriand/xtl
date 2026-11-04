@@ -33,7 +33,7 @@ def cli_config_validate(
 
     # Default to the active config file
     if file is None:
-        active = next((loc for loc in XTLSettings.locations() if loc.exists), None)
+        active = XTLSettings.active()
         if active is None:
             console.print('No config file found, nothing to validate. '
                           'Using [b]in-memory defaults[/b].')
