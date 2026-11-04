@@ -125,14 +125,14 @@ class BaseComputeSite(ABC):
     @staticmethod
     def resolve_dependencies(dependencies: Iterable[DependencySettings | str]
                                            | DependencySettings | str
-                                           | None) -> set[DependencySettings]:
+                                           | None) -> list[DependencySettings]:
         """
         Resolves dependencies from settings based on the provided dependency names or
         DependencySettings objects.
 
         :param dependencies: An iterable of dependency names (str) or DependencySettings
             instances, or None.
-        :return: A set of resolved DependencySettings instances.
+        :return: The resolved DependencySettings instances, without duplicates.
         :raises ValueError: If a dependency name is not found in settings and strict
             resolution is enabled.
         """

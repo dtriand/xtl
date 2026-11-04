@@ -204,12 +204,12 @@ class TestInitialize:
                ['Found and ignored unknown keys in the config file: units.colour']
 
 
-@pytest.mark.xfail(strict=True, reason='Q-015: nested defaults are shared, because '
-                   '`Settings` is hashable and pydantic does not copy hashable '
-                   'defaults')
 def test_defaults_are_not_shared():
+    # Nested settings are copied for each instance
     a, b = XTLSettings(), XTLSettings()
     assert a.units is not b.units
+    a.units.temperature = 'K'
+    assert XTLSettings().units.temperature == 'C'
 
 
 class TestCheck:

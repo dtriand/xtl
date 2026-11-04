@@ -69,8 +69,6 @@ class Settings(Options):
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
 
-    # Make Settings hashable so that it can be used in sets or as dict keys
-    __hash__ = object.__hash__
 
 
 class UnitsSettings(Settings):
@@ -317,17 +315,18 @@ class DependenciesSettings(Settings):
 
     def resolve(self, dependencies: Iterable[DependencySettings | str]
                                     | DependencySettings | str | None) \
-            -> set[DependencySettings]:
+            -> list[DependencySettings]:
         """
         Resolve dependency names to their settings. Instances of
         :class:`DependencySettings` are passed through. Unknown names are skipped with a
         warning, or raise an error if :attr:`resolution` is ``'strict'``.
 
         :param dependencies: Dependency names or settings, or ``None``
-        :return: The set of resolved dependency settings
+        :return: The resolved dependency settings, in the given order and without
+            duplicates
         :raises ValueError: If a name is unknown and the resolution is ``'strict'``
         """
-        resolved: set[DependencySettings] = set()
+        resolved: list[DependencySettings] = []
         if dependencies is None:
             return resolved
         if isinstance(dependencies, (str, DependencySettings)):
@@ -342,7 +341,9 @@ class DependenciesSettings(Settings):
                                  'dependency `%s`', dependency)
                     raise ValueError(f'Missing dependency `{dependency}`')
                 continue
-            resolved.add(dep)
+            # Skip duplicates (by identity: equal values may be different dependencies)
+            if not any(d is dep for d in resolved):
+                resolved.append(dep)
         return resolved
 
 
