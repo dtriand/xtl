@@ -36,8 +36,10 @@ class TestDependencySettings:
         assert s.dependencies.atsas.provides == {'datcmp'}
 
     def test_round_trip(self):
-        s0 = XTLSettings()
-        s0.dependencies.autoproc.modules = {'autoPROC/2024'}
+        # Not by setting `modules` on XTLSettings(), which would change the defaults
+        #  (Q-015)
+        s0 = XTLSettings.from_toml('[dependencies.autoproc]\n'
+                                   'modules = ["autoPROC/2024"]\n')
         s1 = XTLSettings.from_toml(s0.to_toml())
         assert s1.dependencies.autoproc.modules == {'autoPROC/2024'}
         assert s1.dependencies.autoproc.provides == {'process', 'process_wf'}
