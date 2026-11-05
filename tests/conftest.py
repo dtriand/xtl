@@ -109,7 +109,7 @@ def wsl_distro_exists(distro):
 
 
 @contextmanager
-def seed(n: int) -> None:
+def random_seed(n: int) -> None:
     """
     Set the random seed for a test
     """

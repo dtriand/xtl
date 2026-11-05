@@ -2,7 +2,7 @@ import pytest
 
 from pathlib import Path
 
-from tests.conftest import seed
+from tests.conftest import random_seed
 from xtl.automate.shells import BashShell
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc import AutoPROCJob
@@ -66,7 +66,7 @@ class TestAutoPROCJob:
         with pytest.raises(FileExistsError):
             job._determine_run_no()
 
-    @seed(42)
+    @random_seed(42)
     def test_patch_datasets(self, datasets, is_h5):
         config = AutoPROCConfig()
         job = AutoPROCJob(datasets=datasets, config=config)
@@ -79,7 +79,7 @@ class TestAutoPROCJob:
             )
         assert job._datasets[0].output_dir == datasets[0].output_dir
 
-    @seed(42)
+    @random_seed(42)
     def test_get_macro_content(self, datasets, is_h5):
         config = AutoPROCConfig(
             unit_cell=[78, 78, 37, 90, 90, 90],
