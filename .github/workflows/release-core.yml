@@ -2,8 +2,8 @@ name: Release `xtl-core`
 
 on:
   push:
-    tags: ['xtl-core-v*']  # PyPI
-  workflow_dispatch:       # TestPyPI, as a dry run
+    tags: ['xtl-core-v*']  # TestPyPI, then PyPI after your approval
+  workflow_dispatch:       # TestPyPI only; GitHub offers this only once the file is on the default branch
 
 permissions: {}
 
@@ -35,7 +35,6 @@ jobs:
 
   testpypi:
     name: Publish to TestPyPI
-    if: github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -56,7 +55,7 @@ jobs:
   pypi:
     name: Publish to PyPI
     if: github.ref_type == 'tag'
-    needs: build
+    needs: testpypi
     runs-on: ubuntu-latest
     environment:
       name: pypi  # needs your approval
