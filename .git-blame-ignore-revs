@@ -1,0 +1,8 @@
+# Mechanical commits that `git blame` skips. GitHub reads this file by itself; for a local
+#  `git blame`, run once: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+# These hashes must stay valid: don't rebase these commits.
+
+# 🎨 Applied the hygiene hooks to the entire repo
+ea3869bb8056baf112c74fe1a37bba5c19f8be82
+# 🎨 Formatted the codebase with `ruff format`
+af7d7da07b89efe30dbcb6b951c90f95619246d2
