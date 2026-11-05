@@ -14,17 +14,19 @@ def limited_concurrency(limit: int):
     Decorator to limit the number of concurrent executions of a function
     """
     semaphore = asyncio.Semaphore(limit)
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Function is executed within a semaphore context
             async with semaphore:
                 return await func(*args, **kwargs)
+
         # Tag the decorated function as semaphore-limited
         wrapper._is_semaphore_limited = True
         return wrapper
-    return decorator
 
+    return decorator
 
 
 class Job:
@@ -37,8 +39,14 @@ class Job:
     # TODO: Implement a logging system
     _echo = print
 
-    def __init__(self, name: str, compute_site: ComputeSite = None, shell: Shell = None, stdout_log: str | Path = None,
-                 stderr_log: str | Path = None):
+    def __init__(
+        self,
+        name: str,
+        compute_site: ComputeSite = None,
+        shell: Shell = None,
+        stdout_log: str | Path = None,
+        stderr_log: str | Path = None,
+    ):
         """
         A class for executing jobs in the form of batch files.
         :param name: The name of the job - used for logging and identification
@@ -57,7 +65,6 @@ class Job:
         self._stdout = Path(stdout_log) if stdout_log is not None else Path(f'{self._name}.stdout.log')
         self._stderr = Path(stderr_log) if stderr_log is not None else Path(f'{self._name}.stderr.log')
 
-
     def _determine_shell_and_site(self, shell: Shell = None, compute_site: ComputeSite = None):
         """
         Determine the shell and compute_site to use
@@ -65,7 +72,7 @@ class Job:
         if compute_site is None:  # Default compute site is LocalSite
             compute_site = LocalSite()
         elif not isinstance(compute_site, ComputeSite):
-            raise TypeError(f'\'compute_site\' must be an instance of ComputeSite, not {type(compute_site)}')
+            raise TypeError(f"'compute_site' must be an instance of ComputeSite, not {type(compute_site)}")
 
         if shell is None:  # automatically determine the shell
             if not compute_site.supported_shells:  # if the compute site doesn't specify any requirements
@@ -81,16 +88,20 @@ class Job:
             if shell is None:  # if still no shell is found
                 shell = DefaultShell
         elif not isinstance(shell, Shell | WslShell):  # if shell is provided but not a Shell
-            raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
+            raise TypeError(f"'shell' must be an instance of Shell, not {type(shell)}")
 
         # Raise warnings for incompatible shells but continue
         if self._supported_shells:
-            if not shell in self._supported_shells:
-                warnings.warn(f'Shell \'{shell.name}\' is not compatible with job '
-                              f'\'{self.__class__.__name__}\'', category=IncompatibleShellWarning)
+            if shell not in self._supported_shells:
+                warnings.warn(
+                    f"Shell '{shell.name}' is not compatible with job '{self.__class__.__name__}'",
+                    category=IncompatibleShellWarning,
+                )
         if not compute_site.is_valid_shell(shell):
-            warnings.warn(f'Shell \'{shell.name}\' is not compatible with compute_site '
-                          f'\'{compute_site.__class__.__name__}\'', category=IncompatibleShellWarning)
+            warnings.warn(
+                f"Shell '{shell.name}' is not compatible with compute_site '{compute_site.__class__.__name__}'",
+                category=IncompatibleShellWarning,
+            )
         return shell, compute_site
 
     def echo(self, message: str, *args, **kwargs):
@@ -115,8 +126,13 @@ class Job:
         b.save(change_permissions=change_permissions)
         return b
 
-    async def run_batch(self, batchfile: BatchFile, arguments: list[str] = None, stdout_log: str | Path = None,
-                        stderr_log: str | Path = None):
+    async def run_batch(
+        self,
+        batchfile: BatchFile,
+        arguments: list[str] = None,
+        stdout_log: str | Path = None,
+        stderr_log: str | Path = None,
+    ):
         """
         Execute a batch file with the specified arguments
 
@@ -136,15 +152,13 @@ class Job:
             # Launch subprocess and capture STDOUT and STDERR
             #  This will run on a separate thread and/or core, determined by the underlying OS
             #  Once the subprocess is launched, the main thread will continue to the next line
-            p = await asyncio.create_subprocess_exec(executable, *arguments, shell=False,
-                                                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            p = await asyncio.create_subprocess_exec(
+                executable, *arguments, shell=False, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
 
             # Log STDOUT and STDERR to files
             #  This keeps reading from PIPE until the subprocess exits and the buffer is empty
-            await asyncio.gather(
-                self._log_stream_to_file(p.stdout, stdout),
-                self._log_stream_to_file(p.stderr, stderr)
-            )
+            await asyncio.gather(self._log_stream_to_file(p.stdout, stdout), self._log_stream_to_file(p.stderr, stderr))
 
         # If a SIGINT is received, terminate the subprocess and raise an exception
         except asyncio.CancelledError:
@@ -183,19 +197,18 @@ class Job:
         Get the command and arguments to execute the batch file
         """
         if not isinstance(batchfile, BatchFile):
-            raise TypeError(f'\'batchfile\' must be an instance of BatchFile not {type(batchfile)}')
+            raise TypeError(f"'batchfile' must be an instance of BatchFile not {type(batchfile)}")
 
         batch_command = batchfile.get_execute_command(arguments=arguments, as_list=True)
         executable = batch_command[0]
         arguments = batch_command[1:]
         return executable, arguments
 
-
     async def _log_stream_to_file(self, stream, log_file):
         """
         Save a chunk of data from a stream to a log file
         """
-        with open(log_file, "wb") as log:
+        with open(log_file, 'wb') as log:
             while True:
                 # Read 4 KB of data from the stream
                 buffer = await stream.read(1024 * 4)
@@ -230,7 +243,7 @@ class Job:
             _is_semaphore_modified = True
 
         # Get all methods of the subclass
-        methods = [func for func in dir(SubJob) if callable(getattr(SubJob, func)) and not func.startswith("__")]
+        methods = [func for func in dir(SubJob) if callable(getattr(SubJob, func)) and not func.startswith('__')]
 
         # Find all methods that have been decorated with @limited_concurrency
         decorated = [func for func in methods if hasattr(getattr(SubJob, func), '_is_semaphore_limited')]

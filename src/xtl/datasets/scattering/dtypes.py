@@ -5,14 +5,15 @@ This module defines small, semantic pandas ExtensionDtype classes and a
 lightweight ExtensionArray implementation used by the scattering dataset
 to label columns such as intensities, uncertainties (sigmas) and angles.
 """
+
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import numpy as np
 from pandas.api.extensions import ExtensionDtype, ExtensionArray, register_extension_dtype, take as ext_take
 
-from xtl.units.base import Units, UnitsDescription
+from xtl.units.base import Units
 from xtl.units.scattering.radial import RadialUnits
 from xtl.units.scattering.intensity import IntensityUnits
 
@@ -21,6 +22,7 @@ class ScatteringDtype(ExtensionDtype):
     """
     Base ExtensionDtype for implementing persistent scattering data types
     """
+
     units: Units
     type = float
     kind = 'f'
@@ -35,22 +37,26 @@ class ScatteringDtype(ExtensionDtype):
 
 class IntensityDtype(ScatteringDtype):
     """Base dtype for scattering intensity data"""
+
     units: IntensityUnits
 
 
 class IntensitySigmaDtype(ScatteringDtype):
     """Base dtype for scattering intensity sigma data"""
+
     units: IntensityUnits
 
 
 class ScatteringAngleDtype(ScatteringDtype):
     """Base dtype for scattering angle data"""
+
     units: RadialUnits
 
 
 @register_extension_dtype
 class IntensityArbitraryDtype(IntensityDtype):
     """Dtype for intensity in arbitrary units."""
+
     name = 'intensity_arbitrary'
     units = IntensityUnits.ARB
 
@@ -58,12 +64,15 @@ class IntensityArbitraryDtype(IntensityDtype):
 @register_extension_dtype
 class IntensityAbsoluteDtype(IntensityDtype):
     """Dtype for intensity in absolute units."""
+
     name = 'intensity_absolute'
     units = IntensityUnits.ABS
+
 
 @register_extension_dtype
 class IntensitySigmaArbitraryDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in arbitrary units."""
+
     name = 'intensity_sigma_arbitrary'
     units = IntensityUnits.ARB
 
@@ -71,6 +80,7 @@ class IntensitySigmaArbitraryDtype(IntensitySigmaDtype):
 @register_extension_dtype
 class IntensitySigmaAbsoluteDtype(IntensitySigmaDtype):
     """Dtype for intensity uncertainties in absolute units."""
+
     name = 'intensity_sigma_absolute'
     units = IntensityUnits.ABS
 
@@ -78,6 +88,7 @@ class IntensitySigmaAbsoluteDtype(IntensitySigmaDtype):
 @register_extension_dtype
 class Angle2ThetaDegDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (degrees)."""
+
     name = 'angle_2theta_deg'
     units = RadialUnits.TWOTHETA_DEG
 
@@ -85,6 +96,7 @@ class Angle2ThetaDegDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class Angle2ThetaRadDtype(ScatteringAngleDtype):
     """Dtype for scattering angle in 2theta (radians)."""
+
     name = 'angle_2theta_rad'
     units = RadialUnits.TWOTHETA_RAD
 
@@ -92,6 +104,7 @@ class Angle2ThetaRadDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleDSpacingAngstromDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (Angstroms)."""
+
     name = 'angle_d_spacing_A'
     units = RadialUnits.D_A
 
@@ -99,6 +112,7 @@ class AngleDSpacingAngstromDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleDSpacingNanometerDtype(ScatteringAngleDtype):
     """Dtype for d-spacing (nanometers)."""
+
     name = 'angle_d_spacing_nm'
     units = RadialUnits.D_NM
 
@@ -106,6 +120,7 @@ class AngleDSpacingNanometerDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleSInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse Angstroms)."""
+
     name = 'angle_s_A'
     units = RadialUnits.S_A
 
@@ -113,6 +128,7 @@ class AngleSInverseAngstromDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleSInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering parameter s = 1/d (inverse nanometers)."""
+
     name = 'angle_s_nm'
     units = RadialUnits.S_NM
 
@@ -120,6 +136,7 @@ class AngleSInverseNanometerDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleQInverseAngstromDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse Angstroms)."""
+
     name = 'angle_q_A'
     units = RadialUnits.Q_A
 
@@ -127,31 +144,33 @@ class AngleQInverseAngstromDtype(ScatteringAngleDtype):
 @register_extension_dtype
 class AngleQInverseNanometerDtype(ScatteringAngleDtype):
     """Dtype for scattering vector q = 2*pi/d (inverse nanometers)."""
+
     name = 'angle_q_nm'
     units = RadialUnits.Q_NM
 
 
 ANGULAR_DTYPES: dict[str, ScatteringAngleDtype] = {
-    dtype.units.value: dtype() for dtype in [
-        Angle2ThetaDegDtype, Angle2ThetaRadDtype,
-        AngleDSpacingAngstromDtype, AngleDSpacingNanometerDtype,
-        AngleSInverseAngstromDtype, AngleSInverseNanometerDtype,
-        AngleQInverseAngstromDtype, AngleQInverseNanometerDtype
+    dtype.units.value: dtype()
+    for dtype in [
+        Angle2ThetaDegDtype,
+        Angle2ThetaRadDtype,
+        AngleDSpacingAngstromDtype,
+        AngleDSpacingNanometerDtype,
+        AngleSInverseAngstromDtype,
+        AngleSInverseNanometerDtype,
+        AngleQInverseAngstromDtype,
+        AngleQInverseNanometerDtype,
     ]
 }
 """Dictionary of scattering angle data types to their corresponding ``ScatteringDtype class``"""
 
 INTENSITY_DTYPES: dict[str, IntensityDtype] = {
-    dtype.name: dtype() for dtype in [
-        IntensityArbitraryDtype, IntensityAbsoluteDtype
-    ]
+    dtype.name: dtype() for dtype in [IntensityArbitraryDtype, IntensityAbsoluteDtype]
 }
 """Dictionary of scattering intensity data types to their corresponding ``ScatteringDtype class``"""
 
 SIGMA_DTYPES: dict[str, IntensitySigmaDtype] = {
-    dtype.name: dtype() for dtype in [
-        IntensitySigmaArbitraryDtype, IntensitySigmaAbsoluteDtype
-    ]
+    dtype.name: dtype() for dtype in [IntensitySigmaArbitraryDtype, IntensitySigmaAbsoluteDtype]
 }
 """Dictionary of scattering intensity sigma data types to their corresponding ``ScatteringDtype class``"""
 
@@ -202,11 +221,12 @@ class ScatteringArray(ExtensionArray):
     def isna(self):
         return np.isnan(self._data)
 
-    def take(self, indices, *, allow_fill: bool = False, fill_value = None):
+    def take(self, indices, *, allow_fill: bool = False, fill_value=None):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
         result = ext_take(
-            self._data, indices,
+            self._data,
+            indices,
             allow_fill=allow_fill,
             fill_value=fill_value if allow_fill else np.nan,
         )
@@ -241,8 +261,7 @@ class ScatteringArray(ExtensionArray):
         dtypes = {type(a.dtype) for a in to_concat}
         if len(dtypes) > 1:
             raise TypeError(
-                f'Cannot concatenate {ScatteringArray.__name__}s with mixed dtypes: '
-                f'{[a.dtype for a in to_concat]}'
+                f'Cannot concatenate {ScatteringArray.__name__}s with mixed dtypes: {[a.dtype for a in to_concat]}'
             )
         return cls(np.concatenate([a._data for a in to_concat]), to_concat[0].dtype)
 

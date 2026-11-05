@@ -70,13 +70,13 @@ from enum import Enum
 from xtl.common.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
 
 
-__all__ = ['CommandPolicy', 'CommandPolicyType',
-           'BaseCommandPolicy', 'DefaultCommandPolicy', 'NiceCommandPolicy']
+__all__ = ['CommandPolicy', 'CommandPolicyType', 'BaseCommandPolicy', 'DefaultCommandPolicy', 'NiceCommandPolicy']
 
 
 class CommandPolicy(StrEnum):
@@ -87,7 +87,7 @@ class CommandPolicy(StrEnum):
     DEFAULT = 'default'
     """The default command policy that does not modify commands."""
     NICE = 'nice'
-    """A command policy that uses the ``nice`` command to set process priority 
+    """A command policy that uses the ``nice`` command to set process priority
     on Unix-like systems."""
 
     def get(self) -> CommandPolicyType:
@@ -195,7 +195,7 @@ class NiceCommandPolicy(BaseCommandPolicy):
 
     name: str = 'nice'
     nice_value: int = 10
-    """The niceness value to use with the ``nice`` command. This value should be between 
+    """The niceness value to use with the ``nice`` command. This value should be between
     -20 (highest priority) and 19 (lowest priority)."""
 
     def intercept_preamble(self, preamble: str) -> str:

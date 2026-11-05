@@ -30,7 +30,7 @@ class ComputeSite(ABC):
     @priority_system.setter
     def priority_system(self, value):
         if not isinstance(value, PrioritySystemType):
-            raise TypeError('\'priority_system\' must be an instance of PrioritySystem')
+            raise TypeError("'priority_system' must be an instance of PrioritySystem")
         self._priority_system = value
 
     @property
@@ -72,9 +72,9 @@ class ComputeSite(ABC):
         pass
 
     @abstractmethod
-    def get_preamble(self, dependencies: 'DependencySettings' |
-                                         Iterable['DependencySettings'],
-                     shell: Shell | WslShell = None) -> list[str]:
+    def get_preamble(
+        self, dependencies: 'DependencySettings' | Iterable['DependencySettings'], shell: Shell | WslShell = None
+    ) -> list[str]:
         pass
 
     def prepare_command(self, command: str) -> str:
@@ -99,9 +99,9 @@ class LocalSite(ComputeSite):
     def purge_modules(self) -> str:
         return ''
 
-    def get_preamble(self, dependencies: 'DependencySettings' |
-                     Iterable['DependencySettings'],
-                     shell: Shell | WslShell = None) -> list[str]:
+    def get_preamble(
+        self, dependencies: 'DependencySettings' | Iterable['DependencySettings'], shell: Shell | WslShell = None
+    ) -> list[str]:
         # Returns an empty preamble for the local site, as it assumes that all required
         # executables are available on PATH
         return []
@@ -131,9 +131,11 @@ class ModulesSite(ComputeSite):
             cmd = f'call {cmd}'
         return cmd
 
-    def get_preamble(self, dependencies: Union['DependencySettings', str,
-                                         Iterable[Union['DependencySettings', str]]],
-                     shell: Shell | WslShell = None) -> list[str]:
+    def get_preamble(
+        self,
+        dependencies: Union['DependencySettings', str, Iterable[Union['DependencySettings', str]]],
+        shell: Shell | WslShell = None,
+    ) -> list[str]:
         if shell is None:
             shell = self._default_shell
         if not isinstance(dependencies, Iterable):
@@ -175,11 +177,12 @@ class BiotixHPC(ComputeSite):
             # Otherwise append each module in the list
             for i, mod in enumerate(modules):
                 if not isinstance(mod, str):
-                    raise ValueError('\'modules\' must be a string or a list of strings, while modules[{i}] '
-                                     'is {type(mod)}')
+                    raise ValueError(
+                        "'modules' must be a string or a list of strings, while modules[{i}] is {type(mod)}"
+                    )
                 mods.append(mod)
         else:
-            raise ValueError(f'\'modules\' must be a string or a list of strings, not {type(modules)}')
+            raise ValueError(f"'modules' must be a string or a list of strings, not {type(modules)}")
         if not mods:
             # Do not generate a command if no modules are provided
             return ''
@@ -188,9 +191,9 @@ class BiotixHPC(ComputeSite):
     def purge_modules(self) -> str:
         return 'module purge'
 
-    def get_preamble(self, dependencies: 'DependencySettings' |
-                                         Iterable['DependencySettings'],
-                     shell: Shell | WslShell = None) -> list[str]:
+    def get_preamble(
+        self, dependencies: 'DependencySettings' | Iterable['DependencySettings'], shell: Shell | WslShell = None
+    ) -> list[str]:
         # TODO: Implement this
         return []
 

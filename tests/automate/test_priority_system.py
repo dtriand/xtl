@@ -4,7 +4,6 @@ from xtl.automate.priority_system import DefaultPrioritySystem, NicePrioritySyst
 
 
 class TestDefaultPrioritySystem:
-
     def test_system_type(self):
         s = DefaultPrioritySystem()
         assert s.system_type is None
@@ -18,7 +17,6 @@ class TestDefaultPrioritySystem:
 
 
 class TestNicePrioritySystem:
-
     def test_system_type(self):
         s = NicePrioritySystem()
         assert s.system_type == 'nice'

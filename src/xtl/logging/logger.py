@@ -5,6 +5,7 @@ class XTLLogger(logging.Logger):
     """
     Custom logger class for XTL.
     """
+
     ...
 
 
@@ -23,9 +24,11 @@ class LoggerFactory:
 
         # Ensure the logger is an instance of XTLLogger
         if not isinstance(logger, XTLLogger):
-            raise TypeError(f'Logger for {name!r} is not an '
-                            f'{XTLLogger.__name__}. Did you forget to call '
-                            f'logging.setLoggerClass({XTLLogger.__name__}) ?')
+            raise TypeError(
+                f'Logger for {name!r} is not an '
+                f'{XTLLogger.__name__}. Did you forget to call '
+                f'logging.setLoggerClass({XTLLogger.__name__}) ?'
+            )
 
         # Add a NullHandler to silence the 'No handlers found' warning
         logger.addHandler(logging.NullHandler())

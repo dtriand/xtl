@@ -4,9 +4,15 @@ import warnings
 
 
 class Catcher:
-    def __init__(self, silent: bool = False, error_message: str = 'Exception was raised: ',
-                 echo_func: Callable = print, traceback_func: Optional[Callable] = None,
-                 error_kwargs: dict = None, warning_kwargs: dict = None):
+    def __init__(
+        self,
+        silent: bool = False,
+        error_message: str = 'Exception was raised: ',
+        echo_func: Callable = print,
+        traceback_func: Optional[Callable] = None,
+        error_kwargs: dict = None,
+        warning_kwargs: dict = None,
+    ):
         self.silent = silent
         self.echo_func = echo_func
         self.traceback_func = traceback_func

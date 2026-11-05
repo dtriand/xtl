@@ -6,6 +6,7 @@ from typing import TypeVar, Generic, Dict, List, Set, Type
 from xtl.common.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
@@ -21,6 +22,7 @@ class FileContainer(abc.ABC, Generic[FileTypeEnum, DataType]):
     """
     Base class for wrapping files with a specific type and providing a reader interface.
     """
+
     file_type: FileTypeEnum
     """Type of the file, defined by an enum"""
 
@@ -66,6 +68,7 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
     :type FileTypeEnum: Enum class defining the file types
     :type DataType: The type of data returned by the file reader
     """
+
     registry: Dict[FileTypeEnum, List[Type[FileContainerType]]] = {}
     """Registry of file readers, mapping file types to their corresponding classes"""
 
@@ -89,11 +92,11 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
         """
         # Ensure metaclass has defined extensions and base_class
         if not mcs.extensions:
-            raise TypeError(f'Metaclass {mcs.__name__} must define at least one file '
-                            f'type in file types in \'extensions\'')
+            raise TypeError(
+                f"Metaclass {mcs.__name__} must define at least one file type in file types in 'extensions'"
+            )
         if not mcs.base_class:
-            raise TypeError(f'Metaclass {mcs.__name__} must define a base class in '
-                            f'\'base_class\'')
+            raise TypeError(f"Metaclass {mcs.__name__} must define a base class in 'base_class'")
 
         cls = super().__new__(mcs, name, bases, namespace)
 
@@ -103,8 +106,7 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
 
         # Check if the class inherits from the base class
         if not issubclass(cls, mcs.base_class):
-            raise TypeError(f'Class {cls.__name__} must inherit from '
-                            f'{mcs.base_class.__name__}')
+            raise TypeError(f'Class {cls.__name__} must inherit from {mcs.base_class.__name__}')
 
         # Skip abstract classes
         if abc.ABC in bases:
@@ -114,14 +116,14 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
 
         # Validate the file_type attribute
         if 'file_type' not in cls.__dict__:
-            raise TypeError(f'Class {cls.__name__} must define a '
-                            f'\'file_type\' attribute')
+            raise TypeError(f"Class {cls.__name__} must define a 'file_type' attribute")
 
         # Get the expected type from the first key in extensions
         expected_type = next(iter(mcs.extensions.keys())).__class__
         if not isinstance(cls.file_type, expected_type):
-            raise TypeError(f'Class {cls.__name__} must define a \'file_type\' '
-                            f'attribute of type {expected_type.__name__}')
+            raise TypeError(
+                f"Class {cls.__name__} must define a 'file_type' attribute of type {expected_type.__name__}"
+            )
 
         # Register the class
         cls_enum = cls.file_type
@@ -151,8 +153,9 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
                     file_types.append(file_type)
         if file_types:
             return file_types
-        raise ValueError(f'Unsupported file extension for file: {path}.\n'
-                         f'Supported extensions: {", ".join(supported_ext)}')
+        raise ValueError(
+            f'Unsupported file extension for file: {path}.\nSupported extensions: {", ".join(supported_ext)}'
+        )
 
     @classmethod
     def read_file(cls, path: str | Path) -> DataType:
@@ -183,8 +186,7 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
             readers.update(cls.registry[file_type])
 
         if not readers:
-            raise NotImplementedError(f'No reader registered for file type '
-                                      f'{file_types}')
+            raise NotImplementedError(f'No reader registered for file type {file_types}')
 
         # Try to read the file with each registered reader
         for reader_class in readers:
@@ -193,6 +195,4 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
                 continue
             reader: FileContainerType = reader_class(path)
             return reader.read()
-        raise ValueError(f'No registered reader can read the file {path} of type '
-                         f'{file_types}')
-
+        raise ValueError(f'No registered reader can read the file {path} of type {file_types}')

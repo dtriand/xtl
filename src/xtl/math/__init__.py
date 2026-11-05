@@ -1,3 +1,5 @@
+__all__ = ['d_spacing_to_ttheta', 'round_value_and_esd', 'si_units', 'ttheta_to_d_spacing']
+
 import math
 import decimal
 
@@ -42,18 +44,17 @@ def si_units(value, suffix='', base=1000, digits=None):
     :return:
     """
     if value == 0:
-        return f"{value} {suffix}"
+        return f'{value} {suffix}'
     magnitude = int(math.floor(math.log(value, base)))
     scaled = value / math.pow(base, magnitude)
     if digits is not None:
         scaled = round(scaled, digits)
     if magnitude >= 0:
         if magnitude > 8:  # greater than yotta prefix
-            raise NotImplemented
+            raise NotImplementedError
         prefix = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude]
     else:
         if magnitude < -8:  # less than yocto prefix
-            raise NotImplemented
+            raise NotImplementedError
         prefix = ['', 'm', '\u03bc', 'n', 'p', 'f', 'a', 'z', 'y'][abs(magnitude)]
-    return f"{scaled} {prefix}{suffix}"
-
+    return f'{scaled} {prefix}{suffix}'

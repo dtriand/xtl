@@ -87,9 +87,14 @@ docs = [
     "sphinx-design>=0.6.1",
     "sphinx-favicon>=1.0.1"
 ]
+lint = [
+    "pre-commit>=4.0",
+    "ruff>=0.17.3",
+]
 dev = [
     {include-group = "test"},
-    {include-group = "docs"}
+    {include-group = "docs"},
+    {include-group = "lint"},
 ]
 
 [tool.hatch.version]
@@ -103,9 +108,34 @@ packages = ["src/xtl"]
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
+[tool.ruff]
+line-length = 120
+extend-exclude = [
+    # Legacy code
+    "src/xtl/GSAS2",
+    "tests/GSAS2",
+]
+force-exclude = true  # also exclude these when pre-commit passes the file names
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+    "E4",      # imports: one per line, at the top of the file
+    "E7",      # statements: `== None/True`, `not x in`, bare `except`, `type(x) ==`, lambdas, names `l`/`O`/`I`
+    "E9",      # unreadable files (syntax errors are always reported)
+    "F",       # pyflakes: undefined names, unused imports/variables, star imports, ...
+    "W605",    # invalid escape sequences like '\d'
+    "RUF100",  # unused or unknown `# noqa` comments
+]
+ignore = [
+    "E731",  # lambda assignments
+]
+
 [tool.tox]
 requires = ["tox>=4.22", "tox-uv>=1.11"]
-env_list = ["py310", "py311", "py312", "py313", "py314", "lowest"]
+env_list = ["lint", "py310", "py311", "py312", "py313", "py314", "lowest"]
 
 [tool.tox.env_run_base]
 description = "Run tests on {env_name} with the locked dependencies"
@@ -124,6 +154,14 @@ description = "Build the documentation"
 base_python = ["3.11"]
 dependency_groups = ["docs"]
 commands = [["sphinx-build", "-q", "-b", "html", "docs/source", "{env_tmp_dir}/html"]]
+
+[tool.tox.env.lint]
+description = "Run the pre-commit hooks on all files"
+runner = "uv-venv-runner"  # the lock runner would install xtl and its dependencies too
+skip_install = true
+dependency_groups = ["lint"]
+pass_env = ["PRE_COMMIT_HOME"]
+commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure", { replace = "posargs", extend = true }]]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

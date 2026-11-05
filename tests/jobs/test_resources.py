@@ -9,27 +9,43 @@ from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 
 
 class _DummyIPCBackend(IPCBackend):
-    def start(self): pass
-    def stop(self): pass
-    def get_lock(self, name: str = None) -> IPCLock: pass
-    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue: pass
-    def get_state(self, name: str) -> IPCState: pass
-    def _raw_lock(self, name: str) -> Any: pass
-    def _raw_queue(self, name: str) -> Any: pass
-    def _raw_state(self, name: str) -> Any: pass
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def get_lock(self, name: str = None) -> IPCLock:
+        pass
+
+    def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue:
+        pass
+
+    def get_state(self, name: str) -> IPCState:
+        pass
+
+    def _raw_lock(self, name: str) -> Any:
+        pass
+
+    def _raw_queue(self, name: str) -> Any:
+        pass
+
+    def _raw_state(self, name: str) -> Any:
+        pass
 
     @classmethod
-    def from_handle(cls, handle: IPCHandle) -> IPCBackend: return cls()
+    def from_handle(cls, handle: IPCHandle) -> IPCBackend:
+        return cls()
 
 
 class _DummyPool(BasePool):
-
     _ipc_cls = _DummyIPCBackend
 
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         return requested or Resources(jobs=max_jobs, threads=1, processes=1)
 
-    async def _execute_submission(self, submission): return None
+    async def _execute_submission(self, submission):
+        return None
 
 
 @pytest.mark.asyncio
@@ -156,4 +172,3 @@ async def test_nested_pool_context_restores_current_lease_scope():
         assert CURRENT_LEASE.get() is outer_lease
 
     assert CURRENT_LEASE.get() is None
-

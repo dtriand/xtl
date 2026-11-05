@@ -19,25 +19,27 @@ app = typer.Typer(name='diffplot', help='Plot diffraction data')
 
 
 @app.command('frames', help='Plot multiple 2D images', deprecated=True)
-def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
-                        frames: int = typer.Argument(1, help='No of frames to plot'),
-                        log_intensities: bool = typer.Option(False, '-l', '--log', help='Logarithmic intensity scale'),
-                        hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel', help='Pixels with value greater '
-                                                                                         'than this will be masked'),
-                        low_counts: bool = typer.Option(False, '-lc', '--low_counts', help='High-contrast mode for '
-                                                                                           '<5 counts'),
-                        mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
-                        blemishes: Path = typer.Option(None, '-b', '--blemishes',
-                                                       help='Detector blemishes file (list of x,y coordinates, '
-                                                            'new-line separated)'),
-                        save: bool = typer.Option(False, '-s', '--save', help='Export image to file'),
-                        cmap: str = typer.Option('magma', '--cmap', help='Intensity colormap'),
-                        cbad: str = typer.Option('white', '--cbad', help='Color for bad pixels'),
-                        vmin: float = typer.Option(None, '--vmin', help='Colorscale minimum value'),
-                        vmax: float = typer.Option(None, '--vmax', help='Colorscale maximum value'),
-                        mask_gaps: bool = typer.Option(False, '-mg', help='Mask detector gaps'),
-                        mask_frame: bool = typer.Option(False, '-mf', help='Mask detector frame'),
-                        mask_double_pixels: bool = typer.Option(False, '-md', help='Mask double pixels')):
+def cli_diffplot_frames(
+    fname: Path = typer.Argument(metavar='FILE'),
+    frames: int = typer.Argument(1, help='No of frames to plot'),
+    log_intensities: bool = typer.Option(False, '-l', '--log', help='Logarithmic intensity scale'),
+    hot_pixel: float = typer.Option(
+        None, '-hp', '--hot_pixel', help='Pixels with value greater than this will be masked'
+    ),
+    low_counts: bool = typer.Option(False, '-lc', '--low_counts', help='High-contrast mode for <5 counts'),
+    mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
+    blemishes: Path = typer.Option(
+        None, '-b', '--blemishes', help='Detector blemishes file (list of x,y coordinates, new-line separated)'
+    ),
+    save: bool = typer.Option(False, '-s', '--save', help='Export image to file'),
+    cmap: str = typer.Option('magma', '--cmap', help='Intensity colormap'),
+    cbad: str = typer.Option('white', '--cbad', help='Color for bad pixels'),
+    vmin: float = typer.Option(None, '--vmin', help='Colorscale minimum value'),
+    vmax: float = typer.Option(None, '--vmax', help='Colorscale maximum value'),
+    mask_gaps: bool = typer.Option(False, '-mg', help='Mask detector gaps'),
+    mask_frame: bool = typer.Option(False, '-mf', help='Mask detector frame'),
+    mask_double_pixels: bool = typer.Option(False, '-md', help='Mask double pixels'),
+):
     # Check image file and format
     cli = CliIO()
     if not fname.exists():
@@ -60,8 +62,17 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
     # Initialize figure
     fig = plt.figure(figsize=(6.4, 6.8))
     num = math.ceil(math.sqrt(frames))
-    grid = AxesGrid(fig, 111, nrows_ncols=(num, num), axes_pad=0, share_all=True, cbar_mode='single',
-                    cbar_location='right', cbar_pad=0.1, cbar_size=0.1)
+    grid = AxesGrid(
+        fig,
+        111,
+        nrows_ncols=(num, num),
+        axes_pad=0,
+        share_all=True,
+        cbar_mode='single',
+        cbar_location='right',
+        cbar_pad=0.1,
+        cbar_size=0.1,
+    )
 
     # Check no of frames
     img = Image()
@@ -93,21 +104,36 @@ def cli_diffplot_frames(fname: Path = typer.Argument(metavar='FILE'),
 
         # Plotting options
         if low_counts:
-            vmax = 5.
+            vmax = 5.0
         elif hot_pixel:
             data[data >= hot_pixel] = np.nan
 
         # Plot frame
         if log_intensities:
-            m = ax.imshow(data, cmap=cmap, norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=True),
-                          origin=img.detector_image_origin)
+            m = ax.imshow(
+                data,
+                cmap=cmap,
+                norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=True),
+                origin=img.detector_image_origin,
+            )
         else:
-            m = ax.imshow(data, cmap=cmap, norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True),
-                          origin=img.detector_image_origin)
+            m = ax.imshow(
+                data,
+                cmap=cmap,
+                norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True),
+                origin=img.detector_image_origin,
+            )
 
         # Frame numbering
-        ax.text(0.95, 0.95, f'#{img.frame}', va='top', ha='right', transform=ax.transAxes,
-                bbox={'facecolor': 'white', 'alpha': 0.5, 'linewidth': 0})
+        ax.text(
+            0.95,
+            0.95,
+            f'#{img.frame}',
+            va='top',
+            ha='right',
+            transform=ax.transAxes,
+            bbox={'facecolor': 'white', 'alpha': 0.5, 'linewidth': 0},
+        )
 
     fig.suptitle(img.file.name)
     ax.cax.colorbar(m)
@@ -125,12 +151,15 @@ def cli_diffplot_powder():
 
 
 @app.command('stats', help='Statistics about 2D images')
-def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
-                       frame: int = typer.Argument(0, help='No of frame to probe'),
-                       hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel', help='Pixels with value greater '
-                                                                                        'than this will be ignored'),
-                       vmin: float = typer.Option(None, '--vmin', hidden=True, help='Intensity minimum value'),
-                       vmax: float = typer.Option(None, '--vmax', hidden=True, help='Intensity maximum value')):
+def cli_diffplot_stats(
+    fname: Path = typer.Argument(metavar='FILE'),
+    frame: int = typer.Argument(0, help='No of frame to probe'),
+    hot_pixel: float = typer.Option(
+        None, '-hp', '--hot_pixel', help='Pixels with value greater than this will be ignored'
+    ),
+    vmin: float = typer.Option(None, '--vmin', hidden=True, help='Intensity minimum value'),
+    vmax: float = typer.Option(None, '--vmax', hidden=True, help='Intensity maximum value'),
+):
     # Check image file and format
     cli = CliIO()
     if not fname.exists():
@@ -177,22 +206,25 @@ def cli_diffplot_stats(fname: Path = typer.Argument(metavar='FILE'),
     ints.append(['Std', round(np.nanstd(data), 5)])
     ints.append(['Sum', np.nansum(data)])
     pixels_ignored = np.count_nonzero(np.isnan(data))
-    ints.append(['Ignored pixels', f'{pixels_ignored} / {round(pixels_ignored/pixels_total * 100, 2)}%'])
+    ints.append(['Ignored pixels', f'{pixels_ignored} / {round(pixels_ignored / pixels_total * 100, 2)}%'])
     cli.echo(tabulate(ints, tablefmt='simple') + '\n')
 
 
 @app.command('blemishes', help='Create a list of 2D detector blemishes')
-def cli_diffplot_blemishes(fname: Path = typer.Argument(metavar='FILE'),
-                           frame: int = typer.Argument(0, help='No of frame to probe'),
-                           hot_pixel: float = typer.Option(None, '-hp', '--hot_pixel',
-                                                           help='Pixels with value greater than this will be '
-                                                                'considered as a blemish'),
-                           cold_pixel: float = typer.Option(None, '-cp', '--cold_pixel',
-                                                            help='Pixels with value less than this will be '
-                                                                 'considered as a blemish'),
-                           mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
-                           include_detector: bool = typer.Option(False, '-d', '--include_detector',
-                                                                 help='Include detector masked pixels as blemishes')):
+def cli_diffplot_blemishes(
+    fname: Path = typer.Argument(metavar='FILE'),
+    frame: int = typer.Argument(0, help='No of frame to probe'),
+    hot_pixel: float = typer.Option(
+        None, '-hp', '--hot_pixel', help='Pixels with value greater than this will be considered as a blemish'
+    ),
+    cold_pixel: float = typer.Option(
+        None, '-cp', '--cold_pixel', help='Pixels with value less than this will be considered as a blemish'
+    ),
+    mask: str = typer.Option(None, '-m', '--mask', help='Apply detector geometry mask'),
+    include_detector: bool = typer.Option(
+        False, '-d', '--include_detector', help='Include detector masked pixels as blemishes'
+    ),
+):
     # Check image file and format
     cli = CliIO()
     if not fname.exists():
@@ -201,8 +233,9 @@ def cli_diffplot_blemishes(fname: Path = typer.Argument(metavar='FILE'),
 
     # Check detector mask
     if mask and mask not in detector_masks.keys():
-        cli.echo(f'No mask available for detector {mask}. Choose one from: {", ".join(detector_masks.keys())}',
-                 level='error')
+        cli.echo(
+            f'No mask available for detector {mask}. Choose one from: {", ".join(detector_masks.keys())}', level='error'
+        )
         raise typer.Abort()
 
     # Check no of frames
@@ -215,7 +248,7 @@ def cli_diffplot_blemishes(fname: Path = typer.Argument(metavar='FILE'),
         if include_detector:
             data = img.data_masked.filled(np.nan)
         else:
-            data = img.data_masked.filled(0.)
+            data = img.data_masked.filled(0.0)
     else:
         data = img.data.astype('float')
 
@@ -235,7 +268,7 @@ def cli_diffplot_blemishes(fname: Path = typer.Argument(metavar='FILE'),
         fp.write(f'# Frame: {frame}\n')
         fp.write(f'# Blemish criteria: {mask=}, {hot_pixel=}, {cold_pixel=}, {include_detector=}\n')
         fp.write(f'# No. of blemishes: {no_blemishes}\n')
-        fp.write(f'# Pixel (x, y) coordinates list\n')
+        fp.write('# Pixel (x, y) coordinates list\n')
         fp.write('\n'.join([f'{x},{y}' for x, y in blemishes]))
     cli.echo(f'{no_blemishes} blemishes found!')
     cli.echo(f'Blemish list written to: {bfile}')

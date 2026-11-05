@@ -17,20 +17,18 @@ GI.G2sc.SetPrintLevel('error')
 @click.pass_context
 def info_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 
     ctx.ensure_object(dict)
-    ctx.obj = {
-        'debug': debug,
-        'verbose': verbose
-    }
+    ctx.obj = {'debug': debug, 'verbose': verbose}
 
 
 # Arguments: -phase, -hist, -constraint, -restraint, -rigidbody
-@info_group.command(short_help='Print information about a project file.',
-                    context_settings=dict(help_option_names=['-h', '--help']))
+@info_group.command(
+    short_help='Print information about a project file.', context_settings=dict(help_option_names=['-h', '--help'])
+)
 @click.pass_context
 @click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-p', '--phase', show_default=True, metavar='<N: int>', help='Information about phase with ID=N.')
@@ -53,7 +51,6 @@ def info(ctx: click.core.Context, file: str, phase: int):
         ctx.invoke(info_phase, file=file, phase=phase)
         return
 
-    debug = ctx.obj['debug']
     verbose = ctx.obj['verbose']
 
     q = OutputQueue()
@@ -70,7 +67,7 @@ def info(ctx: click.core.Context, file: str, phase: int):
         ['Histograms', no_histograms],
         ['Constraints', no_constraints],
         ['Restraints', no_restraints],
-        ['Rigid bodies', no_rigidbodies]
+        ['Rigid bodies', no_rigidbodies],
     ]
 
     q.append_table(title='Project details', table=info_general, tablefmt='two_columns', colalign=('right', 'left'))
@@ -78,14 +75,26 @@ def info(ctx: click.core.Context, file: str, phase: int):
     info_phases = []
     for phase in gpx.phases():
         info_phases.append(g2u.get_phase_info(gpx, phase, verbose))
-    q.append_table(title='Phases info', table=info_phases, headers='keys', disable_numparse=True, colalign=('right',),
-                   tablefmt='simple')
+    q.append_table(
+        title='Phases info',
+        table=info_phases,
+        headers='keys',
+        disable_numparse=True,
+        colalign=('right',),
+        tablefmt='simple',
+    )
 
     info_histograms = []
     for histogram in gpx.histograms():
         info_histograms.append(g2u.get_histogram_info(gpx, histogram, verbose))
-    q.append_table(title='Histograms info', table=info_histograms, headers='keys', disable_numparse=True,
-                   colalign=('right',), tablefmt='simple')
+    q.append_table(
+        title='Histograms info',
+        table=info_histograms,
+        headers='keys',
+        disable_numparse=True,
+        colalign=('right',),
+        tablefmt='simple',
+    )
 
     q.print()
 
@@ -124,27 +133,36 @@ def info_phase(ctx: click.core.Context, file, phase):
     q.append_to_queue((f"Displaying information about phase '{phase.name}' (ID = {phase_id})\n", {}))
 
     info_cell = g2u.get_cell_info(phase, verbose)
-    q.append_table(title='Unit-cell info', table=dict_to_table(info_cell), tablefmt='two_columns',
-                   colalign=('left', 'left'))
+    q.append_table(
+        title='Unit-cell info', table=dict_to_table(info_cell), tablefmt='two_columns', colalign=('left', 'left')
+    )
 
     # Idea: Add space group information
 
     if gpx.get_phase_type(phase) == 'macromolecular':
         info_density = g2u.get_density_info(phase, verbose)
-        q.append_table(title='Density info', table=dict_to_table(info_density), tablefmt='two_columns',
-                       colalign=('right', 'left'))
+        q.append_table(
+            title='Density info', table=dict_to_table(info_density), tablefmt='two_columns', colalign=('right', 'left')
+        )
 
     if gpx.has_map(phase):
         info_map = g2u.get_map_info(phase, verbose)
-        q.append_table(title='Map info', table=dict_to_table(info_map), tablefmt='two_columns',
-                       colalign=('right', 'left'))
+        q.append_table(
+            title='Map info', table=dict_to_table(info_map), tablefmt='two_columns', colalign=('right', 'left')
+        )
 
     info_histograms = []
     for h in phase.histograms():
         histogram = gpx.histogram(h)
         info_histograms.append(g2u.get_histogram_info(gpx, histogram, verbose))
-    q.append_table(title='Histograms info', table=info_histograms, headers='keys', disable_numparse=True,
-                   colalign=('right',), tablefmt='simple')
+    q.append_table(
+        title='Histograms info',
+        table=info_histograms,
+        headers='keys',
+        disable_numparse=True,
+        colalign=('right',),
+        tablefmt='simple',
+    )
 
     q.print()
 
@@ -155,27 +173,33 @@ def info_phase(ctx: click.core.Context, file, phase):
 @click.option('-v', '--verbose', count=True, type=click.IntRange(0, 3, clamp=True), help='Display additional info.')
 def params_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 
     ctx.ensure_object(dict)
-    ctx.obj = {
-        'debug': debug,
-        'verbose': verbose
-    }
+    ctx.obj = {'debug': debug, 'verbose': verbose}
 
 
 @params_group.command(short_help='Create .instprm files.', context_settings=dict(help_option_names=['-h', '--help']))
 @click.pass_context
 @click.argument('file', nargs=1, type=click.Path())
-@click.option('-l', '--wavelength', type=str, help="Set wavelength. When editing a lab parameters file all three "
-                                                   "'Lam1', 'Lam2' and 'I(L2)/I(L1)' must be provided as a semicolon-"
-                                                   "separated string (e.g. -l l1;l2;r). Alternatively, use --source to "
-                                                   "change all three at once.")
-@click.option('--source', type=str, help='Set radiation source. Only for characteristic radiations (lab '
-                                         'diffractometers). Can be an element symbol (e.g. Cu), name (e.g. copper) or '
-                                         'atomic number (e.g. 29).')
+@click.option(
+    '-l',
+    '--wavelength',
+    type=str,
+    help='Set wavelength. When editing a lab parameters file all three '
+    "'Lam1', 'Lam2' and 'I(L2)/I(L1)' must be provided as a semicolon-"
+    'separated string (e.g. -l l1;l2;r). Alternatively, use --source to '
+    'change all three at once.',
+)
+@click.option(
+    '--source',
+    type=str,
+    help='Set radiation source. Only for characteristic radiations (lab '
+    'diffractometers). Can be an element symbol (e.g. Cu), name (e.g. copper) or '
+    'atomic number (e.g. 29).',
+)
 @click.option('-zs', '--zero_shift', type=float, help='Set the angular offset of the instrumentation.')
 @click.option('-p', '--polarization', type=float, help='Set the polarization factor for x-ray source.')
 @click.option('-a', '--azimuth', type=float, help='Set the azimuthal angle (for texture analysis).')
@@ -187,8 +211,23 @@ def params_group(ctx: click.core.Context, debug: bool, verbose: bool):
 @click.option('-Z', '--lorentzian_z', type=float, help='Set peak shape parameter Z (Lorentzian).')
 @click.option('-shl', '--axial_divergence', type=float, help='Set peak shape parameter SH/L (asymmetry).')
 @click.option('-t', '--template', type=str, help='Template .instprm file to copy parameters from.')
-def params(ctx: click.core.Context, file, wavelength, source, zero_shift, polarization, azimuth,
-           gaussian_u, gaussian_v, gaussian_w, lorentzian_x, lorentzian_y, lorentzian_z, axial_divergence, template):
+def params(
+    ctx: click.core.Context,
+    file,
+    wavelength,
+    source,
+    zero_shift,
+    polarization,
+    azimuth,
+    gaussian_u,
+    gaussian_v,
+    gaussian_w,
+    lorentzian_x,
+    lorentzian_y,
+    lorentzian_z,
+    axial_divergence,
+    template,
+):
     """
     Create instrumental parameters files.
 
@@ -251,8 +290,11 @@ def params(ctx: click.core.Context, file, wavelength, source, zero_shift, polari
                     click.secho(f'Wavelength value must be float. You entered: {value}', fg='red')
                     return
         else:
-            click.secho(f'Wavelength can be either a single value (synchrotron sources) or a semicolon-separated list '
-                        f'of length 3 (lab sources). You entered: {wavelength}', fg='red')
+            click.secho(
+                f'Wavelength can be either a single value (synchrotron sources) or a semicolon-separated list '
+                f'of length 3 (lab sources). You entered: {wavelength}',
+                fg='red',
+            )
             return
 
     # Source processing
@@ -265,16 +307,30 @@ def params(ctx: click.core.Context, file, wavelength, source, zero_shift, polari
 
     # Check if file exists and prompt
     import os
+
     if os.path.exists(file):
         yes = click.confirm(f'{file} file already exists. Would you like to overwrite it?')
         if not yes:
             return
 
     # Invoke subcommand and pass the ctx along
-    ctx.invoke(params_create, file=file, wavelength=wavelength, source=source, zero_shift=zero_shift,
-               polarization=polarization, azimuth=azimuth, gaussian_u=gaussian_u, gaussian_v=gaussian_v,
-               gaussian_w=gaussian_w, lorentzian_x=lorentzian_x, lorentzian_y=lorentzian_y,
-               lorentzian_z=lorentzian_z, axial_divergence=axial_divergence, template=template)
+    ctx.invoke(
+        params_create,
+        file=file,
+        wavelength=wavelength,
+        source=source,
+        zero_shift=zero_shift,
+        polarization=polarization,
+        azimuth=azimuth,
+        gaussian_u=gaussian_u,
+        gaussian_v=gaussian_v,
+        gaussian_w=gaussian_w,
+        lorentzian_x=lorentzian_x,
+        lorentzian_y=lorentzian_y,
+        lorentzian_z=lorentzian_z,
+        axial_divergence=axial_divergence,
+        template=template,
+    )
 
 
 @click.command()
@@ -293,8 +349,23 @@ def params(ctx: click.core.Context, file, wavelength, source, zero_shift, polari
 @click.option('--lorentzian_z')
 @click.option('--axial_divergence')
 @click.option('--template')
-def params_create(ctx: click.core.Context, file, wavelength, source, zero_shift, polarization, azimuth, gaussian_u,
-                  gaussian_v, gaussian_w, lorentzian_x, lorentzian_y, lorentzian_z, axial_divergence, template):
+def params_create(
+    ctx: click.core.Context,
+    file,
+    wavelength,
+    source,
+    zero_shift,
+    polarization,
+    azimuth,
+    gaussian_u,
+    gaussian_v,
+    gaussian_w,
+    lorentzian_x,
+    lorentzian_y,
+    lorentzian_z,
+    axial_divergence,
+    template,
+):
     """
     Subcommand for creating .instprm files.
 
@@ -334,12 +405,13 @@ def params_create(ctx: click.core.Context, file, wavelength, source, zero_shift,
         'X': lorentzian_x,
         'Y': lorentzian_y,
         'Z': lorentzian_z,
-        'SH/L': axial_divergence
+        'SH/L': axial_divergence,
     }
 
     # Create an initial parameters object
     if template:  # A template .instprm is provided
         import os
+
         if not os.path.isabs(template):
             # Create a list of directories to search for the template file
             template_dirs = [
@@ -376,13 +448,14 @@ def params_create(ctx: click.core.Context, file, wavelength, source, zero_shift,
         # Create a file with the GSAS default parameters, using the user-provided wavelength/source
         if wavelength:
             ip = InstrumentalParameters.defaults_synchrotron(wavelength=wavelength)
-            click.secho(f'Initiating default synchrotron instrumental parameters.')
+            click.secho('Initiating default synchrotron instrumental parameters.')
         elif source:
             ip = InstrumentalParameters.defaults_lab(tube=source)
-            click.secho(f'Initiating default laboratory instrumental parameters.')
+            click.secho('Initiating default laboratory instrumental parameters.')
         else:
-            click.secho(f'Instrumental parameters file cannot be created without a wavelength or a radiation source.',
-                        fg='red')
+            click.secho(
+                'Instrumental parameters file cannot be created without a wavelength or a radiation source.', fg='red'
+            )
             return
 
     # Create a dict from the initial parameters object (only wavelengt/source is user-specified)
@@ -427,7 +500,7 @@ def params_edit_template_dir():
     temp_dirs = cfg['cli']['gsas_instprm_template_dir'].value.split(';')
     if temp_dirs:
         click.secho('The following directories are currently registered:')
-        click.secho('\n'.join([f'{i+1}) {temp_dir}' for i, temp_dir in enumerate(temp_dirs)]))
+        click.secho('\n'.join([f'{i + 1}) {temp_dir}' for i, temp_dir in enumerate(temp_dirs)]))
 
     # Prompt user for operation
     while True:
@@ -436,7 +509,7 @@ def params_edit_template_dir():
             'd': 'Delete entry',
             'l': 'List entries',
             'x': 'Exit menu',
-            '?': 'Display help'
+            '?': 'Display help',
         }
         operation = click.prompt(f'What would you like to do? ({", ".join(tuple(commands.keys()))})', default='?')
         command = operation[0].lower()
@@ -447,14 +520,15 @@ def params_edit_template_dir():
         if command == 'a':  # Append new entry
             if entry:  # If user provided an path upon invocation
                 import os
+
                 if not os.path.isdir(entry):
                     click.secho(f'{entry} is not a directory or does not exist.', fg='red')
                     entry = ''  # reset entry
 
             if not entry:
-                entry = click.prompt(f'Which directory do you want to add?', type=click.Path(exists=True,
-                                                                                             file_okay=False,
-                                                                                             dir_okay=True))
+                entry = click.prompt(
+                    'Which directory do you want to add?', type=click.Path(exists=True, file_okay=False, dir_okay=True)
+                )
 
             # Check if directory is already registered
             if entry in temp_dirs:
@@ -474,11 +548,11 @@ def params_edit_template_dir():
                 entry = ''  # reset entry
 
             if not entry:
-                entry = click.prompt(f'Which entry do you want to delete?', type=int)
+                entry = click.prompt('Which entry do you want to delete?', type=int)
 
             # Check if entry is valid
             try:
-                remove_dir = temp_dirs[entry-1]
+                remove_dir = temp_dirs[entry - 1]
             except IndexError:
                 click.secho(f'Entry {entry} does not exist.', fg='red')
                 continue
@@ -500,18 +574,22 @@ def params_edit_template_dir():
             continue
 
         else:
-            click.secho(f'Unknown command. Type ? to get a list of available commands.', fg='red')
+            click.secho('Unknown command. Type ? to get a list of available commands.', fg='red')
             continue
 
         # Prompt for another operation
-        if click.confirm(f'Do you want to perform another operation?'):
+        if click.confirm('Do you want to perform another operation?'):
             continue
         else:
             break
 
 
-@click.command(cls=click.CommandCollection, sources=[info_group, params_group], invoke_without_command=True,
-               context_settings=dict(help_option_names=['-h', '--help']))
+@click.command(
+    cls=click.CommandCollection,
+    sources=[info_group, params_group],
+    invoke_without_command=True,
+    context_settings=dict(help_option_names=['-h', '--help']),
+)
 @click.pass_context
 @click.option('-d', '--debug', is_flag=True, default=False, help='Run on debug mode.')
 @click.option('-v', '--verbose', count=True, type=click.IntRange(0, 3, clamp=True), help='Display additional info.')

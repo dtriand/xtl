@@ -10,7 +10,7 @@ class IntensityUnits(Units):
             repr='Intensity (A.U.)',
             pretty='I (A.U.)',
             latex=r'$\mathrm{Intensity\ (A.U.)}$',
-        )
+        ),
     )
 
     ABS = (
@@ -21,5 +21,5 @@ class IntensityUnits(Units):
             repr='Intensity (Abs)',
             pretty='I (Abs)',
             latex=r'$\mathrm{Intensity\ (Abs)}$',
-        )
+        ),
     )

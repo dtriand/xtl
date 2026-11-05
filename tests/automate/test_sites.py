@@ -2,12 +2,10 @@ import pytest
 
 from xtl.automate.priority_system import DefaultPrioritySystem, NicePrioritySystem
 from xtl.automate.shells import BashShell, DefaultShell
-from xtl.automate.sites import ComputeSite, LocalSite, BiotixHPC
-
+from xtl.automate.sites import LocalSite, BiotixHPC
 
 
 class TestLocalSite:
-
     def test_priority_system(self):
         cs = LocalSite()
         assert isinstance(cs.priority_system, DefaultPrioritySystem)
@@ -34,7 +32,6 @@ class TestLocalSite:
 
 
 class TestBiotixHPC:
-
     def test_priority_system(self):
         cs = BiotixHPC()
         assert isinstance(cs.priority_system, NicePrioritySystem)

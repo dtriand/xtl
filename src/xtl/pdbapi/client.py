@@ -1,8 +1,7 @@
-import json
 import requests
 import warnings
 
-from xtl.pdbapi.attributes import DataAttribute, DataAttributeGroup
+from xtl.pdbapi.attributes import DataAttribute
 from xtl.pdbapi.search.options import ReturnType, RequestOptions
 from xtl.pdbapi.search.nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
 from xtl.pdbapi.data.options import GQLField
@@ -11,7 +10,6 @@ from xtl.exceptions import InvalidArgument
 
 
 class SearchQueryResponse:
-
     def __init__(self, response: requests.Response):
         """
         Representation of a RCSB Search API response.
@@ -20,7 +18,7 @@ class SearchQueryResponse:
         """
         try:
             self.json = response.json()
-        except:
+        except ValueError:  # not JSON
             self.json = {}
         self.query_id = self.json.get('query_id', '')
         self.result_type = self.json.get('result_type', '')
@@ -42,7 +40,6 @@ class SearchQueryResponse:
 
 
 class DataQueryResponse:
-
     def __init__(self, query_tree: dict, response: requests.Response):
         """
         Representation of a RCSB Data API response
@@ -52,7 +49,7 @@ class DataQueryResponse:
         """
         try:
             self.json = response.json()
-        except:
+        except ValueError:  # not JSON
             self.json = {}
         self.query_tree = query_tree
         self._errors = self.json.get('errors', {})
@@ -66,8 +63,16 @@ class DataQueryResponse:
         self.nonpolymer_instances = self.data.get('nonpolymer_instances', [])
         self.assemblies = self.data.get('assemblies', [])
         self.chem_comps = self.data.get('chem_comps', [])
-        self._valid_id_types = ('entries', 'polymer_entities', 'nonpolymer_entities', 'polymer_instances',
-                                'branched_instances', 'nonpolymer_instances', 'assemblies', 'chem_comps')
+        self._valid_id_types = (
+            'entries',
+            'polymer_entities',
+            'nonpolymer_entities',
+            'polymer_instances',
+            'branched_instances',
+            'nonpolymer_instances',
+            'assemblies',
+            'chem_comps',
+        )
 
     @property
     def ok(self):
@@ -88,9 +93,9 @@ class DataQueryResponse:
             if isinstance(value, dict):
                 for k, v in value.items():
                     if isinstance(v, dict):
-                        new_dict[f"{key}.{k}"] = self._flatten_dict(v)
+                        new_dict[f'{key}.{k}'] = self._flatten_dict(v)
                     else:
-                        new_dict[f"{key}.{k}"] = v
+                        new_dict[f'{key}.{k}'] = v
             else:
                 new_dict[key] = value
         return new_dict
@@ -116,7 +121,6 @@ class DataQueryResponse:
 
 
 class Client:
-
     SEARCH_URL: str = 'https://search.rcsb.org/rcsbsearch/v2/query'
     # DATA_URL: str = 'https://data.rcsb.org/rest/v1/core'
     DATA_GRAPHQL_URL: str = 'https://data.rcsb.org/graphql'
@@ -200,8 +204,10 @@ class Client:
             if field.separator not in entry:
                 raise
             entries.append(f'"{entry}"')
-        request = f'{self.DATA_GRAPHQL_URL}?query={{{field.name}({field.identifiers}:[{",".join(entries)}])' \
-                  f'{{{attrs.to_gql()}}}}}'
+        request = (
+            f'{self.DATA_GRAPHQL_URL}?query={{{field.name}({field.identifiers}:[{",".join(entries)}])'
+            f'{{{attrs.to_gql()}}}}}'
+        )
 
         response = DataQueryResponse(query_tree=attrs.tree, response=requests.get(request))
 

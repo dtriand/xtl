@@ -30,68 +30,60 @@ class JobConfig(Options):
     Base class for job configuration, containing fields common to all jobs.
     """
 
-    job_directory: Optional[Path] = \
-        Option(
-            default=None,
-            desc='Directory for job execution and results'
-        )
+    job_directory: Optional[Path] = Option(default=None, desc='Directory for job execution and results')
 
-    resources: Optional[Resources] = \
-        Option(
-            default=None,
-            desc='Resources to allocate for this job. Overrides job-defined resources'
-        )
+    resources: Optional[Resources] = Option(
+        default=None, desc='Resources to allocate for this job. Overrides job-defined resources'
+    )
 
 
 class ResourcesConfig(Options):
-
     # TODO: Custom formatters & aliases for SLURM
     # TODO: Custom validators for SLURM-like input
     # Formatting should be handled within different methods, e.g. to_slurm()
     # Maybe we implement a _aliases and _formatters PrivateAttr in the ResourcesConfig for this purpose?
-    cpus: int = \
-        Option(
-            default=1, ge=1,
-            desc='Number of CPU cores required for the job',
-            # alias='cpus-per-task'
-        )
+    cpus: int = Option(
+        default=1,
+        ge=1,
+        desc='Number of CPU cores required for the job',
+        # alias='cpus-per-task'
+    )
 
-    memory: float = \
-        Option(
-            default=1.0, ge=0.0,
-            desc='Amount of memory (in GB) required for the job',
-            # alias='mem',
-            # formatter=lambda x: f'{x}G'
-        )
+    memory: float = Option(
+        default=1.0,
+        ge=0.0,
+        desc='Amount of memory (in GB) required for the job',
+        # alias='mem',
+        # formatter=lambda x: f'{x}G'
+    )
 
-    timeout: float | str | timedelta | None = \
-        Option(
-            default=None,
-            desc='Maximum runtime for the job (in minutes or D-HH:MM:SS format)',
-            # alias='time',
-            # cast_as=...,
-            # formatter=...
-        )
+    timeout: float | str | timedelta | None = Option(
+        default=None,
+        desc='Maximum runtime for the job (in minutes or D-HH:MM:SS format)',
+        # alias='time',
+        # cast_as=...,
+        # formatter=...
+    )
 
-    gpus: int = \
-        Option(
-            default=0, ge=0,
-            desc='Number of GPUs required for the job',
-        )
+    gpus: int = Option(
+        default=0,
+        ge=0,
+        desc='Number of GPUs required for the job',
+    )
 
-    no_tasks: int = \
-        Option(
-            default=1, ge=1,
-            desc='Number of tasks required for the job (only used in MPI jobs)',
-            # alias='ntasks'
-        )
+    no_tasks: int = Option(
+        default=1,
+        ge=1,
+        desc='Number of tasks required for the job (only used in MPI jobs)',
+        # alias='ntasks'
+    )
 
-    no_nodes: int = \
-        Option(
-            default=1, ge=1,
-            desc='Number of nodes required for the job (only used in MPI jobs)',
-            # alias='nodes'
-        )
+    no_nodes: int = Option(
+        default=1,
+        ge=1,
+        desc='Number of nodes required for the job (only used in MPI jobs)',
+        # alias='nodes'
+    )
 
     def to_slurm(self) -> list[str]:
         args = []
@@ -102,62 +94,30 @@ class ResourcesConfig(Options):
 
 
 class BatchJobConfig(JobConfig):
-
     # Batch jobs always require a job directory
-    job_directory: Optional[Path] = \
-        Option(
-            default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_batch_'),
-            desc='Directory for job execution and results',
-            cast_as=lambda x: cast_as_temp_dir_if_none(x, prefix='xtl_batch_'),
+    job_directory: Optional[Path] = Option(
+        default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_batch_'),
+        desc='Directory for job execution and results',
+        cast_as=lambda x: cast_as_temp_dir_if_none(x, prefix='xtl_batch_'),
     )
-    filename: str = \
-        Option(
-            default='batch_job',
-            desc='Batch file name (without extension)'
-        )
-    name: Optional[str] = \
-        Option(
-            default=None,
-            desc='Name of the batch job'
-        )  # for slurm --job-name
-    description: Optional[str] = \
-        Option(
-            default=None,
-            desc='Description of the batch job'
-        )  # for slurm --comment
-    permissions: FilePermissions | str | int = \
-        Option(
-            default=settings.jobs.permissions.scripts,
-            desc='Permissions for the batch file in octal format (e.g., 700)',
-            cast_as=FilePermissions,
-            formatter=PermissionOctal
-        )
-    compute_site: ComputeSite = \
-        Option(
-            default_factory=lambda: ComputeSite(settings.jobs.compute_site),
-            desc='Compute site',
-            cast_as=ComputeSite
-        )
-    dependencies: set[str] = \
-        Option(
-            default_factory=set,
-            desc='List of dependencies required for this batch job'
-        )
-    default_shell: Optional[Shell] = \
-        Option(
-            default=None,
-            desc='Default shell to use for batch execution'
-        )
-    templates: dict[Shell, str] = \
-        Option(
-            default_factory=dict,
-            desc='Templates for the content of the batch file for different shells'
-        )
-    resources: ResourcesConfig = \
-        Option(
-            default_factory=ResourcesConfig,
-            desc='Resources required for the batch job'
-        )
+    filename: str = Option(default='batch_job', desc='Batch file name (without extension)')
+    name: Optional[str] = Option(default=None, desc='Name of the batch job')  # for slurm --job-name
+    description: Optional[str] = Option(default=None, desc='Description of the batch job')  # for slurm --comment
+    permissions: FilePermissions | str | int = Option(
+        default=settings.jobs.permissions.scripts,
+        desc='Permissions for the batch file in octal format (e.g., 700)',
+        cast_as=FilePermissions,
+        formatter=PermissionOctal,
+    )
+    compute_site: ComputeSite = Option(
+        default_factory=lambda: ComputeSite(settings.jobs.compute_site), desc='Compute site', cast_as=ComputeSite
+    )
+    dependencies: set[str] = Option(default_factory=set, desc='List of dependencies required for this batch job')
+    default_shell: Optional[Shell] = Option(default=None, desc='Default shell to use for batch execution')
+    templates: dict[Shell, str] = Option(
+        default_factory=dict, desc='Templates for the content of the batch file for different shells'
+    )
+    resources: ResourcesConfig = Option(default_factory=ResourcesConfig, desc='Resources required for the batch job')
 
     _shell: Shell | None = PrivateAttr(None)
     """The shell that will be used to execute the batch file"""
@@ -176,8 +136,7 @@ class BatchJobConfig(JobConfig):
                 self._shell = compute_site.default_shell
             else:
                 # Both job and compute site specify compatible shells
-                common = self.compatible_shells & \
-                         set(compute_site.supported_shells)
+                common = self.compatible_shells & set(compute_site.supported_shells)
                 if self.default_shell in common:
                     # Choose the default shell if it is supported by both
                     self._shell = self.default_shell
@@ -194,11 +153,11 @@ class BatchJobConfig(JobConfig):
 
         # Raise warnings for incompatible shells
         if self.compatible_shells and self._shell not in self.compatible_shells:
-            raise RuntimeError(f'Incompatible shell selected: {self._shell}. '
-                               f'Compatible shells are: {self.compatible_shells}')
+            raise RuntimeError(
+                f'Incompatible shell selected: {self._shell}. Compatible shells are: {self.compatible_shells}'
+            )
         if not compute_site.is_valid_shell(self._shell):
-            logger.warning('Shell %s is not supported by compute site %s', self._shell,
-                           self.compute_site)
+            logger.warning('Shell %s is not supported by compute site %s', self._shell, self.compute_site)
 
         # Ensure _shell is a Shell enum
         self._shell = Shell(self._shell)
@@ -302,8 +261,4 @@ class SteppedJobConfig(JobConfig):
     Class for passing configuration to a job.
     """
 
-    steps: dict[str, Any] = \
-        Option(
-            default_factory=dict,
-            desc='Configuration for each step of the job.'
-        )
+    steps: dict[str, Any] = Option(default_factory=dict, desc='Configuration for each step of the job.')

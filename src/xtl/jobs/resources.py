@@ -16,6 +16,7 @@ class Resources:
     """
     Represents a set of computational resources that can be requested and allocated for a job or a pool.
     """
+
     jobs: int = 1
     threads: int = 1
     processes: int = 1
@@ -30,7 +31,7 @@ class Resources:
         return Resources(
             jobs=min(self.jobs, other.jobs),
             threads=min(self.threads, other.threads),
-            processes=min(self.processes, other.processes)
+            processes=min(self.processes, other.processes),
         )
 
     def fits_in(self, other: 'Resources') -> bool:
@@ -40,11 +41,7 @@ class Resources:
         :param other: The Resources instance to compare against.
         :return: True if this instance can fit within `other`, False otherwise.
         """
-        return (
-            self.jobs <= other.jobs and
-            self.threads <= other.threads and
-            self.processes <= other.processes
-        )
+        return self.jobs <= other.jobs and self.threads <= other.threads and self.processes <= other.processes
 
     def clamp_min(self, minimum: int = 1) -> 'Resources':
         """
@@ -55,23 +52,21 @@ class Resources:
         """
         minimum = max(0, int(minimum))
         return Resources(
-            jobs=max(minimum, self.jobs),
-            threads=max(minimum, self.threads),
-            processes=max(minimum, self.processes)
+            jobs=max(minimum, self.jobs), threads=max(minimum, self.threads), processes=max(minimum, self.processes)
         )
 
     def __sub__(self, other: 'Resources') -> 'Resources':
         return Resources(
             jobs=max(0, self.jobs - other.jobs),
             threads=max(0, self.threads - other.threads),
-            processes=max(0, self.processes - other.processes)
+            processes=max(0, self.processes - other.processes),
         )
 
     def __add__(self, other: 'Resources') -> 'Resources':
         return Resources(
             jobs=self.jobs + other.jobs,
             threads=self.threads + other.threads,
-            processes=self.processes + other.processes
+            processes=self.processes + other.processes,
         )
 
 
@@ -92,8 +87,13 @@ class ResourcesLease:
     :param parent: The parent ResourcesLease if this is a nested lease, or None if this is a root lease.
     """
 
-    def __init__(self, manager: 'ResourceManager', granted: Resources, token: Optional[Token] = None,
-                 parent: Optional['ResourcesLease'] = None):
+    def __init__(
+        self,
+        manager: 'ResourceManager',
+        granted: Resources,
+        token: Optional[Token] = None,
+        parent: Optional['ResourcesLease'] = None,
+    ):
         self._manager = manager
         self.granted = granted
         self._token = token
@@ -172,6 +172,7 @@ class ResourceManager:
 
     :param total: The total resources available for allocation. Each field will be clamped to a minimum of 1.
     """
+
     def __init__(self, total: Resources):
         self._total = total.clamp_min(1)
         self._available = self._total
@@ -237,7 +238,7 @@ def get_total_resources() -> Resources:
     )
 
 
-_MANAGERS_BY_LOOP: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, ResourceManager]" = weakref.WeakKeyDictionary()
+_MANAGERS_BY_LOOP: 'weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, ResourceManager]' = weakref.WeakKeyDictionary()
 _MANAGERS_LOCK = threading.Lock()
 
 

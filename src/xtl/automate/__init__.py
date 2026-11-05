@@ -6,6 +6,7 @@ from .sites import LocalSite, ModulesSite, BiotixHPC
 from .sites import ComputeSite as _ComputeSite
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum

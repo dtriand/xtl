@@ -1,17 +1,15 @@
 """
 Tests for the job execution functionality.
 """
+
 import pytest
 import asyncio
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import AsyncMock
 
-from tests.conftest import skipif_not_windows, skipif_not_linux
 from xtl.jobs.jobs import Job
 from xtl.jobs.config import JobConfig
-from xtl.automate.shells import BashShell, CmdShell, PowerShell
 from xtl.common.options import Option
 
 
@@ -19,8 +17,8 @@ class SimpleJobConfig(JobConfig):
     should_fail: bool = Option(default=False)
     commands: list[str] = Option(default_factory=list)
 
-class SimpleJob(Job[SimpleJobConfig]):
 
+class SimpleJob(Job[SimpleJobConfig]):
     async def _execute(self):
         if self.config.should_fail:
             raise ValueError('Job execution failed')
@@ -43,26 +41,27 @@ class TestJob:
 
         def test_job_initialization(self):
             """Test that a job can be initialized correctly."""
-            job = SimpleJob(job_id="test_001")
-            assert job.job_id == "test_001"
+            job = SimpleJob(job_id='test_001')
+            assert job.job_id == 'test_001'
             assert job.config is None
 
         def test_job_configuration(self):
             """Test that a job can be configured correctly."""
-            job = SimpleJob(job_id="test_001")
+            job = SimpleJob(job_id='test_001')
             job.configure(SimpleJobConfig(should_fail=True))
             assert job.config is not None
-            assert job.config.should_fail == True
+            assert job.config.should_fail is True
 
         def test_job_with_config(self):
             """Test job creation with configuration."""
             config = SimpleJobConfig()
-            job = SimpleJob.with_config(config, job_id="test_002")
-            assert job.job_id == "test_002"
+            job = SimpleJob.with_config(config, job_id='test_002')
+            assert job.job_id == 'test_002'
             assert job.config is config
 
         @pytest.mark.parametrize(
-            'should_fail', [True, False],
+            'should_fail',
+            [True, False],
         )
         @pytest.mark.asyncio
         async def test_job_run(self, should_fail):
@@ -94,10 +93,7 @@ class TestJob:
 
             with pytest.raises(asyncio.CancelledError):
                 # Run both tasks concurrently
-                await asyncio.gather(
-                    job.run(),
-                    cancel_job()
-                )
+                await asyncio.gather(job.run(), cancel_job())
 
         def test_job_logger(self):
             """Test job logger creation and access."""

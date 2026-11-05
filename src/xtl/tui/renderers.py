@@ -14,14 +14,13 @@ if TYPE_CHECKING:
 
 
 class LogRenderer:
-
     def __init__(
-            self,
-            console: 'ConsoleIO',
-            *,
-            log_fmt: str = '[%(name)s] %(message)s',
-            highlighters: dict[str, rich.highlighter.Highlighter] | None = None,
-        **kwargs
+        self,
+        console: 'ConsoleIO',
+        *,
+        log_fmt: str = '[%(name)s] %(message)s',
+        highlighters: dict[str, rich.highlighter.Highlighter] | None = None,
+        **kwargs,
     ) -> None:
         self._console = console
         self._formatter = logging.Formatter(fmt=log_fmt)
@@ -48,12 +47,7 @@ class LogRenderer:
 
         renderables: list[rich.console.ConsoleRenderable] = [message]
         if record.exc_info:
-            renderables.append(
-                rich.traceback.Traceback.from_exception(
-                    *record.exc_info,
-                    show_locals=False
-                )
-            )
+            renderables.append(rich.traceback.Traceback.from_exception(*record.exc_info, show_locals=False))
 
         return renderables
 

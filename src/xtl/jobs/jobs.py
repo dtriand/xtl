@@ -5,8 +5,21 @@ from copy import deepcopy
 import logging
 from logging.handlers import QueueHandler
 import shutil
-from typing import Any, AsyncIterator, ClassVar, Generic, Optional, Type, TypeVar, TYPE_CHECKING, \
-    get_args, overload, Literal, cast, Union
+from typing import (
+    Any,
+    AsyncIterator,
+    ClassVar,
+    Generic,
+    Optional,
+    Type,
+    TypeVar,
+    TYPE_CHECKING,
+    get_args,
+    overload,
+    Literal,
+    cast,
+    Union,
+)
 
 from pydantic import field_validator
 
@@ -40,9 +53,12 @@ class _DummyLock:
     """
     A dummy lock context manager for job execution outside of a pool.
     """
-    async def __aenter__(self): return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb): return None
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return None
 
 
 class JobData(Options):
@@ -50,29 +66,13 @@ class JobData(Options):
     Serializable data class for transporting job information and configuration.
     """
 
-    job_cls: str = \
-        Option(
-            ...,
-            desc='Import path of the Job class, e.g. "xtl.foo.bar.MyJob"'
-        )
+    job_cls: str = Option(..., desc='Import path of the Job class, e.g. "xtl.foo.bar.MyJob"')
 
-    job_id: str = \
-        Option(
-            ...,
-            desc='Unique identifier for this job instance'
-        )
+    job_id: str = Option(..., desc='Unique identifier for this job instance')
 
-    config: dict[str, Any] | None = \
-        Option(
-            ...,
-            desc='Job configuration'
-        )
+    config: dict[str, Any] | None = Option(..., desc='Job configuration')
 
-    logging_config: dict[str, Any] | None = \
-        Option(
-            ...,
-            desc='Logging configuration for this job'
-        )
+    logging_config: dict[str, Any] | None = Option(..., desc='Logging configuration for this job')
 
     @staticmethod
     def _import_symbol(path: str):
@@ -131,8 +131,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None,
-                 *, enforce_id: bool = False):
+    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None, *, enforce_id: bool = False):
         """
         Abstract base class for asynchronous jobs execution.
 
@@ -144,8 +143,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             register the job unconditionally.
         """
         # Create a unique job ID
-        self._job_id = str(job_id) if job_id else \
-            uuid.random(length=settings.jobs.job_digits)
+        self._job_id = str(job_id) if job_id else uuid.random(length=settings.jobs.job_digits)
 
         if not enforce_id:
             while self._job_id in self._registry:
@@ -192,9 +190,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if config_class is not None:
             # Check if the config_class inherits from JobConfig
             if not isinstance(config_class, type) or not issubclass(config_class, JobConfig):
-                raise TypeError(f'{JobConfigType.__name__} must be a subclass of '
-                                f'{JobConfig.__name__}, '
-                                f'got {config_class.__name__ if isinstance(config_class, type) else type(config_class).__name__}')
+                raise TypeError(
+                    f'{JobConfigType.__name__} must be a subclass of '
+                    f'{JobConfig.__name__}, '
+                    f'got {config_class.__name__ if isinstance(config_class, type) else type(config_class).__name__}'
+                )
             # Update the _config_class of the subclass with the new config type
             cls._config_class = config_class
         else:
@@ -210,8 +210,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         config_class = self.__class__._config_class
         if not isinstance(config, config_class):
-            raise TypeError(f'Expected config of type {config_class.__name__}, '
-                            f'got {type(config).__name__}')
+            raise TypeError(f'Expected config of type {config_class.__name__}, got {type(config).__name__}')
         self._config = config
 
     @property
@@ -222,8 +221,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._config
 
     @classmethod
-    def with_config(cls, config: JobConfigType = None, **kwargs) -> \
-            'Job[JobConfigType]':
+    def with_config(cls, config: JobConfigType = None, **kwargs) -> 'Job[JobConfigType]':
         """
         Get a preconfigured job instance.
 
@@ -233,8 +231,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         :return: A preconfigured job instance.
         """
         if not isinstance(config, cls._config_class):
-            raise TypeError(f'Expected config of type {cls._config_class.__name__}, '
-                            f'got {type(config).__name__}')
+            raise TypeError(f'Expected config of type {cls._config_class.__name__}, got {type(config).__name__}')
 
         # Extract init parameters
         # NB: We explicitly pop, so that subclasses that override this method can make use of the remaining kwargs
@@ -288,61 +285,57 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
     @overload
     async def get_pool(
-            self,
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self, max_jobs: int = 1, *, resources: Resources | None = None, **kwargs
     ) -> AsyncIterator['SimplePool']: ...
 
     @overload
     async def get_pool(
-            self,
-            pool_type: Literal['simple', 'JobPool.SIMPLE'],
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self,
+        pool_type: Literal['simple', 'JobPool.SIMPLE'],
+        max_jobs: int = 1,
+        *,
+        resources: Resources | None = None,
+        **kwargs,
     ) -> AsyncIterator['SimplePool']: ...
 
     @overload
     async def get_pool(
-            self,
-            pool_type: Literal['async', 'JobPool.ASYNC'],
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self,
+        pool_type: Literal['async', 'JobPool.ASYNC'],
+        max_jobs: int = 1,
+        *,
+        resources: Resources | None = None,
+        **kwargs,
     ) -> AsyncIterator['AsyncPool']: ...
 
     @overload
     async def get_pool(
-            self,
-            pool_type: Literal['threads', 'JobPool.THREADS'],
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self,
+        pool_type: Literal['threads', 'JobPool.THREADS'],
+        max_jobs: int = 1,
+        *,
+        resources: Resources | None = None,
+        **kwargs,
     ) -> AsyncIterator['ThreadedPool']: ...
 
     @overload
     async def get_pool(
-            self,
-            pool_type: Literal['processes', 'JobPool.PROCESSES'],
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self,
+        pool_type: Literal['processes', 'JobPool.PROCESSES'],
+        max_jobs: int = 1,
+        *,
+        resources: Resources | None = None,
+        **kwargs,
     ) -> AsyncIterator['MultiprocessPool']: ...
 
     @contextlib.asynccontextmanager
     async def get_pool(
-            self,
-            pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = 'simple',
-            max_jobs: int = 1,
-            *,
-            resources: Resources | None = None,
-            **kwargs
+        self,
+        pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = 'simple',
+        max_jobs: int = 1,
+        *,
+        resources: Resources | None = None,
+        **kwargs,
     ) -> AsyncIterator['BasePool']:
         from xtl.jobs.pools import JobPool
 
@@ -366,10 +359,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Warn and cap if over-requested
         pool_cls = pool.get()
         if max_jobs > limit:
-            self.logger.warning('The requested max_jobs=%(max_jobs)d exceeds granted '
-                                '%(dimension)s=%(limit)d for %(pool_type), capping to %(limit)d',
-                                {'max_jobs': max_jobs, 'dimension': dimension, 'limit': limit,
-                                 'pool_type': pool_cls.__name__})
+            self.logger.warning(
+                'The requested max_jobs=%(max_jobs)d exceeds granted '
+                '%(dimension)s=%(limit)d for %(pool_type), capping to %(limit)d',
+                {'max_jobs': max_jobs, 'dimension': dimension, 'limit': limit, 'pool_type': pool_cls.__name__},
+            )
             max_jobs = limit
 
         # Allocate the appropriate budget
@@ -378,7 +372,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Yield the pool
         async with pool_cls(max_jobs=max_jobs, resources=budget, **kwargs) as child:
             yield child
-
 
     def clear(self) -> None:
         """
@@ -425,11 +418,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
             already running, has completed running or got cancelled by the user.
         """
         if self._is_running:
-            self._logger.warning("Job is already running")
+            self._logger.warning('Job is already running')
             return None
 
         if self._is_complete:
-            self._logger.warning("Job has already completed")
+            self._logger.warning('Job has already completed')
             return None
 
         result = None
@@ -442,8 +435,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         except asyncio.CancelledError as e:
             self._error = e
             if e.args:
-                self._logger.warning('Job cancellation requested with reason: %s',
-                                     e.args[0])
+                self._logger.warning('Job cancellation requested with reason: %s', e.args[0])
             else:
                 self._logger.warning('Job was cancelled')
             raise
@@ -451,19 +443,17 @@ class Job(abc.ABC, Generic[JobConfigType]):
             self._error = e
             if isinstance(e, SubprocessError):
                 self._logger.error(
-                    'Job failed with subprocess error: %s, cmd_args: %s', e.message, repr(e.command),
-                    exc_info=settings.jobs.tracebacks
+                    'Job failed with subprocess error: %s, cmd_args: %s',
+                    e.message,
+                    repr(e.command),
+                    exc_info=settings.jobs.tracebacks,
                 )
             elif isinstance(e, StderrError):
                 self._logger.error(
-                    'Job failed with stderr error: %s', repr(e.stderr),
-                    exc_info=settings.jobs.tracebacks
+                    'Job failed with stderr error: %s', repr(e.stderr), exc_info=settings.jobs.tracebacks
                 )
             else:
-                self._logger.error(
-                    'Job failed due to an exception: %s', str(e),
-                    exc_info=settings.jobs.tracebacks
-                )
+                self._logger.error('Job failed due to an exception: %s', str(e), exc_info=settings.jobs.tracebacks)
         finally:
             self._is_running = False
 
@@ -508,9 +498,12 @@ class Job(abc.ABC, Generic[JobConfigType]):
                     shutil.rmtree(job_dir, ignore_errors=True)
                 self.logger.debug('Job directory cleaned up successfully')
             except OSError as e:
-                self.logger.error('Failed to clean up job directory %s due to error: %s',
-                                  job_dir, str(e),
-                                  exc_info=settings.jobs.tracebacks)
+                self.logger.error(
+                    'Failed to clean up job directory %s due to error: %s',
+                    job_dir,
+                    str(e),
+                    exc_info=settings.jobs.tracebacks,
+                )
         else:
             # Skip permission update on non-POSIX systems
             if not OS_POSIX:
@@ -521,21 +514,26 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 return
 
             try:
-                self.logger.debug('Updating permissions (f: %s, d: %s) in job directory: %s',
-                                  settings.jobs.permissions.files.octal,
-                                  settings.jobs.permissions.directories.octal,
-                                  job_dir)
+                self.logger.debug(
+                    'Updating permissions (f: %s, d: %s) in job directory: %s',
+                    settings.jobs.permissions.files.octal,
+                    settings.jobs.permissions.directories.octal,
+                    job_dir,
+                )
                 async with self.lock():
                     chmod_recursively(
                         job_dir,
                         files_permissions=settings.jobs.permissions.files,
-                        directories_permissions=settings.jobs.permissions.directories
+                        directories_permissions=settings.jobs.permissions.directories,
                     )
                 self.logger.debug('Permissions updated successfully')
             except OSError as e:
-                self.logger.error('Failed to update permissions in job directory %s due to error: %s',
-                                  job_dir, str(e),
-                                  exc_info=settings.jobs.tracebacks)
+                self.logger.error(
+                    'Failed to update permissions in job directory %s due to error: %s',
+                    job_dir,
+                    str(e),
+                    exc_info=settings.jobs.tracebacks,
+                )
 
     def lock(self, name: str | None = None) -> Any:
         """
@@ -558,8 +556,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         return self._logger
 
     @classmethod
-    def get_logger(cls, job_id: str, config: LoggerConfig = None,
-                   update_config: bool = True) -> logging.Logger:
+    def get_logger(cls, job_id: str, config: LoggerConfig = None, update_config: bool = True) -> logging.Logger:
         """
         Get or create a logger for the job with the given ID. If `config` is not
         specified, the default configuration is chosen. If a logger already exists,
@@ -580,8 +577,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if config is not None:
             # If a `config` was passed, configure/reconfigure the logger
             if not isinstance(config, LoggerConfig):
-                raise TypeError(f'Expected a {LoggerConfig.__name__} instance, '
-                                f'got {type(config).__name__}')
+                raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
             config.configure(logger)
             if update_config:
                 # This is required for propagating log configs to subjobs
@@ -614,7 +610,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
             job_id=self.job_id,
             config=cfg.to_dict() if cfg else None,
-            logging_config=self._logger_config.to_dict() if self._logger_config else None
+            logging_config=self._logger_config.to_dict() if self._logger_config else None,
         )
         if as_dict:
             return job_data.to_dict()
@@ -635,7 +631,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         else:
             raise TypeError(f'Expected a {JobData.__name__} instance or dict, got {type(data).__name__}')
 
-
         job_cls = jdata.get_job_cls()
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
@@ -644,17 +639,23 @@ class Job(abc.ABC, Generic[JobConfigType]):
             config=config,
             job_id=jdata.job_id,
             logger=job_cls.get_logger(
-                jdata.job_id,
-                config=LoggerConfig.from_dict(
-                    jdata.logging_config) if jdata.logging_config else None
+                jdata.job_id, config=LoggerConfig.from_dict(jdata.logging_config) if jdata.logging_config else None
             ),
             enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
         return job
 
-    def _create_child(self, job_cls: type['Job'], config: JobConfig, *,
-                      suffix: str | int, logger_config: LoggerConfig | None = None,
-                      inherit_pool: bool = True, inherit_queue_handlers: bool = True, **kwargs) -> 'Job':
+    def _create_child(
+        self,
+        job_cls: type['Job'],
+        config: JobConfig,
+        *,
+        suffix: str | int,
+        logger_config: LoggerConfig | None = None,
+        inherit_pool: bool = True,
+        inherit_queue_handlers: bool = True,
+        **kwargs,
+    ) -> 'Job':
         """
         Spawn a child Job that inherits the configuration from the current Job.
 
@@ -675,12 +676,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         child_logger = job_cls.get_logger(job_id=child_id, config=lcfg)
 
         # Spawn child job
-        child = job_cls.with_config(
-            config=config,
-            job_id=child_id,
-            logger=child_logger,
-            **kwargs
-        )
+        child = job_cls.with_config(config=config, job_id=child_id, logger=child_logger, **kwargs)
 
         # Optionally propagate pool
         if inherit_pool:
@@ -783,17 +779,15 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         if rc is None:
             raise RuntimeError('Batch execution finished without a return code')
         results = BatchResults(
-            stdout=cfg.stdout.read_text(encoding='utf-8'),
-            stderr=cfg.stderr.read_text(encoding='utf-8'),
-            return_code=rc
+            stdout=cfg.stdout.read_text(encoding='utf-8'), stderr=cfg.stderr.read_text(encoding='utf-8'), return_code=rc
         )
 
         # Check for errors
         if results.return_code != 0:
             raise SubprocessError(
                 message=f'Batch execution failed with return code {results.return_code}',
-                command=(batch.file, ) + tuple(self._batch_args),
-                raiser=batch.file
+                command=(batch.file,) + tuple(self._batch_args),
+                raiser=batch.file,
             )
 
         self.logger.debug('Batch execution completed successfully')
@@ -801,8 +795,7 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         return results
 
     @classmethod
-    def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> \
-            'BatchJob[BatchJobConfigType]':
+    def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> 'BatchJob[BatchJobConfigType]':
         # NB: We cast the result to the right type for type-checking reasons
         job = cast('BatchJob[BatchJobConfigType]', super().with_config(config=config, **kwargs))
         # Assign any additional kwargs that were not popped in the parent method
@@ -866,18 +859,20 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         # Initialize a JobContext to pass to steps for sharing state and results
         ctx = JobContext(parent=self)
         step_results: dict[str, JobResults | None] = ctx.results  # Passing the dicts from ctx by reference
-        shared_data: dict[str, Any] = ctx.data                    #  for type checking reasons
+        shared_data: dict[str, Any] = ctx.data  #  for type checking reasons
 
         # Execute steps sequentially
         for i, spec in enumerate(self._steps, start=1):
             # Check whether to skip current step
             if spec.condition(ctx):
-                self.logger.info('Executing step %(i)d/%(n)d: %(step)s',
-                                 {'i': i, 'n': len(self._steps), 'step': spec.name})
+                self.logger.info(
+                    'Executing step %(i)d/%(n)d: %(step)s', {'i': i, 'n': len(self._steps), 'step': spec.name}
+                )
                 self.logger.debug('Preparing %(config_cls)s', {'config_cls': spec.config_cls.__name__})
             else:
-                self.logger.info('Skipping step %(i)d/%(n)d: %(step)s',
-                                 {'i': i, 'n': len(self._steps), 'step': spec.name})
+                self.logger.info(
+                    'Skipping step %(i)d/%(n)d: %(step)s', {'i': i, 'n': len(self._steps), 'step': spec.name}
+                )
                 continue
 
             # Get the config for the current step, merging defaults and dynamic defaults from the StepSpec with any
@@ -914,7 +909,9 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
             # Store results in the context for access by subsequent steps
             step_results[spec.name] = results
             ctx.step = None  # clear the current step from the context
-            self.logger.debug('Step %(i)d/%(n)d completed: %(step)s', {'i': i, 'n': len(self._steps), 'step': spec.name})
+            self.logger.debug(
+                'Step %(i)d/%(n)d completed: %(step)s', {'i': i, 'n': len(self._steps), 'step': spec.name}
+            )
 
         self.logger.info('All steps completed')
         return step_results, shared_data
@@ -927,17 +924,15 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         # Extract steps and context data from base_results
         raw = base_results.data
         if not (isinstance(raw, tuple) and len(raw) == 2):
-            raise TypeError(f'{self.__class__.__name__}._execute() must return a 2-tuple (steps, data), '
-                            f'got {type(raw).__name__!r}')
+            raise TypeError(
+                f'{self.__class__.__name__}._execute() must return a 2-tuple (steps, data), got {type(raw).__name__!r}'
+            )
         steps: dict[str, JobResults] = raw[0]
         data: dict[str, Any] = raw[1]
 
         # Cast the results to SteppedJobResults
         stepped_results = SteppedJobResults(
-            job_id=base_results.job_id,
-            steps=steps,
-            data=data,
-            error=base_results.error
+            job_id=base_results.job_id, steps=steps, data=data, error=base_results.error
         )
 
         # Check for errors in any of the steps and set the overall error if any step failed

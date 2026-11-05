@@ -15,6 +15,7 @@ def typer_async(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
+
     return wrapper
 
 
@@ -28,8 +29,7 @@ class BadHookError(TypeError): ...
 
 
 # Implementation by: https://github.com/fastapi/typer/discussions/742
-def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> \
-        Callable[..., Any]:
+def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> Callable[..., Any]:
     """
     Decorates a source function to be executed with a pre-execution hook function. The
     hook function's output is passed to the source function as a specified keyword
@@ -92,8 +92,9 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> \
     if hook_output is None:
         hook_output = func.__name__
 
-    def decorator(source_func: Callable[Concatenate[RHook, ParamsSource], RSource]) -> \
-            Callable[Concatenate[ParamsSource, ParamsHook], RSource]:
+    def decorator(
+        source_func: Callable[Concatenate[RHook, ParamsSource], RSource],
+    ) -> Callable[Concatenate[ParamsSource, ParamsHook], RSource]:
         source_params = inspect.signature(source_func).parameters
 
         # Raise BadHookError if the hook has non-default argument that collides with the
@@ -104,9 +105,11 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> \
             if k in source_params and v.default == inspect.Parameter.empty
         ]
         if dup_params:
-            raise BadHookError(f'The following non-default arguments of the hook '
-                               f'function (`{func.__name__}`) collide with the source '
-                               f'function (`{source_func.__name__}`): {dup_params}')
+            raise BadHookError(
+                f'The following non-default arguments of the hook '
+                f'function (`{func.__name__}`) collide with the source '
+                f'function (`{source_func.__name__}`): {dup_params}'
+            )
         hook_params = {
             k: v.replace(kind=inspect.Parameter.KEYWORD_ONLY)
             for k, v in inspect.signature(func).parameters.items()
@@ -129,11 +132,10 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> \
             return source_func(*args, **source_kwargs, **{hook_output: hook_result})
 
         # Combine signatures, but remove the hook_output
-        combined_params = [param for param in source_params.values()
-                           if param.name != hook_output] + list(hook_params.values())
-        wrapper.__signature__ = inspect.signature(source_func).replace(
-            parameters=combined_params
+        combined_params = [param for param in source_params.values() if param.name != hook_output] + list(
+            hook_params.values()
         )
+        wrapper.__signature__ = inspect.signature(source_func).replace(parameters=combined_params)
 
         # Combine annotations, but remove the hook_output
         wrapper.__annotations__ = {
@@ -161,8 +163,7 @@ def jobs_depend_on(*dependencies: str):
                         xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep].append(module)
                         xtl.cli.utilities.common.REQUIRED_MODULES.append(module)
             else:
-                logger.warning('Dependency %s is not defined in '
-                               'xtl.settings.dependencies', dep)
+                logger.warning('Dependency %s is not defined in xtl.settings.dependencies', dep)
 
     def decorator(func):
         @wraps(func)

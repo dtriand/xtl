@@ -1,5 +1,4 @@
 import abc
-from datetime import datetime
 from enum import Enum
 from pathlib import Path
 import re
@@ -9,10 +8,12 @@ from xtl import Logger
 from xtl.common.compatibility import PY310_OR_LESS
 from xtl.datasets.scattering import AngleQInverseNanometerDtype, IntensityArbitraryDtype, IntensitySigmaArbitraryDtype
 from xtl.files.meta import FileContainer, FileReaderMeta
+
 if TYPE_CHECKING:
     from xtl.scattering.profiles import ScatteringProfile
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
@@ -25,24 +26,25 @@ class Scattering1DFileType(StrEnum):
     """
     Enum for different types of 1D SAXS files.
     """
+
     DAT = 'atsas_dat'
 
 
-class Scattering1DFile(FileContainer[Scattering1DFileType, 'ScatteringProfile'],
-                      abc.ABC):
+class Scattering1DFile(FileContainer[Scattering1DFileType, 'ScatteringProfile'], abc.ABC):
     """
     Base class for reading 1D SAXS files.
     """
+
     file_type: Scattering1DFileType
     """Type of reflections file"""
 
 
-class Scattering1DFileReaders(FileReaderMeta[Scattering1DFileType, Scattering1DFile,
-                                            'ScatteringProfile']):
+class Scattering1DFileReaders(FileReaderMeta[Scattering1DFileType, Scattering1DFile, 'ScatteringProfile']):
     """
     Metaclass for registering scattering profile file types.
     This allows for dynamic registration of new file types.
     """
+
     extensions = {
         Scattering1DFileType.DAT: ['.dat'],
     }
@@ -57,24 +59,27 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
     """
     Class for reading ATSAS DAT files.
     """
+
     file_type = Scattering1DFileType.DAT
 
-    _METADATA_RE: re.Pattern = \
-        re.compile(
-            r'^(' + '|'.join(re.escape(k)
-                             for k in [
-                                 'Sample description',
-                                 'Sample',
-                                 'Parent(s)',
-                                 'working-directory',
-                                 'angular-axis-file',
-                                 'beamstop-mask-file',
-                                 'creator',
-                                 'creator-version'
-                             ])
-            + r')\s*:\s*(.*)$',
-            re.IGNORECASE
+    _METADATA_RE: re.Pattern = re.compile(
+        r'^('
+        + '|'.join(
+            re.escape(k)
+            for k in [
+                'Sample description',
+                'Sample',
+                'Parent(s)',
+                'working-directory',
+                'angular-axis-file',
+                'beamstop-mask-file',
+                'creator',
+                'creator-version',
+            ]
         )
+        + r')\s*:\s*(.*)$',
+        re.IGNORECASE,
+    )
     _DATA_RE: re.Pattern = re.compile(
         r'^\s*'
         r'([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s+'
@@ -145,7 +150,7 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
         if not metadata.angular_unit:
             logger.warning('No angular unit specified in file: %s', self.file)
         elif metadata.angular_unit != 'nanometer':
-            logger.warning('Unexpected angular unit \'%s\' in file: %s', metadata.angular_unit, self.file)
+            logger.warning("Unexpected angular unit '%s' in file: %s", metadata.angular_unit, self.file)
 
         # Determine wavelength
         if not metadata.wavelength:
@@ -160,9 +165,9 @@ class AtsasDatScatteringFile(Scattering1DFile, metaclass=Scattering1DFileReaders
             dtypes={
                 'q': AngleQInverseNanometerDtype(),
                 'I': IntensityArbitraryDtype(),
-                'sigma': IntensitySigmaArbitraryDtype()
+                'sigma': IntensitySigmaArbitraryDtype(),
             },
             radial_col='q',
             metadata=metadata,
-            wavelength=wavelength
+            wavelength=wavelength,
         )

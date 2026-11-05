@@ -75,13 +75,13 @@ from typing import Iterable, Optional
 from xtl.common.compatibility import OS_WINDOWS, PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
 
 
-__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell',
-           'DefaultShell']
+__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell']
 
 
 class Shell(StrEnum):
@@ -90,16 +90,16 @@ class Shell(StrEnum):
     """
 
     DEFAULT = 'default'
-    """The default shell for the current operating system 
+    """The default shell for the current operating system
     (see: :class:`DefaultShell <xtl.jobs.shells.DefaultShell>`)"""
     BASH = 'bash'
-    """The Bash shell 
+    """The Bash shell
     (see: :class:`BashShell <xtl.jobs.shells.BashShell>`)"""
     CMD = 'cmd'
-    """The Windows Command Prompt shell 
+    """The Windows Command Prompt shell
     (see: :class:`CmdShell <xtl.jobs.shells.CmdShell>`)"""
     POWERSHELL = 'powershell'
-    """The Windows PowerShell shell 
+    """The Windows PowerShell shell
     (see: :class:`PowerShell <xtl.jobs.shells.PowerShell>`)"""
 
     def get(self) -> ShellType:
@@ -134,6 +134,7 @@ class BaseShell:
     :raises ValueError: If the `batch_command` f-string is invalid
     :raises TypeError: If attempting to instantiate the base class directly
     """
+
     name: str = field(init=False)
     """The name of the shell"""
     executable: str = field(init=False)
@@ -143,7 +144,7 @@ class BaseShell:
 
     # Shell syntax properties
     shebang: str = field(init=False, repr=False)
-    """The shebang line for the shell 
+    """The shebang line for the shell
     (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_)"""
     comment_char: str = field(init=False, repr=False)
     """The character used to denote comments in the shell"""
@@ -154,41 +155,43 @@ class BaseShell:
 
     # Commands
     batch_command: str = field(init=False, repr=False)
-    """The command used to execute the batch file. This is an f-string that should 
+    """The command used to execute the batch file. This is an f-string that should
     contain the keys ``executable``, ``batch_file`` and ``batch_arguments``."""
-    _batch_command_fstring_keys: frozenset[str] = \
-        field(init=False, repr=False, default_factory=lambda: frozenset(
-            {'executable', 'batch_file', 'batch_arguments'}
-        ))
+    _batch_command_fstring_keys: frozenset[str] = field(
+        init=False, repr=False, default_factory=lambda: frozenset({'executable', 'batch_file', 'batch_arguments'})
+    )
 
     dependency_command: str = field(init=False, repr=False)
     """The command used to resolve dependencies in the shell. This is an f-string that
-    should contain the key ``dependency``. This command should 
+    should contain the key ``dependency``. This command should
     return an exit code of 0 if the executable is found, and non-zero otherwise."""
-    _dependency_command_fstring_keys: frozenset[str] = \
-        field(init=False, repr=False, default_factory=lambda: frozenset(
-            {'dependency'}
-        ))
+    _dependency_command_fstring_keys: frozenset[str] = field(
+        init=False, repr=False, default_factory=lambda: frozenset({'dependency'})
+    )
 
     execute_command: str = field(init=False, repr=False)
     """The command used to execute a command directly in the shell. This is an f-string
     that should contain the keys ``executable`` and ``command``."""
-    _execute_command_fstring_keys: frozenset[str] = \
-        field(init=False, repr=False, default_factory=lambda: frozenset(
-            {'executable', 'command'}
-        ))
+    _execute_command_fstring_keys: frozenset[str] = field(
+        init=False, repr=False, default_factory=lambda: frozenset({'executable', 'command'})
+    )
 
     def __post_init__(self):
         if not self.batch_extension.startswith('.'):
             # Workaround for frozen dataclass
             object.__setattr__(self, 'batch_extension', f'.{self.batch_extension}')
         # Validate the f-strings
-        self._validate_fstring(fstring=self.batch_command, name='batch_command',
-                               required_keys=self._batch_command_fstring_keys)
-        self._validate_fstring(fstring=self.dependency_command, name='dependency_command',
-                               required_keys=self._dependency_command_fstring_keys)
-        self._validate_fstring(fstring=self.execute_command, name='execute_command',
-                               required_keys=self._execute_command_fstring_keys)
+        self._validate_fstring(
+            fstring=self.batch_command, name='batch_command', required_keys=self._batch_command_fstring_keys
+        )
+        self._validate_fstring(
+            fstring=self.dependency_command,
+            name='dependency_command',
+            required_keys=self._dependency_command_fstring_keys,
+        )
+        self._validate_fstring(
+            fstring=self.execute_command, name='execute_command', required_keys=self._execute_command_fstring_keys
+        )
 
     @staticmethod
     def _validate_fstring(fstring: str, name: str, required_keys: Iterable[str]) -> None:
@@ -203,15 +206,13 @@ class BaseShell:
         # Check that all required keys are present in the f-string
         for key in required_keys:
             if f'{{{key}}}' not in fstring:
-                raise ValueError(f'Invalid f-string for `{name}`: {fstring}. '
-                                 f'Missing key: {key}')
+                raise ValueError(f'Invalid f-string for `{name}`: {fstring}. Missing key: {key}')
 
         # Check that there are no extra keys in the f-string
         all_keys = set(re.findall(r'{(.*?)}', fstring))
         for key in all_keys:
             if key not in required_keys:
-                raise ValueError(f'Invalid f-string for `{name}`: {fstring}. '
-                                 f'Unexpected key: {key}')
+                raise ValueError(f'Invalid f-string for `{name}`: {fstring}. Unexpected key: {key}')
 
     # Singleton instance
     #  NB: Excluded from __hash__ to prevent infinite recursion
@@ -221,17 +222,16 @@ class BaseShell:
         # Prevent direct instantiation of the base class, which would interfere with the
         #  singleton pattern
         if cls is BaseShell:
-            raise TypeError(f'Cannot instantiate class {BaseShell.__name__} directly. '
-                            f'Subclass it instead.')
+            raise TypeError(f'Cannot instantiate class {BaseShell.__name__} directly. Subclass it instead.')
 
         # Singleton pattern to ensure only one instance per shell type is created
         if cls.__singleton is None:
             cls.__singleton = super().__new__(cls)
         return cls.__singleton
 
-    def get_execute_batch_command(self, file: str | Path,
-                                  arguments: Optional[Iterable[str]] = None,
-                                  as_list: bool = False) -> str | list[str]:
+    def get_execute_batch_command(
+        self, file: str | Path, arguments: Optional[Iterable[str]] = None, as_list: bool = False
+    ) -> str | list[str]:
         """
         Get the command required to execute a batch file using this shell.
 
@@ -250,7 +250,7 @@ class BaseShell:
             arg = str(argument)
             # Escape arguments with spaces
             if ' ' in arg:
-                arg = f'\'{arg}\''
+                arg = f"'{arg}'"
             # Append to the batch arguments string
             if arg:
                 batch_arguments += f'{arg} '
@@ -258,9 +258,9 @@ class BaseShell:
         batch_arguments = batch_arguments.rstrip()
 
         # Substitute values into the batch command f-string
-        command = self.batch_command.format(executable=self.executable,
-                                            batch_file=str(file),
-                                            batch_arguments=batch_arguments)
+        command = self.batch_command.format(
+            executable=self.executable, batch_file=str(file), batch_arguments=batch_arguments
+        )
         # Remove trailing space when there are no arguments
         command = command.rstrip()
 
@@ -270,8 +270,7 @@ class BaseShell:
             return bits
         return command
 
-    def get_dependency_resolution_command(self, dependency: str,
-                                          as_list: bool = False) -> str | list[str]:
+    def get_dependency_resolution_command(self, dependency: str, as_list: bool = False) -> str | list[str]:
         """
         Get the command required to resolve dependencies using this shell.
 
@@ -282,14 +281,15 @@ class BaseShell:
         # Sanitize dependency name
         dependency = str(dependency).strip()
         if not self._is_dependency_name_safe(dependency):
-            raise ValueError(f'Invalid dependency name: {dependency!r}. '
-                             f'Dependencies may only contain alphanumeric '
-                             f'characters, dashes, underscores, and dots.')
+            raise ValueError(
+                f'Invalid dependency name: {dependency!r}. '
+                f'Dependencies may only contain alphanumeric '
+                f'characters, dashes, underscores, and dots.'
+            )
 
         # Substitute values into the dependency command f-string
         dep_command = self.dependency_command.format(dependency=dependency)
-        command = self.execute_command.format(executable=self.executable,
-                                              command=dep_command)
+        command = self.execute_command.format(executable=self.executable, command=dep_command)
 
         # Return as list or string
         if as_list:
@@ -319,8 +319,7 @@ class BaseShell:
         pattern = r'^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$'
         return re.match(pattern, dependency) is not None
 
-    def get_execute_command(self, command: str,
-                            as_list: bool = False) -> str | list[str]:
+    def get_execute_command(self, command: str, as_list: bool = False) -> str | list[str]:
         """
         Get the command required to execute a command directly in this shell.
 
@@ -329,8 +328,7 @@ class BaseShell:
         :return: The command as a single string or list of strings
         """
         # Substitute values into the execute command f-string
-        full_command = self.execute_command.format(executable=self.executable,
-                                                   command=command)
+        full_command = self.execute_command.format(executable=self.executable, command=command)
 
         # Return as list or string
         if as_list:
@@ -351,8 +349,8 @@ class BaseShell:
                     return f'"{path_str}"'
                 elif self == Shell.POWERSHELL:  # PWSH requires single quotes for escaping
                     # Escape internal quotes by doubling them
-                    path_str = path_str.replace('\'', '\'\'')
-                    return f'\'{path_str}\''
+                    path_str = path_str.replace("'", "''")
+                    return f"'{path_str}'"
                 else:
                     raise ValueError(f'Unsupported shell for path sanitization: {self.__class__.__name__}')
             case _:
@@ -364,6 +362,7 @@ class BashShell(BaseShell):
     Configuration for the `Bash <https://en.wikipedia.org/wiki/Bash_(Unix_shell)>`_
     shell.
     """
+
     name = 'bash'
     executable = '/bin/bash'
     is_posix = True
@@ -372,7 +371,7 @@ class BashShell(BaseShell):
     new_line_char = '\n'
     batch_extension = '.sh'
     batch_command = '{executable} {batch_file} {batch_arguments}'
-    dependency_command = 'command -v {dependency} > /dev/null 2>&1; echo \$?'
+    dependency_command = r'command -v {dependency} > /dev/null 2>&1; echo \$?'
     execute_command = '{executable} --noprofile --norc -c "{command}"'
 
 
@@ -381,6 +380,7 @@ class CmdShell(BaseShell):
     Configuration for the `Windows Command Prompt
     <https://en.wikipedia.org/wiki/Cmd.exe>`_ shell.
     """
+
     name = 'cmd'
     executable = r'C:\Windows\System32\cmd.exe'
     is_posix = False
@@ -398,6 +398,7 @@ class PowerShell(BaseShell):
     Configuration for the `Windows PowerShell
     <https://en.wikipedia.org/wiki/PowerShell>`_ shell.
     """
+
     name = 'powershell'
     executable = r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
     is_posix = False
@@ -406,19 +407,19 @@ class PowerShell(BaseShell):
     new_line_char = '\n'
     batch_extension = '.ps1'
     batch_command = '{executable} -File {batch_file} {batch_arguments}'
-    dependency_command = ('Get-Command {dependency} -ErrorAction SilentlyContinue | '
-                          'Out-Null; [int](-not $?)')
+    dependency_command = 'Get-Command {dependency} -ErrorAction SilentlyContinue | Out-Null; [int](-not $?)'
     # NB: PowerShell returns True/1 if the command is found, so we negate it to match
     #  the exit code convention.
     execute_command = '{executable} -NoProfile -NonInteractive -Command "{command}"'
     # We are also running PowerShell in -NoProfile and -NonInteractive mode to avoid
     #  loading user profiles or interactive prompts.
 
+
 # Set the default shell based on the OS
 DefaultShell = CmdShell if OS_WINDOWS else BashShell
 """
-The default shell for the current operating system. 
-:class:`CmdShell <xtl.jobs.shells.CmdShell>` for Windows, 
+The default shell for the current operating system.
+:class:`CmdShell <xtl.jobs.shells.CmdShell>` for Windows,
 :class:`BashShell <xtl.jobs.shells.BashShell>` for POSIX systems.
 """
 

@@ -20,30 +20,41 @@ def print_radial_ids(explain_ids: bool):
 
 @app.command('spacing', help='Convert between 2\u03b8, d and q spacing')
 def cli_math_spacing(
-        value: float = typer.Argument(..., help='Value to convert',
-                                      min=0.),
-        quantity: str = typer.Argument(..., case_sensitive=False, help='Units for provided value'),
-        to_quantity: str = typer.Option(None, '-t', '--to', help='Units to convert to'),
-        # X-ray parameters
-        wavelength: float = typer.Option(None, '-w', '--wavelength', help='Wavelength in \u212b',
-                                         min=0.001, rich_help_panel='X-ray parameters'),
-        energy: float = typer.Option(None, '-e', '--energy', help='Energy in keV',
-                                     min=0.001, rich_help_panel='X-ray parameters'),
-        # Additional help
-        explain_ids: bool = typer.Option(False, '--ids', help='Print all valid radial units identifiers and exit',
-                                         is_flag=True, is_eager=True, callback=print_radial_ids, rich_help_panel='Help'),
-        # Debugging
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
-                                    rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging')
+    value: float = typer.Argument(..., help='Value to convert', min=0.0),
+    quantity: str = typer.Argument(..., case_sensitive=False, help='Units for provided value'),
+    to_quantity: str = typer.Option(None, '-t', '--to', help='Units to convert to'),
+    # X-ray parameters
+    wavelength: float = typer.Option(
+        None, '-w', '--wavelength', help='Wavelength in \u212b', min=0.001, rich_help_panel='X-ray parameters'
+    ),
+    energy: float = typer.Option(
+        None, '-e', '--energy', help='Energy in keV', min=0.001, rich_help_panel='X-ray parameters'
+    ),
+    # Additional help
+    explain_ids: bool = typer.Option(
+        False,
+        '--ids',
+        help='Print all valid radial units identifiers and exit',
+        is_flag=True,
+        is_eager=True,
+        callback=print_radial_ids,
+        rich_help_panel='Help',
+    ),
+    # Debugging
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
     cli = Console(verbose=verbose, debug=debug, striped_table_rows=False)
 
     from_type = RadialUnits.by_alias(quantity)
     if from_type is None:
-        cli.print(f'Unknown identifier {quantity!r} for radial units. '
-                  f'Use --ids to see all valid identifiers.', style='red')
+        cli.print(
+            f'Unknown identifier {quantity!r} for radial units. Use --ids to see all valid identifiers.', style='red'
+        )
         raise typer.Abort()
 
     if to_quantity is None:
@@ -51,8 +62,10 @@ def cli_math_spacing(
     else:
         to_type = RadialUnits.by_alias(to_quantity)
         if to_type is None:
-            cli.print(f'Unknown identifier --to={to_quantity!r} for radial units. '
-                      f'Use --ids to see all valid identifiers.', style='red')
+            cli.print(
+                f'Unknown identifier --to={to_quantity!r} for radial units. Use --ids to see all valid identifiers.',
+                style='red',
+            )
             raise typer.Abort()
 
     # Convert energy to wavelength
@@ -76,8 +89,10 @@ def cli_math_spacing(
             n = r.convert_to(to_type, wavelength=wavelength)
             rs = '' if r.kind is RadialUnits.TWOTHETA_DEG else ' '
             ns = '' if n.kind is RadialUnits.TWOTHETA_DEG else ' '
-            cli.print(f'{r.kind.quantity.pretty}={r.value:,.6f}{rs}{r.kind.physical_units.pretty} is '
-                      f'{n.kind.quantity.pretty}={n.value:,.6f}{ns}{n.kind.physical_units.pretty}')
+            cli.print(
+                f'{r.kind.quantity.pretty}={r.value:,.6f}{rs}{r.kind.physical_units.pretty} is '
+                f'{n.kind.quantity.pretty}={n.value:,.6f}{ns}{n.kind.physical_units.pretty}'
+            )
         else:
             tth_deg = r.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
             tth_rad = r.convert_to(RadialUnits.TWOTHETA_RAD, wavelength=wavelength)
@@ -102,10 +117,15 @@ def cli_math_spacing(
                     row.append(text)
                 table.append(row)
 
-            cli.print_table(table, headers=[tth_deg.kind.quantity.pretty, d_A.kind.quantity.pretty,
-                                            q_nm.kind.quantity.pretty, s_nm.kind.quantity.pretty],
-                            table_kwargs={'caption': f'Assuming \u03bb={wavelength:,.6f} \u212b',
-                                          'box': None})
+            cli.print_table(
+                table,
+                headers=[
+                    tth_deg.kind.quantity.pretty,
+                    d_A.kind.quantity.pretty,
+                    q_nm.kind.quantity.pretty,
+                    s_nm.kind.quantity.pretty,
+                ],
+                table_kwargs={'caption': f'Assuming \u03bb={wavelength:,.6f} \u212b', 'box': None},
+            )
     if catcher.raised:
         raise typer.Abort()
-

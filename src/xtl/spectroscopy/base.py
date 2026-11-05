@@ -10,38 +10,37 @@ from xtl.exceptions import InvalidArgument
 
 
 class SpectrumData:
-
     def __init__(self):
-        '''
+        """
         Store spectral data.
-        '''
+        """
         self.x: np.ndarray
         self.y: np.ndarray
         self.x_label = ''
         self.y_label = ''
 
     def check_data(self):
-        '''
+        """
         Perform various checks on the stored data.
 
         :return:
-        '''
+        """
         # Check for descending order in wavelengths
         if self.x[0] > self.x[1]:
             self.x = np.flip(self.x)
             self.y = np.flip(self.y)
 
-class Spectrum:
 
+class Spectrum:
     SUPPORTED_IMPORT_FMTS = ['csv', 'cary_50_csv']
     SUPPORTED_EXPORT_FMTS = ['csv']
 
     def __init__(self, **kwargs):
-        '''
+        """
         Representation of a spectrum.
 
         :param kwargs:
-        '''
+        """
         self.file: Path
         self._dataset = ''
         self._original_dataset = ''
@@ -53,20 +52,20 @@ class Spectrum:
         self._post_init()
 
     def _post_init(self):
-        '''
+        """
         Runs after initialization
 
         :return:
-        '''
+        """
         pass
 
     @property
     def dataset(self):
-        '''
+        """
         Dataset label
 
         :return:
-        '''
+        """
         return self._dataset
 
     @dataset.setter
@@ -76,7 +75,7 @@ class Spectrum:
         self._dataset = new_label
 
     def from_file(self, filename: str or Path, file_fmt: str, dataset_name: str = '', **import_kwargs):
-        '''
+        """
         Load a spectrum from a file. Supports only ``.csv`` files.
 
         :param filename: file to load
@@ -84,14 +83,15 @@ class Spectrum:
         :param dataset_name: name of the dataset
         :param import_kwargs: additional arguments for numpy.loadtxt()
         :return:
-        '''
+        """
         self.file = Path(filename)
         if not self.file.exists():
             raise FileNotFoundError(self.file)
 
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(raiser='file_fmt',
-                                  message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
+            raise InvalidArgument(
+                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
+            )
 
         if dataset_name:
             self.dataset = dataset_name
@@ -106,31 +106,31 @@ class Spectrum:
 
     @classmethod
     def from_data(cls, x: list or tuple or np.ndarray, y: list or tuple or np.ndarray):
-        '''
+        """
         Load a spectrum from data.
 
         :param x: x-values (wavelengths)
         :param y: y-values (intensities)
         :return:
-        '''
+        """
         x = np.array(x)
         y = np.array(y)
         for i in (x, y):
             if len(i.shape) != 1:
-                raise InvalidArgument(raiser=i, message=f'Must be a 1D array')
+                raise InvalidArgument(raiser=i, message='Must be a 1D array')
         obj = cls()
         obj.data.x, obj.data.y = x, y
         obj.data.check_data()
         return obj
 
     def _import_csv(self, filename: Path, import_kwargs=dict()):
-        '''
+        """
         CSV importer.
 
         :param filename: file to load
         :param import_kwargs: additional arguments for numpy.loadtxt()
         :return:
-        '''
+        """
         delimiter = import_kwargs.get('delimiter', ',')
         skiprows = import_kwargs.get('skiprows', 0)
         data = np.loadtxt(filename, delimiter=delimiter, skiprows=skiprows)
@@ -141,8 +141,9 @@ class Spectrum:
         elif data.shape[1] == 2:  # (N, 2)
             data = data.T
         else:
-            raise InvalidArgument(raiser='filename',
-                                  message=f'Dataset must have dimensions (2, N) or (N, 2), not: {data.shape}')
+            raise InvalidArgument(
+                raiser='filename', message=f'Dataset must have dimensions (2, N) or (N, 2), not: {data.shape}'
+            )
 
         # Initialize SpectrumData object
         self.data.x = data[0]
@@ -150,13 +151,13 @@ class Spectrum:
         self.data.check_data()
 
     def _import_cary_50_csv(self, filename: Path, import_kwargs=dict()):
-        '''
+        """
         Importer for ``.csv`` files from Cary 50.
 
         :param filename: file to load
         :param import_kwargs: additional arguments for numpy.loadtxt()
         :return:
-        '''
+        """
         f = filename.parent / (filename.stem + '_temp.csv')
         f.write_text((filename.read_text().split('\n\n')[0] + '\n').replace(',\n', '\n'))
         import_kwargs['skiprows'] = 2
@@ -166,36 +167,36 @@ class Spectrum:
             f.unlink()
 
     def export(self, filename: str or Path, file_fmt: str = 'csv', **export_kwargs):
-        '''
+        """
         Save spectrum to file.
 
         :param filename: output file
         :param file_fmt: file format
         :param export_kwargs: additional arguments for numpy.savetxt()
         :return:
-        '''
-        f = Path(filename)
+        """
+        filename = Path(filename)
 
         if file_fmt not in self.SUPPORTED_EXPORT_FMTS:
-            raise InvalidArgument(raiser='file_fmt',
-                                  message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_EXPORT_FMTS)}')
+            raise InvalidArgument(
+                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_EXPORT_FMTS)}'
+            )
 
         if file_fmt == 'csv':
             self._export_csv(filename, **export_kwargs)
 
     def _export_csv(self, filename: Path, **export_kwargs):
-        '''
+        """
         CSV exporter.
 
         :param filename: output file
         :param export_kwargs: additional arguments for numpy.savetxt()
         :return:
-        '''
+        """
         if filename.suffix == '':
             filename = filename.parent / (filename.stem + '.csv')
 
-        header = f'Dataset: {self.dataset}\n' \
-                 f'{self.data.x_label}, {self.data.y_label}'
+        header = f'Dataset: {self.dataset}\n{self.data.x_label}, {self.data.y_label}'
         data = np.vstack((self.data.x, self.data.y)).T
 
         fmt = export_kwargs.pop('fmt', ('%f', '%f'))
@@ -292,18 +293,18 @@ class Spectrum:
             raise TypeError
 
     def plot(self, **kwargs):
-        '''
+        """
         Plot spectrum.
 
         :param kwargs: additional arguments for matplotlib.pyplot.plot()
         :return:
-        '''
+        """
         label = kwargs.pop('label', self.dataset)
         plt.figure()
         plt.plot(self.data.x, self.data.y, label=label, **kwargs)
 
     def add_to_plot(self, **kwargs):
-        '''
+        """
         Add spectrum to existing plot. Must call ``matplotlib.pyplot.show()`` afterwards.
 
         Additional keyword arguments:
@@ -311,26 +312,26 @@ class Spectrum:
 
         :param kwargs: additional arguments for matplotlib.pyplot.plot()
         :return:
-        '''
+        """
         label = kwargs.pop('label', self.dataset)
         ax = kwargs.pop('ax', plt.gca())
         ax.plot(self.data.x, self.data.y, label=label, **kwargs)
         ax.set_xlabel(self.data.x_label)
         ax.set_ylabel(self.data.y_label)
 
-class SpectrumPoint:
-    ...
+
+class SpectrumPoint: ...
+
 
 class SpectrumCollection:
-
     SUPPORTED_IMPORT_FMTS = ['csv', 'cary_50_csv']
 
     def __init__(self, spectrum_type=Spectrum):
-        '''
+        """
         Representation of a library of Spectrums.
 
         :param spectrum_type: load spectrums as this class, must be a subclass of xtl.spectroscopy.base.Spectrum
-        '''
+        """
         self.spectra = {}
 
         if not issubclass(spectrum_type, Spectrum):
@@ -338,34 +339,36 @@ class SpectrumCollection:
         self._spectrum_class = spectrum_type
 
     def add_spectrum(self, spectrum: str or Path or Spectrum, label: str, **import_kwargs):
-        '''
+        """
         Add a spectrum to library.
 
         :param spectrum: spectrum to add
         :param label: spectrum name
         :param import_kwargs: additional arguments to be passed at Spectrum.from_file()
         :return:
-        '''
+        """
         if isinstance(spectrum, self._spectrum_class):
             self.spectra[label] = spectrum
         elif isinstance(spectrum, str) or isinstance(spectrum, Path):
             self.spectra[label] = self._spectrum_class(spectrum, **import_kwargs)
         else:
-            raise InvalidArgument(raiser='spectrum',
-                                  message='Must be of type str, pathlib.Path or xtl.spectroscopy.Spectrum')
+            raise InvalidArgument(
+                raiser='spectrum', message='Must be of type str, pathlib.Path or xtl.spectroscopy.Spectrum'
+            )
 
     def import_file(self, filename: str or Path, file_fmt: str, **import_kwargs):
-        '''
+        """
         Import multiple spectra from a single file.
 
         :param filename: file to load
         :param file_fmt: file format
         :param import_kwargs: additional arguments to be passed at numpy.loadtxt()
         :return:
-        '''
+        """
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(raiser='file_fmt',
-                                  message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
+            raise InvalidArgument(
+                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
+            )
 
         filename = Path(filename)
         if file_fmt == 'csv':
@@ -374,7 +377,7 @@ class SpectrumCollection:
             self._import_cary_50_csv(filename, import_kwargs)
 
     def _import_csv(self, filename: Path, import_kwargs=dict()):
-        '''
+        """
         CSV importer.
 
         Additional kwargs:
@@ -384,7 +387,7 @@ class SpectrumCollection:
         :param filename: file to load
         :param import_kwargs: additional arguments for numpy.loadtxt()
         :return:
-        '''
+        """
         delimiter = import_kwargs.get('delimiter', ',')
         skiprows = import_kwargs.get('skiprows', 0)
 
@@ -413,7 +416,7 @@ class SpectrumCollection:
             j = 1
             while i <= cols - 1:
                 dname = f'{filename.name}:d{j}' if cols > 2 else filename.name
-                self.spectra[dname] = self._spectrum_class.from_data(x=data[i], y=data[i+1])
+                self.spectra[dname] = self._spectrum_class.from_data(x=data[i], y=data[i + 1])
                 self.spectra[dname].dataset = dname
                 self.spectra[dname].file = filename
                 i += 2
@@ -422,13 +425,13 @@ class SpectrumCollection:
             raise InvalidArgument(raiser='csv_fmt', message='Must be xyy or xyxy')
 
     def _import_cary_50_csv(self, filename: Path, import_kwargs=dict()):
-        '''
+        """
         Importer for ``.csv`` files from Cary 50.
 
         :param filename: file to load
         :param import_kwargs: additional arguments for numpy.loadtxt()
         :return:
-        '''
+        """
         f = filename.parent / (filename.stem + '_temp.csv')
         data = filename.read_text()
         data = data.replace(',\n', '\n')  # remove trailing commas
@@ -445,9 +448,10 @@ class SpectrumCollection:
         finally:
             f.unlink()
 
-    def import_directory(self, dirname: str or Path, file_fmt='csv', prefix='', suffix='', recursive=False,
-                         **import_kwargs):
-        '''
+    def import_directory(
+        self, dirname: str or Path, file_fmt='csv', prefix='', suffix='', recursive=False, **import_kwargs
+    ):
+        """
         Load all files from a single directory. Looks for pattern ``dirname/{prefix}*{suffix}.{ext}`` using
         glob.glob()
 
@@ -458,15 +462,16 @@ class SpectrumCollection:
         :param recursive: look in subdirectories
         :param import_kwargs: additional arguments to be passed at numpy.loadtxt()
         :return:
-        '''
+        """
         dirname = Path(dirname)
         if not dirname.exists():
             raise FileNotFoundError(dirname)
         if not dirname.is_dir():
             raise InvalidArgument(raiser='dirname', message='Must be a directory')
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(raiser='file_fmt',
-                                  message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
+            raise InvalidArgument(
+                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
+            )
 
         ext = ''
         if file_fmt in ['csv', 'cary_50_csv']:
@@ -495,9 +500,17 @@ class SpectrumCollection:
                 print(f'Error while loading file: {fname}')
                 raise e
 
-    def export(self, dirname: str or Path, subdirs=False, prefix='', suffix='', sequential_naming=False, summary=False,
-               **export_kwargs):
-        '''
+    def export(
+        self,
+        dirname: str or Path,
+        subdirs=False,
+        prefix='',
+        suffix='',
+        sequential_naming=False,
+        summary=False,
+        **export_kwargs,
+    ):
+        """
         Export all datasets to files. By default datasets are labelled based on their original filename and dataset
         label. This can be changed by argument ``sequential_naming``.
 
@@ -509,7 +522,7 @@ class SpectrumCollection:
         :param summary: export summary csv
         :param export_kwargs: additional arguments for numpy.savetxt()
         :return:
-        '''
+        """
         dirname = Path(dirname)
         summary_data = ['# xtl_summary_csv', 'File,Dataset,Label,NewFileName']
 
@@ -517,10 +530,11 @@ class SpectrumCollection:
         dmax = len(str(imax))  # number of digits
         for i, spectrum in enumerate(self):
             if sequential_naming:
-                fname = f'{prefix}_{str(i+1).zfill(dmax)}' if prefix else str(i+1).zfill(dmax)
+                fname = f'{prefix}_{str(i + 1).zfill(dmax)}' if prefix else str(i + 1).zfill(dmax)
             else:
-                fname = f'{prefix}_{spectrum.dataset.replace(" ", "_")}' if prefix \
-                    else spectrum.dataset.replace(" ", "_")
+                fname = (
+                    f'{prefix}_{spectrum.dataset.replace(" ", "_")}' if prefix else spectrum.dataset.replace(' ', '_')
+                )
 
             child_dir = dirname if not subdirs else dirname / fname
             child_dir.mkdir(parents=True, exist_ok=True)
@@ -532,7 +546,6 @@ class SpectrumCollection:
         if summary:
             summary_csv = dirname / f'{prefix + "_" if prefix else ""}summary.csv'
             summary_csv.write_text('\n'.join(summary_data))
-
 
     def __len__(self):
         return len(self.spectra)
@@ -558,30 +571,31 @@ class SpectrumCollection:
 
     @property
     def labels(self):
-        '''
+        """
         Datasets names
         :return:
-        '''
+        """
         return list(self.spectra.keys())
 
     @property
     def datasets(self):
-        '''
+        """
         Datasets names
         :return:
-        '''
+        """
         return self.labels
 
     def set_labels(self, labels: list or tuple, **kwargs):
-        '''
+        """
         Change the name of the stored datasets
 
         :param labels: new labels
         :return:
-        '''
+        """
         if len(labels) != len(self.spectra):
-            raise InvalidArgument(raiser='labels', message=f'Must be an iterable of length {len(self.spectra)}, not '
-                                                           f'{len(labels)}')
+            raise InvalidArgument(
+                raiser='labels', message=f'Must be an iterable of length {len(self.spectra)}, not {len(labels)}'
+            )
 
         reindex = kwargs.get('_reindex', [])  # the order in which to read the provided labels
         change_originals = kwargs.get('_change_originals', False)

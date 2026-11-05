@@ -10,7 +10,6 @@ from .applicators import _ReagentApplicator, ConstantApplicator, GradientApplica
 
 
 class CrystallizationExperiment:
-
     def __init__(self, shape: int | tuple[int, int]):
         self._data: np.array = None  # Concentrations array (no_reagents, size)
         self._volumes: np.array = None  # Volumes array (no_reagents + 1, size)
@@ -22,7 +21,7 @@ class CrystallizationExperiment:
 
         # Shape of the crystallization experiment
         if isinstance(shape, int):
-            self._shape = (shape, )
+            self._shape = (shape,)
             self._ndim = 1
         elif isinstance(shape, (list, tuple)):
             if len(shape) != 2:
@@ -34,7 +33,6 @@ class CrystallizationExperiment:
 
         # Initialize arrays
         self._pH = np.full(self.shape, np.nan)
-
 
     @property
     def shape(self) -> tuple[int, int]:
@@ -112,15 +110,18 @@ class CrystallizationExperiment:
             # Double check if the results are within bounds
             rows_out_of_range = np.where(row > self.no_rows)[0]
             if rows_out_of_range.size > 0:
-                raise ValueError(f'Indices {i[rows_out_of_range]} are out of bounds: '
-                                 f'row index is larger than the number of rows')
+                raise ValueError(
+                    f'Indices {i[rows_out_of_range]} are out of bounds: row index is larger than the number of rows'
+                )
             cols_out_of_range = np.where(col > self.no_columns)[0]
             if cols_out_of_range.size > 0:
-                raise ValueError(f'Indices {i[cols_out_of_range]} are out of bounds: '
-                                 f'column index is larger than the number of columns')
+                raise ValueError(
+                    f'Indices {i[cols_out_of_range]} are out of bounds: '
+                    f'column index is larger than the number of columns'
+                )
             return np.vstack((row, col)).T
         else:
-            raise TypeError(f'Incompatible type for \'i\': {type(i)}')
+            raise TypeError(f"Incompatible type for 'i': {type(i)}")
 
     def _index_2D_to_1D(self, row: int | np.ndarray[int], col: int | np.ndarray[int]) -> int | np.ndarray[int, int]:
         """
@@ -148,7 +149,7 @@ class CrystallizationExperiment:
             # Calculate 1D indices
             return row * self.no_columns + col
         else:
-            raise TypeError(f'Incompatible types for \'row\' and \'col\': {type(row)} and {type(col)}')
+            raise TypeError(f"Incompatible types for 'row' and 'col': {type(row)} and {type(col)}")
 
     def _location_str_to_pos(self, location: str) -> list[int]:
         """
@@ -167,16 +168,14 @@ class CrystallizationExperiment:
                 # Check if start and stop are numbers
                 for value in (start, stop):
                     if not value.isdigit():
-                        raise ValueError(f'Invalid location: \'{location}\'. '
-                                         f'Element \'{value}\' is not a number.')
+                        raise ValueError(f"Invalid location: '{location}'. Element '{value}' is not a number.")
                 # Add range to lines (including end value)
                 pos.extend(range(int(start), int(stop) + 1))
             # Parse a single value, e.g. group = '1'
             else:
                 # Check if value is a number
                 if not group.isdigit():
-                    raise ValueError(f'Invalid location: \'{location}\'. '
-                                     f'Element \'{group}\' is not a number.')
+                    raise ValueError(f"Invalid location: '{location}'. Element '{group}' is not a number.")
                 # Add range to lines
                 pos.append(int(group))
         return pos
@@ -202,12 +201,12 @@ class CrystallizationExperiment:
                 lines = np.array(lines) - 1  # change to 0-based index
                 if ltype == 'row':
                     indices_in_bounds = np.where(self.no_rows - lines > 0)[0]  # drop indices that are > no_rows
-                    data[lines[indices_in_bounds], :] = 1.
+                    data[lines[indices_in_bounds], :] = 1.0
                 elif ltype == 'col':
                     indices_in_bounds = np.where(self.no_columns - lines > 0)[0]  # drop indices that are > no_columns
-                    data[:, lines[indices_in_bounds]] = 1.
+                    data[:, lines[indices_in_bounds]] = 1.0
                 # Get indices of flattened data
-                indices = np.where(data.ravel() == 1.)[0]
+                indices = np.where(data.ravel() == 1.0)[0]
                 return indices
             elif location.startswith('cell'):
                 cells = self._location_str_to_pos(location[4:])
@@ -215,9 +214,9 @@ class CrystallizationExperiment:
                 data = np.zeros(self.size)
                 cells = np.array(cells) - 1  # change to 0-based index
                 indices_in_bounds = np.where(self.no_conditions - cells > 0)[0]  # drop indices that are > no_conditions
-                data[cells[indices_in_bounds]] = 1.
+                data[cells[indices_in_bounds]] = 1.0
                 # Get indices of flattened data
-                indices = np.where(data == 1.)[0]
+                indices = np.where(data == 1.0)[0]
                 return indices
         elif isinstance(location, (list, tuple)):
             # Parse lists such as ['cell1', 'row1-2'], [1, 4, 96], [(1, 1), (2, 3)]
@@ -242,14 +241,14 @@ class CrystallizationExperiment:
                         continue
                     i = (row - 1) * self.no_columns + col  # cell index, 1-based
                     indices[i - 1] = True
-            return np.where(indices == True)[0]
+            return np.where(indices)[0]
 
     def _location_to_map(self, location: str | list) -> tuple[np.array, np.array]:
         # Parse location and get the indices of the valid positions
         indices = self._location_to_indices(location)
 
         # Initialize the flattened mask array with nan
-        mask = np.full((self.size, ), np.nan)  # 1D array (size, )
+        mask = np.full((self.size,), np.nan)  # 1D array (size, )
         # Set values of the valid positions to 1.0
         mask[indices] = 1.0
         # Get the 2D indices of all valid positions
@@ -261,27 +260,29 @@ class CrystallizationExperiment:
 
         # Trim mask to the bounding box
         mask = mask.reshape(self.shape)  # reshape to 2D array (rows, columns)
-        mask = mask[r_min:r_max+1, c_min:c_max+1]
+        mask = mask[r_min : r_max + 1, c_min : c_max + 1]
 
         # Calculate the mapping of the location to the original experiment shape
         location_map = np.full(self.shape, False)
-        location_map[r_min:r_max+1, c_min:c_max+1] = True
+        location_map[r_min : r_max + 1, c_min : c_max + 1] = True
 
         return location_map, mask
 
-    def _reshape_data(self, array: np.array, location_map: np.array, mask: np.array = None) -> tuple[np.array, np.array]:
+    def _reshape_data(
+        self, array: np.array, location_map: np.array, mask: np.array = None
+    ) -> tuple[np.array, np.array]:
         # Create dummy mask if not provided
         if isinstance(mask, NoneType):
             mask = np.ones_like(array)
 
         # Check if arrays are compatible
         if array.shape != mask.shape:
-            raise ValueError('\'array\' and \'mask\' must have the same shape')
+            raise ValueError("'array' and 'mask' must have the same shape")
         if location_map.shape != self.shape:
-            raise ValueError('\'location_map\' must have the same shape as the experiment')
+            raise ValueError("'location_map' must have the same shape as the experiment")
 
         # Calculate the bounding box of the mask
-        mask_indices = np.where(location_map == True)
+        mask_indices = np.where(location_map)
         r_min, c_min = np.min(mask_indices, axis=1)  # [r_min, c_min]
         r_max, c_max = np.max(mask_indices, axis=1)  # [r_max, c_max]
 
@@ -290,17 +291,21 @@ class CrystallizationExperiment:
 
         # Reshape the masked array to the experiment shape
         data_reshaped = np.full(self.shape, np.nan)
-        data_reshaped[r_min:r_max+1, c_min:c_max+1] = masked_array
+        data_reshaped[r_min : r_max + 1, c_min : c_max + 1] = masked_array
 
         # Reshape the mask to the experiment shape
         mask_reshaped = np.full(self.shape, np.nan)
-        mask_reshaped[r_min:r_max+1, c_min:c_max+1] = mask
+        mask_reshaped[r_min : r_max + 1, c_min : c_max + 1] = mask
         return data_reshaped, mask_reshaped
 
-    def apply_reagent(self, reagent: Reagent | ReagentWV | ReagentVV | Buffer,
-                      applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
-                      location: str | list = 'everywhere', *,
-                      pH_applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator = None):
+    def apply_reagent(
+        self,
+        reagent: Reagent | ReagentWV | ReagentVV | Buffer,
+        applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator,
+        location: str | list = 'everywhere',
+        *,
+        pH_applicator: ConstantApplicator | GradientApplicator | StepFixedApplicator = None,
+    ):
         """
         Add a reagent to the experiment using a certain method for determining the concentration gradient. Each reagent
         can only be applied once to the experiment. If the reagent is already in the list, a warning is raised. The
@@ -315,17 +320,17 @@ class CrystallizationExperiment:
         """
         # Type checking for reagent and applicator
         if not isinstance(reagent, _Reagent):
-            raise TypeError('Invalid \'reagent\' type')
+            raise TypeError("Invalid 'reagent' type")
         if not isinstance(applicator, _ReagentApplicator):
-            raise TypeError('Invalid \'applicator\' type')
+            raise TypeError("Invalid 'applicator' type")
 
         # Type checking for pH applicator
         do_pH_gradient = False
         if not isinstance(pH_applicator, NoneType):
             if not isinstance(pH_applicator, _ReagentApplicator):
-                raise TypeError('Invalid \'pH_applicator\' type')
+                raise TypeError("Invalid 'pH_applicator' type")
             if not isinstance(reagent, Buffer):
-                raise TypeError('\'pH_applicator\' can only be applied to a Buffer reagent')
+                raise TypeError("'pH_applicator' can only be applied to a Buffer reagent")
             do_pH_gradient = True
 
         # Check if the reagent is already in the list
@@ -430,5 +435,5 @@ class CrystallizationExperiment:
             'reagents': [reagent.to_dict() for reagent in self.reagents],
             'data': self.data.tolist() if not isinstance(self.data, NoneType) else None,
             'volumes': self.volumes.tolist() if not isinstance(self.volumes, NoneType) else None,
-            'pH': self.pH.tolist() if not isinstance(self.pH, NoneType) else None
+            'pH': self.pH.tolist() if not isinstance(self.pH, NoneType) else None,
         }

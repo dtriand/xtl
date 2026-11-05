@@ -3,7 +3,6 @@ import copy
 from datetime import datetime
 from functools import partial
 import f90nml
-import os
 from pathlib import Path
 import platform
 from random import randint
@@ -32,11 +31,17 @@ class AutoPROCJob(Job):
     _echo_warning_kwargs = {}
     _echo_error_kwargs = {}
 
-    def __init__(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
-                 config: AutoPROCConfig | Sequence[AutoPROCConfig],
-                 compute_site: Optional[ComputeSite] = None, shell: Optional[Shell] = None,
-                 modules: Optional[Sequence[str]] = None, stdout_log: Optional[str | Path] = None,
-                 stderr_log: Optional[str | Path] = None, output_exists: bool = False):
+    def __init__(
+        self,
+        datasets: DiffractionDataset | Sequence[DiffractionDataset],
+        config: AutoPROCConfig | Sequence[AutoPROCConfig],
+        compute_site: Optional[ComputeSite] = None,
+        shell: Optional[Shell] = None,
+        modules: Optional[Sequence[str]] = None,
+        stdout_log: Optional[str | Path] = None,
+        stderr_log: Optional[str | Path] = None,
+        output_exists: bool = False,
+    ):
 
         # Initialize the Job class
         super().__init__(
@@ -44,7 +49,7 @@ class AutoPROCJob(Job):
             shell=shell,
             compute_site=compute_site,
             stdout_log=stdout_log,
-            stderr_log=stderr_log
+            stderr_log=stderr_log,
         )
         self._job_type = 'xtl.autoproc.process'
         self._executable = 'process'
@@ -90,12 +95,15 @@ class AutoPROCJob(Job):
         self._macro_file: Path
 
         # Set exception and warnings catcher
-        self._exception_catcher = partial(Catcher, echo_func=self.echo, error_kwargs=self._echo_error_kwargs,
-                                          warning_kwargs=self._echo_warning_kwargs)
+        self._exception_catcher = partial(
+            Catcher, echo_func=self.echo, error_kwargs=self._echo_error_kwargs, warning_kwargs=self._echo_warning_kwargs
+        )
 
-
-    def _validate_datasets_configs(self, datasets: DiffractionDataset | Sequence[DiffractionDataset],
-                                   configs: AutoPROCConfig | Sequence[AutoPROCConfig]):
+    def _validate_datasets_configs(
+        self,
+        datasets: DiffractionDataset | Sequence[DiffractionDataset],
+        configs: AutoPROCConfig | Sequence[AutoPROCConfig],
+    ):
         # Check that the datasets are valid
         if isinstance(datasets, DiffractionDataset):
             self._datasets = [datasets]
@@ -103,12 +111,13 @@ class AutoPROCJob(Job):
         elif isinstance(datasets, Sequence):
             for i, ds in enumerate(datasets):
                 if not isinstance(ds, DiffractionDataset):
-                    raise ValueError(f'Invalid type for datasets\[{i}]: {type(ds)}')
+                    raise ValueError(rf'Invalid type for datasets\[{i}]: {type(ds)}')
             self._datasets = datasets
             self._single_sweep = len(datasets) == 1  # True if only one dataset is provided
         else:
-            raise ValueError(f'\'datasets\' must be of type {DiffractionDataset.__name__} or a sequence of them, '
-                             f'not {type(datasets)}')
+            raise ValueError(
+                f"'datasets' must be of type {DiffractionDataset.__name__} or a sequence of them, not {type(datasets)}"
+            )
 
         # Check that the config is valid
         if isinstance(configs, AutoPROCConfig):
@@ -119,12 +128,13 @@ class AutoPROCJob(Job):
                 raise ValueError(f'Length mismatch: datasets={len(self._datasets)} != config={len(configs)}')
             for i, c in enumerate(configs):
                 if not isinstance(c, AutoPROCConfig):
-                    raise ValueError(f'Invalid type for config\[{i}]: {type(c)}')
+                    raise ValueError(rf'Invalid type for config\[{i}]: {type(c)}')
             self._config = configs
             self._common_config = len(configs) == 1  # True if only one config is provided
         else:
-            raise ValueError(f'\'config\' must be of type {AutoPROCConfig.__name__} or a sequence of them, '
-                             f'not {type(configs)}')
+            raise ValueError(
+                f"'config' must be of type {AutoPROCConfig.__name__} or a sequence of them, not {type(configs)}"
+            )
 
     @property
     def executable(self) -> str:
@@ -176,12 +186,15 @@ class AutoPROCJob(Job):
             if not self.job_dir.exists():
                 break
             if self._run_no > 99:
-                raise FileExistsError(f'\'job_dir\' already exists: {self.job_dir}\n'
-                                      f'All run numbers from 01 to 99 are already taken!')
+                raise FileExistsError(
+                    f"'job_dir' already exists: {self.job_dir}\nAll run numbers from 01 to 99 are already taken!"
+                )
             self._run_no += 1
         if self._run_no != self.config.run_number:  # Check if the run number was changed
-            self.echo(f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories',
-                      **self._echo_warning_kwargs)
+            self.echo(
+                f'Run number incremented to {self._run_no:02d} to avoid overwriting existing directories',
+                **self._echo_warning_kwargs,
+            )
         return self._run_no
 
     def _patch_datasets(self) -> None:
@@ -210,10 +223,13 @@ class AutoPROCJob(Job):
             else:
                 image_template, first_image, last_image = ds.get_image_template(as_path=False, first_last=True)
                 if first_image is None or last_image is None:
-                    raise ValueError(f'Failed to determine first and last images for dataset[{i}]: {ds}\n'
-                                     f'template: {image_template}, first: {first_image}, last: {last_image}')
-                setattr(ds, 'autoproc_idn',
-                        f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}')
+                    raise ValueError(
+                        f'Failed to determine first and last images for dataset[{i}]: {ds}\n'
+                        f'template: {image_template}, first: {first_image}, last: {last_image}'
+                    )
+                setattr(
+                    ds, 'autoproc_idn', f'{ds.autoproc_id},{ds.raw_data},{image_template},{first_image},{last_image}'
+                )
 
     def _get_modules_commands(self) -> list[str]:
         commands = []
@@ -247,8 +263,9 @@ class AutoPROCJob(Job):
         commands = self._get_batch_commands()
         if not self.job_dir.exists():
             self.job_dir.mkdir(parents=True, exist_ok=True)
-        batch = BatchFile(filename=self.job_dir / self.config.batch_filename, compute_site=self._compute_site,
-                          shell=self._shell)
+        batch = BatchFile(
+            filename=self.job_dir / self.config.batch_filename, compute_site=self._compute_site, shell=self._shell
+        )
         batch.add_commands(commands)
         batch.save(change_permissions=True)
         self._batch_file = batch.file
@@ -257,18 +274,14 @@ class AutoPROCJob(Job):
     def _get_macro_content(self) -> str:
         # Header
         content = [
-            f'# autoPROC macro file',
+            '# autoPROC macro file',
             f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}',
             f'#  {get_username()}@{platform.node()} [{get_os_name_and_version()}]',
-            f''
+            '',
         ]
 
         # Dataset definitions
-        content += [
-            f'### Dataset definitions',
-            f'# autoproc_id = {self._idn}',
-            f'# no_sweeps = {len(self.datasets)}'
-        ]
+        content += ['### Dataset definitions', f'# autoproc_id = {self._idn}', f'# no_sweeps = {len(self.datasets)}']
         idns = []
         for dataset in self.datasets:
             content += [
@@ -279,9 +292,7 @@ class AutoPROCJob(Job):
             if dataset.is_h5:
                 idn = dataset.autoproc_idn  # equivalent to dataset.first_image
                 idns.append(idn)
-                content += [
-                    f'#   idn = {idn}'
-                ]
+                content += [f'#   idn = {idn}']
             else:
                 idn = dataset.autoproc_idn
                 idns.append(idn)
@@ -290,7 +301,7 @@ class AutoPROCJob(Job):
                     f'#   image_template = {image_template}',
                     f'#   img_no_first = {img_no_first}',
                     f'#   img_no_last = {img_no_last}',
-                    f'#   idn = {idn}'
+                    f'#   idn = {idn}',
                 ]
         content.append('')
 
@@ -301,11 +312,7 @@ class AutoPROCJob(Job):
             __args += f'{prefix} "{idn}" '
         __args += self.config.get_param_value('_args')['__args']
 
-        content += [
-            f'### CLI arguments (including dataset definitions and macros)',
-            f'__args=\'{__args}\'',
-            f''
-        ]
+        content += ['### CLI arguments (including dataset definitions and macros)', f"__args='{__args}'", '']
 
         # Parameters from AutoPROCConfig
         all_params = self.config.get_all_params(modified_only=True, grouped=True)
@@ -325,14 +332,14 @@ class AutoPROCJob(Job):
 
         # Environment information
         content += [
-            f'### XTL environment',
+            '### XTL environment',
             f'# job_type = {self._job_type}',
             f'# run_number = {self.run_no}',
             f'# job_dir = {self.job_dir}',
             f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
-            f'## Initialization mode',
+            '## Initialization mode',
             f'# single_sweep = {self._single_sweep}',
-            f'## Localization',
+            '## Localization',
             f'# shell = {self._shell.name} [{self._shell.executable}]',
             f'# compute_site = {self._compute_site.__class__.__name__} '
             f'[{self._compute_site.priority_system.system_type}]',
@@ -357,7 +364,7 @@ class AutoPROCJob(Job):
         await self._determine_executable_location()
         await self._determine_executable_version()
         if not self._executable_location:
-            self.echo(f'Executable \'{self.executable}\' not found in PATH')
+            self.echo(f"Executable '{self.executable}' not found in PATH")
             self.echo('Skipping job execution')
             return self
 
@@ -424,7 +431,7 @@ class AutoPROCJob(Job):
         else:
             self.echo('autoPROC completed successfully, now parsing the log files...')
             with self._exception_catcher() as catcher:
-                    self._results.parse_logs()
+                self._results.parse_logs()
             if catcher.raised:
                 self.echo('Failed to parse log files', **self._echo_error_kwargs)
                 return
@@ -439,18 +446,27 @@ class AutoPROCJob(Job):
         if self.config.change_permissions:
             self.echo('Updating permissions...')
             with self._exception_catcher() as catcher:
-                chmod_recursively(self.job_dir, files_permissions=self.config.file_permissions,
-                                  directories_permissions=self.config.directory_permissions)
-                self.echo(f'File permissions updated to {self.config.file_permissions} and directory permissions '
-                          f'updated to {self.config.directory_permissions}')
+                chmod_recursively(
+                    self.job_dir,
+                    files_permissions=self.config.file_permissions,
+                    directories_permissions=self.config.directory_permissions,
+                )
+                self.echo(
+                    f'File permissions updated to {self.config.file_permissions} and directory permissions '
+                    f'updated to {self.config.directory_permissions}'
+                )
                 if catcher.raised:
-                    self.echo(f'Failed to update permissions to F {self.config.file_permissions} and '
-                              f'D {self.config.directory_permissions}', **self._echo_error_kwargs)
+                    self.echo(
+                        f'Failed to update permissions to F {self.config.file_permissions} and '
+                        f'D {self.config.directory_permissions}',
+                        **self._echo_error_kwargs,
+                    )
                     return
         self.echo('Tidying up complete!')
 
-    async def _run_command(self, command: str, prefix: str = 'custom_command', remove_logs: bool = True) \
-            -> tuple[Optional[str], Optional[str]]:
+    async def _run_command(
+        self, command: str, prefix: str = 'custom_command', remove_logs: bool = True
+    ) -> tuple[Optional[str], Optional[str]]:
         if not isinstance(command, str):
             raise TypeError(f'Invalid type for command: {type(command)}')
 
@@ -464,8 +480,7 @@ class AutoPROCJob(Job):
         commands.append(self._compute_site.prepare_command(command))
 
         # Create batch file
-        batch = BatchFile(filename=self.job_dir / prefix, compute_site=self._compute_site,
-                          shell=self._shell)
+        batch = BatchFile(filename=self.job_dir / prefix, compute_site=self._compute_site, shell=self._shell)
         batch.add_commands(commands)
         batch.save(change_permissions=True)
 
@@ -486,14 +501,13 @@ class AutoPROCJob(Job):
 
             return result
         except Exception as e:
-            self.echo(f'Error running command: \'{command}\'')
+            self.echo(f"Error running command: '{command}'")
             for line in traceback.format_exception(type(e), e, e.__traceback__):
                 self.echo(f'    {line}')
             return None, None
 
     async def _determine_executable_location(self) -> Optional[str]:
-        stdout, stderr = await self._run_command(f'which {self.executable}', prefix='which_process',
-                                                 remove_logs=True)
+        stdout, stderr = await self._run_command(f'which {self.executable}', prefix='which_process', remove_logs=True)
         if not stdout:
             return None
         result = stdout.splitlines()[-1].strip()
@@ -502,8 +516,7 @@ class AutoPROCJob(Job):
         return self._executable_location
 
     async def _determine_executable_version(self) -> Optional[str]:
-        stdout, stderr = await self._run_command(f'{self.executable} -h', prefix='process_version',
-                                                 remove_logs=True)
+        stdout, stderr = await self._run_command(f'{self.executable} -h', prefix='process_version', remove_logs=True)
         if not stdout:
             return None
         for line in stdout.splitlines():
@@ -516,12 +529,18 @@ class AutoPROCJob(Job):
 class AutoPROCWorkflowJob(AutoPROCJob):
     _job_prefix = 'autoproc_wf'
 
-    def __init__(self, nml_file: Path, config: AutoPROCConfig | Sequence[AutoPROCConfig],
-                 compute_site: Optional[ComputeSite] = None,  shell: Optional[Shell] = None,
-                 modules: Optional[Sequence[str]] = None, stdout_log: Optional[str | Path] = None,
-                 stderr_log: Optional[str | Path] = None,
-                 raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
-                 processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None):
+    def __init__(
+        self,
+        nml_file: Path,
+        config: AutoPROCConfig | Sequence[AutoPROCConfig],
+        compute_site: Optional[ComputeSite] = None,
+        shell: Optional[Shell] = None,
+        modules: Optional[Sequence[str]] = None,
+        stdout_log: Optional[str | Path] = None,
+        stderr_log: Optional[str | Path] = None,
+        raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+        processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+    ):
 
         # Extract datasets from NML file
         self._nml_file = Path(nml_file)
@@ -534,8 +553,13 @@ class AutoPROCWorkflowJob(AutoPROCJob):
 
         # Parent constructor
         super().__init__(
-            datasets=datasets, config=config, compute_site=compute_site, shell=shell, modules=modules,
-            stdout_log=stdout_log, stderr_log=stderr_log
+            datasets=datasets,
+            config=config,
+            compute_site=compute_site,
+            shell=shell,
+            modules=modules,
+            stdout_log=stdout_log,
+            stderr_log=stderr_log,
         )
 
         # Modify attributes
@@ -549,23 +573,28 @@ class AutoPROCWorkflowJob(AutoPROCJob):
         except Exception as e:
             raise ValueError(f'Failed to parse namelist file: {nml_file}') from e
 
-        for key in ['goniostat_setting_list', 'centred_goniostat_setting_list', 'detector_setting_list',
-                    'simcal_beam_setting_list', 'simcal_sweep_list', 'process_crystal_list']:
+        for key in [
+            'goniostat_setting_list',
+            'centred_goniostat_setting_list',
+            'detector_setting_list',
+            'simcal_beam_setting_list',
+            'simcal_sweep_list',
+            'process_crystal_list',
+        ]:
             if key not in nml:
-                raise ValueError(f'Namelist file does not contain \'{key}\' group')
+                raise ValueError(f"Namelist file does not contain '{key}' group")
 
         # Get information about the crystal symmetry
         nml_dict['crystal'] = {
             'input': {
-                'unit_cell': nml['process_crystal_list']['prior_cell_dim'] +
-                             nml['process_crystal_list']['prior_cell_ang_deg'],
-                'space_group': nml['process_crystal_list']['prior_sg_name']
+                'unit_cell': nml['process_crystal_list']['prior_cell_dim']
+                + nml['process_crystal_list']['prior_cell_ang_deg'],
+                'space_group': nml['process_crystal_list']['prior_sg_name'],
             },
             'indexed': {
-                'unit_cell': nml['process_crystal_list']['cell_dim'] +
-                             nml['process_crystal_list']['cell_ang_deg'],
-                'space_group': nml['process_crystal_list']['sg_name']
-            }
+                'unit_cell': nml['process_crystal_list']['cell_dim'] + nml['process_crystal_list']['cell_ang_deg'],
+                'space_group': nml['process_crystal_list']['sg_name'],
+            },
         }
 
         # Get sweep information
@@ -578,8 +607,8 @@ class AutoPROCWorkflowJob(AutoPROCJob):
                 'exposure': sweep['exposure'],
                 'ap_params': {  # these will be passed as extra_params to config
                     'goniostat_Omega_angle': sweep['start_deg'],
-                    'osc': sweep['step_deg']
-                }
+                    'osc': sweep['step_deg'],
+                },
             }
 
             # Get goniostat information
@@ -614,9 +643,11 @@ class AutoPROCWorkflowJob(AutoPROCJob):
             nml_dict['datasets'].append(dataset)
         return nml_dict
 
-
-    def _get_datasets_from_nml(self, raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
-                               processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None) -> list[DiffractionDataset]:
+    def _get_datasets_from_nml(
+        self,
+        raw_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+        processed_data_dir: Optional[str | Path | Sequence[str | Path]] = None,
+    ) -> list[DiffractionDataset]:
         datasets = []
         no_datasets = len(self._nml['datasets'])
 
@@ -628,23 +659,25 @@ class AutoPROCWorkflowJob(AutoPROCJob):
                 dirs[dtype] = [Path(directories) for _ in range(no_datasets)]
             elif isinstance(directories, Sequence):
                 if len(dirs) != no_datasets:
-                    raise ValueError(f'Length mismatch for \'{dtype}\': datasets={no_datasets} != '
-                                     f'directories={len(directories)}')
+                    raise ValueError(
+                        f"Length mismatch for '{dtype}': datasets={no_datasets} != directories={len(directories)}"
+                    )
                 dirs[dtype] = [Path(d) for d in directories]
 
         for i, dataset in enumerate(self._nml['datasets']):
             # Get path to first image from the template string
             no_digits = dataset['name_template'].count('?')
-            first_image = re.sub(r'\?.*', str(dataset['img_first']).zfill(no_digits), dataset['name_template'],
-                                 count=1)
+            first_image = re.sub(r'\?.*', str(dataset['img_first']).zfill(no_digits), dataset['name_template'], count=1)
             first_image = Path(first_image)
 
             # Generate dataset from the first image
-            ds = DiffractionDataset.from_image(image=first_image, raw_dataset_dir=dirs['raw_data_dirs'][i],
-                                               processed_data_dir=dirs['processed_data_dirs'][i])
+            ds = DiffractionDataset.from_image(
+                image=first_image,
+                raw_dataset_dir=dirs['raw_data_dirs'][i],
+                processed_data_dir=dirs['processed_data_dirs'][i],
+            )
             datasets.append(ds)
         return datasets
-
 
     def _patch_datasets(self) -> None:
         # iterate over _datasets and _nml and patch both datasets and configs
@@ -658,22 +691,17 @@ class AutoPROCWorkflowJob(AutoPROCJob):
             # Set the extra_params for the config
             cfg.extra_params['nml_params'] = nml['ap_params']
 
-
     def _get_macro_content(self) -> str:
         # Header
         content = [
-            f'# aP_wf_process macro file',
+            '# aP_wf_process macro file',
             f'# Generated by xtl v.{__version__} on {datetime.now().isoformat()}',
             f'#  {get_username()}@{platform.node()} [{get_os_name_and_version()}]',
-            f''
+            '',
         ]
 
         # Dataset definitions
-        content += [
-            f'### Dataset definitions',
-            f'# autoproc_id = {self._idn}',
-            f'# no_sweeps = {len(self.datasets)}'
-        ]
+        content += ['### Dataset definitions', f'# autoproc_id = {self._idn}', f'# no_sweeps = {len(self.datasets)}']
         for dataset, config in zip(self.datasets, self.configs):
             content += [
                 f'## Sweep {dataset.sweep_id} [{dataset.autoproc_id}]: {dataset.dataset_name}',
@@ -709,14 +737,14 @@ class AutoPROCWorkflowJob(AutoPROCJob):
 
         # Environment information
         content += [
-            f'### XTL environment',
+            '### XTL environment',
             f'# job_type = {self._job_type}',
             f'# run_number = {self.run_no}',
             f'# job_dir = {self.job_dir}',
             f'# autoproc_output_dir = {self.job_dir / self.config.autoproc_output_subdir}',
-            f'## Initialization mode',
+            '## Initialization mode',
             f'# single_sweep = {self._single_sweep}',
-            f'## Localization',
+            '## Localization',
             f'# shell = {self._shell.name} [{self._shell.executable}]',
             f'# compute_site = {self._compute_site.__class__.__name__} '
             f'[{self._compute_site.priority_system.system_type}]',

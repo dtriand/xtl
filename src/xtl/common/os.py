@@ -8,7 +8,9 @@ from types import NoneType
 from typing import Optional
 
 from .compatibility import PY311_OR_LESS
+
 if PY311_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
@@ -22,6 +24,7 @@ def get_os_name_and_version() -> str:
     if platform.system() == 'Linux':
         try:
             import distro
+
             return f'{distro.name()} {distro.version()}'
         except ModuleNotFoundError:
             return f'{platform.system()} {platform.version()}'
@@ -35,6 +38,7 @@ def get_username() -> str:
     except OSError:
         # Fallback for CI/CD environments where `os.getlogin()` fails
         import getpass
+
         return getpass.getuser()
 
 
@@ -61,6 +65,7 @@ class FileType(StrEnum):
     """
     POSIX file type representation.
     """
+
     FILE = '-'
     DIRECTORY = 'd'
     SYMLINK = 'l'
@@ -69,6 +74,7 @@ class FileType(StrEnum):
     SOCKET = 's'
     FIFO = 'p'
 
+
 _file_type_mappings: dict[str, FileType] = {
     '-': FileType.FILE,
     'd': FileType.DIRECTORY,
@@ -76,31 +82,52 @@ _file_type_mappings: dict[str, FileType] = {
     'c': FileType.CHARACTER_DEVICE,
     'b': FileType.BLOCK_DEVICE,
     's': FileType.SOCKET,
-    'p': FileType.FIFO
+    'p': FileType.FIFO,
 }
 """Mappings of POSIX file types to the respective `FileType` enum"""
 
 _permission_mappings: dict[int, str] = {
-    0o0: '---', 0o1: '--x', 0o2: '-w-', 0o3: '-wx',
-    0o4: 'r--', 0o5: 'r-x', 0o6: 'rw-', 0o7: 'rwx'
+    0o0: '---',
+    0o1: '--x',
+    0o2: '-w-',
+    0o3: '-wx',
+    0o4: 'r--',
+    0o5: 'r-x',
+    0o6: 'rw-',
+    0o7: 'rwx',
 }
 """"Mappings of POSIX permissions from octal to string representation"""
 
 _permission_mappings_short: dict[int, str] = {
-    0o0: '-', 0o1: 'x', 0o2: 'w', 0o3: 'wx',
-    0o4: 'r', 0o5: 'rx', 0o6: 'rw', 0o7: 'rwx'
+    0o0: '-',
+    0o1: 'x',
+    0o2: 'w',
+    0o3: 'wx',
+    0o4: 'r',
+    0o5: 'rx',
+    0o6: 'rw',
+    0o7: 'rwx',
 }
 """Mappings of POSIX permissions from octal to shorthand string representation"""
 
 _valid_permission_strings: dict[str | None, int] = {
-    '': 0o0, '-': 0o0, '---': 0o0, None: 0o0,
-    'x': 0o1, '--x': 0o1,
-    'w': 0o2, '-w-': 0o2,
-    'wx': 0o3, '-wx': 0o3,
-    'r': 0o4, 'r--': 0o4,
-    'rx': 0o5, 'r-x': 0o5,
-    'rw': 0o6, 'rw-': 0o6,
-    'rwx': 0o7
+    '': 0o0,
+    '-': 0o0,
+    '---': 0o0,
+    None: 0o0,
+    'x': 0o1,
+    '--x': 0o1,
+    'w': 0o2,
+    '-w-': 0o2,
+    'wx': 0o3,
+    '-wx': 0o3,
+    'r': 0o4,
+    'r--': 0o4,
+    'rx': 0o5,
+    'r-x': 0o5,
+    'rw': 0o6,
+    'rw-': 0o6,
+    'rwx': 0o7,
 }
 """Mapping of valid POSIX permission strings to their octal representation"""
 
@@ -125,9 +152,9 @@ class FilePermissionsBit:
         value = self.value
         if isinstance(value, int):
             if value < 0o0:
-                raise ValueError(f'\'value\' must be a non-negative integer')
+                raise ValueError("'value' must be a non-negative integer")
             if value > 0o7:
-                raise ValueError(f'\'value\' must be a less than 8')
+                raise ValueError("'value' must be a less than 8")
         elif isinstance(value, str) or value is None:
             if value in _valid_permission_strings:
                 self.value = _valid_permission_strings[value]
@@ -135,10 +162,9 @@ class FilePermissionsBit:
                 self.value = int(value, 8)
                 self._parse_value()
             else:
-                raise ValueError(f'\'value\' must be a valid permission string, '
-                                 f'not {value!r}')
+                raise ValueError(f"'value' must be a valid permission string, not {value!r}")
         else:
-            raise TypeError(f'\'value\' must be an int or str, not {type(value)}')
+            raise TypeError(f"'value' must be an int or str, not {type(value)}")
 
     @property
     def string(self) -> str:
@@ -191,7 +217,7 @@ class FilePermissionsBit:
         Set the permission bit to allow or disallow reading.
         """
         if not isinstance(value, bool):
-            raise TypeError(f'\'value\' must be a bool, not {type(value)}')
+            raise TypeError(f"'value' must be a bool, not {type(value)}")
         if value != self.can_read:
             self.value ^= 0o4  # Toggle the read permission bit
 
@@ -210,7 +236,7 @@ class FilePermissionsBit:
         Set the permission bit to allow or disallow writing.
         """
         if not isinstance(value, bool):
-            raise TypeError(f'\'value\' must be a bool, not {type(value)}')
+            raise TypeError(f"'value' must be a bool, not {type(value)}")
         if value != self.can_write:
             self.value ^= 0o2  # Toggle the write permission bit
 
@@ -229,7 +255,7 @@ class FilePermissionsBit:
         Set the permission bit to allow or disallow executing.
         """
         if not isinstance(value, bool):
-            raise TypeError(f'\'value\' must be a bool, not {type(value)}')
+            raise TypeError(f"'value' must be a bool, not {type(value)}")
         if value != self.can_execute:
             self.value ^= 0o1  # Toggle the execute permission bit
 
@@ -256,12 +282,9 @@ class FilePermissions:
     Representation of POSIX file permissions for owner, group, and other.
     """
 
-    owner: int | str | FilePermissionsBit = field(
-        default_factory=lambda: FilePermissionsBit(0o0))
-    group: int | str | FilePermissionsBit = field(
-        default_factory=lambda: FilePermissionsBit(0o0))
-    other: int | str | FilePermissionsBit = field(
-        default_factory=lambda: FilePermissionsBit(0o0))
+    owner: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
+    group: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
+    other: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
     file_type: Optional[str | FileType] = field(default=None, compare=False)
 
     def __post_init__(self):
@@ -281,8 +304,7 @@ class FilePermissions:
             else:
                 raise ValueError(f'Permissions must be a 3-digit octal, not {value:#o}')
         elif isinstance(value, str):
-            if (len(value) == 3 and value.isnumeric()) or \
-                    (len(value) == 5 and value.startswith('0o')):
+            if (len(value) == 3 and value.isnumeric()) or (len(value) == 5 and value.startswith('0o')):
                 # e.g. '760' or '0o760'
                 self.owner, self.group, self.other = self._split_octal(int(value, 8))
             elif len(value) == 9:
@@ -305,19 +327,18 @@ class FilePermissions:
                     value = FilePermissionsBit(value)
                     setattr(self, name, value)
                 except ValueError as e:
-                    raise ValueError(f'\'{name}\' must be a valid permission string, '
-                                     f'not {value!r}') from e
+                    raise ValueError(f"'{name}' must be a valid permission string, not {value!r}") from e
             elif not isinstance(value, FilePermissionsBit):
-                raise TypeError(f'\'{name}\' must be an int, str or '
-                                f'{FilePermissionsBit.__name__}, not '
-                                f'{type(value).__name__}')
+                raise TypeError(
+                    f"'{name}' must be an int, str or {FilePermissionsBit.__name__}, not {type(value).__name__}"
+                )
         if self.file_type is not None:
             if isinstance(self.file_type, str) and self.file_type in _file_type_mappings:
                 self.file_type = _file_type_mappings[self.file_type]
             elif not isinstance(self.file_type, FileType):
-                raise TypeError(f'\'file_type\' must be a str or '
-                                f'{FileType.__class__.__name__}, not '
-                                f'{type(self.file_type)}')
+                raise TypeError(
+                    f"'file_type' must be a str or {FileType.__class__.__name__}, not {type(self.file_type)}"
+                )
 
     @staticmethod
     def _split_octal(value: int) -> tuple[int, int, int]:
@@ -360,15 +381,13 @@ class FilePermissions:
 
         :return: The string representation of the file permissions.
         """
-        s = (f'{self.owner.string_canonical}{self.group.string_canonical}'
-             f'{self.other.string_canonical}')
+        s = f'{self.owner.string_canonical}{self.group.string_canonical}{self.other.string_canonical}'
         if self.file_type is not None:
             s = f'{self.file_type.value}{s}'
         return s
 
     @property
-    def tuple(self) -> tuple[tuple[bool, bool, bool], tuple[bool, bool, bool],
-        tuple[bool, bool, bool]]:
+    def tuple(self) -> tuple[tuple[bool, bool, bool], tuple[bool, bool, bool], tuple[bool, bool, bool]]:
         """
         Get the permissions as three (read, write, execute) tuples for owner, group and
         other.
@@ -421,7 +440,7 @@ class FilePermissions:
             owner=_permission_mappings[owner],
             group=_permission_mappings[group],
             other=_permission_mappings[other],
-            file_type=file_type
+            file_type=file_type,
         )
 
     @classmethod
@@ -441,16 +460,17 @@ def get_permissions_in_decimal(value: int | str | FilePermissions) -> int:
     Convert an octal permission value to its decimal representation.
     """
     if not isinstance(value, (int, str, FilePermissions)):
-        raise TypeError(f'\'value\' must be an int, str or '
-                        f'{FilePermissions.__class__.__name__}, not {type(value)}')
+        raise TypeError(f"'value' must be an int, str or {FilePermissions.__class__.__name__}, not {type(value)}")
 
     value = FilePermissions(value)
     return value.decimal
 
 
-def chmod_recursively(path: str | Path,
-                      files_permissions: Optional[int | str | FilePermissions] = None,
-                      directories_permissions: Optional[int | str | FilePermissions] = None):
+def chmod_recursively(
+    path: str | Path,
+    files_permissions: Optional[int | str | FilePermissions] = None,
+    directories_permissions: Optional[int | str | FilePermissions] = None,
+):
     """
     Change the permissions of all files and subdirectories within a directory. If symbolic links are encountered, they
     are skipped. Permissions are provided as 3-digit decimal integers.
@@ -459,20 +479,20 @@ def chmod_recursively(path: str | Path,
     :param directories_permissions: The desired permissions for directories
     """
     if not files_permissions and not directories_permissions:
-        raise ValueError('At least one of \'file_permissions\' or \'directories_permissions\' must be provided')
+        raise ValueError("At least one of 'file_permissions' or 'directories_permissions' must be provided")
     files_permissions = get_permissions_in_decimal(value=files_permissions)
     directories_permissions = get_permissions_in_decimal(value=directories_permissions)
 
     # Check if path exists and skip if it is a symlink
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f'\'{path}\' does not exist')
+        raise FileNotFoundError(f"'{path}' does not exist")
     if path.is_symlink():  # Skip symbolic links
         return
 
     # Check if the desired permissions are more permissive than the current ones
     more_permissive = directories_permissions >= int(path.stat().st_mode & 0o777)
-    if more_permissive:   # update the root first
+    if more_permissive:  # update the root first
         if path.is_file():
             path.chmod(mode=files_permissions) if files_permissions else None
             return

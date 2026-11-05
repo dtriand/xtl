@@ -12,7 +12,7 @@ app = typer.Typer(
     add_completion=False,
     rich_markup_mode='rich',
     no_args_is_help=True,
-    epilog=epilog
+    epilog=epilog,
 )
 app.add_typer(create_app)
 app.add_typer(validate_app)

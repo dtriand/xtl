@@ -384,4 +384,3 @@ the same expression is reassigned to the field, and the model undergoes validati
 
    The ``_parse_env`` argument is only local in scope, meaning that it only applies to the current model. In case of
    nested |Options| models, environment variable parsing will **not** be propagated from the parent model to its childs.
-

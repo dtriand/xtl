@@ -10,6 +10,7 @@ class JobResults:
     """
     Dataclass to hold the results of a single job.
     """
+
     job_id: str
     """The unique identifier of the job."""
 
@@ -48,5 +49,6 @@ class SteppedJobResults(JobResults):
     """
     Dataclass to hold the results of a stepped job, which includes results and data from all steps.
     """
+
     steps: dict[str, JobResults] = field(default_factory=dict)
     """A dictionary mapping step names to their results."""

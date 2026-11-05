@@ -1,6 +1,5 @@
 from os import get_terminal_size
 from datetime import datetime
-import warnings
 
 import click
 
@@ -8,7 +7,7 @@ from xtl import __version__
 from xtl.cli.utils import GroupWithCommandOptions, OutputQueue, update_docstring
 
 from xtl.pdbapi import Client
-from xtl.pdbapi.queries import free_text, has_uniprot_id
+from xtl.pdbapi.queries import free_text
 from xtl.pdbapi.search.options import ResultsContentType
 from xtl.pdbapi.data.options import DataService
 from xtl.pdbapi.schema import SearchSchema, DataSchema
@@ -20,21 +19,18 @@ from xtl.pdbapi.schema import SearchSchema, DataSchema
 @click.pass_context
 def rest_search_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 
     ctx.ensure_object(dict)
-    ctx.obj = {
-        'debug': debug,
-        'verbose': verbose
-    }
+    ctx.obj = {'debug': debug, 'verbose': verbose}
 
 
 @rest_search_group.command(short_help='Perform a search.')
 @click.pass_context
 @click.argument('text', nargs=1)
-@click.option('--all' ,'all_' , is_flag=True, default=False, help='Return all entries.')
+@click.option('--all', 'all_', is_flag=True, default=False, help='Return all entries.')
 @click.option('--csm', is_flag=True, default=False, help='Include Computed Structure Models in results.')
 @click.option('-t', '--title', is_flag=True, default=False, help='Return entry titles.')
 def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: bool):
@@ -49,8 +45,7 @@ def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: boo
     :param title:
     :return:
     """
-    debug: bool = ctx.obj["debug"]
-    verbose: bool = ctx.obj["verbose"]
+    debug: bool = ctx.obj['debug']
 
     q = OutputQueue(debug)
     api = Client()
@@ -62,7 +57,7 @@ def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: boo
 
     query = free_text(text)
     if debug:
-        click.secho(f"Query JSON: {query.to_dict()}", fg='magenta')
+        click.secho(f'Query JSON: {query.to_dict()}', fg='magenta')
 
     results = api.search(query)
     pdbs = results.pdbs
@@ -77,16 +72,16 @@ def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: boo
         attrd = DataSchema(verbose=True, service=DataService.ENTRY)
         data = api.data(pdbs, attributes=[attrd.rcsb_id, attrd.struct.title])
         table, titles = data.tabulate('entries')
-        q.append_table(table=table, tablefmt='plain', maxcolwidths=[4, terminal_size-6], headers=titles)
+        q.append_table(table=table, tablefmt='plain', maxcolwidths=[4, terminal_size - 6], headers=titles)
         q.pop_from_queue()
         q.print()
     else:
-        entries_per_line = terminal_size // (4+1)
+        entries_per_line = terminal_size // (4 + 1)
         lines = -(len(pdbs) // -entries_per_line)  # equivalent to math.ceil()
-        for l in range(lines):
-            click.secho(" ".join(pdbs[l*entries_per_line:(l+1)*entries_per_line]))
+        for line in range(lines):
+            click.secho(' '.join(pdbs[line * entries_per_line : (line + 1) * entries_per_line]))
 
-    click.secho(f"Total number of entries: {len(pdbs)}", nl=False)
+    click.secho(f'Total number of entries: {len(pdbs)}', nl=False)
     if all_:
         click.secho()
     else:
@@ -109,11 +104,9 @@ def schema(ctx: click.core.Context, test: bool, search_only: bool, data_only: bo
     :param data_only:
     :return:
     """
-    debug: bool = ctx.obj["debug"]
-    verbose: bool = ctx.obj["verbose"]
     ctx.obj['test'] = test
 
-    schemas = {
+    schemas = {  # noqa: F841 (not used yet)
         'search': [SearchSchema, []],
         'data.entry': [DataSchema, [DataService.ENTRY]],
         'data.polymer_entity': [DataSchema, [DataService.POLYMER_ENTITY]],
@@ -145,17 +138,25 @@ def schema_interrogate(ctx: click.core.Context, schema_cls: SearchSchema or Data
         click.secho(f'Testing {schema_cls.__name__}...', fg='cyan')
         t1 = datetime.now()
     from xtl.pdbapi.data.options import DataService
+
     attr = schema_cls(DataService.CHEMICAL_COMPONENT)
     if test:
         t2 = datetime.now()
-        click.secho(f'Fetched schema v.{attr.schema_version} from {attr._schema_url} and processed in '
-                    f'{round((t2 - t1).total_seconds(), 3)} sec', fg='cyan')
+        click.secho(
+            f'Fetched schema v.{attr.schema_version} from {attr._schema_url} and processed in '
+            f'{round((t2 - t1).total_seconds(), 3)} sec',
+            fg='cyan',
+        )
         click.secho(f'Schema contains {len(attr.__dict__)} entries', fg='cyan')
         click.secho(f'Number of unparsed entries: {len(attr._dubious_entries)} ', fg='cyan')
         if debug:
-            click.secho('\n'.join(f"    {obj}" for obj in attr._dubious_entries), fg='magenta')
-    click.secho(f'A: {len(attr.attributes)} + AG: {len(attr.attribute_groups)} = {len(attr.attributes) + len(attr.attribute_groups)}')
-    click.secho(f'    {len(attr.__dict__) - (len(attr.attributes) + len(attr.attribute_groups))} additional attributes\n')
+            click.secho('\n'.join(f'    {obj}' for obj in attr._dubious_entries), fg='magenta')
+    click.secho(
+        f'A: {len(attr.attributes)} + AG: {len(attr.attribute_groups)} = {len(attr.attributes) + len(attr.attribute_groups)}'
+    )
+    click.secho(
+        f'    {len(attr.__dict__) - (len(attr.attributes) + len(attr.attribute_groups))} additional attributes\n'
+    )
 
     # from xtl.pdbapi.attributes import _Attribute, _AttributeGroup
     # from pprint import pprint
@@ -169,8 +170,12 @@ def schema_interrogate(ctx: click.core.Context, schema_cls: SearchSchema or Data
     #         print('\n')
 
 
-@click.command(cls=click.CommandCollection, sources=[rest_search_group], invoke_without_command=True,
-               context_settings=dict(help_option_names=['-h', '--help']))
+@click.command(
+    cls=click.CommandCollection,
+    sources=[rest_search_group],
+    invoke_without_command=True,
+    context_settings=dict(help_option_names=['-h', '--help']),
+)
 @click.pass_context
 @click.option('-d', '--debug', is_flag=True, default=False, help='Run on debug mode.')
 @click.option('-v', '--verbose', count=True, type=click.IntRange(0, 3, clamp=True), help='Display additional info.')
@@ -193,5 +198,3 @@ def cli_pdbapi(ctx: click.core.Context, debug: bool, verbose: int):
 
 if __name__ == '__main__':
     cli_pdbapi(obj={})
-
-

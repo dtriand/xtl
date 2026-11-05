@@ -10,6 +10,6 @@ app = typer.Typer(
     help='nanoBragg simulations and utilities',
     add_completion=False,
     rich_markup_mode='rich',
-    epilog=epilog
+    epilog=epilog,
 )
 app.add_typer(simulate_app)

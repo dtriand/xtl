@@ -11,36 +11,51 @@ app = typer.Typer()
 
 @app.command('fft', help='Calculate the distribution of Fourier components', epilog=epilog)
 def cli_diffraction_correlate_fft(
-        ccf_file: Path = typer.Argument(..., metavar='ccf.npx', help='CCF file to analyze'),
-        ai2_file: Path = typer.Argument(None, metavar='ai2.npx', help='Azimuthal integration file'),
-        # Selection parameters
-        selection_2theta: float = typer.Option(None, '-t', '--2theta', help='2\u03b8 angle to inspect (in \u00b0)',
-                                               rich_help_panel='Selection parameters'),
-        selection_q: float = typer.Option(None, '-q', '--q', help='Q value to inspect (in nm\u207B\u00B9)',
-                                          rich_help_panel='Selection parameters'),
-        # FFT parameters
-        no_coeffs: int = typer.Option(24, '-n', '--no-coeffs', help='Number of Fourier components to display',
-                                      rich_help_panel='FFT parameters'),
-        fill_value: float = typer.Option(None, '--fill', help='Fill NaN values in CCF with a given value',
-                                         rich_help_panel='FFT parameters'),
-        # Plotting parameters
-        zscale: ZScale = typer.Option(ZScale.LINEAR.value, '-z', '--zscale', help='Intensity scale',
-                                      rich_help_panel='Plotting parameters'),
-        zmin: float = typer.Option(None, '--zmin', help='Minimum value for intensities',
-                                    rich_help_panel='Plotting parameters'),
-        zmax: float = typer.Option(None, '--zmax', help='Maximum value for intensities',
-                                    rich_help_panel='Plotting parameters'),
-        normalize: bool = typer.Option(False, '-n', '--normalize', help='Normalize the intensities',
-                                       rich_help_panel='Plotting parameters'),
-        nstd: float = typer.Option(4.0, '-N', '--nstd', help='Number of standard deviations for normalization',
-                                   rich_help_panel='Plotting parameters'),
-        # polar_plots: bool = typer.Option(False, '--polar', help='Plot CCF and azimuthal integration in polar coordinates',
-        #                                  rich_help_panel='Plotting parameters'),
-        # Debugging
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
-                                    rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging')
+    ccf_file: Path = typer.Argument(..., metavar='ccf.npx', help='CCF file to analyze'),
+    ai2_file: Path = typer.Argument(None, metavar='ai2.npx', help='Azimuthal integration file'),
+    # Selection parameters
+    selection_2theta: float = typer.Option(
+        None, '-t', '--2theta', help='2\u03b8 angle to inspect (in \u00b0)', rich_help_panel='Selection parameters'
+    ),
+    selection_q: float = typer.Option(
+        None, '-q', '--q', help='Q value to inspect (in nm\u207b\u00b9)', rich_help_panel='Selection parameters'
+    ),
+    # FFT parameters
+    no_coeffs: int = typer.Option(
+        24, '-n', '--no-coeffs', help='Number of Fourier components to display', rich_help_panel='FFT parameters'
+    ),
+    fill_value: float = typer.Option(
+        None, '--fill', help='Fill NaN values in CCF with a given value', rich_help_panel='FFT parameters'
+    ),
+    # Plotting parameters
+    zscale: ZScale = typer.Option(
+        ZScale.LINEAR.value, '-z', '--zscale', help='Intensity scale', rich_help_panel='Plotting parameters'
+    ),
+    zmin: float = typer.Option(
+        None, '--zmin', help='Minimum value for intensities', rich_help_panel='Plotting parameters'
+    ),
+    zmax: float = typer.Option(
+        None, '--zmax', help='Maximum value for intensities', rich_help_panel='Plotting parameters'
+    ),
+    normalize: bool = typer.Option(
+        False, '-n', '--normalize', help='Normalize the intensities', rich_help_panel='Plotting parameters'
+    ),
+    nstd: float = typer.Option(
+        4.0,
+        '-N',
+        '--nstd',
+        help='Number of standard deviations for normalization',
+        rich_help_panel='Plotting parameters',
+    ),
+    # polar_plots: bool = typer.Option(False, '--polar', help='Plot CCF and azimuthal integration in polar coordinates',
+    #                                  rich_help_panel='Plotting parameters'),
+    # Debugging
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
     cli = Console(verbose=verbose, debug=debug)
 
@@ -53,6 +68,7 @@ def cli_diffraction_correlate_fft(
         raise typer.Abort()
 
     from xtl.units.scattering.radial import RadialUnits, RadialValue
+
     if selection_2theta is not None:
         selection = RadialValue(value=selection_2theta, kind=RadialUnits.TWOTHETA_DEG)
     else:
@@ -79,8 +95,7 @@ def cli_diffraction_correlate_fft(
             ai2 = NpxFile.load(ai2_file)
             for key in ['radial', 'azimuthal', 'intensities']:
                 if key not in ai2.data.keys():
-                    cli.print(f'Error: Missing key {key!r} in 2D azimuthal integration file {ccf_file}',
-                              style='red')
+                    cli.print(f'Error: Missing key {key!r} in 2D azimuthal integration file {ccf_file}', style='red')
                     raise typer.Abort()
         if catcher.raised:
             cli.print(f'Error: Failed to load azimuthal integration file {ai2_file}', style='red')
@@ -115,8 +130,9 @@ def cli_diffraction_correlate_fft(
 
             u0 = u0 if u0 == '\u00b0' else f' {u0}'
             u1 = u1 if u1 == '\u00b0' else f' {u1}'
-            cli.print(f'Converted selection from {n0}={v0:.4f}{u0} '
-                      f'to {n1}={v1:.4f}{u1} using \u03bb={wavelength:.4f} \u212b')
+            cli.print(
+                f'Converted selection from {n0}={v0:.4f}{u0} to {n1}={v1:.4f}{u1} using \u03bb={wavelength:.4f} \u212b'
+            )
 
     # Check if selection is within the radial range of the CCF
     radial_min, radial_max = acc.data['radial'].min(), acc.data['radial'].max()
@@ -132,8 +148,8 @@ def cli_diffraction_correlate_fft(
 
     # Calculate the FFT of the CCF
     if verbose:
-        cli.print(f'Calculating FFT... ')
-    with Timer(silent=verbose<1, echo_func=cli.print):
+        cli.print('Calculating FFT... ')
+    with Timer(silent=verbose < 1, echo_func=cli.print):
         ccf = acc.data['ccf']
         ccf_delta = ccf[:, ccf_i]
         if np.any(np.isnan(ccf_delta)):
@@ -141,8 +157,10 @@ def cli_diffraction_correlate_fft(
                 cli.print(f'Replacing missing values in CCF with {fill_value}', style='yellow')
                 ccf_delta = np.nan_to_num(ccf_delta, nan=fill_value)
             else:
-                cli.print('Warning: NaN values found in CCF data. FFT will be empty. '
-                          'Use --fill to replace the NaNs.', style='yellow')
+                cli.print(
+                    'Warning: NaN values found in CCF data. FFT will be empty. Use --fill to replace the NaNs.',
+                    style='yellow',
+                )
         fc = np.fft.fft(ccf_delta) / len(ccf_delta)
         fc = np.abs(fc)
 
@@ -150,17 +168,23 @@ def cli_diffraction_correlate_fft(
     tth = selection.convert_to(RadialUnits.TWOTHETA_DEG, wavelength=wavelength)
     q = selection.convert_to(RadialUnits.Q_NM, wavelength=wavelength)
     d = selection.convert_to(RadialUnits.D_A, wavelength=wavelength)
-    subtitle = (f'{tth.kind.quantity.pretty}={tth.value:.4f}{tth.kind.physical_units.pretty} | '
-                f'{q.kind.quantity.pretty}={q.value:.4f} {q.kind.physical_units.pretty} | '
-                f'{d.kind.quantity.pretty}={d.value:.2f} {d.kind.physical_units.pretty}')
+    subtitle = (
+        f'{tth.kind.quantity.pretty}={tth.value:.4f}{tth.kind.physical_units.pretty} | '
+        f'{q.kind.quantity.pretty}={q.value:.4f} {q.kind.physical_units.pretty} | '
+        f'{d.kind.quantity.pretty}={d.value:.2f} {d.kind.physical_units.pretty}'
+    )
 
     # Prepare plots
     import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+    from matplotlib.colors import Normalize, SymLogNorm
 
     fig = plt.figure('XCCA overview', figsize=(16 / 1.2, 9 / 1.2))
     fig.suptitle(f'{ccf_file.name}\n{subtitle}')
-    gs = fig.add_gridspec(2, 3, wspace=0.2,)
+    gs = fig.add_gridspec(
+        2,
+        3,
+        wspace=0.2,
+    )
     ax0 = fig.add_subplot(gs[0, 0])  # CCF 2D
     ax1 = fig.add_subplot(gs[1, 0])  # Azimuthal integration 2D
     ax2 = fig.add_subplot(gs[0, 1])  # CCF 1D
@@ -170,8 +194,7 @@ def cli_diffraction_correlate_fft(
     ax4 = fig.add_subplot(gs[:, 2])  # FFT
 
     for ax in [ax0, ax1]:
-        ax.tick_params(direction='in', color='white', bottom=True, top=True, left=True,
-                        right=True)
+        ax.tick_params(direction='in', color='white', bottom=True, top=True, left=True, right=True)
     for ax in [ax2, ax3, ax4]:
         ax.tick_params(direction='in', bottom=True, left=True)
 
@@ -183,17 +206,15 @@ def cli_diffraction_correlate_fft(
         mean = np.nanmean(ccf)
         std = np.nanstd(ccf)
         if zmin is not None and verbose:
-            cli.print(f'Skipping zmin normalization: already set', style='yellow')
+            cli.print('Skipping zmin normalization: already set', style='yellow')
         else:
             vmin = np.max([mean - nstd * std, vmin])
         if zmax is not None and verbose:
-            cli.print(f'Skipping zmax normalization: already set', style='yellow')
+            cli.print('Skipping zmax normalization: already set', style='yellow')
         else:
             vmax = np.min([mean + nstd * std, vmax])
         if verbose:
-            cli.print(
-                f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}',
-                style='cyan')
+            cli.print(f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}', style='cyan')
     else:
         if zmin is not None:
             vmin = zmin
@@ -207,12 +228,18 @@ def cli_diffraction_correlate_fft(
     elif zscale == ZScale.LOG:
         norm = partial(SymLogNorm, clip=False, linthresh=0.05)
 
-    ax0.imshow(ccf, origin='lower', aspect='auto', interpolation='nearest', cmap='Spectral',
-               norm=norm(vmin=vmin, vmax=vmax),
-               extent=(radial.min(), radial.max(), delta.min(), delta.max()))
+    ax0.imshow(
+        ccf,
+        origin='lower',
+        aspect='auto',
+        interpolation='nearest',
+        cmap='Spectral',
+        norm=norm(vmin=vmin, vmax=vmax),
+        extent=(radial.min(), radial.max(), delta.min(), delta.max()),
+    )
     ax0.vlines(selection.value, delta.min(), delta.max(), 'r', '--')
     ax0.set_title('2D Cross-correlation function')
-    ax0.set_ylabel(f'\u0394 (\u00b0)')
+    ax0.set_ylabel('\u0394 (\u00b0)')
     ax0.set_xlabel(selection.kind.latex)
 
     ax2.plot(delta, ccf[:, ccf_i], color='xkcd:light brown')
@@ -230,17 +257,17 @@ def cli_diffraction_correlate_fft(
             mean = np.nanmean(intensities)
             std = np.nanstd(intensities)
             if zmin is not None and verbose:
-                cli.print(f'Skipping zmin normalization: already set', style='yellow')
+                cli.print('Skipping zmin normalization: already set', style='yellow')
             else:
                 vmin = np.max([mean - nstd * std, vmin])
             if zmax is not None and verbose:
-                cli.print(f'Skipping zmax normalization: already set', style='yellow')
+                cli.print('Skipping zmax normalization: already set', style='yellow')
             else:
                 vmax = np.min([mean + nstd * std, vmax])
             if verbose:
                 cli.print(
-                    f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}',
-                    style='cyan')
+                    f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}', style='cyan'
+                )
         else:
             if zmin is not None:
                 vmin = zmin
@@ -252,9 +279,15 @@ def cli_diffraction_correlate_fft(
         elif zscale == ZScale.LOG:
             norm = partial(SymLogNorm, clip=False, linthresh=0.05)
 
-        ax1.imshow(intensities, origin='lower', aspect='auto', interpolation='nearest', cmap='magma',
-                   norm=norm(vmin=vmin, vmax=vmax),
-                   extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+        ax1.imshow(
+            intensities,
+            origin='lower',
+            aspect='auto',
+            interpolation='nearest',
+            cmap='magma',
+            norm=norm(vmin=vmin, vmax=vmax),
+            extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()),
+        )
         ax1.vlines(selection.value, azimuthal.min(), azimuthal.max(), 'r', '--')
         ax1.set_title('2D Azimuthal integration')
         ax1.set_ylabel('\u03c7 (\u00b0)')
@@ -267,8 +300,8 @@ def cli_diffraction_correlate_fft(
         ax3.set_ylabel('Intensity')
         ax3.set_xlabel('\u03c7 (\u00b0)')
 
-    ax4.bar(range(1, no_coeffs + 1), fc[1:no_coeffs+1])
-    ax4.set_title('$\u2131\{\mathrm{CCF}(\u0394)\}$')
+    ax4.bar(range(1, no_coeffs + 1), fc[1 : no_coeffs + 1])
+    ax4.set_title('$\u2131\\{\\mathrm{CCF}(\u0394)\\}$')
     ax4.set_ylabel('Distribution')
     ax4.set_xlabel('Fourier coefficient')
 

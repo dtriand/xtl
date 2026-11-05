@@ -9,16 +9,16 @@ from xtl.cli.utilities import epilog
 app = typer.Typer()
 
 
-@app.command(
-    name='validate',
-    short_help='Check a config file for errors and warnings',
-    epilog=epilog
-)
+@app.command(name='validate', short_help='Check a config file for errors and warnings', epilog=epilog)
 def cli_config_validate(
     file: Optional[Path] = typer.Argument(
-        None, metavar='[FILE]', exists=True, dir_okay=False, resolve_path=True,
-        help='Config file to check (default: the active config file)'
-    )
+        None,
+        metavar='[FILE]',
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+        help='Config file to check (default: the active config file)',
+    ),
 ):
     """
     Check a config file for errors (the file cannot be read, invalid TOML or invalid
@@ -35,11 +35,9 @@ def cli_config_validate(
     if file is None:
         active = XTLSettings.active()
         if active is None:
-            console.print('No config file found, nothing to validate. '
-                          'Using [b]in-memory defaults[/b].')
+            console.print('No config file found, nothing to validate. Using [b]in-memory defaults[/b].')
             return
-        console.print(f'Validating [b]{active.name}[/b] config: '
-                      f'{escape(str(active.path))}')
+        console.print(f'Validating [b]{active.name}[/b] config: {escape(str(active.path))}')
         file = active.path
     else:
         console.print(f'Validating config: {escape(str(file))}')
@@ -52,8 +50,7 @@ def cli_config_validate(
         console.print(f'[yellow]Warning:[/] {escape(warning)}')
 
     if errors:
-        console.print('[red]File is invalid: XTL will fall back to in-memory '
-                      'defaults when loading this file. [/]')
+        console.print('[red]File is invalid: XTL will fall back to in-memory defaults when loading this file. [/]')
         raise typer.Exit(1)
     elif warnings:
         s = 's' if len(warnings) > 1 else ''

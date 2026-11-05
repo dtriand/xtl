@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 import re
 import shutil
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 import warnings
 
 from defusedxml import ElementTree as DET
@@ -20,196 +20,277 @@ from xtl.diffraction.automate.xds_utils import CorrectLp
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.exceptions.warnings import FileNotFoundWarning, HTMLUpdateWarning
 
+if TYPE_CHECKING:
+    from xml.etree.ElementTree import Element
+
 
 @dataclass
 class AutoPROCConfig(GPhLConfig):
     # Housekeeping
-    run_number: int = pfield(desc='Run number', group='housekeeping',
-                             default=1, validator={'ge': 1})
-    macro_filename: str = pfield(desc='Macro filename', group='housekeeping',
-                                 default='xtl_autoPROC.dat',
-                                 formatter=lambda x: f'{x}.dat' if not x.endswith('.dat') else x)
-    batch_filename: str = pfield(desc='Batch filename', group='housekeeping',
-                                 default='xtl_autoPROC.sh',
-                                 formatter=lambda x: f'{x}.sh' if not x.endswith('.sh') else x)
-    idn: str = pfield(desc='Dataset identifier', group='housekeeping',
-                      default='')
-    idn_prefix: str = pfield(desc='Prefix for the dataset identifier passed on to autoPROC',
-                             default='xtl', group='housekeeping',)
-    autoproc_output_subdir: str = pfield(desc='Subdirectory for autoPROC output',
-                                         default='autoproc', group='housekeeping')
-    file_permissions: int = pfield(desc='File permissions for all the output files',
-                                   default=int('0o600', 8), group='housekeeping',
-                                   validator={'func': get_permissions_in_decimal})
-    directory_permissions: int = pfield(desc='Directory permissions for all the output directories',
-                                        default=int('0o700', 8), group='housekeeping',
-                                        validator={'func': get_permissions_in_decimal})
-    change_permissions: bool = pfield(desc='Change permissions of the output files and directories',
-                                      default=False, group='housekeeping')
+    run_number: int = pfield(desc='Run number', group='housekeeping', default=1, validator={'ge': 1})
+    macro_filename: str = pfield(
+        desc='Macro filename',
+        group='housekeeping',
+        default='xtl_autoPROC.dat',
+        formatter=lambda x: f'{x}.dat' if not x.endswith('.dat') else x,
+    )
+    batch_filename: str = pfield(
+        desc='Batch filename',
+        group='housekeeping',
+        default='xtl_autoPROC.sh',
+        formatter=lambda x: f'{x}.sh' if not x.endswith('.sh') else x,
+    )
+    idn: str = pfield(desc='Dataset identifier', group='housekeeping', default='')
+    idn_prefix: str = pfield(
+        desc='Prefix for the dataset identifier passed on to autoPROC',
+        default='xtl',
+        group='housekeeping',
+    )
+    autoproc_output_subdir: str = pfield(
+        desc='Subdirectory for autoPROC output', default='autoproc', group='housekeeping'
+    )
+    file_permissions: int = pfield(
+        desc='File permissions for all the output files',
+        default=int('0o600', 8),
+        group='housekeeping',
+        validator={'func': get_permissions_in_decimal},
+    )
+    directory_permissions: int = pfield(
+        desc='Directory permissions for all the output directories',
+        default=int('0o700', 8),
+        group='housekeeping',
+        validator={'func': get_permissions_in_decimal},
+    )
+    change_permissions: bool = pfield(
+        desc='Change permissions of the output files and directories', default=False, group='housekeeping'
+    )
 
     # User parameters
-    unit_cell: list[float] = afield(desc='Target unit-cell for the dataset',
-                                    default=None,
-                                    alias='cell', group='user_params',
-                                    validator={'len': 6},
-                                    formatter=lambda x: ' '.join([str(y) for y in x]) if x else None)
-    space_group: str = afield(desc='Target space group for the dataset',
-                              default=None,
-                              alias='symm', group='user_params',
-                              formatter=lambda x: x.replace(' ', '') if x else None)
-    wavelength: float = afield(desc='Wavelength of the X-ray beam in Angstroms',
-                               default=None,
-                               alias='wave', group='user_params',
-                               validator={'gt': 0.0})
-    resolution_low: float = afield(desc='Low resolution limit for the dataset',
-                                   default=None,
-                                   alias='init_reso', group='user_params',
-                                   alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
-                                   alias_fstring_keys=['resolution_low', 'resolution_high'],
-                                   validator={'gt': 0.0})
-    resolution_high: float = afield(desc='High resolution limit for the dataset',
-                                    default=None,
-                                    alias='init_reso', group='user_params',
-                                    alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
-                                    alias_fstring_keys=['resolution_low', 'resolution_high'],
-                                    validator={'gt': 0.0})
-    anomalous: bool = afield(desc='Keep anomalous signal',
-                             default=None,
-                             alias='anom', group='user_params')
-    no_residues: int = afield(desc='Number of residues in the asymmetric unit',
-                              default=None,
-                              alias='nres', group='user_params',
-                              validator={'gt': 0})
-    mosaicity: float = afield(desc='Starting mosaicity value in degrees',
-                              default=None,
-                              alias='mosaic', group='user_params',
-                              validator={'gt': 0.0})
-    rfree_mtz: Path = afield(desc='Path to the MTZ file with R-free flags',
-                             default=None,
-                             alias='free_mtz', group='user_params')
-    reference_mtz: Path = afield(desc='Path to the reference MTZ file for unit-cell, space group, indexing and R-free flags',
-                                 default=None,
-                                 alias='ref_mtz', group='user_params')
-    mtz_project_name: str = afield(desc='Project name for the MTZ file',
-                                   default=None,
-                                   alias='pname', group='user_params')
-    mtz_crystal_name: str = afield(desc='Crystal name for the MTZ file',
-                                   default=None,
-                                   alias='xname', group='user_params')
-    mtz_dataset_name: str = afield(desc='Dataset name for the MTZ file',
-                                   default=None,
-                                   alias='dname', group='user_params')
+    unit_cell: list[float] = afield(
+        desc='Target unit-cell for the dataset',
+        default=None,
+        alias='cell',
+        group='user_params',
+        validator={'len': 6},
+        formatter=lambda x: ' '.join([str(y) for y in x]) if x else None,
+    )
+    space_group: str = afield(
+        desc='Target space group for the dataset',
+        default=None,
+        alias='symm',
+        group='user_params',
+        formatter=lambda x: x.replace(' ', '') if x else None,
+    )
+    wavelength: float = afield(
+        desc='Wavelength of the X-ray beam in Angstroms',
+        default=None,
+        alias='wave',
+        group='user_params',
+        validator={'gt': 0.0},
+    )
+    resolution_low: float = afield(
+        desc='Low resolution limit for the dataset',
+        default=None,
+        alias='init_reso',
+        group='user_params',
+        alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
+        alias_fstring_keys=['resolution_low', 'resolution_high'],
+        validator={'gt': 0.0},
+    )
+    resolution_high: float = afield(
+        desc='High resolution limit for the dataset',
+        default=None,
+        alias='init_reso',
+        group='user_params',
+        alias_fstring='{resolution_low:.2f} {resolution_high:.2f}',
+        alias_fstring_keys=['resolution_low', 'resolution_high'],
+        validator={'gt': 0.0},
+    )
+    anomalous: bool = afield(desc='Keep anomalous signal', default=None, alias='anom', group='user_params')
+    no_residues: int = afield(
+        desc='Number of residues in the asymmetric unit',
+        default=None,
+        alias='nres',
+        group='user_params',
+        validator={'gt': 0},
+    )
+    mosaicity: float = afield(
+        desc='Starting mosaicity value in degrees',
+        default=None,
+        alias='mosaic',
+        group='user_params',
+        validator={'gt': 0.0},
+    )
+    rfree_mtz: Path = afield(
+        desc='Path to the MTZ file with R-free flags', default=None, alias='free_mtz', group='user_params'
+    )
+    reference_mtz: Path = afield(
+        desc='Path to the reference MTZ file for unit-cell, space group, indexing and R-free flags',
+        default=None,
+        alias='ref_mtz',
+        group='user_params',
+    )
+    mtz_project_name: str = afield(
+        desc='Project name for the MTZ file', default=None, alias='pname', group='user_params'
+    )
+    mtz_crystal_name: str = afield(
+        desc='Crystal name for the MTZ file', default=None, alias='xname', group='user_params'
+    )
+    mtz_dataset_name: str = afield(
+        desc='Dataset name for the MTZ file', default=None, alias='dname', group='user_params'
+    )
 
     # XDS parameters
-    xds_njobs: int = afield(desc='Maximum number of jobs for XDS',
-                            default=None,
-                            alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS', group='xds_params',
-                            validator={'ge': 1})
-    xds_nproc: int = afield(desc='Maximum number of processors for XDS',
-                            default=None,
-                            alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_PROCESSORS', group='xds_params',
-                            validator={'ge': 1})
-    xds_lib: Path = afield(desc='Path to external libraries',
-                           default=None,
-                           alias='autoPROC_XdsKeyword_LIB', group='xds_params')
-    xds_polarization_fraction: float = afield(desc='Polarization fraction',
-                                              default=None,
-                                              alias='autoPROC_XdsKeyword_FRACTION_OF_POLARIZATION', group='xds_params',
-                                              validator={'ge': 0.0, 'le': 1.0})
-    xds_idxref_refine_params: list[str] = afield(desc='Parameters to refine in IDXREF',
-                                                 alias='autoPROC_XdsKeyword_REFINEIDXREF', group='xds_params',
-                                                 validator={
-                                                    'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL',
-                                                                'SEGMENT']
-                                                 },
-                                                 formatter=lambda x: ' '.join(x) if x else [],
-                                                 default_factory=lambda: [])
-    xds_integrate_refine_params: list[str] = afield(desc='Parameters to refine in INTEGRATE',
-                                                    alias='autoPROC_XdsKeyword_REFINEINTEGRATE', group='xds_params',
-                                                    validator={
-                                                       'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL']
-                                                    },
-                                                    formatter=lambda x: ' '.join(x) if x else [],
-                                                    default_factory=lambda: [])
-    xds_correct_refine_params: list[str] = afield(desc='Parameters to refine in CORRECT',
-                                                  alias='autoPROC_XdsKeyword_REFINECORRECT', group='xds_params',
-                                                  validator={
-                                                     'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL',
-                                                                 'SEGMENT']},
-                                                  formatter=lambda x: ' '.join(x) if x else [],
-                                                  default_factory=lambda: [])
-    xds_defpix_optimize: bool = afield(desc='Optimize parameters for DEFPIX',
-                                       default=None,
-                                       alias='XdsOptimizeDefpix', group='xds_params')
-    xds_idxref_optimize: bool = afield(desc='Optimize parameters for IDXREF',
-                                       default=None,
-                                       alias='XdsOptimizeIdxref', group='xds_params')
-    xds_n_background_images: int = afield(desc='Number of images for background estimation',
-                                          default=None,
-                                          alias='XdsNumImagesBackgroundRange', group='xds_params')
+    xds_njobs: int = afield(
+        desc='Maximum number of jobs for XDS',
+        default=None,
+        alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS',
+        group='xds_params',
+        validator={'ge': 1},
+    )
+    xds_nproc: int = afield(
+        desc='Maximum number of processors for XDS',
+        default=None,
+        alias='autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_PROCESSORS',
+        group='xds_params',
+        validator={'ge': 1},
+    )
+    xds_lib: Path = afield(
+        desc='Path to external libraries', default=None, alias='autoPROC_XdsKeyword_LIB', group='xds_params'
+    )
+    xds_polarization_fraction: float = afield(
+        desc='Polarization fraction',
+        default=None,
+        alias='autoPROC_XdsKeyword_FRACTION_OF_POLARIZATION',
+        group='xds_params',
+        validator={'ge': 0.0, 'le': 1.0},
+    )
+    xds_idxref_refine_params: list[str] = afield(
+        desc='Parameters to refine in IDXREF',
+        alias='autoPROC_XdsKeyword_REFINEIDXREF',
+        group='xds_params',
+        validator={'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL', 'SEGMENT']},
+        formatter=lambda x: ' '.join(x) if x else [],
+        default_factory=lambda: [],
+    )
+    xds_integrate_refine_params: list[str] = afield(
+        desc='Parameters to refine in INTEGRATE',
+        alias='autoPROC_XdsKeyword_REFINEINTEGRATE',
+        group='xds_params',
+        validator={'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL']},
+        formatter=lambda x: ' '.join(x) if x else [],
+        default_factory=lambda: [],
+    )
+    xds_correct_refine_params: list[str] = afield(
+        desc='Parameters to refine in CORRECT',
+        alias='autoPROC_XdsKeyword_REFINECORRECT',
+        group='xds_params',
+        validator={'choices': ['POSITION', 'BEAM', 'AXIS', 'ORIENTATION', 'CELL', 'SEGMENT']},
+        formatter=lambda x: ' '.join(x) if x else [],
+        default_factory=lambda: [],
+    )
+    xds_defpix_optimize: bool = afield(
+        desc='Optimize parameters for DEFPIX', default=None, alias='XdsOptimizeDefpix', group='xds_params'
+    )
+    xds_idxref_optimize: bool = afield(
+        desc='Optimize parameters for IDXREF', default=None, alias='XdsOptimizeIdxref', group='xds_params'
+    )
+    xds_n_background_images: int = afield(
+        desc='Number of images for background estimation',
+        default=None,
+        alias='XdsNumImagesBackgroundRange',
+        group='xds_params',
+    )
 
     # Compound parameters
-    _XdsExcludeIceRingsAutomatically: bool = afield(alias='XdsExcludeIceRingsAutomatically', default=None, cli_hidden=True)
+    _XdsExcludeIceRingsAutomatically: bool = afield(
+        alias='XdsExcludeIceRingsAutomatically', default=None, cli_hidden=True
+    )
     _RunIdxrefExcludeIceRingShells: bool = afield(alias='RunIdxrefExcludeIceRingShells', default=None, cli_hidden=True)
-    exclude_ice_rings: bool = cfield(desc='Exclude ice rings from the data',
-                                     default=None,
-                                     group='ice_rings_params',
-                                     members=['_XdsExcludeIceRingsAutomatically', '_RunIdxrefExcludeIceRingShells'],
-                                     in_sync=True)
+    exclude_ice_rings: bool = cfield(
+        desc='Exclude ice rings from the data',
+        default=None,
+        group='ice_rings_params',
+        members=['_XdsExcludeIceRingsAutomatically', '_RunIdxrefExcludeIceRingShells'],
+        in_sync=True,
+    )
 
     # Extra parameters
-    extra_params: dict = afield(desc='Extra parameters for autoPROC',
-                                alias='_extra_params',
-                                group='extra_params',
-                                formatter=lambda x: x if x else {},
-                                default_factory=dict)
+    extra_params: dict = afield(
+        desc='Extra parameters for autoPROC',
+        alias='_extra_params',
+        group='extra_params',
+        formatter=lambda x: x if x else {},
+        default_factory=dict,
+    )
 
     # Macros
-    beamline: str = afield(desc='Beamline name',
-                           default=None,
-                           alias='_beamline_macro',
-                           validator={
-                               'choice': [
-                                   'AlbaBL13Xaloc', 'Als1231', 'Als422', 'Als831', 'AustralianSyncMX1',
-                                   'AustralianSyncMX2', 'DiamondI04-MK', 'DiamondIO4', 'DiamondI23-Day1', 'DiamondI23',
-                                   'EsrfId23-2', 'EsrfId29', 'EsrfId30-B', 'ILL_D19', 'PetraIIIP13', 'PetraIIIP14',
-                                   'SlsPXIII', 'SoleilProxima1'
-                               ]
-                           })
-    resolution_cutoff_criterion: str = afield(desc='Resolution cutoff criterion',
-                                              default=None,
-                                              alias='_resolution_cutoff_macro',
-                                              validator={'choice': ['CC1/2', 'None']},
-                                              formatter=lambda x: {'cc1/2': 'HighResCutOnCChalf' ,
-                                                                   'none': 'NoHighResCut'}.get(x.lower(), None) if x else None)
+    beamline: str = afield(
+        desc='Beamline name',
+        default=None,
+        alias='_beamline_macro',
+        validator={
+            'choice': [
+                'AlbaBL13Xaloc',
+                'Als1231',
+                'Als422',
+                'Als831',
+                'AustralianSyncMX1',
+                'AustralianSyncMX2',
+                'DiamondI04-MK',
+                'DiamondIO4',
+                'DiamondI23-Day1',
+                'DiamondI23',
+                'EsrfId23-2',
+                'EsrfId29',
+                'EsrfId30-B',
+                'ILL_D19',
+                'PetraIIIP13',
+                'PetraIIIP14',
+                'SlsPXIII',
+                'SoleilProxima1',
+            ]
+        },
+    )
+    resolution_cutoff_criterion: str = afield(
+        desc='Resolution cutoff criterion',
+        default=None,
+        alias='_resolution_cutoff_macro',
+        validator={'choice': ['CC1/2', 'None']},
+        formatter=lambda x: {'cc1/2': 'HighResCutOnCChalf', 'none': 'NoHighResCut'}.get(x.lower(), None) if x else None,
+    )
 
-    _macros: list[str] = cfield(desc='autoPROC macros',
-                                default_factory=list,
-                                group='macros',
-                                members=['beamline', 'resolution_cutoff_criterion'],
-                                formatter=lambda x: {'_macros':
-                                                         ' '.join(f'-M {v}' for v in x.values() if v is not None)
-                                                         if any(x.values()) else []}
-                                )
+    _macros: list[str] = cfield(
+        desc='autoPROC macros',
+        default_factory=list,
+        group='macros',
+        members=['beamline', 'resolution_cutoff_criterion'],
+        formatter=lambda x: {
+            '_macros': ' '.join(f'-M {v}' for v in x.values() if v is not None) if any(x.values()) else []
+        },
+    )
 
     # Batch mode flag
-    batch_mode: bool = pfield(desc='autoPROC in batch mode',
-                              default=None, cli_hidden=True,
-                              formatter=lambda x: '-B' if x else None)
+    batch_mode: bool = pfield(
+        desc='autoPROC in batch mode', default=None, cli_hidden=True, formatter=lambda x: '-B' if x else None
+    )
 
     # List of CLI arguments
-    _args: list[str] = cfield(desc='autoPROC arguments',
-                              default_factory=list,
-                              alias='__args',
-                              members=['batch_mode', '_macros'],
-                              formatter=lambda x: {'__args': ' '.join(v for v in x.values() if v is not None)
-                                                   if any(x.values()) else ''})
+    _args: list[str] = cfield(
+        desc='autoPROC arguments',
+        default_factory=list,
+        alias='__args',
+        members=['batch_mode', '_macros'],
+        formatter=lambda x: {'__args': ' '.join(v for v in x.values() if v is not None) if any(x.values()) else ''},
+    )
 
-    _groups: dict = _ifield(default_factory=lambda: {
-        'user_params': 'User parameters',
-        'xds_params': 'XDS parameters',
-        'ice_rings_params': 'Ice rings parameters'
-    })
+    _groups: dict = _ifield(
+        default_factory=lambda: {
+            'user_params': 'User parameters',
+            'xds_params': 'XDS parameters',
+            'ice_rings_params': 'Ice rings parameters',
+        }
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -318,7 +399,7 @@ class ImgInfo(AutoProcXmlParser):
         if unit in ['s', 'seconds']:
             self._exposure_time = v
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_detector_distance(self, value, unit):
         v = float(value)
@@ -329,7 +410,7 @@ class ImgInfo(AutoProcXmlParser):
         elif unit == 'mm':
             self._detector_distance = v / 1000
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_wavelength(self, value, unit):
         v = float(value)
@@ -338,14 +419,14 @@ class ImgInfo(AutoProcXmlParser):
         elif unit == 'nm':
             self._wavelength = v / 10
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_angle(self, value, unit):
         v = float(value)
         if unit == 'deg' or unit == 'degree':
             return v
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_phi_angle(self, value, unit):
         self._phi_angle = self._process_angle(value, unit)
@@ -372,14 +453,14 @@ class ImgInfo(AutoProcXmlParser):
         if unit == 'px' or unit == 'pixel':
             self._beam_center_x = v
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_beam_center_y(self, value, unit):
         v = float(value)
         if unit == 'px' or unit == 'pixel':
             self._beam_center_y = v
         else:
-            raise ValueError(f"Unknown unit: {unit}")
+            raise ValueError(f'Unknown unit: {unit}')
 
     def _process_no_images(self, value):
         pattern = r'(\d+)\s\((\d+)\s-\s(\d+)\)'  # match a string like: '3600 (1 - 3600)'
@@ -527,7 +608,7 @@ class ReflectionsXml(AutoProcXmlParser):
                     self._process_autoproc_scaling_stats(stats)
         self._is_processed = True
 
-    def _process_autoproc_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_element(self, element: 'Element'):
         space_group = element.find('spaceGroup')
         if space_group is not None:
             self._space_group = space_group.text.replace(' ', '')
@@ -553,12 +634,12 @@ class ReflectionsXml(AutoProcXmlParser):
         if cell_gamma is not None:
             self._cell_gamma = float(cell_gamma.text)
 
-    def _process_autoproc_scaling_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_element(self, element: 'Element'):
         record_timestamp = element.find('recordTimeStamp')
         if record_timestamp is not None:
             self._processing_time = dateutil.parser.parse(record_timestamp.text)
 
-    def _process_autoproc_scaling_stats(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_stats(self, element: 'Element'):
         for e in element.iter():
             if e.tag == 'scalingStatisticsType':
                 self._resolution_shell.append(e.text.replace('Shell', ''))
@@ -746,8 +827,7 @@ class ReflectionsXml(AutoProcXmlParser):
 
 
 @dataclass
-class TruncateUnique(ReflectionsXml):
-    ...
+class TruncateUnique(ReflectionsXml): ...
 
 
 @dataclass
@@ -765,7 +845,7 @@ class StaranisoUnique(ReflectionsXml):
     _resolution_ellipsoid_value_2: float = None
     _resolution_ellipsoid_value_3: float = None
 
-    def _process_autoproc_scaling_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_element(self, element: 'Element'):
         super()._process_autoproc_scaling_element(element)
         for e in element.iter():
             if e.tag == 'recordTimeStamp':
@@ -848,7 +928,7 @@ class StaranisoUnique(ReflectionsXml):
         return [
             [self.resolution_ellipsoid_axis_11, self.resolution_ellipsoid_axis_12, self.resolution_ellipsoid_axis_13],
             [self.resolution_ellipsoid_axis_21, self.resolution_ellipsoid_axis_22, self.resolution_ellipsoid_axis_23],
-            [self.resolution_ellipsoid_axis_31, self.resolution_ellipsoid_axis_32, self.resolution_ellipsoid_axis_33]
+            [self.resolution_ellipsoid_axis_31, self.resolution_ellipsoid_axis_32, self.resolution_ellipsoid_axis_33],
         ]
 
     @property
@@ -858,10 +938,12 @@ class StaranisoUnique(ReflectionsXml):
     @property
     def data(self):
         data = super().data
-        data.update({
-            'resolution_ellipsoid_axes': self.resolution_ellipsoid_axes,
-            'resolution_limits': self.resolution_limits,
-        })
+        data.update(
+            {
+                'resolution_ellipsoid_axes': self.resolution_ellipsoid_axes,
+                'resolution_limits': self.resolution_limits,
+            }
+        )
         return data
 
 
@@ -936,12 +1018,7 @@ class AutoPROCJobResults:
         self._correct: Optional[Sequence[CorrectLp]] = None
 
         # Set the results data dictionary
-        template_dict = {
-            '_file': None,
-            '_file_exists': False,
-            '_is_parsed': False,
-            '_is_processed': False
-        }
+        template_dict = {'_file': None, '_file_exists': False, '_is_parsed': False, '_is_processed': False}
         self._data = {
             'datasets': [
                 {
@@ -952,7 +1029,8 @@ class AutoPROCJobResults:
                     'processed_data_dir': dataset.processed_data_dir,
                     'output_dir': dataset.output_dir,
                     'autoproc_id': dataset.autoproc_id,
-                } for dataset in self.datasets
+                }
+                for dataset in self.datasets
             ],
             'autoproc.imginfo': None,
             'autoproc.truncate': copy.deepcopy(template_dict),
@@ -964,11 +1042,10 @@ class AutoPROCJobResults:
             self._data['autoproc.imginfo'] = copy.deepcopy(template_dict)
             self._data['xds.correct'] = copy.deepcopy(template_dict)
         else:
-            self._data['autoproc.imginfo'] = \
-                {dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets}
-            self._data['xds.correct'] = \
-                {dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets}
-
+            self._data['autoproc.imginfo'] = {
+                dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets
+            }
+            self._data['xds.correct'] = {dataset.autoproc_id: copy.deepcopy(template_dict) for dataset in self.datasets}
 
     @property
     def success(self):
@@ -1012,11 +1089,14 @@ class AutoPROCJobResults:
             link_text_new = f'<a href="{relative_path}'
             content_old = summary_old.read_text()
             content_new = content_old.replace(link_text_old, link_text_new)
-            content_updated = (content_old != content_new)
+            content_updated = content_old != content_new
             if not content_updated:
-                warnings.warn(f'Failed to replace the links in {summary_new.name}\n'
-                              f'link_text_old: {link_text_old}\n'
-                              f'link_text_new: {link_text_new}', category=HTMLUpdateWarning)
+                warnings.warn(
+                    f'Failed to replace the links in {summary_new.name}\n'
+                    f'link_text_old: {link_text_old}\n'
+                    f'link_text_new: {link_text_new}',
+                    category=HTMLUpdateWarning,
+                )
 
             # Update link to GPhL logo
             gphl_logo_old = '<img src="gphl_logo.png"'
@@ -1024,9 +1104,12 @@ class AutoPROCJobResults:
             content_old = content_new
             content_new = content_old.replace(gphl_logo_old, gphl_logo_new)
             if content_old == content_new:
-                warnings.warn(f'Failed to replace the GPhL logo link in {summary_new.name}\n'
-                              f'gphl_logo_old: {gphl_logo_old}\n'
-                              f'gphl_logo_new: {gphl_logo_new}', category=HTMLUpdateWarning)
+                warnings.warn(
+                    f'Failed to replace the GPhL logo link in {summary_new.name}\n'
+                    f'gphl_logo_old: {gphl_logo_old}\n'
+                    f'gphl_logo_new: {gphl_logo_new}',
+                    category=HTMLUpdateWarning,
+                )
 
             # Create new summary.html file with the updated content
             content_updated = any([content_updated, content_old != content_new])
@@ -1145,10 +1228,7 @@ class AutoPROCJobResults:
 
     @property
     def data(self):
-        data = {
-            'success': self.success,
-            'all_logs_processed': self._all_logs_processed
-        }
+        data = {'success': self.success, 'all_logs_processed': self._all_logs_processed}
         data.update(self._data)
         return data
 
@@ -1177,4 +1257,3 @@ class AutoPROCJobResults:
         json_file = dest_dir / self._json_fname
         json_file.write_text(self.to_json())
         return json_file
-

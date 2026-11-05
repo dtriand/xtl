@@ -20,9 +20,17 @@ DiscreteCorrelationFunctionResult = namedtuple('DiscreteCorrelationFunctionResul
 
 
 class _Correlator:
-
-    UNITS_2THETA_DEGREES = ['2theta', '2th', 'tth', 'ttheta', '2\u03B8',
-                            '2theta_deg', '2th_deg', 'tth_deg', 'ttheta_deg']
+    UNITS_2THETA_DEGREES = [
+        '2theta',
+        '2th',
+        'tth',
+        'ttheta',
+        '2\u03b8',
+        '2theta_deg',
+        '2th_deg',
+        'tth_deg',
+        'ttheta_deg',
+    ]
     UNITS_2THETA_RADIANS = ['2theta_rad', '2th_rad', 'tth_rad', 'ttheta_rad']
     UNITS_Q_NM = ['q', 'q_nm', 'q_nm^-1']
     UNITS_Q_ANGSTROM = ['q_A', 'q_A^-1']
@@ -52,7 +60,6 @@ class _Correlator:
 
 
 class AzimuthalCrossCorrelatorQQ_1(_Correlator):
-
     def __init__(self, image: Image):
         """
         Calculates the intensity cross-correlation function along the azimuthal coordinate (``q_1`` = ``q_2`` = ``q``).
@@ -81,8 +88,9 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         else:
             raise ValueError(f'Unknown azimuthal units: {self._ai2.units_azimuthal}')
 
-    def _perform_azimuthal_integration(self, points_radial: int = 500, points_azimuthal: int = 500,
-                                       units_radial: str = '2theta'):
+    def _perform_azimuthal_integration(
+        self, points_radial: int = 500, points_azimuthal: int = 500, units_radial: str = '2theta'
+    ):
         """
         Transform (and interpolate) intensities from cartesian to polar coordinates, using ``pyFAI.integrate2d_ng``.
 
@@ -95,8 +103,9 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
             self.image.initialize_azimuthal_integrator(dim=2)
         self._ai2 = self.image.ai2
         if not self._ai2.is_initialized:
-            self._ai2.initialize(points_radial=points_radial, points_azimuthal=points_azimuthal,
-                                 units_radial=units_radial)
+            self._ai2.initialize(
+                points_radial=points_radial, points_azimuthal=points_azimuthal, units_radial=units_radial
+            )
         self._set_units()
         return self._ai2.integrate()
 
@@ -114,8 +123,9 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
             di[i] = np.roll(di0, -i)
         return di
 
-    def correlate(self, points_radial: int = 500, points_azimuthal: int = 360, units_radial: str = '2theta',
-                  method: int = 0):
+    def correlate(
+        self, points_radial: int = 500, points_azimuthal: int = 360, units_radial: str = '2theta', method: int = 0
+    ):
         """
         Calculate the intensity cross-correlation function (CCF) for the entire radial range. This uses interpolated
         intensities from ``pyFAI.integrate2d_ng`` as input for the calculations. The function being calculated is:
@@ -146,15 +156,17 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         """
         supported_methods = [0, 1]
         if method not in supported_methods:
-            raise ValueError('Unknown correlation method. Choose one from: ' +
-                             ', '.join(str(i) for i in supported_methods))
+            raise ValueError(
+                'Unknown correlation method. Choose one from: ' + ', '.join(str(i) for i in supported_methods)
+            )
         # Project intensities from cartesian to polar coordinates
-        ai2 = self._perform_azimuthal_integration(points_radial=points_radial, points_azimuthal=points_azimuthal,
-                                                  units_radial=units_radial)
+        ai2 = self._perform_azimuthal_integration(
+            points_radial=points_radial, points_azimuthal=points_azimuthal, units_radial=units_radial
+        )
         # Array of indices for calculating I(chi+delta) from I(chi)
         di = self._calculate_delta_indices_array(points_azimuthal=points_azimuthal)  # dim = (azimuthal, azimuthal)
         # Complete intensity array
-        I = ai2.intensity  # dim = (azimuthal, radial)
+        I = ai2.intensity  # dim = (azimuthal, radial)  # noqa: E741 (`I` for intensity)
 
         if method == 0:
             # Faster method: Calculate the CCF for all radial segments all at once, at the expense of using more memory.
@@ -213,20 +225,35 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         Prepare a header for exporting integration results to file
         :return:
         """
-        header = f'Azimuthal intensity cross-correlation function using ' + \
-                 f'{self.__class__.__module__}.{self.__class__.__name__}\n'
+        header = (
+            'Azimuthal intensity cross-correlation function using '
+            + f'{self.__class__.__module__}.{self.__class__.__name__}\n'
+        )
         header += f'Calculation performed on: {datetime.now()}\n'
         header += f'Filename: {self.image.file.resolve()}\n'
         header += f'Frame: {self.image.frame}\n\n'
 
         header += 'Geometry options:\n'
-        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
-                            self.image.geometry.get_config().items()) + '\n\n'
+        header += (
+            '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in self.image.geometry.get_config().items())
+            + '\n\n'
+        )
 
         header += 'Integration options:\n'
-        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
-                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
-                    'normalization_factor', 'metadata']:
+        for key in [
+            'unit',
+            'error_model',
+            'method_called',
+            'method',
+            'compute_engine',
+            'has_mask_applied',
+            'has_flat_correction',
+            'has_dark_correction',
+            'has_solidangle_correction',
+            'polarization_factor',
+            'normalization_factor',
+            'metadata',
+        ]:
             header += f'{self._ai2._header_prefix}.{key}: {getattr(self._ai2.results, key)}\n'
         header += f'{self._ai2._header_prefix}.npt_rad: {self._ai2.points_radial}\n'
         header += f'{self._ai2._header_prefix}.npt_azim: {self._ai2.points_azimuthal}\n'
@@ -253,20 +280,27 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
             raise FileExistsError(f'File {file} already exists!')
         file.unlink(missing_ok=True)
 
-        data = {
-            'radial': self._ai2.results.radial,
-            'delta': self._ai2.results.azimuthal,
-            'ccf': self.ccf
-        }
+        data = {'radial': self._ai2.results.radial, 'delta': self._ai2.results.azimuthal, 'ccf': self.ccf}
 
         header = self._get_file_header() if header else None
         npx = NpxFile(header=header, **data)
         npx.save(file, compressed=True)
 
-    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
-             title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
-             zmax: float = None, cmap: str = None, bad_value_color: str = None) \
-            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+    def plot(
+        self,
+        ax: plt.Axes = None,
+        fig: plt.Figure = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        title: str = None,
+        xscale: str = None,
+        yscale: str = None,
+        zscale: str = None,
+        zmin: float = None,
+        zmax: float = None,
+        cmap: str = None,
+        bad_value_color: str = None,
+    ) -> tuple[plt.Axes, plt.Figure, AxesImage]:
         """
         Prepare a plot of the intensity CCF. ``plt.show()`` must be called separately to display the plot.
 
@@ -303,11 +337,11 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
         if zscale in [None, 'linear']:
             norm = partial(Normalize, clip=False)
         elif zscale in ['log', 'log10']:
@@ -315,7 +349,7 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         elif zscale in ['symlog']:
             norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
         else:
-            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log, symlog')
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log, symlog")
 
         if cmap is None:
             cmap = plt.get_cmap(self.cmap)
@@ -327,9 +361,15 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
             cmap.set_bad(color=bad_value_color, alpha=1.0)
 
         ccf, radial, azimuthal = self.ccf, self._ai2.results.radial, self._ai2.results.azimuthal
-        img = ax.imshow(ccf, origin='lower', aspect='auto', interpolation='nearest', cmap=cmap,
-                        norm=norm(vmin=zmin, vmax=zmax),
-                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+        img = ax.imshow(
+            ccf,
+            origin='lower',
+            aspect='auto',
+            interpolation='nearest',
+            cmap=cmap,
+            norm=norm(vmin=zmin, vmax=zmax),
+            extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()),
+        )
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -341,7 +381,6 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
 
 
 class AzimuthalCrossCorrelatorQQ_2(_Correlator):
-
     def __init__(self, image: Image):
         super().__init__(image=image)
         self.shells_img: np.ndarray = None
@@ -361,8 +400,9 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
             self.units_radial = 'q_nm^-1'
             self.units_radial_repr = 'Q (nm$^{-1}$)'
         else:
-            raise ValueError(f'Unknown units: \'{units_radial}\'. Choose one from: '
-                             f'{", ".join(self.SUPPORTED_UNITS_RADIAL)}')
+            raise ValueError(
+                f"Unknown units: '{units_radial}'. Choose one from: {', '.join(self.SUPPORTED_UNITS_RADIAL)}"
+            )
 
         if units_azimuthal == 'chi_deg':
             self.units_azimuthal = 'delta_deg'
@@ -415,7 +455,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         radial, chi = self._get_pixel_geometry_data(apply_mask=True)
 
         self.shells_img = np.full_like(radial, np.nan)
-        radial_shells = self._calculate_radial_shells(radial_array=radial, no_shells=no_shells+1)
+        radial_shells = self._calculate_radial_shells(radial_array=radial, no_shells=no_shells + 1)
         # radial_shells_in_pixels = self._q2r(radial_shells, in_pixels=True)
         # average_width = np.mean((radial_shells_in_pixels - np.roll(radial_shells_in_pixels, 1))[1:])
         # print(f'Average shell width: {average_width:.2f} px')
@@ -457,13 +497,13 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         t2 = datetime.now()
         print(f'Completed in {(t2 - t1).total_seconds():.3f} sec')
 
-        print(f'Calculating CCF... ', end='')
+        print('Calculating CCF... ', end='')
         t3 = datetime.now()
         ccf = []
         if shell_range is None:
             shell_range = (0, -1)
         # Iterate over radial segments
-        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0]:shell_range[1]]):
+        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):  # noqa: E741
             print(i, end='')
             points_azimuthal = len(chi)
             di = self._calculate_delta_indices_array(points_azimuthal=points_azimuthal)
@@ -490,8 +530,13 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         print(f'Completed in {(t4 - t3).total_seconds():.3f} sec')
         self.ccf = ccf
 
-    def correlate(self, points_radial: int = 500, points_azimuthal: int = 360, units_radial: str = '2theta',
-                  shell_range: tuple | list = None) -> AzimuthalCrossCorrelationResult:
+    def correlate(
+        self,
+        points_radial: int = 500,
+        points_azimuthal: int = 360,
+        units_radial: str = '2theta',
+        shell_range: tuple | list = None,
+    ) -> AzimuthalCrossCorrelationResult:
         """
         Calculate the intensity cross-correlation function (CCF) for the entire radial range. This uses the true pixel
         intensities as input for the calculations. The function being calculated is:
@@ -529,17 +574,19 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         # Calculate CCF
         ccfs = []
         radials = []
-        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0]:shell_range[1]]):
+        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):  # noqa: E741
             result = self.calculate_dacf(x_bins=x, x0=chi, y0=I, calculate_errors=False)
             ccfs.append(result.dcf / (np.nanmean(I) ** 2))
             radials.append(np.nanmean(radial))
-        self._results = AzimuthalCrossCorrelationResult(radial=np.array(radials), azimuthal=result.x,
-                                                        ccf=np.vstack(ccfs).T)
+        self._results = AzimuthalCrossCorrelationResult(
+            radial=np.array(radials), azimuthal=result.x, ccf=np.vstack(ccfs).T
+        )
         return self.results
 
     @staticmethod
-    def calculate_dacf(x_bins: np.array, x0: np.array, y0: np.array, e0: np.array = None, calculate_errors=False) \
-            -> DiscreteCorrelationFunctionResult:
+    def calculate_dacf(
+        x_bins: np.array, x0: np.array, y0: np.array, e0: np.array = None, calculate_errors=False
+    ) -> DiscreteCorrelationFunctionResult:
         """
         Calculate the discrete auto-correlation function (DACF) for a given set of data points. The function calculated
         is as follows:
@@ -594,10 +641,11 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
 
     def plot_shells(self):
         fig, ax = plt.subplots(1, 1)
-        ax = plt.imshow(self.shells_img, cmap='prism')
+        ax.imshow(self.shells_img, cmap='prism')
 
-    def plot_pixel_projection(self, shell_range: tuple[int, int] = (0, 10), zscale: str = 'linear',
-                              ignore_radial_axis: bool = False):
+    def plot_pixel_projection(
+        self, shell_range: tuple[int, int] = (0, 10), zscale: str = 'linear', ignore_radial_axis: bool = False
+    ):
         fig, ax = plt.subplots(1, 1)
         intensities = self.image.data_masked
         i_min = np.nanmin(intensities)
@@ -606,11 +654,11 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         if zscale in ['linear', None]:
             norm = Normalize(vmin=i_min, vmax=i_max, clip=True)
         elif zscale in ['log', 'log10']:
-            norm = LogNorm(vmin=i_min+1, vmax=i_max, clip=True)
+            norm = LogNorm(vmin=i_min + 1, vmax=i_max, clip=True)
         else:
-            raise ValueError('Invalid zscale. Must be either \'linear\' or \'log\'')
+            raise ValueError("Invalid zscale. Must be either 'linear' or 'log'")
         mapper = ScalarMappable(norm=norm, cmap=self.image.cmap)
-        for chi, radial, intensities in self.pixels_per_shell[shell_range[0]:shell_range[1]]:
+        for chi, radial, intensities in self.pixels_per_shell[shell_range[0] : shell_range[1]]:
             ax.hlines(np.nanmin(radial), xmin=-180, xmax=180, linestyles='--', colors='grey')
             if ignore_radial_axis:
                 radial = np.tile(np.nanmean(radial), len(radial))
@@ -626,8 +674,8 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         radial, azimuthal, ccf = self.results
         i = np.argmin(np.abs(radial - q))
 
-        ax.plot(azimuthal, ccf[:, i]/max(ccf[:, i]))
-        ax.plot(self.pixels_per_shell[i][0], self.pixels_per_shell[i][2]/max(self.pixels_per_shell[i][2]))
+        ax.plot(azimuthal, ccf[:, i] / max(ccf[:, i]))
+        ax.plot(self.pixels_per_shell[i][0], self.pixels_per_shell[i][2] / max(self.pixels_per_shell[i][2]))
 
         # for chi, radial, ccf in self.ccf:
         #     ax.hlines(np.nanmin(radial), xmin=-180, xmax=180, linestyles='--', colors='grey')
@@ -645,12 +693,17 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         elif zscale in ['symlog']:
             norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
         else:
-            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log, symlog')
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log, symlog")
 
         radial, azimuthal, ccf = self.results
         ccf[int(ccf.shape[0] / 2)] = np.nan
-        img = ax.imshow(ccf, origin='lower', aspect='auto', interpolation='nearest',
-                        # cmap=cmap,
-                        norm=norm(vmin=zmin, vmax=zmax),
-                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+        img = ax.imshow(
+            ccf,
+            origin='lower',
+            aspect='auto',
+            interpolation='nearest',
+            # cmap=cmap,
+            norm=norm(vmin=zmin, vmax=zmax),
+            extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()),
+        )
         return ax, fig, img

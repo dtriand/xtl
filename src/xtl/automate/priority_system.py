@@ -24,7 +24,6 @@ class PrioritySystem(ABC):
 
 @dataclass
 class DefaultPrioritySystem(PrioritySystem):
-
     def __init__(self, system_type: str = None):
         """
         Plain priority system with no special handling. Equivalent to not using a priority system.
@@ -33,13 +32,12 @@ class DefaultPrioritySystem(PrioritySystem):
 
     def prepare_command(self, command: str) -> str:
         if not isinstance(command, str):
-            raise ValueError('\'command\' must be a string')
+            raise ValueError("'command' must be a string")
         return command
 
 
 @dataclass
 class NicePrioritySystem(DefaultPrioritySystem):
-
     def __init__(self, nice_level: int = 10):
         """
         Priority system that uses the 'nice' command to set the priority level of a command.
@@ -57,7 +55,7 @@ class NicePrioritySystem(DefaultPrioritySystem):
     @nice_level.setter
     def nice_level(self, value: int):
         if not isinstance(value, int):
-            raise ValueError('\'nice_level\' must be an integer')
+            raise ValueError("'nice_level' must be an integer")
         self._nice_level = value
 
     def prepare_command(self, command: str) -> str:

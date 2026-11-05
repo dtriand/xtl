@@ -22,7 +22,7 @@ atexit.register(shutil.rmtree, _config_dir, ignore_errors=True)
 (Path(_config_dir) / 'xtl.toml').touch()
 os.environ['XTL_CONFIG'] = str(Path(_config_dir) / 'xtl.toml')
 
-import xtl
+import xtl  # noqa: E402 (after setting XTL_CONFIG)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -43,23 +43,19 @@ branch = 'master'
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',          # Links to third party packages documentation
-    'sphinx.ext.linkcode',             # Source code links
-    'sphinx_favicon',                  # HTML favicon
+    'sphinx.ext.intersphinx',  # Links to third party packages documentation
+    'sphinx.ext.linkcode',  # Source code links
+    'sphinx_favicon',  # HTML favicon
     'sphinxcontrib.autodoc_pydantic',  # Pydantic models autodoc
-    'sphinx_design',                   # Tabs, cards, ...
-    'shell_tabs',                      # Shell-specific commands as tabs (local)
+    'sphinx_design',  # Tabs, cards, ...
+    'shell_tabs',  # Shell-specific commands as tabs (local)
 ]
 
 templates_path = ['_templates']
 exclude_patterns = []
 
 # Autodoc options
-autodoc_default_options = {
-    'members': True,
-    'undoc-members': False,
-    'inherited-members': False
-}
+autodoc_default_options = {'members': True, 'undoc-members': False, 'inherited-members': False}
 autodoc_typehints = 'description'  # API type hints are shown in the description
 autodoc_class_signature = 'separated'  # Only show class name, not the full signature
 
@@ -90,8 +86,7 @@ html_theme_options = {
     'use_issues_button': True,
     'use_fullscreen_button': False,
     'use_download_button': False,
-    'extra_footer': f'XTL v{xtl.version.string} '
-                    f'({xtl.version.date.strftime("%b %d, %Y")})'
+    'extra_footer': f'XTL v{xtl.version.string} ({xtl.version.date.strftime("%b %d, %Y")})',
 }
 
 html_static_path = ['_static']
@@ -111,6 +106,7 @@ def setup(sphinx):
     Register custom lexers
     """
     import lexers
+
     sphinx.add_lexer('csv', lexers.CsvLexer)
 
 

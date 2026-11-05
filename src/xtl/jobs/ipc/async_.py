@@ -45,8 +45,7 @@ class AsyncQueue(IPCQueue):
 # NB: AsyncState is implemented as a ThreadedState, because using an asyncio.Lock to
 #  protect access to the underlying dict would require all methods to be async and
 #  would be incompatible with the synchronous interface of IPCState.
-class AsyncState(ThreadedState):
-    ...
+class AsyncState(ThreadedState): ...
 
 
 class AsyncIPCBackend(IPCBackend):

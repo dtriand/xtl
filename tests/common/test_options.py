@@ -3,7 +3,7 @@ import pytest
 import os
 from pathlib import Path
 
-from pydantic import Field, ValidationError
+from pydantic import Field
 
 from xtl.common.options import Option, Options
 from xtl.common.validators import cast_as, validate_length
@@ -11,10 +11,9 @@ from xtl.exceptions.pydantic import OptionsValidationError
 
 
 class TestOption:
-
     def test_no_defaults(self):
-        o = Option()
-        o = Option(...)
+        Option()
+        Option(...)
 
     def test_validators(self):
         o = Option(default=1)
@@ -36,11 +35,10 @@ class TestOption:
         o = Option(default=1, formatter=str)
         assert o.json_schema_extra
         assert o.json_schema_extra['serializer']
-        assert o.json_schema_extra['serializer'] == str
+        assert o.json_schema_extra['serializer'] is str
 
 
 class TestOptions:
-
     class MyModel(Options):
         name: str = Option(default=None, choices=('Alice', 'Bob', 'Charlie'))
         age: int = Option(default=None, gt=0)
@@ -49,21 +47,21 @@ class TestOptions:
         field: float = Field()
 
     class ComplexModel(Options):
-        name: str = Option(default=None, choices=('Alice', 'Bob', 'Charlie'),
-                           alias='first_name', desc='First name of the person')
+        name: str = Option(
+            default=None, choices=('Alice', 'Bob', 'Charlie'), alias='first_name', desc='First name of the person'
+        )
         age: int = Option(default=None, gt=0, desc='Age in years')
         env: str = Option(default='${XTLMAGIC}')
-        envf: str = Option(default='${XTLMAGIC}', formatter=lambda x: x.upper(),
-                           alias='formatted_env', desc='Formatted environment variable')
+        envf: str = Option(
+            default='${XTLMAGIC}',
+            formatter=lambda x: x.upper(),
+            alias='formatted_env',
+            desc='Formatted environment variable',
+        )
 
     def test_init(self):
         m = self.MyModel(name='Alice', age=2, double_this='3', field=1.5)
-        assert m.model_dump() == {
-            'name': 'Alice',
-            'age': 2,
-            'double_this': 6,
-            'field': 1.5
-        }
+        assert m.model_dump() == {'name': 'Alice', 'age': 2, 'double_this': 6, 'field': 1.5}
 
     def test_assignment(self):
         m = self.MyModel(name='Alice', age=2, double_this=3, field=1.5)
@@ -71,23 +69,13 @@ class TestOptions:
         m.age = 3
         m.double_this = 4
         m.field = 2.5
-        assert m.model_dump() == {
-            'name': 'Bob',
-            'age': 3,
-            'double_this': 8,
-            'field': 2.5
-        }
+        assert m.model_dump() == {'name': 'Bob', 'age': 3, 'double_this': 8, 'field': 2.5}
 
     def test_immutability(self):
         m = self.MyModel(name='Alice', age=2, double_this=3, field=1.5)
         with pytest.raises(OptionsValidationError, match='Value is not in choices'):
             m.name = 'Dave'
-        assert m.model_dump() == {
-            'name': 'Alice',
-            'age': 2,
-            'double_this': 6,
-            'field': 1.5
-        }
+        assert m.model_dump() == {'name': 'Alice', 'age': 2, 'double_this': 6, 'field': 1.5}
 
     def test_formatter(self):
         class MyFormatModel(self.MyModel):
@@ -100,10 +88,10 @@ class TestOptions:
         assert isinstance(m.age, int)
         assert m.to_dict() == {
             'name': 'Alice',
-            'age': 2.,  # but is dumped as a float
+            'age': 2.0,  # but is dumped as a float
             'double_this': 6,
             'field': 1.5,
-            'is_aliased': 'a'
+            'is_aliased': 'a',
         }
         assert isinstance(m.model_dump()['age'], float)
 
@@ -118,13 +106,7 @@ class TestOptions:
             m.age = -1
         with pytest.raises(OptionsValidationError, match='Value is not in choices'):
             m.name = 'Dave'
-        assert m.model_dump() == {
-            'name': 'Alice',
-            'age': 2,
-            'double_this': 6,
-            'field': 1.5,
-            'path': Path('.')
-        }
+        assert m.model_dump() == {'name': 'Alice', 'age': 2, 'double_this': 6, 'field': 1.5, 'path': Path('.')}
 
     def test_envvar(self):
         class EnvModel(Options):
@@ -132,17 +114,17 @@ class TestOptions:
 
         os.environ['XTLUSER'] = 'user1'
         e = EnvModel(user='${XTLUSER}', _parse_env=True)
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.model_dump() == {'user': 'User1'}
 
         os.environ['XTLUSER'] = 'user2'
         assert e.user == 'user1'  # value is not updated
         e.user = '${XTLUSER}'
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.model_dump() == {'user': 'User2'}
 
         e = EnvModel(user='${XTLUSER}', _parse_env=False)
-        assert e._parse_env == False
+        assert e._parse_env is False
         assert e.model_dump() == {'user': '${Xtluser}'}
 
         os.environ.pop('XTLUSER')
@@ -155,15 +137,15 @@ class TestOptions:
         os.environ['XTLUSER'] = 'user1'
 
         e = EnvModel.from_dict({'user': '${XTLUSER}', '_parse_env': True})
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         e = EnvModel.from_json('{"user": "${XTLUSER}", "_parse_env": true}')
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         e = EnvModel.from_toml('user = "${XTLUSER}"\n_parse_env = true')
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         # Test with nested models
@@ -171,39 +153,29 @@ class TestOptions:
             child: EnvModel = Option(default=EnvModel(user='${XTLUSER}'))
 
         p = ParentModel.from_dict({'child': {'user': '${XTLUSER}', '_parse_env': True}})
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         p = ParentModel.from_json('{"child": {"user": "${XTLUSER}", "_parse_env": true}}')
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         p = ParentModel.from_toml('[child]\nuser = "${XTLUSER}"\n_parse_env = true')
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         os.environ.pop('XTLUSER')
 
     def test_dict(self):
         c0 = self.ComplexModel(name='Alice', age=2)
-        assert c0.to_dict() == {
-            'first_name': 'Alice',
-            'age': 2,
-            'env': '${XTLMAGIC}',
-            'formatted_env': '${XTLMAGIC}'
-        }
+        assert c0.to_dict() == {'first_name': 'Alice', 'age': 2, 'env': '${XTLMAGIC}', 'formatted_env': '${XTLMAGIC}'}
 
         c1 = self.ComplexModel.from_dict(c0.to_dict())
         assert c0.to_dict() == c1.to_dict()
 
         os.environ['XTLMAGIC'] = 'magic'
         c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
-        assert c0.to_dict() == {
-            'first_name': 'Alice',
-            'age': 2,
-            'env': 'magic',
-            'formatted_env': 'MAGIC'
-        }
+        assert c0.to_dict() == {'first_name': 'Alice', 'age': 2, 'env': 'magic', 'formatted_env': 'MAGIC'}
 
         c1 = self.ComplexModel.from_dict(c0.to_dict())
         assert c0.to_dict() == c1.to_dict()
@@ -212,20 +184,16 @@ class TestOptions:
 
     def test_json(self):
         c0 = self.ComplexModel(name='Alice', age=2)
-        assert c0.to_json(indent=None) == ('{"first_name":"Alice",'
-                                           '"age":2,'
-                                           '"env":"${XTLMAGIC}",'
-                                           '"formatted_env":"${XTLMAGIC}"}')
+        assert c0.to_json(indent=None) == (
+            '{"first_name":"Alice","age":2,"env":"${XTLMAGIC}","formatted_env":"${XTLMAGIC}"}'
+        )
 
         c1 = self.ComplexModel.from_json(c0.to_json())
         assert c0.to_dict() == c1.to_dict()
 
         os.environ['XTLMAGIC'] = 'magic'
         c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
-        assert c0.to_json(indent=None) == ('{"first_name":"Alice",'
-                                           '"age":2,'
-                                           '"env":"magic",'
-                                           '"formatted_env":"MAGIC"}')
+        assert c0.to_json(indent=None) == ('{"first_name":"Alice","age":2,"env":"magic","formatted_env":"MAGIC"}')
 
         c1 = self.ComplexModel.from_json(c0.to_json())
         assert c0.to_dict() == c1.to_dict()
@@ -234,20 +202,14 @@ class TestOptions:
 
     def test_toml(self):
         c0 = self.ComplexModel(name='Alice', age=2)
-        assert c0.to_toml() == ('first_name = "Alice"\n'
-                                'age = 2\n'
-                                'env = "${XTLMAGIC}"\n'
-                                'formatted_env = "${XTLMAGIC}"\n')
+        assert c0.to_toml() == ('first_name = "Alice"\nage = 2\nenv = "${XTLMAGIC}"\nformatted_env = "${XTLMAGIC}"\n')
 
         c1 = self.ComplexModel.from_toml(c0.to_toml())
         assert c0.to_dict() == c1.to_dict()
 
         os.environ['XTLMAGIC'] = 'magic'
         c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
-        assert c0.to_toml() == ('first_name = "Alice"\n'
-                                'age = 2\n'
-                                'env = "magic"\n'
-                                'formatted_env = "MAGIC"\n')
+        assert c0.to_toml() == ('first_name = "Alice"\nage = 2\nenv = "magic"\nformatted_env = "MAGIC"\n')
 
         c1 = self.ComplexModel.from_toml(c0.to_toml())
         assert c0.to_dict() == c1.to_dict()
@@ -269,11 +231,13 @@ class TestOptions:
         outers: list['TestOptions.Outer'] = Option(default_factory=list)
 
     def test_toml_nested(self):
-        o0 = self.Outer(items=[self.Inner(), self.Inner(a=2, tags=[])],
-                        mapping={'k': self.Inner(a=3)},
-                        scalars={'x': 1, 'y': 2},
-                        records=[{'p': 1}, {'p': 2}],
-                        nested=[[1, 2], [3]])
+        o0 = self.Outer(
+            items=[self.Inner(), self.Inner(a=2, tags=[])],
+            mapping={'k': self.Inner(a=3)},
+            scalars={'x': 1, 'y': 2},
+            records=[{'p': 1}, {'p': 2}],
+            nested=[[1, 2], [3]],
+        )
         s = o0.to_toml()
         # Lists of Options/dicts as arrays of tables, dicts as tables
         assert '[[items]]' in s
@@ -295,17 +259,14 @@ class TestOptions:
 
     def test_toml_formatter(self):
         class FormatModel(Options):
-            joined: list[str] = Option(default_factory=lambda: ['a', 'b'],
-                                       formatter=lambda x: ' '.join(x))
+            joined: list[str] = Option(default_factory=lambda: ['a', 'b'], formatter=lambda x: ' '.join(x))
             spec: tuple[int, ...] = Option(default=(1, 2), formatter=lambda x: [str(i) for i in x])
             dropped: int = Option(default=0, formatter=lambda x: x or None)
             none_ok: int | None = Option(default=None, formatter=lambda x: 'auto' if x is None else x)
 
         m = FormatModel()
         # Formatters apply to iterables too, and their output is converted recursively
-        assert m.to_toml() == ('joined = "a b"\n'
-                               'spec = [ "1", "2",]\n'
-                               'none_ok = "auto"\n')
+        assert m.to_toml() == ('joined = "a b"\nspec = [ "1", "2",]\nnone_ok = "auto"\n')
 
         # Fields formatted as None are left out
         assert 'dropped' not in FormatModel(dropped=0).to_toml()

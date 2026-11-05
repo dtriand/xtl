@@ -1,21 +1,19 @@
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from xtl.common.options import Option
 from xtl.common.validators import cast_as_temp_dir_if_none
-from xtl.exceptions.base import StderrError
-from xtl.jobs.jobs import Job, BatchJob, SteppedJob
+from xtl.jobs.jobs import BatchJob, SteppedJob
 from xtl.jobs.steps import StepSpec
-from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
+from xtl.jobs.config import BatchJobConfig, SteppedJobConfig
 from xtl.jobs.shells import Shell
-
-from xtl.nanobragg.config import NanoBraggOptions
 
 
 class NanoBraggBatchJobConfig(BatchJobConfig):
     """
     Configuration for a nanoBragg batch job.
     """
+
     job_directory: Optional[Path] = Option(
         default_factory=lambda: cast_as_temp_dir_if_none(None, prefix='xtl_nanobragg_'),
         desc='Directory for job execution and results',
@@ -24,45 +22,31 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
     filename: str = 'nanobragg'
     name: Optional[str] = 'xtl.NanoBraggBatchJob'
     description: Optional[str] = 'nanoBragg batch job'
-    dependencies: set[str] = \
-        Option(
-            default_factory=lambda: {'easybragg'},
-            desc='List of dependencies required for this batch job'
-        )
-    templates: dict[Shell, str] = \
-        Option(
-            default_factory=lambda: {
-                Shell.BASH:
-                    '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
-                    'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
-                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__',
-                # TODO: Remove WINDOWS
-                Shell.CMD:
-                    '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
-                    'echo __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
-                        '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__'
-                    '@echo off __XTL_NL__'
-                    'for /L %%i in (1,1,9) do (__XTL_NL__'
-                    '    call echo.>%~dp0image_000%%i.cbf__XTL_NL__'
-                    '    call echo.>%~dp0image_000%%i.npy__XTL_NL__'
-                    ') __XTL_NL__'
-            },
-            desc='Templates for the content of the batch file for different shells'
-        )
-    input: Path = \
-        Option(
-            desc='Path to input options JSON file',
-        )
-    use_gpu: bool = \
-        Option(
-            default=False,
-            desc='Use GPU acceleration for nanoBragg'
-        )
-    debug: bool = \
-        Option(
-            default=False,
-            desc='Enable debug mode for nanoBragg'
-        )
+    dependencies: set[str] = Option(
+        default_factory=lambda: {'easybragg'}, desc='List of dependencies required for this batch job'
+    )
+    templates: dict[Shell, str] = Option(
+        default_factory=lambda: {
+            Shell.BASH: '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
+            'easyBragg.python __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
+            '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__',
+            # TODO: Remove WINDOWS
+            Shell.CMD: '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
+            'echo __NANOBRAGG_SCRIPT__ --config=__NANOBRAGG_CONFIG__ '
+            '--output=__NANOBRAGG_OUTPUT_DIR__ __NANOBRAGG_EXTRA_ARGS____XTL_NL__'
+            '@echo off __XTL_NL__'
+            'for /L %%i in (1,1,9) do (__XTL_NL__'
+            '    call echo.>%~dp0image_000%%i.cbf__XTL_NL__'
+            '    call echo.>%~dp0image_000%%i.npy__XTL_NL__'
+            ') __XTL_NL__',
+        },
+        desc='Templates for the content of the batch file for different shells',
+    )
+    input: Path = Option(
+        desc='Path to input options JSON file',
+    )
+    use_gpu: bool = Option(default=False, desc='Use GPU acceleration for nanoBragg')
+    debug: bool = Option(default=False, desc='Enable debug mode for nanoBragg')
 
     def get_extra_args(self) -> str:
         """
@@ -85,22 +69,17 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
-
     _keep_files = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._batch_context |= {
-            'NANOBRAGG_SCRIPT': str(Path(__file__).parent / 'scripts' / 'nanobragg.py')
-        }
+        self._batch_context |= {'NANOBRAGG_SCRIPT': str(Path(__file__).parent / 'scripts' / 'nanobragg.py')}
 
 
-class NanoBraggJobConfig(SteppedJobConfig):
-    ...
+class NanoBraggJobConfig(SteppedJobConfig): ...
 
 
 class NanoBraggJob(SteppedJob[NanoBraggJobConfig]):
-
     _keep_files = True
 
     _steps = (
@@ -113,7 +92,7 @@ class NanoBraggJob(SteppedJob[NanoBraggJobConfig]):
                 'cbf': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.cbf'),
                 'npy': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.npy'),
                 'png': NanoBraggJob.glob_files(ctx.step.config.job_directory, '*.png'),
-            }
+            },
         ),
     )
 

@@ -55,14 +55,14 @@ def seed(request):
 @pytest.fixture
 def temp_files(request, tmp_path_factory):
     # Get marker
-    marker = request.node.get_closest_marker("make_temp_files")
+    marker = request.node.get_closest_marker('make_temp_files')
     params = getattr(request, 'param', None)
 
     if marker:
         files = marker.args
     else:
         if params is None:
-            raise ValueError('No \'make_temp_files\' marker found and no \'param\' provided on request')
+            raise ValueError("No 'make_temp_files' marker found and no 'param' provided on request")
         elif isinstance(params, list | tuple):
             files = request.param
         else:
@@ -99,6 +99,7 @@ skipif_not_wsl = pytest.mark.skipif(shutil.which('wsl') is None, reason='WSL not
 
 supported_distros = ['Ubuntu-18.04', 'Ubuntu-22.04']
 
+
 @cache
 def wsl_distro_exists(distro):
     """
@@ -108,7 +109,7 @@ def wsl_distro_exists(distro):
 
 
 @contextmanager
-def seed(n: int) -> None:
+def random_seed(n: int) -> None:
     """
     Set the random seed for a test
     """
@@ -123,6 +124,7 @@ class Locations:
     Isolated config locations for a test: ``env`` is the path that ``XTL_CONFIG`` is set
     to by :meth:`set_env` (unset by default).
     """
+
     root: Path
     env: Path
     local: Path
@@ -167,10 +169,14 @@ def locs(tmp_path, monkeypatch) -> Locations:
     monkeypatch.delenv('XTL_CONFIG', raising=False)
     monkeypatch.chdir(cwd)
     # Imported inside XTLSettings.locations(), so patch it at the source
-    monkeypatch.setattr('platformdirs.user_config_dir',
-                        lambda *args, **kwargs: str(user))
+    monkeypatch.setattr('platformdirs.user_config_dir', lambda *args, **kwargs: str(user))
     monkeypatch.setattr(XTLSettings, 'global_config', root / 'global' / 'xtl.toml')
 
-    return Locations(root=root, env=root / 'env' / 'config.cfg',
-                     local=cwd / 'xtl.toml', user=user / 'xtl.toml',
-                     global_=root / 'global' / 'xtl.toml', monkeypatch=monkeypatch)
+    return Locations(
+        root=root,
+        env=root / 'env' / 'config.cfg',
+        local=cwd / 'xtl.toml',
+        user=user / 'xtl.toml',
+        global_=root / 'global' / 'xtl.toml',
+        monkeypatch=monkeypatch,
+    )

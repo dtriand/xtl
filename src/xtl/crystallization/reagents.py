@@ -50,22 +50,21 @@ class _Reagent:
             'unit': self.unit,
             'solubility': self.solubility,
             'applicator': self.applicator.to_dict() if self.applicator is not None else None,
-            'location': self._location
+            'location': self._location,
         }
 
 
 @dataclass
 class Reagent(_Reagent):
-
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
 
     def __repr__(self):
         return super().__repr__()
 
+
 @dataclass
 class ReagentWV(_Reagent):
-
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
         self.unit = '%(w/v)'
@@ -76,7 +75,6 @@ class ReagentWV(_Reagent):
 
 @dataclass
 class ReagentVV(_Reagent):
-
     def __init__(self, name: str, concentration: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
         self.unit = '%(v/v)'
@@ -87,7 +85,6 @@ class ReagentVV(_Reagent):
 
 @dataclass
 class ReagentBuffer(_Reagent):
-
     def __init__(self, name: str, concentration: float, pH: float, solubility: float = None, fmt_str: str = None):
         super().__init__(name=name, concentration=concentration, solubility=solubility, fmt_str=fmt_str)
 

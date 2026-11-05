@@ -1,13 +1,16 @@
 import requests
 
-from xtl.pdbapi.attributes import SearchAttribute, SearchAttributeGroup, DataAttribute, DataAttributeGroup, \
-    _Attribute, _AttributeGroup
+from xtl.pdbapi.attributes import (
+    SearchAttribute,
+    SearchAttributeGroup,
+    DataAttribute,
+    DataAttributeGroup,
+)
 from xtl.pdbapi.data.options import DataService
 from xtl.exceptions import InvalidArgument
 
 
 class _RCSBSchema:
-
     def __init__(self, verbose=False):
         self._AttributeCls: SearchAttribute or DataAttribute
         self._AttributeGroupCls: SearchAttributeGroup or DataAttributeGroup
@@ -73,8 +76,9 @@ class _RCSBSchema:
                 parent, name = '', attr_name
 
             # Create _Attribute
-            attr = self._AttributeCls(fullname=attr_name, type=obj['type'], description=description, name=name,
-                                      parent=parent)
+            attr = self._AttributeCls(
+                fullname=attr_name, type=obj['type'], description=description, name=name, parent=parent
+            )
 
             # Associate _Attribute to _RCSBSchema and vice versa
             setattr(self, attr_name, attr)
@@ -100,7 +104,7 @@ class _RCSBSchema:
                 attr.contains = [i['type'] for i in obj['items']['anyOf']]
                 self._post_parsing_attributes.append(attr)
             elif obj['items']['type'] != 'object':  # Arrays containing e.g. 'string' instead of 'object'
-                attr.type = 'array'                     # this will be an _Attribute of type='array' that
+                attr.type = 'array'  # this will be an _Attribute of type='array' that
                 attr.contains = [obj['items']['type']]  # contains e.g. 'string'
                 # Ensure that this attribute will be associated with the parent group after parsing completes
                 self._post_parsing_attributes.append(attr)
@@ -114,8 +118,9 @@ class _RCSBSchema:
                 # Build the attribute's fullname
                 child_attr_fullname = f'{attr_name}.{child_attr_name}' if attr_name else child_attr_name
                 # Parse the child's object. This returns either a _Attribute or a _AttributeGroup instance
-                child = self._turn_object_to_attribute(attr_name=child_attr_fullname, obj=child_obj,
-                                                       parent_attr_name=attr_name)
+                child = self._turn_object_to_attribute(
+                    attr_name=child_attr_fullname, obj=child_obj, parent_attr_name=attr_name
+                )
                 # Check if the child's fullname contains a dot and also append that instance to list for postprocessing
                 if self._is_tiered_item(child_attr_fullname) and child is not None:
                     # Set the parent for the child
@@ -153,7 +158,7 @@ class _RCSBSchema:
         try:
             # Search schema: "Schema version: X.X.X" / Data schema: "schema_version: X.X.X"
             self.schema_version = json.get('$comment', 'Schema version: ').split(': ')[-1]
-        except:
+        except (AttributeError, TypeError):
             self.schema_version = 'UNK'
         self._turn_object_to_attribute('', json)
         self._post_parsing_cleanup()
@@ -233,7 +238,7 @@ class DataSchema(_RCSBSchema):
 
         self._data_service: DataService = service
         if not isinstance(self._data_service, DataService):
-            raise InvalidArgument(raiser='service', message='Must be of type \'DataService\'')
+            raise InvalidArgument(raiser='service', message="Must be of type 'DataService'")
 
         self._schema_url = f'{self._base_url}/{self.data_service}'
 

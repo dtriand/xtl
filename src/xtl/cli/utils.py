@@ -18,13 +18,19 @@ def typer_async(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
+
     return wrapper
 
 
 class Timer:
-    def __init__(self, silent: bool = False, high_precision: bool = False,
-                 message: str = 'Completed in', si_units: bool = True,
-                 echo_func: Callable = print):
+    def __init__(
+        self,
+        silent: bool = False,
+        high_precision: bool = False,
+        message: str = 'Completed in',
+        si_units: bool = True,
+        echo_func: Callable = print,
+    ):
         self._high_precision = high_precision
         self._silent = silent
         self._message = message
@@ -61,17 +67,15 @@ class Timer:
             self.report()
 
 
-
-
 # Tabulate formatting settings
 tabulate.MIN_PADDING = 0
 tabulate._table_formats['two_columns'] = tabulate.TableFormat(
     lineabove=None,
-    linebelowheader=tabulate.Line("", "-", "  ", ""),
+    linebelowheader=tabulate.Line('', '-', '  ', ''),
     linebetweenrows=None,
     linebelow=None,
-    headerrow=tabulate.DataRow("", "   ", ""),
-    datarow=tabulate.DataRow("", " : ", ""),
+    headerrow=tabulate.DataRow('', '   ', ''),
+    datarow=tabulate.DataRow('', ' : ', ''),
     padding=0,
     with_header_hide=None,
 )
@@ -85,9 +89,11 @@ def update_docstring(field, value):
     :param value: Value to replace string with
     :return:
     """
+
     def _doc(func):
         func.__doc__ = func.__doc__.replace(field, value)
         return func
+
     return _doc
 
 
@@ -111,16 +117,15 @@ def flatten_dict(dict_):
         if isinstance(value, dict):
             for k, v in value.items():
                 if isinstance(v, dict):
-                    new_dict[f"{key}.{k}"] = flatten_dict(v)
+                    new_dict[f'{key}.{k}'] = flatten_dict(v)
                 else:
-                    new_dict[f"{key}.{k}"] = v
+                    new_dict[f'{key}.{k}'] = v
         else:
             new_dict[key] = value
     return new_dict
 
 
 class OutputQueue:
-
     def __init__(self, debug=False):
         self.debug = debug
         self._echo_queue = []
@@ -133,7 +138,7 @@ class OutputQueue:
     def pop_from_queue(self):
         return self._echo_queue.pop(-1)
 
-    def append_table(self, table, title: str = "", *tabulate_args, **tabulate_kwargs):
+    def append_table(self, table, title: str = '', *tabulate_args, **tabulate_kwargs):
         """
 
         :param table: Iterable to be passed to tabulate
@@ -143,7 +148,7 @@ class OutputQueue:
         :return:
         """
         if title:
-            self.append_to_queue((f'{title.upper()}\n{"="*len(title)}', {'bold': True}))
+            self.append_to_queue((f'{title.upper()}\n{"=" * len(title)}', {'bold': True}))
         self.append_to_queue((tabulate.tabulate(table, *tabulate_args, **tabulate_kwargs), {}))
         self.append_to_queue(('\n', {}))
 

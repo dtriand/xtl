@@ -25,8 +25,17 @@ def _bins_for_dcf(x_min: float, x_max: float, dx: float = None):
     return np.linspace(x_min, x_max, n_steps)
 
 
-def discrete_correlation_function(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = None,
-                                  e2: np.array = None, x_min: float = None, x_max: float = None, dx: float = None):
+def discrete_correlation_function(
+    x1: np.array,
+    x2: np.array,
+    y1: np.array,
+    y2: np.array,
+    e1: np.array = None,
+    e2: np.array = None,
+    x_min: float = None,
+    x_max: float = None,
+    dx: float = None,
+):
     # Initialize error arrays as zeros if not provided
     if e1 is None:
         e1 = np.zeros_like(x1)
@@ -52,8 +61,8 @@ def discrete_correlation_function(x1: np.array, x2: np.array, y1: np.array, y2: 
 
     # DCF calculation
     for k in range(x.shape[0]):
-        x_low = x[k] - dx / 2.
-        x_high = x[k] + dx / 2.
+        x_low = x[k] - dx / 2.0
+        x_high = x[k] + dx / 2.0
         i1, i2 = np.where((lag <= x_high) & (lag > x_low))
 
         y1_mean = np.mean(y1[i1])
@@ -74,8 +83,17 @@ def discrete_correlation_function(x1: np.array, x2: np.array, y1: np.array, y2: 
 dcf1 = discrete_correlation_function
 
 
-def dcf2(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = None,
-                                  e2: np.array = None, x_min: float = None, x_max: float = None, dx: float = None):
+def dcf2(
+    x1: np.array,
+    x2: np.array,
+    y1: np.array,
+    y2: np.array,
+    e1: np.array = None,
+    e2: np.array = None,
+    x_min: float = None,
+    x_max: float = None,
+    dx: float = None,
+):
     # Initialize error arrays as zeros if not provided
     if e1 is None:
         e1 = np.zeros_like(x1)
@@ -101,8 +119,8 @@ def dcf2(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = 
 
     # DCF calculation
     for k in range(x.shape[0]):
-        x_low = x[k] - dx / 2.
-        x_high = x[k] + dx / 2.
+        x_low = x[k] - dx / 2.0
+        x_high = x[k] + dx / 2.0
         i1, i2 = np.where((lag <= x_high) & (lag > x_low))
 
         y1_mean = np.mean(y1)
@@ -120,8 +138,17 @@ def dcf2(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = 
     return x, dcf, dcf_errors
 
 
-def dcf3(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = None,
-                                  e2: np.array = None, x_min: float = None, x_max: float = None, dx: float = None):
+def dcf3(
+    x1: np.array,
+    x2: np.array,
+    y1: np.array,
+    y2: np.array,
+    e1: np.array = None,
+    e2: np.array = None,
+    x_min: float = None,
+    x_max: float = None,
+    dx: float = None,
+):
     # Initialize error arrays as zeros if not provided
     if e1 is None:
         e1 = np.zeros_like(x1)
@@ -154,8 +181,8 @@ def dcf3(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = 
 
     # DCF calculation
     for k in range(x.shape[0]):
-        x_low = x[k] - dx / 2.
-        x_high = x[k] + dx / 2.
+        x_low = x[k] - dx / 2.0
+        x_high = x[k] + dx / 2.0
         i = np.where((lag < x_high) & (lag >= x_low))
 
         dcfs = udcf[i]
@@ -169,8 +196,17 @@ def dcf3(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = 
     return x, dcf, dcf_errors
 
 
-def dcf4(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = None,
-                                  e2: np.array = None, x_min: float = None, x_max: float = None, dx: float = None):
+def dcf4(
+    x1: np.array,
+    x2: np.array,
+    y1: np.array,
+    y2: np.array,
+    e1: np.array = None,
+    e2: np.array = None,
+    x_min: float = None,
+    x_max: float = None,
+    dx: float = None,
+):
     # Initialize error arrays as zeros if not provided
     if e1 is None:
         e1 = np.zeros_like(x1)
@@ -192,7 +228,7 @@ def dcf4(x1: np.array, x2: np.array, y1: np.array, y2: np.array, e1: np.array = 
     # Initialize arrays
     dcf = np.zeros_like(x)
     dcf_errors = np.zeros_like(x)
-    m = np.zeros_like(x)
+    m = np.zeros_like(x)  # noqa: F841 (for the loop below)
 
     # Calculate UDCF
     y1_mean = np.mean(y1)

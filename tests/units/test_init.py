@@ -5,7 +5,6 @@ from xtl.exceptions import DimensionalityError, InvalidArgument
 
 
 class TestSmartUnits:
-
     def test_string_value_to_pint(self):
         assert smart_units('100 cm', 'm') == Q_(1, 'm')
 

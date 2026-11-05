@@ -23,14 +23,20 @@ class DiffractionDataset:
     _is_h5: bool = field(default=False, repr=False)
 
     # F-strings for generating directory paths
-    _fstring_dict: dict[str, str] = field(default_factory=lambda: {
-        'raw_data_dir': "{raw_data_dir}/{dataset_dir}",
-        'processed_data_dir': "{processed_data_dir}/{output_dir}"
-    }, repr=False)
-    _fstring_validator: dict[str, list[str]] = field(default_factory=lambda: {
-        'raw_data_dir': ['raw_data_dir', 'dataset_dir'],
-        'processed_data_dir': ['processed_data_dir', 'output_dir']
-    }, repr=False)
+    _fstring_dict: dict[str, str] = field(
+        default_factory=lambda: {
+            'raw_data_dir': '{raw_data_dir}/{dataset_dir}',
+            'processed_data_dir': '{processed_data_dir}/{output_dir}',
+        },
+        repr=False,
+    )
+    _fstring_validator: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            'raw_data_dir': ['raw_data_dir', 'dataset_dir'],
+            'processed_data_dir': ['processed_data_dir', 'output_dir'],
+        },
+        repr=False,
+    )
 
     _dataset_images: list[Path] = field(default_factory=list, repr=False)
     _dataset_h5_images: list[Path] = field(default_factory=list, repr=False)
@@ -48,7 +54,7 @@ class DiffractionDataset:
 
         # Check that raw_data exists
         if not self.raw_data.exists():
-            raise FileNotFoundError(f"Raw data directory does not exist: {self.raw_data}")
+            raise FileNotFoundError(f'Raw data directory does not exist: {self.raw_data}')
 
         # Determine the first_image, last_image and no_images
         self._images = self._determine_images()
@@ -115,8 +121,7 @@ class DiffractionDataset:
         """
         # Check that the type of fstring provided is exists
         if dir_type not in self._fstring_validator.keys():
-            raise ValueError(f"Invalid dir_type: {dir_type}. "
-                             f"Available options are: {self._fstring_validator.keys()}")
+            raise ValueError(f'Invalid dir_type: {dir_type}. Available options are: {self._fstring_validator.keys()}')
         fstring = self._fstring_dict[dir_type]
         keys = self._fstring_validator[dir_type]
 
@@ -159,8 +164,13 @@ class DiffractionDataset:
         return self.get_dir('processed_data_dir')
 
     @classmethod
-    def from_image(cls, image: str | Path, raw_dataset_dir: str | Path = None, processed_data_dir: str | Path = None,
-                   output_dir: str = None):
+    def from_image(
+        cls,
+        image: str | Path,
+        raw_dataset_dir: str | Path = None,
+        processed_data_dir: str | Path = None,
+        output_dir: str = None,
+    ):
         """
         Create a DiffractionDataset object from the path to an image in the dataset. It works both with
         compressed and uncompressed images. If `raw_dataset_dir` is not provided, it will be assumed that `dataset_dir`
@@ -189,16 +199,25 @@ class DiffractionDataset:
             dataset_dir = Path(os.path.relpath(path=image.parent, start=raw_dataset_dir))
             dataset_dir = str(dataset_dir.as_posix())  # convert to string with forward slashes
             if dataset_dir.startswith('.'):  # dataset_dir is the same or outside raw_dataset_dir
-                raise ValueError(f"Invalid 'raw_dataset_dir' provided: {raw_dataset_dir}. "
-                                 f"It does not seem to contain the 'image': {image}")
+                raise ValueError(
+                    f"Invalid 'raw_dataset_dir' provided: {raw_dataset_dir}. "
+                    f"It does not seem to contain the 'image': {image}"
+                )
 
         # Determine processed_data_dir
         processed_data_dir = Path(processed_data_dir) if processed_data_dir else Path('.')
 
         # Create and return the DiffractionDataset object
-        return cls(dataset_name=dataset_name, dataset_dir=dataset_dir, raw_data_dir=raw_dataset_dir,
-                   processed_data_dir=processed_data_dir, output_dir=output_dir, _file_ext=extension,
-                   _is_compressed=is_compressed, _is_h5=is_h5)
+        return cls(
+            dataset_name=dataset_name,
+            dataset_dir=dataset_dir,
+            raw_data_dir=raw_dataset_dir,
+            processed_data_dir=processed_data_dir,
+            output_dir=output_dir,
+            _file_ext=extension,
+            _is_compressed=is_compressed,
+            _is_h5=is_h5,
+        )
 
     @staticmethod
     def _get_file_stem_and_extension(image: str | Path) -> tuple[str, str]:
@@ -253,11 +272,11 @@ class DiffractionDataset:
         """
         files = sorted(directory.glob(pattern))
         if not files:
-            raise FileNotFoundError(f"No matches found in directory: {directory} with pattern: {pattern}")
+            raise FileNotFoundError(f'No matches found in directory: {directory} with pattern: {pattern}')
         if files_only:
             files = [file for file in files if not file.is_dir()]
         if not files:
-            raise FileNotFoundError(f"No files found in directory: {directory} with pattern: {pattern}")
+            raise FileNotFoundError(f'No files found in directory: {directory} with pattern: {pattern}')
         return files
 
     def _get_all_images(self) -> list[Path]:
@@ -288,7 +307,7 @@ class DiffractionDataset:
         self._dataset_h5_images = self._glob_directory(directory=image_dir, pattern=search_pattern, files_only=True)
         master_image = self.first_image
         if master_image not in self._dataset_h5_images:
-            raise FileNotFoundError(f"Master image {master_image} not found in directory: {image_dir}")
+            raise FileNotFoundError(f'Master image {master_image} not found in directory: {image_dir}')
         self._dataset_h5_images.remove(master_image)
         self._dataset_h5_images.insert(0, master_image)
         return self._dataset_h5_images
@@ -329,12 +348,13 @@ class DiffractionDataset:
         """
         images = self._get_h5_master_images()
         if not images:
-            raise FileNotFoundError(f"No master .h5 file found in directory: {self.raw_data}")
+            raise FileNotFoundError(f'No master .h5 file found in directory: {self.raw_data}')
         for image in images:
             if image.name.startswith(self.dataset_name):
                 return image
-        raise FileNotFoundError(f"No master .h5 file for dataset {self.dataset_name} found in directory: "
-                                f"{self.raw_data}")
+        raise FileNotFoundError(
+            f'No master .h5 file for dataset {self.dataset_name} found in directory: {self.raw_data}'
+        )
 
     def get_all_dataset_names(self):
         """
@@ -354,15 +374,17 @@ class DiffractionDataset:
             dataset_names.add(dataset_name)
 
             # Grab all images in the dataset
-            images_dataset = self._glob_directory(directory=self.raw_data, pattern=f'{dataset_name}*{self._file_ext}',
-                                                  files_only=True)
+            images_dataset = self._glob_directory(
+                directory=self.raw_data, pattern=f'{dataset_name}*{self._file_ext}', files_only=True
+            )
 
             # Remove dataset images from all images
             images_all -= set(images_dataset)
         return sorted(list(dataset_names))
 
-    def get_image_template(self, as_path: bool = False, first_last: bool = False) -> (
-            Optional)[str | Path | tuple[str | Path, Optional[int], Optional[int]]]:
+    def get_image_template(
+        self, as_path: bool = False, first_last: bool = False
+    ) -> (Optional)[str | Path | tuple[str | Path, Optional[int], Optional[int]]]:
         """
         Determine a template string for the images in the dataset in the form of {dataset_name}_{####}.ext.
         This is similar to what XDS would expect. If `as_path` is True, it will return a path instance with the full
@@ -394,17 +416,19 @@ class DiffractionDataset:
 
                 match = SequenceMatcher(None, first, last).find_longest_match()
                 if match.a == match.b == 0:
-                    common_template = first[match.a:match.a + match.size]
-                    no_digits = len(first[match.a + match.size:])
+                    common_template = first[match.a : match.a + match.size]
+                    no_digits = len(first[match.a + match.size :])
                     template = f'{common_template}{"#" * no_digits}{self.file_extension}'
                     try:
-                        img_no_first = int(first[match.a + match.size:])
-                        img_no_last = int(last[match.b + match.size:])
+                        img_no_first = int(first[match.a + match.size :])
+                        img_no_last = int(last[match.b + match.size :])
                     except ValueError:
                         pass
             if not template:
-                raise ValueError(f"Could not determine image template with first and last image: {self.first_image}, "
-                                 f"{self.last_image}")
+                raise ValueError(
+                    f'Could not determine image template with first and last image: {self.first_image}, '
+                    f'{self.last_image}'
+                )
 
         if as_path:
             template = self.raw_data / template

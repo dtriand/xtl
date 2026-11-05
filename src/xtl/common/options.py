@@ -1,9 +1,11 @@
+# ruff: noqa: F403, F405 (star imports)
 """
 .. |Option| replace:: :class:`Option <xtl.common.options.Option>`
 .. |Options| replace:: :class:`Options <xtl.common.options.Options>`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
 """
+
 from __future__ import annotations
 
 import abc
@@ -18,9 +20,19 @@ from types import EllipsisType
 from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload, ClassVar
 from typing_extensions import Self
 
-from pydantic import (BaseModel, ConfigDict, Field, PrivateAttr, model_validator,
-                      BeforeValidator, AfterValidator, ModelWrapValidatorHandler,
-                      model_serializer, SerializerFunctionWrapHandler, SerializationInfo)
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    model_validator,
+    BeforeValidator,
+    AfterValidator,
+    ModelWrapValidatorHandler,
+    model_serializer,
+    SerializerFunctionWrapHandler,
+    SerializationInfo,
+)
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict, ExtraValues
 from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
@@ -40,204 +52,208 @@ logger = Logger(__name__)
 _Validator = Union[BeforeValidator, AfterValidator]
 _T = TypeVar('_T')
 
+
 # Overload signatures for different initialization scenarios
 # Option(...)
 @overload
 def Option(
-        default: EllipsisType,
-        *,
-        name: str | None = _Unset,
-        desc: str | None = _Unset,
-        examples: list[Any] | None = _Unset,
-        alias: str | None = _Unset,
-        exclude: bool | None = _Unset,
-        repr: bool = _Unset,
-        deprecated: Deprecated | str | bool | None = _Unset,
-        validate_default: bool | None = _Unset,
-        choices: Iterable[Any] | None = _Unset,
-        gt: SupportsGt | None = _Unset,
-        ge: SupportsGe | None = _Unset,
-        lt: SupportsLt | None = _Unset,
-        le: SupportsLe | None = _Unset,
-        multiple_of: float | None = _Unset,
-        allow_inf_nan: bool | None = _Unset,
-        max_digits: int | None = _Unset,
-        decimal_places: int | None = _Unset,
-        length: int | None = _Unset,
-        min_length: int | None = _Unset,
-        max_length: int | None = _Unset,
-        regex: str | re.Pattern[str] | None = _Unset,
-        path_exists: bool | None = _Unset,
-        path_is_file: bool | None = _Unset,
-        path_is_dir: bool | None = _Unset,
-        path_is_absolute: bool | None = _Unset,
-        cast_as: type | Callable | None = _Unset,
-        validator: _Validator | Iterable[_Validator] | None = _Unset,
-        strict: bool | None = _Unset,
-        formatter: Callable | None = _Unset,
-        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+    default: EllipsisType,
+    *,
+    name: str | None = _Unset,
+    desc: str | None = _Unset,
+    examples: list[Any] | None = _Unset,
+    alias: str | None = _Unset,
+    exclude: bool | None = _Unset,
+    repr: bool = _Unset,
+    deprecated: Deprecated | str | bool | None = _Unset,
+    validate_default: bool | None = _Unset,
+    choices: Iterable[Any] | None = _Unset,
+    gt: SupportsGt | None = _Unset,
+    ge: SupportsGe | None = _Unset,
+    lt: SupportsLt | None = _Unset,
+    le: SupportsLe | None = _Unset,
+    multiple_of: float | None = _Unset,
+    allow_inf_nan: bool | None = _Unset,
+    max_digits: int | None = _Unset,
+    decimal_places: int | None = _Unset,
+    length: int | None = _Unset,
+    min_length: int | None = _Unset,
+    max_length: int | None = _Unset,
+    regex: str | re.Pattern[str] | None = _Unset,
+    path_exists: bool | None = _Unset,
+    path_is_file: bool | None = _Unset,
+    path_is_dir: bool | None = _Unset,
+    path_is_absolute: bool | None = _Unset,
+    cast_as: type | Callable | None = _Unset,
+    validator: _Validator | Iterable[_Validator] | None = _Unset,
+    strict: bool | None = _Unset,
+    formatter: Callable | None = _Unset,
+    extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> Any: ...
+
 
 # Option(default=_T)
 @overload
 def Option(
-        default: _T,
-        *,
-        name: str | None = _Unset,
-        desc: str | None = _Unset,
-        examples: list[Any] | None = _Unset,
-        alias: str | None = _Unset,
-        exclude: bool | None = _Unset,
-        repr: bool = _Unset,
-        deprecated: Deprecated | str | bool | None = _Unset,
-        validate_default: bool | None = _Unset,
-        choices: Iterable[Any] | None = _Unset,
-        gt: SupportsGt | None = _Unset,
-        ge: SupportsGe | None = _Unset,
-        lt: SupportsLt | None = _Unset,
-        le: SupportsLe | None = _Unset,
-        multiple_of: float | None = _Unset,
-        allow_inf_nan: bool | None = _Unset,
-        max_digits: int | None = _Unset,
-        decimal_places: int | None = _Unset,
-        length: int | None = _Unset,
-        min_length: int | None = _Unset,
-        max_length: int | None = _Unset,
-        regex: str | re.Pattern[str] | None = _Unset,
-        path_exists: bool | None = _Unset,
-        path_is_file: bool | None = _Unset,
-        path_is_dir: bool | None = _Unset,
-        path_is_absolute: bool | None = _Unset,
-        cast_as: type | Callable | None = _Unset,
-        validator: _Validator | Iterable[_Validator] | None = _Unset,
-        strict: bool | None = _Unset,
-        formatter: Callable | None = _Unset,
-        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+    default: _T,
+    *,
+    name: str | None = _Unset,
+    desc: str | None = _Unset,
+    examples: list[Any] | None = _Unset,
+    alias: str | None = _Unset,
+    exclude: bool | None = _Unset,
+    repr: bool = _Unset,
+    deprecated: Deprecated | str | bool | None = _Unset,
+    validate_default: bool | None = _Unset,
+    choices: Iterable[Any] | None = _Unset,
+    gt: SupportsGt | None = _Unset,
+    ge: SupportsGe | None = _Unset,
+    lt: SupportsLt | None = _Unset,
+    le: SupportsLe | None = _Unset,
+    multiple_of: float | None = _Unset,
+    allow_inf_nan: bool | None = _Unset,
+    max_digits: int | None = _Unset,
+    decimal_places: int | None = _Unset,
+    length: int | None = _Unset,
+    min_length: int | None = _Unset,
+    max_length: int | None = _Unset,
+    regex: str | re.Pattern[str] | None = _Unset,
+    path_exists: bool | None = _Unset,
+    path_is_file: bool | None = _Unset,
+    path_is_dir: bool | None = _Unset,
+    path_is_absolute: bool | None = _Unset,
+    cast_as: type | Callable | None = _Unset,
+    validator: _Validator | Iterable[_Validator] | None = _Unset,
+    strict: bool | None = _Unset,
+    formatter: Callable | None = _Unset,
+    extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> _T: ...
+
 
 # Option(default_factory=callable)
 @overload
 def Option(
-        *,
-        default_factory: Callable[[], _T] | Callable[[dict[str, Any]], _T],
-        name: str | None = _Unset,
-        desc: str | None = _Unset,
-        examples: list[Any] | None = _Unset,
-        alias: str | None = _Unset,
-        exclude: bool | None = _Unset,
-        repr: bool = _Unset,
-        deprecated: Deprecated | str | bool | None = _Unset,
-        validate_default: bool | None = _Unset,
-        choices: Iterable[Any] | None = _Unset,
-        gt: SupportsGt | None = _Unset,
-        ge: SupportsGe | None = _Unset,
-        lt: SupportsLt | None = _Unset,
-        le: SupportsLe | None = _Unset,
-        multiple_of: float | None = _Unset,
-        allow_inf_nan: bool | None = _Unset,
-        max_digits: int | None = _Unset,
-        decimal_places: int | None = _Unset,
-        length: int | None = _Unset,
-        min_length: int | None = _Unset,
-        max_length: int | None = _Unset,
-        regex: str | re.Pattern[str] | None = _Unset,
-        path_exists: bool | None = _Unset,
-        path_is_file: bool | None = _Unset,
-        path_is_dir: bool | None = _Unset,
-        path_is_absolute: bool | None = _Unset,
-        cast_as: type | Callable | None = _Unset,
-        validator: _Validator | Iterable[_Validator] | None = _Unset,
-        strict: bool | None = _Unset,
-        formatter: Callable | None = _Unset,
-        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+    *,
+    default_factory: Callable[[], _T] | Callable[[dict[str, Any]], _T],
+    name: str | None = _Unset,
+    desc: str | None = _Unset,
+    examples: list[Any] | None = _Unset,
+    alias: str | None = _Unset,
+    exclude: bool | None = _Unset,
+    repr: bool = _Unset,
+    deprecated: Deprecated | str | bool | None = _Unset,
+    validate_default: bool | None = _Unset,
+    choices: Iterable[Any] | None = _Unset,
+    gt: SupportsGt | None = _Unset,
+    ge: SupportsGe | None = _Unset,
+    lt: SupportsLt | None = _Unset,
+    le: SupportsLe | None = _Unset,
+    multiple_of: float | None = _Unset,
+    allow_inf_nan: bool | None = _Unset,
+    max_digits: int | None = _Unset,
+    decimal_places: int | None = _Unset,
+    length: int | None = _Unset,
+    min_length: int | None = _Unset,
+    max_length: int | None = _Unset,
+    regex: str | re.Pattern[str] | None = _Unset,
+    path_exists: bool | None = _Unset,
+    path_is_file: bool | None = _Unset,
+    path_is_dir: bool | None = _Unset,
+    path_is_absolute: bool | None = _Unset,
+    cast_as: type | Callable | None = _Unset,
+    validator: _Validator | Iterable[_Validator] | None = _Unset,
+    strict: bool | None = _Unset,
+    formatter: Callable | None = _Unset,
+    extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> _T: ...
+
 
 # Option()
 @overload
 def Option(
-        *,
-        name: str | None = _Unset,
-        desc: str | None = _Unset,
-        examples: list[Any] | None = _Unset,
-        alias: str | None = _Unset,
-        exclude: bool | None = _Unset,
-        repr: bool = _Unset,
-        deprecated: Deprecated | str | bool | None = _Unset,
-        validate_default: bool | None = _Unset,
-        choices: Iterable[Any] | None = _Unset,
-        gt: SupportsGt | None = _Unset,
-        ge: SupportsGe | None = _Unset,
-        lt: SupportsLt | None = _Unset,
-        le: SupportsLe | None = _Unset,
-        multiple_of: float | None = _Unset,
-        allow_inf_nan: bool | None = _Unset,
-        max_digits: int | None = _Unset,
-        decimal_places: int | None = _Unset,
-        length: int | None = _Unset,
-        min_length: int | None = _Unset,
-        max_length: int | None = _Unset,
-        regex: str | re.Pattern[str] | None = _Unset,
-        path_exists: bool | None = _Unset,
-        path_is_file: bool | None = _Unset,
-        path_is_dir: bool | None = _Unset,
-        path_is_absolute: bool | None = _Unset,
-        cast_as: type | Callable | None = _Unset,
-        validator: _Validator | Iterable[_Validator] | None = _Unset,
-        strict: bool | None = _Unset,
-        formatter: Callable | None = _Unset,
-        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+    *,
+    name: str | None = _Unset,
+    desc: str | None = _Unset,
+    examples: list[Any] | None = _Unset,
+    alias: str | None = _Unset,
+    exclude: bool | None = _Unset,
+    repr: bool = _Unset,
+    deprecated: Deprecated | str | bool | None = _Unset,
+    validate_default: bool | None = _Unset,
+    choices: Iterable[Any] | None = _Unset,
+    gt: SupportsGt | None = _Unset,
+    ge: SupportsGe | None = _Unset,
+    lt: SupportsLt | None = _Unset,
+    le: SupportsLe | None = _Unset,
+    multiple_of: float | None = _Unset,
+    allow_inf_nan: bool | None = _Unset,
+    max_digits: int | None = _Unset,
+    decimal_places: int | None = _Unset,
+    length: int | None = _Unset,
+    min_length: int | None = _Unset,
+    max_length: int | None = _Unset,
+    regex: str | re.Pattern[str] | None = _Unset,
+    path_exists: bool | None = _Unset,
+    path_is_file: bool | None = _Unset,
+    path_is_dir: bool | None = _Unset,
+    path_is_absolute: bool | None = _Unset,
+    cast_as: type | Callable | None = _Unset,
+    validator: _Validator | Iterable[_Validator] | None = _Unset,
+    strict: bool | None = _Unset,
+    formatter: Callable | None = _Unset,
+    extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> Any: ...
 
+
 def Option(
-        default: Any = PydanticUndefined,
-        *,
-        # Default value
-        default_factory: Callable[[], Any] | Callable[[dict[str, Any]], Any] | \
-                         None = _Unset,
-        # Metadata
-        name: str | None = _Unset,
-        desc: str | None = _Unset,
-        examples: list[Any] | None = _Unset,
-        # Serialization
-        alias: str | None = _Unset,
-        exclude: bool | None = _Unset,
-        # Representation
-        repr: bool = _Unset,  # include in repr
-        deprecated: Deprecated | str | bool | None = _Unset,  # deprecation message
-        # Validation
-        validate_default: bool | None = _Unset,  # validate default value
-        choices: Iterable[Any] | None = _Unset,  # iterable of choices
-        #  for numbers
-        gt: SupportsGt | None = _Unset,  # greater than
-        ge: SupportsGe | None = _Unset,  # greater than or equal to
-        lt: SupportsLt | None = _Unset,  # less than
-        le: SupportsLe | None = _Unset,  # less than or equal to
-        multiple_of: float | None = _Unset,  # multiple of
-        allow_inf_nan: bool | None = _Unset,  # allow inf and nan
-        #  for decimals
-        max_digits: int | None = _Unset,  # maximum number of total digits
-        decimal_places: int | None = _Unset,  # maximum number of decimal places
-        #  for iterables
-        length: int | None = _Unset,  # length of the iterable
-        min_length: int | None = _Unset,  # minimum length of the iterable
-        max_length: int | None = _Unset,  # maximum length of the iterable
-        #  for strings
-        regex: str | re.Pattern[str] | None = _Unset,  # regex pattern
-        #  for paths
-        path_exists: bool | None = _Unset,  # check if the path exists
-        path_is_file: bool | None = _Unset,  # check if the path is a file
-        path_is_dir: bool | None = _Unset,  # check if the path is a directory
-        path_is_absolute: bool | None = _Unset,  # check if the path is absolute
-        # Type casting
-        cast_as: type | Callable | None = _Unset,
-        # Additional validators
-        validator: _Validator | Iterable[_Validator] | None = _Unset,
-        # strict type checking (i.e., no implicit conversion)
-        strict: bool | None = _Unset,
-        # Serialization
-        formatter: Callable | None = _Unset,
-        # Extra JSON schema
-        extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
+    default: Any = PydanticUndefined,
+    *,
+    # Default value
+    default_factory: Callable[[], Any] | Callable[[dict[str, Any]], Any] | None = _Unset,
+    # Metadata
+    name: str | None = _Unset,
+    desc: str | None = _Unset,
+    examples: list[Any] | None = _Unset,
+    # Serialization
+    alias: str | None = _Unset,
+    exclude: bool | None = _Unset,
+    # Representation
+    repr: bool = _Unset,  # include in repr
+    deprecated: Deprecated | str | bool | None = _Unset,  # deprecation message
+    # Validation
+    validate_default: bool | None = _Unset,  # validate default value
+    choices: Iterable[Any] | None = _Unset,  # iterable of choices
+    #  for numbers
+    gt: SupportsGt | None = _Unset,  # greater than
+    ge: SupportsGe | None = _Unset,  # greater than or equal to
+    lt: SupportsLt | None = _Unset,  # less than
+    le: SupportsLe | None = _Unset,  # less than or equal to
+    multiple_of: float | None = _Unset,  # multiple of
+    allow_inf_nan: bool | None = _Unset,  # allow inf and nan
+    #  for decimals
+    max_digits: int | None = _Unset,  # maximum number of total digits
+    decimal_places: int | None = _Unset,  # maximum number of decimal places
+    #  for iterables
+    length: int | None = _Unset,  # length of the iterable
+    min_length: int | None = _Unset,  # minimum length of the iterable
+    max_length: int | None = _Unset,  # maximum length of the iterable
+    #  for strings
+    regex: str | re.Pattern[str] | None = _Unset,  # regex pattern
+    #  for paths
+    path_exists: bool | None = _Unset,  # check if the path exists
+    path_is_file: bool | None = _Unset,  # check if the path is a file
+    path_is_dir: bool | None = _Unset,  # check if the path is a directory
+    path_is_absolute: bool | None = _Unset,  # check if the path is absolute
+    # Type casting
+    cast_as: type | Callable | None = _Unset,
+    # Additional validators
+    validator: _Validator | Iterable[_Validator] | None = _Unset,
+    # strict type checking (i.e., no implicit conversion)
+    strict: bool | None = _Unset,
+    # Serialization
+    formatter: Callable | None = _Unset,
+    # Extra JSON schema
+    extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
 ) -> FieldInfo:
     """
     Create a |Field| with custom validation, serialization and more intuitive metadata
@@ -291,9 +307,12 @@ def Option(
         extra = {}
 
     # Store custom validators in the `json_schema_extra`
-    if any([v is not _Unset for v in (length, choices, path_exists, path_is_file,
-                                      path_is_dir, path_is_absolute, cast_as,
-                                      validator)]):
+    if any(
+        [
+            v is not _Unset
+            for v in (length, choices, path_exists, path_is_file, path_is_dir, path_is_absolute, cast_as, validator)
+        ]
+    ):
         # Ensure we don't overwrite existing validators
         if not isinstance(extra.get('validators', None), list):
             extra['validators'] = []
@@ -326,8 +345,7 @@ def Option(
         # Type checking
         for i, v in enumerate(validators):
             if not isinstance(v, _Validator):
-                raise TypeError(f'Validator {i} is not a valid validator, but '
-                                f'{type(v)} instead')
+                raise TypeError(f'Validator {i} is not a valid validator, but {type(v)} instead')
 
             # Inspect validator function signature
             func = v.func
@@ -335,24 +353,42 @@ def Option(
                 raise TypeError(f'Validator {i} function is not a callable')
             args = inspect.signature(func).parameters.values()
             if len(args) != 1:
-                raise TypeError(f'Validator {i} function must take exactly 1 argument, '
-                                f'but it takes {len(args)} instead')
+                raise TypeError(
+                    f'Validator {i} function must take exactly 1 argument, but it takes {len(args)} instead'
+                )
 
         # Add validators to the extra
         extra['validators'].extend(validators)
 
     if formatter is not _Unset:
         if not callable(formatter):
-            raise TypeError('\'formatter\' must be a callable')
+            raise TypeError("'formatter' must be a callable")
         extra['serializer'] = formatter
 
     partial_field = partial(
-        Field, serialization_alias=alias, title=name, description=desc,
-        examples=examples, exclude=exclude, deprecated=deprecated,
-        json_schema_extra=extra, validate_default=validate_default, repr=repr,
-        pattern=regex, strict=strict, gt=gt, ge=ge, lt=lt, le=le,
-        multiple_of=multiple_of, allow_inf_nan=allow_inf_nan, max_digits=max_digits,
-        decimal_places=decimal_places, min_length=min_length, max_length=max_length)
+        Field,
+        serialization_alias=alias,
+        title=name,
+        description=desc,
+        examples=examples,
+        exclude=exclude,
+        deprecated=deprecated,
+        json_schema_extra=extra,
+        validate_default=validate_default,
+        repr=repr,
+        pattern=regex,
+        strict=strict,
+        gt=gt,
+        ge=ge,
+        lt=lt,
+        le=le,
+        multiple_of=multiple_of,
+        allow_inf_nan=allow_inf_nan,
+        max_digits=max_digits,
+        decimal_places=decimal_places,
+        min_length=min_length,
+        max_length=max_length,
+    )
 
     if default_factory is not _Unset:
         f = partial_field(default_factory=default_factory)
@@ -384,19 +420,19 @@ class Options(BaseModel):
     found, it will be replaced with an empty string. The default behavior is to not
     parse environment variables.
     """
+
     model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        validate_default=True,
-        validate_assignment=True,
-        use_enum_values=True
+        arbitrary_types_allowed=True, validate_default=True, validate_assignment=True, use_enum_values=True
     )
     _parse_env: bool = PrivateAttr(default=False)
 
     def __init__(self, /, **data: Any) -> None:
         # Check if the model contains any aliased keys
-        aliased = [field.serialization_alias for field in
-                   self.__pydantic_fields__.values()
-                   if field.serialization_alias is not None]
+        aliased = [
+            field.serialization_alias
+            for field in self.__pydantic_fields__.values()
+            if field.serialization_alias is not None
+        ]
         # Check if the input data contain any aliased keys
         if any(alias in data for alias in aliased):
             for name, field in self.__pydantic_fields__.items():
@@ -480,10 +516,9 @@ class Options(BaseModel):
         return custom_serializers
 
     @staticmethod
-    def _apply_validators(name: str, value: Any,
-                          validators: list[AfterValidator | BeforeValidator],
-                          errors: list[InitErrorDetails] = None) \
-            -> tuple[Any, list[InitErrorDetails]]:
+    def _apply_validators(
+        name: str, value: Any, validators: list[AfterValidator | BeforeValidator], errors: list[InitErrorDetails] = None
+    ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply validators to the value. This is used to perform a series of validations
         on the value. If any of the validators raise a ``ValueError``, the error is
@@ -504,8 +539,7 @@ class Options(BaseModel):
             try:
                 value = validator.func(value)
             except ValueError as e:
-                new_errors.append(InitErrorDetails(type='value_error', loc=(name,),
-                                                   input=value, ctx={'error': e}))
+                new_errors.append(InitErrorDetails(type='value_error', loc=(name,), input=value, ctx={'error': e}))
 
         if new_errors:
             return _Unset, errors + new_errors
@@ -513,10 +547,13 @@ class Options(BaseModel):
             return value, errors
 
     @classmethod
-    def _validate_before(cls, name: str, value: Any,
-                         validators: dict[str, list[BeforeValidator | AfterValidator]],
-                         errors: list[InitErrorDetails] = None) \
-            -> tuple[Any, list[InitErrorDetails]]:
+    def _validate_before(
+        cls,
+        name: str,
+        value: Any,
+        validators: dict[str, list[BeforeValidator | AfterValidator]],
+        errors: list[InitErrorDetails] = None,
+    ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply before validators to the value. This is used to validate the value before
         the model has been initialized.
@@ -531,16 +568,19 @@ class Options(BaseModel):
             errors = []
 
         # Apply validators
-        value, new_errors = cls._apply_validators(name=name, value=value,
-                                                  validators=validators['before'],
-                                                  errors=errors)
+        value, new_errors = cls._apply_validators(
+            name=name, value=value, validators=validators['before'], errors=errors
+        )
         return value, new_errors
 
     @classmethod
-    def _validate_after(cls, name: str, value: Any,
-                        validators: dict[str, list[BeforeValidator | AfterValidator]],
-                        errors: list[InitErrorDetails] = None) \
-            -> tuple[Any, list[InitErrorDetails]]:
+    def _validate_after(
+        cls,
+        name: str,
+        value: Any,
+        validators: dict[str, list[BeforeValidator | AfterValidator]],
+        errors: list[InitErrorDetails] = None,
+    ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply after validators to the value. This is used to validate the value after
         the model has been initialized and pydantic has run its own validation.
@@ -555,15 +595,12 @@ class Options(BaseModel):
             errors = []
 
         # Apply validators
-        value, new_errors = cls._apply_validators(name=name, value=value,
-                                                  validators=validators['after'],
-                                                  errors=errors)
+        value, new_errors = cls._apply_validators(name=name, value=value, validators=validators['after'], errors=errors)
         return value, new_errors
 
     @model_validator(mode='wrap')
     @classmethod
-    def _custom_validation(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) \
-            -> Self:
+    def _custom_validation(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
         """
         Model validator for applying custom validation functions specified in the
         `json_schema_extra` attribute of the fields.
@@ -605,9 +642,9 @@ class Options(BaseModel):
                     value = cls._get_envvar(value)
 
                 if name in validators:
-                    value, new_errors = cls._validate_before(name=name, value=value,
-                                                             validators=validators[name],
-                                                             errors=new_errors)
+                    value, new_errors = cls._validate_before(
+                        name=name, value=value, validators=validators[name], errors=new_errors
+                    )
 
                 # Update value (NB: This runs even if there are no before validators)
                 if not new_errors:
@@ -616,8 +653,7 @@ class Options(BaseModel):
                 errors.extend(new_errors)
             # Check and raise validation errors
             if errors:
-                raise ValidationError.from_exception_data(title='before_validators',
-                                                          line_errors=errors)
+                raise ValidationError.from_exception_data(title='before_validators', line_errors=errors)
 
         # Generate the pydantic model
         validated_self = handler(data)
@@ -636,9 +672,9 @@ class Options(BaseModel):
                 value = new_value
 
             if name in validators:
-                value, new_errors = cls._validate_after(name=name, value=value,
-                                                        validators=validators[name],
-                                                        errors=new_errors)
+                value, new_errors = cls._validate_after(
+                    name=name, value=value, validators=validators[name], errors=new_errors
+                )
             if not new_errors:
                 # Note: Workaround to prevent infinite recursion when using
                 #  setattr()
@@ -646,13 +682,11 @@ class Options(BaseModel):
             errors.extend(new_errors)
         # Check and raise validation errors
         if errors:
-            raise ValidationError.from_exception_data(title='after_validators',
-                                                      line_errors=errors)
+            raise ValidationError.from_exception_data(title='after_validators', line_errors=errors)
         return validated_self
 
     @model_serializer(mode='wrap')
-    def _custom_serialization(self, handler: SerializerFunctionWrapHandler,
-                              info: SerializationInfo) -> dict[str, Any]:
+    def _custom_serialization(self, handler: SerializerFunctionWrapHandler, info: SerializationInfo) -> dict[str, Any]:
         # Get custom serializers
         serializers = self._get_custom_serializers()
 
@@ -714,12 +748,10 @@ class Options(BaseModel):
         validators = self._get_custom_validators()
         errors = []
         if name in validators:
-            value, errors = self._validate_before(name=name, value=value,
-                                                  validators=validators[name])
+            value, errors = self._validate_before(name=name, value=value, validators=validators[name])
         # Check and raise validation errors
         if errors:
-            raise ValidationError.from_exception_data(title='before_validators',
-                                                      line_errors=errors)
+            raise ValidationError.from_exception_data(title='before_validators', line_errors=errors)
 
         try:
             # Validate the model with the new value
@@ -733,13 +765,26 @@ class Options(BaseModel):
             raise e
 
     @classmethod
-    def model_validate(cls, obj: Any, *, strict: bool | None = None, extra: ExtraValues | None = None,
-                       from_attributes: bool | None = None, context: Any | None = None, by_alias: bool | None = None,
-                       by_name: bool | None = None):
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        extra: ExtraValues | None = None,
+        from_attributes: bool | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+    ):
         try:
             return super().model_validate(
-                obj, strict=strict, extra=extra, from_attributes=from_attributes, context=context, by_alias=by_alias,
-                by_name=by_name
+                obj,
+                strict=strict,
+                extra=extra,
+                from_attributes=from_attributes,
+                context=context,
+                by_alias=by_alias,
+                by_name=by_name,
             )
         except ValidationError as e:
             raise OptionsValidationError(e, cls.__name__) from e
@@ -765,9 +810,14 @@ class Options(BaseModel):
         """
         return cls.model_validate(data)
 
-    def to_json(self, filename: Optional[str | Path] = None, overwrite: bool = False,
-                keep_file_ext: bool = False, indent: Optional[int] = 4,
-                by_alias: bool = True) -> str | Path:
+    def to_json(
+        self,
+        filename: Optional[str | Path] = None,
+        overwrite: bool = False,
+        keep_file_ext: bool = False,
+        indent: Optional[int] = 4,
+        by_alias: bool = True,
+    ) -> str | Path:
         """
         Write the |Options| to a JSON file. If ``filename`` is not provided, then the
         JSON will be returned as a string.
@@ -834,8 +884,9 @@ class Options(BaseModel):
         return name
 
     @classmethod
-    def _value_to_toml(cls, value: Any, field: FieldInfo | ComputedFieldInfo | None = None,
-                       keep_comments: bool = False, path: str = '') -> Any:
+    def _value_to_toml(
+        cls, value: Any, field: FieldInfo | ComputedFieldInfo | None = None, keep_comments: bool = False, path: str = ''
+    ) -> Any:
         """
         Convert a value to TOML data: nested |Options| and dictionaries to tables, iterables to lists (element-wise),
         and anything else to a ``toml.CommentValue`` with the field's description as comment (or the plain value, if
@@ -857,8 +908,10 @@ class Options(BaseModel):
 
         if value is None:
             if field is None:
-                raise ValueError(f'Cannot serialize None at `{path}` to TOML, since TOML has no null. Use a '
-                                 f'formatter on the field that holds it to replace None with a placeholder.')
+                raise ValueError(
+                    f'Cannot serialize None at `{path}` to TOML, since TOML has no null. Use a '
+                    f'formatter on the field that holds it to replace None with a placeholder.'
+                )
             return _TOML_SKIP
 
         # Nested Options: a table with one entry per field
@@ -869,29 +922,37 @@ class Options(BaseModel):
                 if getattr(vfield, 'exclude', False):
                     continue
                 key = cls._toml_key(name, vfield)
-                item = cls._value_to_toml(getattr(value, name), field=vfield, keep_comments=keep_comments,
-                                          path=f'{path}.{key}' if path else key)
+                item = cls._value_to_toml(
+                    getattr(value, name),
+                    field=vfield,
+                    keep_comments=keep_comments,
+                    path=f'{path}.{key}' if path else key,
+                )
                 if item is not _TOML_SKIP:
                     table[key] = item
             return table
 
         # Dictionaries: a table with one entry per key (keys must be strings in TOML)
         if isinstance(value, dict):
-            return {str(key): cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}')
-                    for key, v in value.items()}
+            return {
+                str(key): cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}')
+                for key, v in value.items()
+            }
 
         # Iterables: cast to lists, since TOML doesn't differentiate
         if isinstance(value, (list, tuple, set, frozenset, TypedIterable)):
-            return [cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]')
-                    for i, v in enumerate(value)]
+            return [
+                cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]') for i, v in enumerate(value)
+            ]
 
         # Plain values without a comment, since an empty CommentValue leaves a trailing space
         if field is None or not field.description or not keep_comments:
             return value
         return CommentValue(val=value, comment=f'# {field.description}', beginline=False, _dict=dict)
 
-    def _field_to_comment_value(self, name: str, field: FieldInfo | ComputedFieldInfo,
-                                keep_comments: bool = False) -> Any:
+    def _field_to_comment_value(
+        self, name: str, field: FieldInfo | ComputedFieldInfo, keep_comments: bool = False
+    ) -> Any:
         """
         Convert a field to TOML data, see ``_value_to_toml()``.
 
@@ -902,8 +963,13 @@ class Options(BaseModel):
         """
         return self._value_to_toml(getattr(self, name), field=field, keep_comments=keep_comments)
 
-    def to_toml(self, filename: Optional[str | Path] = None, comments: bool = False,
-                overwrite: bool = False, keep_file_ext: bool = False) -> str | Path:
+    def to_toml(
+        self,
+        filename: Optional[str | Path] = None,
+        comments: bool = False,
+        overwrite: bool = False,
+        keep_file_ext: bool = False,
+    ) -> str | Path:
         """
         Write the |Options| to a TOML file. If ``filename`` is not provided, then the
         TOML will be returned as a string. Fields that are None are left out, since TOML
@@ -972,7 +1038,6 @@ class Options(BaseModel):
 
 
 class LegacyOptions(Options, abc.ABC):
-
     _version_path: ClassVar[str] = None
 
     def __init_subclass__(cls, **kwargs):
@@ -985,7 +1050,6 @@ class LegacyOptions(Options, abc.ABC):
 
 
 class VersionedOptions(Options):
-
     _version_path: ClassVar[str] = None
     _legacy_versions: ClassVar[dict[tuple[int, int, int], type[LegacyOptions]]] = None
 
@@ -1001,8 +1065,10 @@ class VersionedOptions(Options):
 
         def decorator(legacy_cls: type[LegacyOptions]) -> type[LegacyOptions]:
             if not (isinstance(legacy_cls, type) and issubclass(legacy_cls, LegacyOptions)):
-                raise TypeError(f'{legacy_cls.__name__} must be a subclass of {LegacyOptions.__name__} '
-                                f'to be registered as a legacy model of {cls.__name__}')
+                raise TypeError(
+                    f'{legacy_cls.__name__} must be a subclass of {LegacyOptions.__name__} '
+                    f'to be registered as a legacy model of {cls.__name__}'
+                )
 
             if version.tuple_safe in cls._legacy_versions:
                 raise ValueError(f'{cls.__name__} already has a legacy model for version `{version}`')
@@ -1051,9 +1117,10 @@ class VersionedOptions(Options):
     def from_dict(cls, data: dict[str, Any], upgrade: bool = False) -> Self | LegacyOptions:
         version = cls._resolve_version(data)
         if version.tuple_safe > xtl_version.tuple_safe:
-            logger.warning('%(model_cls) version is %(version)s, which is newer than the current XTL version '
-                           '%(xtl_version)s.',
-                           {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version})
+            logger.warning(
+                '%(model_cls) version is %(version)s, which is newer than the current XTL version %(xtl_version)s.',
+                {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version},
+            )
 
         legacy_cls = cls._get_legacy_model(version)
         if legacy_cls is None:
@@ -1065,8 +1132,10 @@ class VersionedOptions(Options):
 
         upgraded = legacy.upgrade()
         if not isinstance(upgraded, cls):
-            raise TypeError(f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
-                            f'got {type(upgraded).__name__}')
+            raise TypeError(
+                f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
+                f'got {type(upgraded).__name__}'
+            )
         return upgraded
 
     @classmethod
@@ -1088,9 +1157,10 @@ class VersionedOptions(Options):
 
         version = cls._resolve_version(data)
         if version.tuple_safe > xtl_version.tuple_safe:
-            logger.warning('%(model_cls) version is %(version)s, which is newer than the current XTL version '
-                           '%(xtl_version)s.',
-                           {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version})
+            logger.warning(
+                '%(model_cls) version is %(version)s, which is newer than the current XTL version %(xtl_version)s.',
+                {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version},
+            )
 
         legacy_cls = cls._get_legacy_model(version)
         if legacy_cls is None:
@@ -1102,6 +1172,8 @@ class VersionedOptions(Options):
 
         upgraded = legacy.upgrade()
         if not isinstance(upgraded, cls):
-            raise TypeError(f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
-                            f'got {type(upgraded).__name__}')
+            raise TypeError(
+                f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
+                f'got {type(upgraded).__name__}'
+            )
         return upgraded

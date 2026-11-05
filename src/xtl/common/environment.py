@@ -1,6 +1,7 @@
 """
 Central location for environment variables and related utilities.
 """
+
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ class EnvVar(Generic[T]):
     An environment variable that is read on every access, so that changes to the
     environment are reflected immediately. Empty values are treated as unset.
     """
+
     name: str
     parser: Callable[[str], T] = str
     default: T | None = None
@@ -38,8 +40,7 @@ class EnvVar(Generic[T]):
         try:
             return self.parser(raw)
         except (ValueError, TypeError) as e:
-            raise ValueError(f'Invalid value for environment variable '
-                             f'{self.name}: {raw!r}') from e
+            raise ValueError(f'Invalid value for environment variable {self.name}: {raw!r}') from e
 
 
 def _normalize_path(value: str) -> Path:
@@ -60,7 +61,7 @@ Path to the config file, which takes precedence over all other config file locat
 
 XTL_COMPUTE_SITE: EnvVar[str] = EnvVar('XTL_COMPUTE_SITE')
 """
-Enables compute sites (see :class:`xtl.jobs.sites.ComputeSite`) for specific facilities. 
+Enables compute sites (see :class:`xtl.jobs.sites.ComputeSite`) for specific facilities.
 Read when :mod:`xtl.jobs.sites` is imported. Currently supported values are:
 
 - ``BIOTIX_HPC`` enables ``biotix``

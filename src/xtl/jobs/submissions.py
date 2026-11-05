@@ -17,29 +17,18 @@ class JobSubmission(Options):
     Serializable envelope for transporting job execution requests.
     """
 
-    submission_id: str = \
-        Option(
-            default_factory=lambda: uuid.random(settings.jobs.job_digits),
-            desc='Unique identifier for this submission payload'
-        )
+    submission_id: str = Option(
+        default_factory=lambda: uuid.random(settings.jobs.job_digits),
+        desc='Unique identifier for this submission payload',
+    )
 
-    data: JobData = \
-        Option(
-            ...,
-            desc='Serialized job data, including job class, config, and metadata'
-        )
+    data: JobData = Option(..., desc='Serialized job data, including job class, config, and metadata')
 
-    ipc: IPCHandle | None = \
-        Option(
-            default=None,
-            desc='Optional `IPCHandle` containing interprocess communication primitives '
-                 'for worker communication'
-        )
-    resources: Resources | None = \
-        Option(
-            default=None,
-            desc='Optional resources granted to the current pool'
-        )
+    ipc: IPCHandle | None = Option(
+        default=None,
+        desc='Optional `IPCHandle` containing interprocess communication primitives for worker communication',
+    )
+    resources: Resources | None = Option(default=None, desc='Optional resources granted to the current pool')
 
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':

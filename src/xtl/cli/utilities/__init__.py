@@ -1,1 +1,1 @@
-epilog='</> with [red]<3[/] by [i magenta]dtriand[/]'
+epilog = '</> with [red]<3[/] by [i magenta]dtriand[/]'

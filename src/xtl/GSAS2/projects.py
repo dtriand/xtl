@@ -13,7 +13,6 @@ from ..GSAS2 import objects as GO
 
 
 class Project(GI.G2sc.G2Project):
-
     def __init__(self, filename, debug=False):
         self.debug = debug
         if GI._path_wrap(filename).exists():
@@ -29,6 +28,7 @@ class Project(GI.G2sc.G2Project):
         if not backup_dir.exists():
             backup_dir.mkdir()
         import shutil
+
         shutil.copy2(src=self.filename, dst=backup_gpx)
         if self.debug:
             print(f'Backing up .gpx file at {backup_gpx}')
@@ -88,17 +88,19 @@ class Project(GI.G2sc.G2Project):
 
     def add_comment(self, comment):
         from datetime import datetime
+
         xtl_vers = cfg['xtl']['version'].value
         now = datetime.now().strftime('%a %b %d %H:%M:%S %Y')
-        self.data['Notebook']['data'].append(f"xtl {xtl_vers} @ {now}\n{comment}")
+        self.data['Notebook']['data'].append(f'xtl {xtl_vers} @ {now}\n{comment}')
 
     def add_phase(self, file, name=None, histograms=[], type=''):
         if not name:
             name = Path(file).stem  # grab filename from a full path
         allowed_types = ['macromolecular', 'small_molecule']
         if type not in allowed_types:
-            raise InvalidArgument(raiser='phase_type', message=f"Unknown phase type '{type}'\n"
-                                                               f"Choose one from: {','.join(allowed_types)}")
+            raise InvalidArgument(
+                raiser='phase_type', message=f"Unknown phase type '{type}'\nChoose one from: {','.join(allowed_types)}"
+            )
         elif type == 'macromolecular':
             return self.add_phase_macromolecular(GI._path_wrap(file), name, histograms)
         elif type == 'small_molecule':
@@ -141,7 +143,7 @@ class Project(GI.G2sc.G2Project):
         """
         SGError, SGData = GI.G2spc.SpcGroup(space_group_string)
         if SGError:  # If space group is valid, then SGError = 0
-            return False, f"Invalid space group {SGData['SpGrp']}."
+            return False, f'Invalid space group {SGData["SpGrp"]}.'
         return True, ''
 
     @staticmethod
@@ -154,6 +156,7 @@ class Project(GI.G2sc.G2Project):
         :rtype: tuple[bool, str]
         """
         from imports.G2phase import PDB_ReaderClass
+
         reader = PDB_ReaderClass()
         if not reader.ContentsValidator(pdb_file):
             return False, f'No ATOM or HETATM records found.'
@@ -329,7 +332,7 @@ class Project(GI.G2sc.G2Project):
                 has_larger_than_allowed_in_mtz = False
                 column_max = np.amax(reflections[:, [4, 6]], axis=0)  # Fo^2, Fc^2
                 for value in column_max:
-                    if value > 1.e7:
+                    if value > 1.0e7:
                         has_larger_than_allowed_in_mtz = True
                 if has_larger_than_allowed_in_mtz:
                     reflections[:, [4, 6]] /= scale_factor  # Fo^2, Fc^2
@@ -340,8 +343,10 @@ class Project(GI.G2sc.G2Project):
                     break
             if times_scaled:
                 hist_name = histogram.name.split('.')[0][5:]
-                print(f"Scaling down structure factors for histogram {hist_name} by a factor of "
-                      f"{round(scale_factor ** times_scaled, 3)}")
+                print(
+                    f'Scaling down structure factors for histogram {hist_name} by a factor of '
+                    f'{round(scale_factor**times_scaled, 3)}'
+                )
         return reflections
 
     def export_reflections(self, phase=None, histogram=None, filetype='cif', as_intensities=False, **kwargs):
@@ -366,8 +371,9 @@ class Project(GI.G2sc.G2Project):
         if filetype == 'cif':
             pretty = kwargs.get('pretty', False)
             include_histograms = kwargs.get('include_histograms', False)
-            self._export_reflections_as_cif(phases, histograms, pretty=pretty, as_intensities=as_intensities,
-                                            include_histograms=include_histograms)
+            self._export_reflections_as_cif(
+                phases, histograms, pretty=pretty, as_intensities=as_intensities, include_histograms=include_histograms
+            )
         elif filetype == 'mtz':
             mini_mtz = kwargs.get('mini_mtz', False)
             if mini_mtz:
@@ -377,11 +383,14 @@ class Project(GI.G2sc.G2Project):
                 self._export_reflections_as_mtz(phases, histograms, as_intensities=as_intensities)
         else:
             supported_formats = ['cif', 'mtz']
-            raise InvalidArgument(raiser='filetype', message=f"Unknown file type '{filetype}'\n"
-                                                             f"Choose one from: {', '.join(supported_formats)}")
+            raise InvalidArgument(
+                raiser='filetype',
+                message=f"Unknown file type '{filetype}'\nChoose one from: {', '.join(supported_formats)}",
+            )
 
-    def _export_reflections_as_cif(self, phases, histograms, as_intensities=False, pretty=False,
-                                   include_histograms=False):
+    def _export_reflections_as_cif(
+        self, phases, histograms, as_intensities=False, pretty=False, include_histograms=False
+    ):
         for phase in phases:
             doc = gemmi.cif.Document()
             cell = self.get_cell(phase)
@@ -397,7 +406,7 @@ class Project(GI.G2sc.G2Project):
 
             histogram_names = []
             for histogram in histograms:
-                histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+                histogram_name = histogram.name.split('.')[0][5:].replace('_', '')
                 histogram_names.append(histogram_name)
 
                 # Initialize new cif data block
@@ -406,8 +415,9 @@ class Project(GI.G2sc.G2Project):
 
                 # Unit-cell
                 block.set_pair('_cell.entry_id', phase.name)
-                for latt_param, item in zip(cell, ['length_a', 'length_b', 'length_c',
-                                                   'angle_alpha', 'angle_beta', 'angle_gamma']):
+                for latt_param, item in zip(
+                    cell, ['length_a', 'length_b', 'length_c', 'angle_alpha', 'angle_beta', 'angle_gamma']
+                ):
                     block.set_pair(f'_cell.{item}', str(round(latt_param, 4)))
 
                 # Spacegroup symmetry
@@ -418,12 +428,33 @@ class Project(GI.G2sc.G2Project):
                 # Reflections
                 reflections = self.get_reflections(phase, histogram, scale=False)
                 if as_intensities:
-                    refln_loop = block.init_mmcif_loop('_refln.', ['index_h', 'index_k', 'index_l', 'intensity_meas',
-                                                                   'intensity_sigma', 'intensity_calc', 'phase_calc',
-                                                                   'd_spacing'])
+                    refln_loop = block.init_mmcif_loop(
+                        '_refln.',
+                        [
+                            'index_h',
+                            'index_k',
+                            'index_l',
+                            'intensity_meas',
+                            'intensity_sigma',
+                            'intensity_calc',
+                            'phase_calc',
+                            'd_spacing',
+                        ],
+                    )
                 else:
-                    refln_loop = block.init_mmcif_loop('_refln.', ['index_h', 'index_k', 'index_l', 'F_meas',
-                                                                   'F_meas_sigma', 'F_calc', 'phase_calc', 'd_spacing'])
+                    refln_loop = block.init_mmcif_loop(
+                        '_refln.',
+                        [
+                            'index_h',
+                            'index_k',
+                            'index_l',
+                            'F_meas',
+                            'F_meas_sigma',
+                            'F_calc',
+                            'phase_calc',
+                            'd_spacing',
+                        ],
+                    )
 
                     # Convert Fo^2, sigma(Fo^2), Fc^2 to Fo, sigma(Fo), Fc
                     reflections[:, [4, 5, 6]] = np.sqrt(reflections[:, [4, 5, 6]])
@@ -435,11 +466,16 @@ class Project(GI.G2sc.G2Project):
 
                 # Histogram
                 if include_histograms:
-                    pdbx_powder_data_loop = block.init_mmcif_loop('_pdbx_powder_data.', ['pd_meas_2theta_scan',
-                                                                                         'pd_meas_intensity_total',
-                                                                                         'pd_proc_ls_weight',
-                                                                                         'pd_calc_intensity_total',
-                                                                                         'pd_proc_intensity_bkg_calc'])
+                    pdbx_powder_data_loop = block.init_mmcif_loop(
+                        '_pdbx_powder_data.',
+                        [
+                            'pd_meas_2theta_scan',
+                            'pd_meas_intensity_total',
+                            'pd_proc_ls_weight',
+                            'pd_calc_intensity_total',
+                            'pd_proc_intensity_bkg_calc',
+                        ],
+                    )
                     datapoints = self.get_histogram(histogram).astype('str').swapaxes(0, 1)
                     pdbx_powder_data_loop.set_all_values(datapoints.tolist())
 
@@ -447,13 +483,17 @@ class Project(GI.G2sc.G2Project):
             self._prepare_directory(export_directory)
 
             # File name: project_phase_bakXX_histograms_I/F_sf.cif
-            output_file = GI.settings.working_directory / export_directory / \
-                          f'{self._name[:-4]}_{phase.name}_{self._get_gpx_version()}_' \
-                          f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
-                          f'{"I" if as_intensities else "F"}_sf.cif'
+            output_file = (
+                GI.settings.working_directory
+                / export_directory
+                / f'{self._name[:-4]}_{phase.name}_{self._get_gpx_version()}_'
+                f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                f'{"I" if as_intensities else "F"}_sf.cif'
+            )
 
             if pretty:
                 from xtl.files import mmCIF
+
                 mmCIF(doc).pretty_export(output_file)
             else:
                 doc.write_file(output_file, gemmi.cif.Style.Pdbx)
@@ -478,7 +518,7 @@ class Project(GI.G2sc.G2Project):
             raw_reflections = []
             histogram_names = []
             for i, histogram in enumerate(histograms):
-                histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+                histogram_name = histogram.name.split('.')[0][5:].replace('_', '')
                 histogram_names.append(histogram_name)
 
                 # Grab reflections
@@ -530,12 +570,21 @@ class Project(GI.G2sc.G2Project):
 
                 export_directory = GI.settings.xtl_directories['reflections']
                 self._prepare_directory(export_directory)
-                debug_csv = GI.settings.working_directory / export_directory / \
-                            f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_' \
-                            f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
-                            f'{"I" if as_intensities else "F"}_debug.csv'
-                np.savetxt(debug_csv, reflections, header=f'{column_labels}\n{column_types}', comments='',
-                           delimiter=',', fmt='%1.6e')
+                debug_csv = (
+                    GI.settings.working_directory
+                    / export_directory
+                    / f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
+                    f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                    f'{"I" if as_intensities else "F"}_debug.csv'
+                )
+                np.savetxt(
+                    debug_csv,
+                    reflections,
+                    header=f'{column_labels}\n{column_types}',
+                    comments='',
+                    delimiter=',',
+                    fmt='%1.6e',
+                )
                 print(f'Saved merged reflections to {debug_csv}')
 
             # Add data to mtz
@@ -543,17 +592,22 @@ class Project(GI.G2sc.G2Project):
 
             # Set additional metadata
             from datetime import datetime
+
             mtz.title = phase.name
-            mtz.history = [f"Created with xtl {cfg['xtl']['version'].value} on "
-                           f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"]
+            mtz.history = [
+                f'Created with xtl {cfg["xtl"]["version"].value} on {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}'
+            ]
 
             export_directory = GI.settings.xtl_directories['reflections']
             self._prepare_directory(export_directory)
             # File name: project_phase_bakXX_histograms_I/F_sf.cif
-            output_file = GI.settings.working_directory / export_directory / \
-                          f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_' \
-                          f'{"all" if includes_all_histograms else "-".join(histogram_names)}_' \
-                          f'{"I" if as_intensities else "F"}.mtz'
+            output_file = (
+                GI.settings.working_directory
+                / export_directory
+                / f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_'
+                f'{"all" if includes_all_histograms else "-".join(histogram_names)}_'
+                f'{"I" if as_intensities else "F"}.mtz'
+            )
 
             mtz.write_to_file(output_file)
             print(f"Saved reflections for phase '{phase.name}' to {output_file}")
@@ -615,16 +669,22 @@ class Project(GI.G2sc.G2Project):
         has_saved_map = False
         if self.has_map(phase) and ignore_existing_map is True:
             print(f"Map already calculated for phase '{phase.name}'. Exporting this instead...")
-            output_file = GI.settings.working_directory / export_directory / \
-                          f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_userCalculated.ccp4'
+            output_file = (
+                GI.settings.working_directory
+                / export_directory
+                / f'{self._name[:-4]}_{phase.name}_bak{self._get_gpx_version()}_userCalculated.ccp4'
+            )
             has_saved_map = True
         else:
             self.calculate_map(phase, histogram, map_type, grid_step, omit_map)
-            histogram_name = histogram.name.split(".")[0][5:].replace("_", "")
+            histogram_name = histogram.name.split('.')[0][5:].replace('_', '')
             map_type_pretty = GO.get_map_type(map_type).name_pretty
-            output_file = GI.settings.working_directory / export_directory / \
-                          f'{self._name[:-4]}_{phase.name}_{histogram_name}_{map_type_pretty}' \
-                          f'{"_omit" if omit_map else ""}_bak{self._get_gpx_version()}.ccp4'
+            output_file = (
+                GI.settings.working_directory
+                / export_directory
+                / f'{self._name[:-4]}_{phase.name}_{histogram_name}_{map_type_pretty}'
+                f'{"_omit" if omit_map else ""}_bak{self._get_gpx_version()}.ccp4'
+            )
 
         # Save map to file
         rho = phase['General']['Map']['rho']
@@ -642,8 +702,10 @@ class Project(GI.G2sc.G2Project):
         if has_saved_map:
             print(f"Saved existing map for phase '{phase.name}' to {output_file}")
         else:
-            print(f"Saved {map_type_pretty}{' omit' if omit_map else ''} map for phase '{phase.name}' and histogram "
-                  f"'{histogram_name}' to {output_file}")
+            print(
+                f"Saved {map_type_pretty}{' omit' if omit_map else ''} map for phase '{phase.name}' and histogram "
+                f"'{histogram_name}' to {output_file}"
+            )
             self.clear_map(phase)
         return
 
@@ -663,9 +725,12 @@ class Project(GI.G2sc.G2Project):
 
         map = GO.get_map_type(map_type)
         if omit_map and map.gsas_map_type in ('Fc', 'Fo-Fc', 'Patterson'):
-            raise InvalidArgument(raiser='map_type', message=f'{map_type}. {map.gsas_map_type} maps cannot be generated'
-                                                             f' with the OMIT procedure. Choose a different map_type '
-                                                             f'or set omit_map=False.')
+            raise InvalidArgument(
+                raiser='map_type',
+                message=f'{map_type}. {map.gsas_map_type} maps cannot be generated'
+                f' with the OMIT procedure. Choose a different map_type '
+                f'or set omit_map=False.',
+            )
 
         # Set phase data
         phase['General']['Map']['MapType'] = map.gsas_map_type
@@ -734,7 +799,6 @@ class Project(GI.G2sc.G2Project):
 
 
 class InformationProject(Project):
-
     def get_filesize(self):
         """
         Returns the filesize of a project in KB, MB etc.
@@ -777,9 +841,17 @@ class InformationProject(Project):
         for ph in self.phases():
             restraint_data = self.data['Restraints']['data']
             if ph in restraint_data:
-                for rt, r in [('Bond', 'Bonds'), ('Angle', 'Angles'), ('Plane', 'Planes'), ('Chiral', 'Volumes'),
-                              ('Torsion', 'Torsions'), ('Rama', 'Ramas'), ('Texture', 'HKLs'), ('ChemComp', 'Sites'),
-                              ('General', 'General')]:
+                for rt, r in [
+                    ('Bond', 'Bonds'),
+                    ('Angle', 'Angles'),
+                    ('Plane', 'Planes'),
+                    ('Chiral', 'Volumes'),
+                    ('Torsion', 'Torsions'),
+                    ('Rama', 'Ramas'),
+                    ('Texture', 'HKLs'),
+                    ('ChemComp', 'Sites'),
+                    ('General', 'General'),
+                ]:
                     no_restraints += len(restraint_data[ph.name][rt][r])
 
         no_rigidbodies = 0
@@ -790,7 +862,6 @@ class InformationProject(Project):
 
 
 class SimulationProject(Project):
-
     def simulate_patterns(self):
         max_cycles = self.data['Controls']['data']['max cyc']
         self.data['Controls']['data']['max cyc'] = 0
@@ -802,15 +873,16 @@ class SimulationProject(Project):
 
 
 class MixtureSimulationProject(SimulationProject):
-
-    def add_simulated_mixture_powder_histogram(self, name, mixture, ttheta_min, ttheta_max, ttheta_step, scale,
-                                               iparams):
+    def add_simulated_mixture_powder_histogram(
+        self, name, mixture, ttheta_min, ttheta_max, ttheta_step, scale, iparams
+    ):
         # Validate input
         if not isinstance(mixture, PhaseMixture):
             raise InvalidArgument(raiser=f'Simulated histogram {name}', message='Mixture is not type PhaseMixture')
         if not isinstance(iparams, InstrumentalParameters):
-            raise InvalidArgument(raiser=f'Simulated histogram {name}', message='IParams is not type '
-                                                                                'InstrumentalParameters')
+            raise InvalidArgument(
+                raiser=f'Simulated histogram {name}', message='IParams is not type InstrumentalParameters'
+            )
 
         wavelength = iparams.wavelength
         if isinstance(wavelength, tuple):
@@ -837,19 +909,29 @@ class MixtureSimulationProject(SimulationProject):
             if largest_axis < xm.ttheta_to_d_spacing(ttheta_max, wavelength):
                 dmin = largest_axis / 2  # d-spacing uses theta, while ttheta_max is in 2theta
                 A = GI.G2lat.cell2A(unit_cell)
-                hkld = GI.G2pd.getHKLpeak(dmin=dmin, SGData=phase.data['General']['SGData'], A=A,
-                                          Inst=iparams.dictionary)
+                hkld = GI.G2pd.getHKLpeak(
+                    dmin=dmin, SGData=phase.data['General']['SGData'], A=A, Inst=iparams.dictionary
+                )
                 new_dmin = hkld[0][3]
                 # Add an additional 10% to the required range, to allow part of the first peak to appear
                 new_ttheta_max = xm.d_spacing_to_ttheta(dmin, wavelength) * 1.1
-                print(f'Adjusting 2theta range to include at least one peak per phase. '
-                      f'Was {ttheta_max}, now is {new_ttheta_max}')
+                print(
+                    f'Adjusting 2theta range to include at least one peak per phase. '
+                    f'Was {ttheta_max}, now is {new_ttheta_max}'
+                )
                 ttheta_max = new_ttheta_max
 
         # Create simulated histogram
         iparams_file = Path(iparams.save_to_file(name))
-        hist = self.add_simulated_powder_histogram(histname=name, phases=phases, Tmin=ttheta_min, Tmax=ttheta_max,
-                                                   Tstep=ttheta_step, scale=scale, iparams=iparams_file)
+        hist = self.add_simulated_powder_histogram(
+            histname=name,
+            phases=phases,
+            Tmin=ttheta_min,
+            Tmax=ttheta_max,
+            Tstep=ttheta_step,
+            scale=scale,
+            iparams=iparams_file,
+        )
         Path.unlink(iparams_file)
 
         # Set HAP values (scale factors)

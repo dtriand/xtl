@@ -21,7 +21,7 @@ default_parameters = {
         'X': -0.0977791308891,
         'Y': 4.40147397286,
         'Z': 0.0,
-        'SH/L': 0.000464356231583
+        'SH/L': 0.000464356231583,
     },
     'lab': {
         'Type': 'PXC',
@@ -39,8 +39,8 @@ default_parameters = {
         'Y': 0.0,
         'Z': 0.0,
         'SH/L': 0.002,
-        'Source': ''
-    }
+        'Source': '',
+    },
 }
 
 # Characteristic radiation values from
@@ -54,12 +54,11 @@ default_radiations = {
     '27': {'element': 'Co', 'Lam1': 1.788996, 'Lam2': 1.792835, 'I(L2)/I(L1)': 0.52},
     '28': {'element': 'Ni', 'Lam1': 1.657930, 'Lam2': 1.661756, 'I(L2)/I(L1)': 0.52},
     '29': {'element': 'Cu', 'Lam1': 1.5405929, 'Lam2': 1.5444274, 'I(L2)/I(L1)': 0.52},
-    '42': {'element': 'Mo', 'Lam1': 0.70931715, 'Lam2': 0.713607, 'I(L2)/I(L1)': 0.5}
+    '42': {'element': 'Mo', 'Lam1': 0.70931715, 'Lam2': 0.713607, 'I(L2)/I(L1)': 0.5},
 }
 
 
 class InstrumentalParameters:
-
     def __init__(self, file):
         """
         A class for manipulating GSAS instrumental parameters files. Both new (.instprm) and old (.prm, .inst, .ins)
@@ -93,7 +92,7 @@ class InstrumentalParameters:
         """
 
         # Load a lightweight reader
-        powder_reader = GI.G2fil.LoadImportRoutines("pwd_csv", "Powder_Data")[0]
+        powder_reader = GI.G2fil.LoadImportRoutines('pwd_csv', 'Powder_Data')[0]
 
         # Parses both new (.instprm) and old (.prm, .inst, .ins) parameters files
         self._initial_dict = GI.G2sc.load_iprms(instfile=file, reader=powder_reader)[0]
@@ -105,11 +104,16 @@ class InstrumentalParameters:
                 raise FileError(file=file, message=f"Could not find key '{key}'")
 
         # Check that either a 'Lam' or all three 'Lam1', 'Lam2' and 'I(L2)/I(L1)' entries are present
-        if 'Lam' not in self._initial_dict and ('Lam1' not in self._initial_dict or
-                                                'Lam2' not in self._initial_dict or
-                                                'I(L2)/I(L1)' not in self._initial_dict):  # False if no wavelength
-            raise FileError(file=file, message='Could not find wavelength',
-                            details="Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)' need to be specified.")
+        if 'Lam' not in self._initial_dict and (
+            'Lam1' not in self._initial_dict
+            or 'Lam2' not in self._initial_dict
+            or 'I(L2)/I(L1)' not in self._initial_dict
+        ):  # False if no wavelength
+            raise FileError(
+                file=file,
+                message='Could not find wavelength',
+                details="Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)' need to be specified.",
+            )
 
         # Save initial values as private attributes
         self._type = self._initial_dict['Type'][0]
@@ -190,16 +194,21 @@ class InstrumentalParameters:
             # For laboratory data
             if isinstance(new_wavelength, (list, tuple)) and len(new_wavelength) == 3:
                 l1, l2, r = new_wavelength
-                if (isinstance(l1, (float, int)) and l1 > 0) and \
-                        (isinstance(l2, (float, int)) and l2 > 0) and \
-                        (isinstance(r, (float, int)) and r > 0):
+                if (
+                    (isinstance(l1, (float, int)) and l1 > 0)
+                    and (isinstance(l2, (float, int)) and l2 > 0)
+                    and (isinstance(r, (float, int)) and r > 0)
+                ):
                     self._wavelength1 = l1
                     self._wavelength2 = l2
                     self._wavelength_ratio = r
                     return
 
-            raise InvalidArgument(raiser='wavelength', message=f'{new_wavelength}. Must be iterable of three positive '
-                                                               f'numbers: (Wavelength1, Wavelength2, IntensityRatio)')
+            raise InvalidArgument(
+                raiser='wavelength',
+                message=f'{new_wavelength}. Must be iterable of three positive '
+                f'numbers: (Wavelength1, Wavelength2, IntensityRatio)',
+            )
 
     @property
     def source(self):
@@ -236,8 +245,9 @@ class InstrumentalParameters:
         if isinstance(new_polar, (float, int)) and 0.5 <= new_polar <= 1:
             self._polarization = new_polar
         else:
-            raise InvalidArgument(raiser='polarization factor', message=f'{new_polar}. Must be a number between 0.5 '
-                                                                        f'and 1.0')
+            raise InvalidArgument(
+                raiser='polarization factor', message=f'{new_polar}. Must be a number between 0.5 and 1.0'
+            )
 
     @property
     def azimuth(self):
@@ -389,19 +399,23 @@ class InstrumentalParameters:
             return
 
         # Check that either a 'Lam' or all three 'Lam1', 'Lam2' and 'I(L2)/I(L1)' entries are present
-        if 'Lam' not in new_dict.keys() and ('Lam1' not in new_dict.keys() or
-                                             'Lam2' not in new_dict.keys() or
-                                             'I(L2)/I(L1)' not in new_dict.keys()):
-            raise InvalidArgument(raiser='dictionary', message="Could not find wavelength in the provided dictionary. "
-                                                               "Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)'"
-                                                               " need to be specified.")
+        if 'Lam' not in new_dict.keys() and (
+            'Lam1' not in new_dict.keys() or 'Lam2' not in new_dict.keys() or 'I(L2)/I(L1)' not in new_dict.keys()
+        ):
+            raise InvalidArgument(
+                raiser='dictionary',
+                message='Could not find wavelength in the provided dictionary. '
+                "Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)'"
+                ' need to be specified.',
+            )
 
         required_keys = ['Type', 'Bank', 'Zero', 'Polariz.', 'Azimuth', 'U', 'V', 'W', 'X', 'Y', 'Z', 'SH/L']
         for key in required_keys:
             # Check whether all required keys are present
             if key not in new_dict.keys():
-                raise InvalidArgument(raiser='dictionary', message=f"Could not find key '{key}' in the provided "
-                                                                   f"dictionary.")
+                raise InvalidArgument(
+                    raiser='dictionary', message=f"Could not find key '{key}' in the provided dictionary."
+                )
 
         wavelength = {}  # for lab data wavelength assignment
         required_keys += ['Lam', 'Lam1', 'Lam2', 'I(L2)/I(L1)']
@@ -547,8 +561,9 @@ class InstrumentalParameters:
             # Interpret element with pyxray
             elem = pyxray.element(tube)
         except pyxray.NotFound:
-            raise InvalidArgument(raiser='tube',
-                                  message=f"Unknown {'element' if isinstance(tube, str) else 'atomic number'} '{tube}'")
+            raise InvalidArgument(
+                raiser='tube', message=f"Unknown {'element' if isinstance(tube, str) else 'atomic number'} '{tube}'"
+            )
 
         l1, l2, r, s = 0, 0, 0, ''
         if str(elem.atomic_number) in default_radiations.keys():
@@ -556,7 +571,7 @@ class InstrumentalParameters:
             # Use tabulated values when possible
             radiation = default_radiations[str(elem.atomic_number)]
             l1, l2, r = radiation['Lam1'], radiation['Lam2'], radiation['I(L2)/I(L1)']
-            s = f"{radiation['element']}Ka (tabulated)"
+            s = f'{radiation["element"]}Ka (tabulated)'
         else:
             line1 = pyxray.xray_line(elem, 'Ka1')
             line2 = pyxray.xray_line(elem, 'Ka2')
@@ -566,7 +581,7 @@ class InstrumentalParameters:
                 l1 = round(12398.41857 / line1.energy_eV, 3)  # Truncate values to avoid disagreement of pyxray values
                 l2 = round(12398.41857 / line2.energy_eV, 3)  # with literature values
                 r = round(line2.relative_weight, 1)  # I(Ka2)/I(Ka1)
-                s = f"{pyxray.element_symbol(elem)}Ka (computed)"
+                s = f'{pyxray.element_symbol(elem)}Ka (computed)'
 
         if l1 and l2 and r:
             # Generate instrumental parameters only if all values calculated
@@ -578,5 +593,6 @@ class InstrumentalParameters:
             return cls.from_dictionary(lab_dict)
         else:
             # Usually for atomic numbers larger than 100
-            raise InvalidArgument(raiser='tube', message=f"Characteristic radiation could not be computed for "
-                                                         f"element '{s}'")
+            raise InvalidArgument(
+                raiser='tube', message=f"Characteristic radiation could not be computed for element '{s}'"
+            )

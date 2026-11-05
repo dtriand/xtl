@@ -16,28 +16,19 @@ def mock_get_schema_json(self):
                 'items': {
                     'type': 'object',
                     'properties': {
-                        'item1': {
-                            'type': 'integer',
-                            'description': ''
-                        },
-                        'item2': {
-                            'type': 'string',
-                            'description': ''
-                        }
+                        'item1': {'type': 'integer', 'description': ''},
+                        'item2': {'type': 'string', 'description': ''},
                     },
                     'additionalProperties': False,
-                    'required': []
-                }
+                    'required': [],
+                },
             },
             'category2': {
                 'type': 'array',
                 'items': {
                     'type': 'object',
                     'properties': {
-                        'item1': {
-                            'type': 'integer',
-                            'description': ''
-                        },
+                        'item1': {'type': 'integer', 'description': ''},
                         'subcategory1': {
                             'type': 'object',
                             'properties': {
@@ -46,28 +37,19 @@ def mock_get_schema_json(self):
                                     'items': {
                                         'type': 'object',
                                         'properties': {
-                                            'subsubitem1': {
-                                                'type': 'string',
-                                                'description': ''
-                                            },
-                                            'subsubitem2': {
-                                                'type': 'float',
-                                                'description': ''
-                                            }
-                                        }
-                                    }
+                                            'subsubitem1': {'type': 'string', 'description': ''},
+                                            'subsubitem2': {'type': 'float', 'description': ''},
+                                        },
+                                    },
                                 },
-                                'subitem1': {
-                                    'type': 'string',
-                                    'description': ''
-                                }
+                                'subitem1': {'type': 'string', 'description': ''},
                             },
-                            'additionalProperties': False
-                        }
+                            'additionalProperties': False,
+                        },
                     },
                     'additionalProperties': False,
-                    'required': []
-                }
+                    'required': [],
+                },
             },
             'category3': {  # Example of Search Schema: rcsb_branched_instance_feature.additional_properties.values
                 'type': 'array',
@@ -82,48 +64,35 @@ def mock_get_schema_json(self):
                                     'subsubitem1': {
                                         'type': 'array',
                                         'items': {
-                                            'anyOf': [
-                                                {'type': 'string'},
-                                                {'type': 'integer'},
-                                                {'type': 'float'}
-                                            ]
+                                            'anyOf': [{'type': 'string'}, {'type': 'integer'}, {'type': 'float'}]
                                         },
-                                        'description': ''
+                                        'description': '',
                                     }
                                 },
-                                'additionalProperties': False
+                                'additionalProperties': False,
                             },
-                            'description': ''
+                            'description': '',
                         }
                     },
-                    'additionalProperties': False
-                }
+                    'additionalProperties': False,
+                },
             },
             'category4': {  # Example of CHEM_COMP Data Schema: chem_comp.mon_nstd_parent_comp_id
                 'type': 'object',
-                'properties': {
-                    'subcategory1': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'string',
-                            'description': ''
-                        }
-                    }
-                },
-                'additionalProperties': False
-            }
+                'properties': {'subcategory1': {'type': 'array', 'items': {'type': 'string', 'description': ''}}},
+                'additionalProperties': False,
+            },
         },
         'additionalProperties': False,
         'required': [],
         '$schema': '',
         'title': '',
         'description': '',
-        '$comment': 'Schema version: 0.0.0'
+        '$comment': 'Schema version: 0.0.0',
     }
 
 
 class _DummySchema(_RCSBSchema):
-
     def __init__(self, verbose=False):
         self._AttributeCls = _Attribute
         self._AttributeGroupCls = _AttributeGroup
@@ -132,7 +101,6 @@ class _DummySchema(_RCSBSchema):
 
 
 class TestRCSBSchema:
-
     def test_turn_object_to_attribute(self, mocker):
         mocker.patch('xtl.pdbapi.schema._RCSBSchema._get_schema_json', mock_get_schema_json)
         attr = _DummySchema()
@@ -196,16 +164,26 @@ class TestRCSBSchema:
 
         assert attr.schema_version == '0.0.0'
 
+
 @pytest.mark.requires_network
 class TestURLs:
-
     def test_search_schema_urls(self):
         assert requests.head(SearchSchema._base_url).ok
 
-    @pytest.mark.parametrize('service', [DataService.ENTRY, DataService.POLYMER_ENTITY, DataService.BRANCHED_ENTITY,
-                                         DataService.NON_POLYMER_ENTITY, DataService.POLYMER_INSTANCE,
-                                         DataService.BRANCHED_INSTANCE, DataService.NON_POLYMER_INSTANCE,
-                                         DataService.ASSEMBLY, DataService.CHEMICAL_COMPONENT])
+    @pytest.mark.parametrize(
+        'service',
+        [
+            DataService.ENTRY,
+            DataService.POLYMER_ENTITY,
+            DataService.BRANCHED_ENTITY,
+            DataService.NON_POLYMER_ENTITY,
+            DataService.POLYMER_INSTANCE,
+            DataService.BRANCHED_INSTANCE,
+            DataService.NON_POLYMER_INSTANCE,
+            DataService.ASSEMBLY,
+            DataService.CHEMICAL_COMPONENT,
+        ],
+    )
     def test_data_schema_urls(self, service):
         # Data API does not support HEAD requests
         assert requests.options(f'{DataSchema._base_url}/{service.value}').ok
@@ -221,17 +199,21 @@ class TestSearchSchema:
 
 
 @pytest.mark.requires_network
-@pytest.mark.parametrize('service, schema_version', [(DataService.ENTRY, (9, 0, 0)),
-                                                     (DataService.POLYMER_ENTITY, (10, 0, 0)),
-                                                     (DataService.BRANCHED_ENTITY, (10, 0, 0)),
-                                                     (DataService.NON_POLYMER_ENTITY, (10, 0, 0)),
-                                                     (DataService.POLYMER_INSTANCE, (10, 0, 0)),
-                                                     (DataService.BRANCHED_INSTANCE, (9, 0, 0)),
-                                                     (DataService.NON_POLYMER_INSTANCE, (10, 0, 0)),
-                                                     (DataService.ASSEMBLY, (9, 0, 0)),
-                                                     (DataService.CHEMICAL_COMPONENT, (7, 1, 2))])
+@pytest.mark.parametrize(
+    'service, schema_version',
+    [
+        (DataService.ENTRY, (9, 0, 0)),
+        (DataService.POLYMER_ENTITY, (10, 0, 0)),
+        (DataService.BRANCHED_ENTITY, (10, 0, 0)),
+        (DataService.NON_POLYMER_ENTITY, (10, 0, 0)),
+        (DataService.POLYMER_INSTANCE, (10, 0, 0)),
+        (DataService.BRANCHED_INSTANCE, (9, 0, 0)),
+        (DataService.NON_POLYMER_INSTANCE, (10, 0, 0)),
+        (DataService.ASSEMBLY, (9, 0, 0)),
+        (DataService.CHEMICAL_COMPONENT, (7, 1, 2)),
+    ],
+)
 class TestDataSchema:
-
     def test_schema_version(self, service, schema_version):
         attr = DataSchema(service=service)
         assert attr.schema_version != 'UNK'

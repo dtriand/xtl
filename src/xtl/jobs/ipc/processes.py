@@ -174,15 +174,9 @@ class ProxyProcessIPCBackend(IPCBackend):
     """
 
     def __init__(self, handle: IPCHandle):
-        self._locks: dict[str, ProcessLock] = {
-            n: ProcessLock(h, name=n) for n, h in handle.locks.items()
-        }
-        self._queues: dict[str, ProcessQueue] = {
-            n: ProcessQueue(h) for n, h in handle.queues.items()
-        }
-        self._states: dict[str, ProcessState] = {
-            n: ProcessState(h) for n, h in handle.state.items()
-        }
+        self._locks: dict[str, ProcessLock] = {n: ProcessLock(h, name=n) for n, h in handle.locks.items()}
+        self._queues: dict[str, ProcessQueue] = {n: ProcessQueue(h) for n, h in handle.queues.items()}
+        self._states: dict[str, ProcessState] = {n: ProcessState(h) for n, h in handle.state.items()}
 
     # The manager is owned by the parent process, so we don't need
     #  to do anything to start/stop the backend in the worker process.

@@ -27,6 +27,7 @@ class Shell:
     :param comment_char: The character used to denote comments in the shell
     :param new_line_char: The character used to denote new lines in the shell
     """
+
     name: str
     shebang: str
     file_ext: str
@@ -49,16 +50,17 @@ class Shell:
         # Check that all required keys are present in the fstring
         for key in self._batch_fstring_keys:
             if f'{{{key}}}' not in self.batch_command:
-                raise ValueError(f"Invalid fstring for `batch_command`: {self.batch_command}. Missing key: {key}")
+                raise ValueError(f'Invalid fstring for `batch_command`: {self.batch_command}. Missing key: {key}')
 
         # Check that there are no extra keys in the fstring
         all_keys = re.findall(r'{(.*?)}', self.batch_command)
         for key in all_keys:
             if key not in self._batch_fstring_keys:
-                raise ValueError(f"Invalid fstring for `batch_command`: {self.batch_command}. Unexpected key: {key}")
+                raise ValueError(f'Invalid fstring for `batch_command`: {self.batch_command}. Unexpected key: {key}')
 
-    def get_batch_command(self, batch_file: str | Path, batch_arguments: Sequence[Any] = None,
-                          as_list: bool = False) -> str:
+    def get_batch_command(
+        self, batch_file: str | Path, batch_arguments: Sequence[Any] = None, as_list: bool = False
+    ) -> str:
         """
         Return the command used to execute the `batch_file`.
         :param batch_file: The path to the batch file
@@ -67,13 +69,14 @@ class Shell:
         """
         # Convert arguments to strings and quote them if they contain spaces
         batch_arguments = map(str, batch_arguments) if batch_arguments else []
-        batch_arguments = [f'\'{arg}\'' if ' ' in arg else arg for arg in batch_arguments] if batch_arguments else []
+        batch_arguments = [f"'{arg}'" if ' ' in arg else arg for arg in batch_arguments] if batch_arguments else []
         # Join the arguments into a single string
         batch_arguments = ' '.join(batch_arguments) if batch_arguments else ''
 
         # Format the batch command
-        command = self.batch_command.format(executable=self.executable, batch_file=str(batch_file),
-                                            batch_arguments=batch_arguments)
+        command = self.batch_command.format(
+            executable=self.executable, batch_file=str(batch_file), batch_arguments=batch_arguments
+        )
 
         # Remove trailing space when there are no arguments
         if command.endswith(' '):
@@ -114,13 +117,13 @@ class WslShell:
         # Check that all required keys are present in the fstring
         for key in self._batch_fstring_keys:
             if f'{{{key}}}' not in self.batch_command:
-                raise ValueError(f"Invalid fstring for `batch_command`: {self.batch_command}. Missing key: {key}")
+                raise ValueError(f'Invalid fstring for `batch_command`: {self.batch_command}. Missing key: {key}')
 
         # Check that there are no extra keys in the fstring
         all_keys = re.findall(r'{(.*?)}', self.batch_command)
         for key in all_keys:
             if key not in self._batch_fstring_keys:
-                raise ValueError(f"Invalid fstring for `batch_command`: {self.batch_command}. Unexpected key: {key}")
+                raise ValueError(f'Invalid fstring for `batch_command`: {self.batch_command}. Unexpected key: {key}')
 
     def _patch_shell(self):
         self._shell = copy.deepcopy(self.shell)  # prevent modifying the original shell
@@ -131,13 +134,16 @@ class WslShell:
         batch_command = batch_command.replace('{distro}', self.distro)
         self._shell.batch_command = batch_command
         self._shell._validate_batch_fstring()
-        self._shell.batch_command = self._shell.batch_command.replace('{batch_file} {batch_arguments}', '"{batch_file} {batch_arguments}"')
+        self._shell.batch_command = self._shell.batch_command.replace(
+            '{batch_file} {batch_arguments}', '"{batch_file} {batch_arguments}"'
+        )
 
         # Replace self.shell with the patched shell
         self.shell = self._shell
 
-    def get_batch_command(self, batch_file: str | Path, batch_arguments: Sequence[Any] = None,
-                          as_list: bool = False) -> str | list[str]:
+    def get_batch_command(
+        self, batch_file: str | Path, batch_arguments: Sequence[Any] = None, as_list: bool = False
+    ) -> str | list[str]:
         """
         Return the command used to execute the `batch_file`.
         :param batch_file: The path to the batch file
@@ -161,26 +167,32 @@ class WslShell:
 
 
 # Definitions for common shells
-BashShell = Shell(name='bash',
-                  shebang='#!/bin/bash',
-                  file_ext='.sh',
-                  is_posix=True,
-                  executable='/bin/bash',
-                  batch_command='{executable} {batch_file} {batch_arguments}')
+BashShell = Shell(
+    name='bash',
+    shebang='#!/bin/bash',
+    file_ext='.sh',
+    is_posix=True,
+    executable='/bin/bash',
+    batch_command='{executable} {batch_file} {batch_arguments}',
+)
 
-CmdShell = Shell(name='cmd',
-                 shebang='',
-                 file_ext='.bat',
-                 is_posix=False,
-                 executable=r'C:\Windows\System32\cmd.exe',
-                 batch_command=r'{executable} /Q /C {batch_file} {batch_arguments}')
+CmdShell = Shell(
+    name='cmd',
+    shebang='',
+    file_ext='.bat',
+    is_posix=False,
+    executable=r'C:\Windows\System32\cmd.exe',
+    batch_command=r'{executable} /Q /C {batch_file} {batch_arguments}',
+)
 
-PowerShell = Shell(name='powershell',
-                   shebang='',
-                   file_ext='.ps1',
-                   is_posix=False,
-                   executable=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
-                   batch_command='{executable} -File {batch_file} {batch_arguments}')
+PowerShell = Shell(
+    name='powershell',
+    shebang='',
+    file_ext='.ps1',
+    is_posix=False,
+    executable=r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+    batch_command='{executable} -File {batch_file} {batch_arguments}',
+)
 
 
 # Set the default shell based on the OS

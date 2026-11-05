@@ -16,32 +16,47 @@ app = typer.Typer()
 
 @app.command('fixnml', short_help='Update paths in NML files', epilog=epilog)
 def cli_autoproc_fixnml(
-        nml_files: list[Path] = typer.Argument(metavar='<NML_FILES>'),
-        search_str: str = typer.Option(..., '-f', '--from', help='Search for this string',
-                                       rich_help_panel='Search options'),
-        target_str: str = typer.Option(..., '-t', '--to', help='Replace with this string',
-                                       rich_help_panel='Search options'),
-        out_dir: Path = typer.Option(Path('./'), '-o', '--out_dir', help='Output path for updated NML file',
-                                     rich_help_panel='Output options'),
-        overwrite: bool = typer.Option(False, '--overwrite', help='Overwrite if output file already '
-                                                                  'exists', rich_help_panel='Output options'),
-        check: bool = typer.Option(False, '--check', help='Check if the updated path exists',
-                                   rich_help_panel='Output options'),
-        chmod: bool = typer.Option(settings.automate.permissions.update, '--chmod',
-                                   help='Change permissions of the output directories', rich_help_panel='Localization'),
-        chmod_files: FilePermissions = typer.Option(settings.automate.permissions.files.string, '--chmod-files',
-                                                    parser=parser_permissions, metavar='TEXT',
-                                                    help='Permissions for files',
-                                                    rich_help_panel='Localization'),
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True,
-                                     help='Print additional information', rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging')
+    nml_files: list[Path] = typer.Argument(metavar='<NML_FILES>'),
+    search_str: str = typer.Option(
+        ..., '-f', '--from', help='Search for this string', rich_help_panel='Search options'
+    ),
+    target_str: str = typer.Option(
+        ..., '-t', '--to', help='Replace with this string', rich_help_panel='Search options'
+    ),
+    out_dir: Path = typer.Option(
+        Path('./'), '-o', '--out_dir', help='Output path for updated NML file', rich_help_panel='Output options'
+    ),
+    overwrite: bool = typer.Option(
+        False, '--overwrite', help='Overwrite if output file already exists', rich_help_panel='Output options'
+    ),
+    check: bool = typer.Option(
+        False, '--check', help='Check if the updated path exists', rich_help_panel='Output options'
+    ),
+    chmod: bool = typer.Option(
+        settings.automate.permissions.update,
+        '--chmod',
+        help='Change permissions of the output directories',
+        rich_help_panel='Localization',
+    ),
+    chmod_files: FilePermissions = typer.Option(
+        settings.automate.permissions.files.string,
+        '--chmod-files',
+        parser=parser_permissions,
+        metavar='TEXT',
+        help='Permissions for files',
+        rich_help_panel='Localization',
+    ),
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
-    '''
+    """
     Read one or more stratcal_gen.nml files and update the NAME_TEMPLATE string for each of the sweeps.
 
-    '''
+    """
     cli = Console(verbose=verbose, debug=debug)
     updated_files = []
     for nml_file in nml_files:
@@ -80,8 +95,10 @@ def cli_autoproc_fixnml(
             name_template = str(sweep['name_template'])
             if search_str not in name_template:
                 t1 = '│ ' if i + 1 < no_sweeps else '  '
-                cli.print(f'{t} [yellow]{i + 1}: No match for search string: {search_str}[/]\n'
-                          f'{t1}    [yellow]{name_template}[/]')
+                cli.print(
+                    f'{t} [yellow]{i + 1}: No match for search string: {search_str}[/]\n'
+                    f'{t1}    [yellow]{name_template}[/]'
+                )
                 continue
 
             new_name_template = name_template.replace(search_str, target_str)
@@ -123,7 +140,7 @@ def cli_autoproc_fixnml(
         try:
             output_nml = output_nml.resolve()
             nml.write(output_nml, force=overwrite)
-        except OSError as e:
+        except OSError:
             cli.print(f'[red]File {output_nml} already exists[/]')
             raise typer.Abort()
 

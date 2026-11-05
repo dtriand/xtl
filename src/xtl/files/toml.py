@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 from pathlib import *
 from types import NoneType
 
@@ -7,7 +8,6 @@ from xtl.common.os import FilePermissions
 
 
 class ExtendedTomlEncoder(toml.TomlPreserveCommentEncoder):
-
     def __init__(self, _dict=dict, preserve: bool = False):
         super().__init__(_dict=_dict, preserve=preserve)
 

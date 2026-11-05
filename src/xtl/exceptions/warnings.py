@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from xtl.crystallization.experiments import Reagent
+
+
 class Warning_(Warning):
     pass
 
@@ -23,7 +29,6 @@ class IncompatibleShellWarning(Warning_):
 
 
 class ObjectInstantiationWarning(Warning_):
-
     def __init__(self, message='', raiser=None):
         self.raiser = raiser
         self.message = message
@@ -33,8 +38,7 @@ class ObjectInstantiationWarning(Warning_):
 
 
 class ExistingReagentWarning(Warning_):
-
-    def __init__(self, message='', raiser: 'xtl.crystallization.experiments.Reagent' = None):
+    def __init__(self, message='', raiser: 'Reagent' = None):
         self.raiser = raiser
 
     def __str__(self):

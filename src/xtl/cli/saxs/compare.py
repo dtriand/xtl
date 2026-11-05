@@ -3,8 +3,7 @@ from pathlib import Path
 import typer
 
 from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
-from xtl.cli.utilities.common import get_console_options, ConsoleOptions, \
-    get_job_options, JobOptions
+from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 from xtl.cli.utilities import epilog
 
 
@@ -17,23 +16,9 @@ app = typer.Typer()
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
 async def cli_saxs_compare(
-    datafiles: list[Path] = \
-            typer.Argument(
-                ...,
-                metavar='FILE(S)', show_default=False,
-                help='Data files to compare'
-            ),
-    alpha: float = \
-            typer.Option(
-                0.01, '--alpha', '-a',
-                min=0, max=1,
-                help='Significance level for clique search'
-            ),
-    csv_output: bool = \
-            typer.Option(
-                False, '--csv',
-                help='Output results as CSV instead of a tree view'
-            ),
+    datafiles: list[Path] = typer.Argument(..., metavar='FILE(S)', show_default=False, help='Data files to compare'),
+    alpha: float = typer.Option(0.01, '--alpha', '-a', min=0, max=1, help='Significance level for clique search'),
+    csv_output: bool = typer.Option(False, '--csv', help='Output results as CSV instead of a tree view'),
     job_options: JobOptions = typer.Option(),
     console_options: ConsoleOptions = typer.Option(),
 ):
@@ -68,16 +53,15 @@ async def cli_saxs_compare(
                     'alpha': alpha,
                 }
             }
-        }
+        },
     )
     async with console.get_pool('simple') as pool:
-        jobs = pool.submit(SAXSCompareJob, configs=config)
+        pool.submit(SAXSCompareJob, configs=config)
         results = await pool.launch('all')
 
     results = results[0]
     if not results or not results.success:
-        console.print(f'The job completed unsuccessfully. '
-                      f'Inspect job output: {job_directory}', style='bold red')
+        console.print(f'The job completed unsuccessfully. Inspect job output: {job_directory}', style='bold red')
         raise typer.Exit(code=1)
 
     cliques = results.data['cliques']
@@ -102,9 +86,7 @@ async def cli_saxs_compare(
                 branch.add(file.name)
         console.print(tree)
 
-        console.print(f'\nNumber of unique merging cliques: '
-                      f'[dim]{len(cliques):,}[/]', highlight=False)
-        console.print(f'Longest clique: [dim]#1 '
-                      f'({len(cliques[0])}/{len(datafiles)} datasets)[/]', highlight=False)
+        console.print(f'\nNumber of unique merging cliques: [dim]{len(cliques):,}[/]', highlight=False)
+        console.print(f'Longest clique: [dim]#1 ({len(cliques[0])}/{len(datafiles)} datasets)[/]', highlight=False)
 
     return

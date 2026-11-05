@@ -1,4 +1,4 @@
-from dataclasses import dataclass, Field, _MISSING_TYPE
+from dataclasses import dataclass, Field
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -7,7 +7,6 @@ from xtl.common import AnnotatedDataclass
 
 @dataclass
 class GPhLConfig(AnnotatedDataclass):
-
     def _get_alias_value(self, param: Field):
         """
         Format the value of a parameter using an `alias_fstring` metadata field and the values of other parameters
@@ -70,7 +69,6 @@ class GPhLConfig(AnnotatedDataclass):
         results = {}
         for param in self.__dataclass_fields__.values():
             if param.metadata.get('group', None) == name:
-                value = self.get_param_value(param.name)
                 results.update(self.get_param_value(param.name))
         return results
 

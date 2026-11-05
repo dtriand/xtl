@@ -65,7 +65,7 @@ class NpxFile:
         """
         header = f'{self._COMMENT_CHAR * (self._MULTIPLIER + 1)} {self._NPX_TITLE} version {self._NPX_VERSION}\n'
         header += f'{self._COMMENT_CHAR * self._MULTIPLIER} {self._NPX_HEADER_START}\n'
-        header += '\n'.join(f'{self._COMMENT_CHAR} {l}' for l in self._header) + '\n'
+        header += '\n'.join(f'{self._COMMENT_CHAR} {line}' for line in self._header) + '\n'
         header += f'{self._COMMENT_CHAR * self._MULTIPLIER} {self._NPX_HEADER_END}\n'
         return header
 
@@ -93,9 +93,11 @@ class NpxFile:
             header = self._make_header().encode(encoding='latin1')
             info = self._make_info().encode(encoding='latin1')
         except UnicodeEncodeError as e:
-            print(f'Encoding error while preparing NPX header')
-            print(f'Cannot encode characters \'{e.object[e.start:e.end]}\' in position {e.start}:{e.end} to encoding '
-                  f'\'{e.encoding}\'')
+            print('Encoding error while preparing NPX header')
+            print(
+                f"Cannot encode characters '{e.object[e.start : e.end]}' in position {e.start}:{e.end} to encoding "
+                f"'{e.encoding}'"
+            )
             raise e
 
         # Choose filetype to save
@@ -133,7 +135,7 @@ class NpxFile:
             # Parse a .npx file
             # Parse header
             header_block = b.split(header_start)[-1].split(header_end)[0].decode()
-            header = '\n'.join([l[2:] for l in header_block.split('\n')])  # Trim comment chars
+            header = '\n'.join([line[2:] for line in header_block.split('\n')])  # Trim comment chars
 
             # Parse data
             npx_end = f'{cls._COMMENT_CHAR * cls._MULTIPLIER} {cls._NPX_END}\n'.encode(encoding='latin1')

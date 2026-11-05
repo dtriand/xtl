@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import rich.progress
 
@@ -9,12 +9,11 @@ if TYPE_CHECKING:
 
 
 class ProgressTask:
-
     def __init__(
-            self,
-            name: str,
-            task_id: rich.progress.TaskID,
-            progress_bar: ProgressBar | rich.progress.Progress,
+        self,
+        name: str,
+        task_id: rich.progress.TaskID,
+        progress_bar: ProgressBar | rich.progress.Progress,
     ):
         self._name = name
         self._task_id = task_id
@@ -35,10 +34,7 @@ class ProgressTask:
         return task
 
     def update(self, **kwargs) -> None:
-        self._progress.update(
-            task_id=self._task_id,
-            **kwargs
-        )
+        self._progress.update(task_id=self._task_id, **kwargs)
 
     def advance(self, value: int | float, *, field: str | None = None) -> None:
         """
@@ -46,10 +42,7 @@ class ProgressTask:
         that field instead, if it exists.
         """
         if not field:
-            self._progress.advance(
-                task_id=self._task_id,
-                advance=value
-            )
+            self._progress.advance(task_id=self._task_id, advance=value)
         else:
             old = self._task.fields.get(field, None)
             if old is not None:
@@ -138,29 +131,24 @@ class ProgressTask:
         return self._task.time_remaining
 
 
-
 class ProgressBar:
-
     def __init__(
-            self,
-            *names,
-            console: ConsoleIO,
-            no_tasks: int | None = None,
-            columns: tuple[rich.progress.ProgressColumn, ...] | None = None,
-            **kwargs
-    ) ->None:
+        self,
+        *names,
+        console: ConsoleIO,
+        no_tasks: int | None = None,
+        columns: tuple[rich.progress.ProgressColumn, ...] | None = None,
+        **kwargs,
+    ) -> None:
         if no_tasks is not None and len(names) != 0 and no_tasks != len(names):
-            raise ValueError(f'`no_tasks` is different from the number of `names` provided')
+            raise ValueError('`no_tasks` is different from the number of `names` provided')
         elif len(names) == 0 and no_tasks is not None:
             names = (f'Task {i}' for i in range(no_tasks))
 
         self._console = console
         self._columns: tuple[rich.progress.ProgressColumn, ...] = columns if columns else self.get_default_columns()
 
-        self._progress = rich.progress.Progress(
-            *self._columns,
-            **kwargs
-        )
+        self._progress = rich.progress.Progress(*self._columns, **kwargs)
 
         self._tasks: dict[str, ProgressTask] = {}
         for name in names:
@@ -170,19 +158,8 @@ class ProgressBar:
     def get_default_columns(cls) -> tuple[rich.progress.ProgressColumn, ...]:
         return rich.progress.Progress.get_default_columns()
 
-    def add_task(
-            self,
-            name: str,
-            *,
-            description: str,
-            total: int | float | None = None,
-            **kwargs
-    ) -> ProgressTask:
-        task_id = self._progress.add_task(
-            description=description,
-            total=total,
-            **kwargs
-        )
+    def add_task(self, name: str, *, description: str, total: int | float | None = None, **kwargs) -> ProgressTask:
+        task_id = self._progress.add_task(description=description, total=total, **kwargs)
         task = ProgressTask(
             name=name,
             task_id=task_id,

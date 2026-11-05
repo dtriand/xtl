@@ -9,7 +9,6 @@ from xtl.math.trig import tan, tan_d, tan_r, atan, atan_d, atan_r
 
 
 class TestSinAll:
-
     class TestSin:
         @pytest.mark.parametrize('angle, value, mode', [(90, 1, 'd'), (pi / 2, 1, 'r')])
         def test_sin(self, angle, value, mode):
@@ -38,7 +37,6 @@ class TestSinAll:
 
 
 class TestCosAll:
-
     class TestCos:
         @pytest.mark.parametrize('angle, value, mode', [(90, 0, 'd'), (pi / 2, 0, 'r')])
         def test_cos(self, angle, value, mode):
@@ -67,7 +65,6 @@ class TestCosAll:
 
 
 class TestTanAll:
-
     class TestTan:
         @pytest.mark.parametrize('angle, value, mode', [(45, 1, 'd'), (pi / 4, 1, 'r')])
         def test_tan(self, angle, value, mode):
@@ -93,4 +90,3 @@ class TestTanAll:
         @pytest.mark.parametrize('angle, value', [(0, 0), (1, pi / 4)])
         def test_atan_r(self, angle, value):
             assert atan_r(angle) == approx(value)
-

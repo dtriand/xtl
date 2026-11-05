@@ -1,4 +1,4 @@
-from rich.highlighter import RegexHighlighter, Highlighter
+from rich.highlighter import RegexHighlighter
 from rich.text import Text
 
 
@@ -6,6 +6,7 @@ class JobHighlighter(RegexHighlighter):
     """
     Highlighter for xtl.jobs.job.Job loggers.
     """
+
     base_style = 'xtl.jobs.jobs.Job.'
     highlights = [
         r'(?P<job_id>\[([^\]]+)\])',
@@ -21,6 +22,7 @@ class PoolHighlighter(RegexHighlighter):
     """
     Highlighter for xtl.jobs.pools.BasePool loggers.
     """
+
     base_style = 'xtl.jobs.pool.BasePool.'
     highlights = [
         r'(?P<pool_id>\[([^\]]+)\])',

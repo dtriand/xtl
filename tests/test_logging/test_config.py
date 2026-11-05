@@ -1,15 +1,10 @@
 import io
 import logging
-import os
 import pytest
-import sys
 import tempfile
 from pathlib import Path
 
-from xtl.logging.config import (
-    LoggingFormat, HandlerConfig, StreamHandlerConfig,
-    FileHandlerConfig, LoggerConfig
-)
+from xtl.logging.config import LoggingFormat, HandlerConfig, StreamHandlerConfig, FileHandlerConfig, LoggerConfig
 
 
 class TestLoggingFormat:
@@ -49,10 +44,7 @@ class TestStreamHandlerConfig:
     def test_logging_to_stream(self):
         """Test that logging works correctly with a stream handler."""
         stream = io.StringIO()
-        config = StreamHandlerConfig(
-            stream=stream,
-            format=LoggingFormat(format='%(message)s')
-        )
+        config = StreamHandlerConfig(stream=stream, format=LoggingFormat(format='%(message)s'))
         handler = config.get_handler()
 
         logger = logging.getLogger('test_stream')
@@ -86,10 +78,7 @@ class TestFileHandlerConfig:
         """Test that logging works correctly with a file handler."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_path = Path(tmpdir) / 'test.log'
-            config = FileHandlerConfig(
-                filename=str(log_path),
-                format=LoggingFormat(format='%(message)s')
-            )
+            config = FileHandlerConfig(filename=str(log_path), format=LoggingFormat(format='%(message)s'))
             handler = config.get_handler()
 
             logger = logging.getLogger('test_file')
@@ -125,11 +114,7 @@ class TestLoggerConfig:
         """Test that a custom logger config can be created."""
         stream_handler = StreamHandlerConfig(stream=io.StringIO())
         file_handler = FileHandlerConfig(filename='custom.log')
-        config = LoggerConfig(
-            level=logging.DEBUG,
-            propagate=True,
-            handlers=[stream_handler, file_handler]
-        )
+        config = LoggerConfig(level=logging.DEBUG, propagate=True, handlers=[stream_handler, file_handler])
         assert config.level == logging.DEBUG
         assert config.propagate is True
         assert len(config.handlers) == 2
@@ -141,12 +126,7 @@ class TestLoggerConfig:
         stream = io.StringIO()
         config = LoggerConfig(
             level=logging.DEBUG,
-            handlers=[
-                StreamHandlerConfig(
-                    stream=stream,
-                    format=LoggingFormat(format='%(levelname)s: %(message)s')
-                )
-            ]
+            handlers=[StreamHandlerConfig(stream=stream, format=LoggingFormat(format='%(levelname)s: %(message)s'))],
         )
 
         logger = logging.getLogger('test_configure')
@@ -207,18 +187,12 @@ class TestIntegration:
                 propagate=False,
                 handlers=[
                     StreamHandlerConfig(
-                        stream=stream,
-                        format=LoggingFormat(
-                            format='STREAM: %(levelname)s - %(message)s'
-                        )
+                        stream=stream, format=LoggingFormat(format='STREAM: %(levelname)s - %(message)s')
                     ),
                     FileHandlerConfig(
-                        filename=str(log_path),
-                        format=LoggingFormat(
-                            format='FILE: %(levelname)s - %(message)s'
-                        )
-                    )
-                ]
+                        filename=str(log_path), format=LoggingFormat(format='FILE: %(levelname)s - %(message)s')
+                    ),
+                ],
             )
 
             # Configure a logger with this setup

@@ -9,7 +9,7 @@ from typing import Callable, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings
-    from xtl.jobs.sites import ComputeSiteType, LocalSite, SchedulerSite
+    from xtl.jobs.sites import ComputeSiteType, SchedulerSite
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
 from xtl.common.compatibility import PY310_OR_LESS
@@ -21,6 +21,7 @@ __all__ = ['BatchFile', 'BatchFileStatus']
 
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
@@ -56,14 +57,14 @@ class BatchTemplate(Template):
     """
 
     delimiter = '__'
-    pattern = r'''
+    pattern = r"""
             __(?:
                 (?P<escaped>__)                        |  # Escape sequence of two delimiters
                 (?P<named>[a-zA-Z_][a-zA-Z0-9_]*?)__   |  # Delimiter and a Python identifier
                 (?P<braced>[a-zA-Z_][a-zA-Z0-9_]*?)__  |  # Delimiter and a braced identifier
                 (?P<invalid>)                             # Other ill-formed delimiter expressions
             )
-        '''
+        """
 
     __MAGIC_VARS__: dict[str, Callable] = {
         'XTL_COMMENT': lambda **kwargs: kwargs.get('comment_char', ''),
@@ -73,14 +74,14 @@ class BatchTemplate(Template):
 
 
 class BatchFile:
-
-    def __init__(self,
-                 filename: str | Path,
-                 compute_site: ComputeSiteType = None,
-                 shell: ShellType = None,
-                 dependencies: str | DependencySettings |
-                               Iterable[str | DependencySettings] = None,
-                 permissions: str | FilePermissions = None):
+    def __init__(
+        self,
+        filename: str | Path,
+        compute_site: ComputeSiteType = None,
+        shell: ShellType = None,
+        dependencies: str | DependencySettings | Iterable[str | DependencySettings] = None,
+        permissions: str | FilePermissions = None,
+    ):
         """
         A class for programmatically creating batch/script files. The behavior of the
         batch file can be customized by specifying the compute site and shell to use.
@@ -99,12 +100,10 @@ class BatchFile:
         # Imports to prevent circular dependencies
         from xtl import settings
         from xtl.jobs.sites import ComputeSiteType, LocalSite
-        from xtl.jobs.config import BatchJobConfig
 
         # Check compute_site
         if compute_site and not isinstance(compute_site, ComputeSiteType):
-            raise TypeError(f'`compute_site` must be an instance of ComputeSite, '
-                            f'not {type(compute_site)}')
+            raise TypeError(f'`compute_site` must be an instance of ComputeSite, not {type(compute_site)}')
         self._compute_site = compute_site or LocalSite()
 
         # Check shell
@@ -115,8 +114,7 @@ class BatchFile:
         # Set permissions
         _permissions = FilePermissions(permissions or settings.jobs.permissions.scripts)
         if not _permissions.owner.can_execute:
-            raise ValueError(f'`permissions` must allow owner execute access, '
-                             f'not {_permissions}')
+            raise ValueError(f'`permissions` must allow owner execute access, not {_permissions}')
         else:
             self._permissions = _permissions
 
@@ -219,8 +217,7 @@ class BatchFile:
         """
         Returns the preamble for the batch file.
         """
-        return self.compute_site.prepare_preamble(dependencies=self.dependencies,
-                                                  shell=self.shell)
+        return self.compute_site.prepare_preamble(dependencies=self.dependencies, shell=self.shell)
 
     def get_content(self) -> str:
         """
@@ -246,8 +243,7 @@ class BatchFile:
         """
         # Delete the file if it already exists
         if self.file.exists() and not overwrite:
-            raise FileExistsError(f'Batch file {self.file} already exists. '
-                                  f'Set overwrite=True to overwrite it.')
+            raise FileExistsError(f'Batch file {self.file} already exists. Set overwrite=True to overwrite it.')
         self.file.unlink(missing_ok=True)
 
         # Prepare the contents
@@ -260,8 +256,7 @@ class BatchFile:
             text += postamble + self.shell.new_line_char
 
         # Write contents to file
-        self.file.write_text(data=text, encoding='utf-8',
-                             newline=self.shell.new_line_char)
+        self.file.write_text(data=text, encoding='utf-8', newline=self.shell.new_line_char)
 
         # Update file permissions
         if update_permissions:
@@ -281,8 +276,7 @@ class BatchFile:
         :raises RuntimeError: If the batch file has not been saved yet.
         """
         if not self._saved:
-            raise RuntimeError('Batch file has not been saved yet. '
-                               'Call `save()` before `execute()`.')
+            raise RuntimeError('Batch file has not been saved yet. Call `save()` before `execute()`.')
         if schedule and isinstance(self.compute_site, SchedulerSite):
             await self.compute_site.schedule_batch(self, **kwargs)
         else:
@@ -334,8 +328,7 @@ class BatchFile:
             raise KeyError(f'Missing required key for {BatchFile.__name__} template: {missing_key}')
 
     @classmethod
-    def from_config(cls, config: BatchJobConfig | dict, context: dict = None) \
-            -> BatchFile:
+    def from_config(cls, config: BatchJobConfig | dict, context: dict = None) -> BatchFile:
         """
         Create a pre-configured BatchFile instance from a BatchJobConfig. If the config
         includes an appropriate template, the batch file contents will be populated and
@@ -362,7 +355,7 @@ class BatchFile:
             compute_site=ComputeSite(config.compute_site).get(),
             shell=Shell(config.shell).get(),
             dependencies=config.dependencies,
-            permissions=config.permissions
+            permissions=config.permissions,
         )
 
         # Store the config

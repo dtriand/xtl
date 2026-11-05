@@ -1,3 +1,4 @@
+# ruff: noqa: E741 (`l` is a Miller index)
 from math import sqrt
 
 from typing_extensions import Literal
@@ -47,53 +48,25 @@ s_to_tth = lambda x, w: d_to_tth(s_to_d(x, w), w)
 q_to_s = lambda x, w: x / (2 * np.pi)
 s_to_q = lambda x, w: 2 * np.pi * x
 radial_converters = {
-    '2theta': {
-        'd': tth_to_d,
-        'q': tth_to_q,
-        's': tth_to_s
-    },
-    'd': {
-        '2theta': d_to_tth,
-        'q': d_to_q,
-        's': d_to_s
-    },
-    'q': {
-        '2theta': q_to_tth,
-        'd': q_to_d,
-        's': q_to_s
-    },
-    's': {
-        '2theta': s_to_tth,
-        'd': s_to_d,
-        'q': s_to_q
-    }
+    '2theta': {'d': tth_to_d, 'q': tth_to_q, 's': tth_to_s},
+    'd': {'2theta': d_to_tth, 'q': d_to_q, 's': d_to_s},
+    'q': {'2theta': q_to_tth, 'd': q_to_d, 's': q_to_s},
+    's': {'2theta': s_to_tth, 'd': s_to_d, 'q': s_to_q},
 }
 
 deg_to_rad = lambda x: np.radians(x)
 rad_to_deg = lambda x: np.degrees(x)
-nm_to_A = lambda x: x * 10.
-A_to_nm = lambda x: x / 10.
-inv_nm_to_inv_A = lambda x: x / 10.
-inv_A_to_inv_nm = lambda x: x * 10.
+nm_to_A = lambda x: x * 10.0
+A_to_nm = lambda x: x / 10.0
+inv_nm_to_inv_A = lambda x: x / 10.0
+inv_A_to_inv_nm = lambda x: x * 10.0
 unit_converters = {
-    'degrees': {
-        'radians': deg_to_rad
-    },
-    'radians': {
-        'degrees': rad_to_deg
-    },
-    'nm': {
-        'A': nm_to_A
-    },
-    'A': {
-        'nm': A_to_nm
-    },
-    '1/nm': {
-        '1/A': inv_nm_to_inv_A
-    },
-    '1/A': {
-        '1/nm': inv_A_to_inv_nm
-    }
+    'degrees': {'radians': deg_to_rad},
+    'radians': {'degrees': rad_to_deg},
+    'nm': {'A': nm_to_A},
+    'A': {'nm': A_to_nm},
+    '1/nm': {'1/A': inv_nm_to_inv_A},
+    '1/A': {'1/nm': inv_A_to_inv_nm},
 }
 
 
@@ -118,7 +91,7 @@ def d_hkl(hkl, cell):
         elif cell.crystal_system == 'triclinic':
             return d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma)
     else:
-        if alpha == beta == gamma == 90.:
+        if alpha == beta == gamma == 90.0:
             a_, b_, c_ = sorted([a, b, c])
             if a_ == b_ == c_:  # cubic
                 return d_hkl_cubic(hkl, a_)
@@ -128,20 +101,20 @@ def d_hkl(hkl, cell):
                 return d_hkl_orthorhombic(hkl, a_, b_, c_)
         elif alpha == beta == gamma and a == b == c:  # rhombohedral
             return d_hkl_rhombohedral(hkl, a, alpha)
-        elif alpha + beta + gamma == 300.:  # hexagonal (90+90+120)
-            if a == b and alpha == beta == 90. and gamma == 120.:
+        elif alpha + beta + gamma == 300.0:  # hexagonal (90+90+120)
+            if a == b and alpha == beta == 90.0 and gamma == 120.0:
                 return d_hkl_hexagonal(hkl, a, c)
-            elif a == c and alpha == gamma == 90. and beta == 120.:
+            elif a == c and alpha == gamma == 90.0 and beta == 120.0:
                 return d_hkl_hexagonal(hkl, a, b)
-            elif b == c and beta == gamma == 90. and alpha == 120.:
+            elif b == c and beta == gamma == 90.0 and alpha == 120.0:
                 return d_hkl_hexagonal(hkl, b, a)
             else:
                 return d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma)
-        elif alpha == gamma == 90.:  # monoclinic
+        elif alpha == gamma == 90.0:  # monoclinic
             return d_hkl_monoclinic(hkl, a, b, c, beta)
-        elif alpha == beta == 90.:
+        elif alpha == beta == 90.0:
             return d_hkl_monoclinic(hkl, a, c, b, gamma)
-        elif beta == gamma == 90.:
+        elif beta == gamma == 90.0:
             return d_hkl_monoclinic(hkl, b, a, c, alpha)
         else:
             return d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma)
@@ -166,9 +139,9 @@ def d_hkl_orthorhombic(hkl, a, b, c):
 
 def d_hkl_rhombohedral(hkl, a, alpha):
     h, k, l = hkl
-    d_star_squared = ((h**2 + k**2 + l**2) * sin_d(alpha)**2
-                      + 2 * (h * k + k * l + l * h) * (cos_d(alpha)**2 - cos_d(alpha))) / \
-                     (a**2 * (1 - 3 * cos_d(alpha)**2 + 2 * cos_d(alpha)**3))
+    d_star_squared = (
+        (h**2 + k**2 + l**2) * sin_d(alpha) ** 2 + 2 * (h * k + k * l + l * h) * (cos_d(alpha) ** 2 - cos_d(alpha))
+    ) / (a**2 * (1 - 3 * cos_d(alpha) ** 2 + 2 * cos_d(alpha) ** 3))
     return sqrt(d_star_squared)
 
 
@@ -180,22 +153,30 @@ def d_hkl_hexagonal(hkl, a, c):
 
 def d_hkl_monoclinic(hkl, a, b, c, beta):
     h, k, l = hkl
-    d_star_squared = (1 / sin_d(beta)**2) * (h**2 / a**2 + (k**2 * sin_d(beta)**2) / b**2 + l**2 / c**2
-                                             - 2 * h * l * cos_d(beta) / (a * c))
+    d_star_squared = (1 / sin_d(beta) ** 2) * (
+        h**2 / a**2 + (k**2 * sin_d(beta) ** 2) / b**2 + l**2 / c**2 - 2 * h * l * cos_d(beta) / (a * c)
+    )
     return sqrt(d_star_squared)
 
 
 def d_hkl_triclinic(hkl, a, b, c, alpha, beta, gamma):
     h, k, l = hkl
-    s11 = b**2 * c**2 * sin_d(alpha)**2
-    s22 = a**2 * c**2 * sin_d(beta)**2
-    s33 = a**2 * b**2 * sin_d(gamma)**2
+    s11 = b**2 * c**2 * sin_d(alpha) ** 2
+    s22 = a**2 * c**2 * sin_d(beta) ** 2
+    s33 = a**2 * b**2 * sin_d(gamma) ** 2
     s12 = a * b * c**2 * (cos_d(alpha) * cos_d(beta) - cos_d(gamma))
     s23 = a**2 * b * c * (cos_d(beta) * cos_d(gamma) - cos_d(alpha))
     s13 = a * b**2 * c * (cos_d(alpha) * cos_d(gamma) - cos_d(beta))
-    V = a * b * c * sqrt(1 - cos_d(alpha)**2 - cos_d(beta)**2 - cos_d(gamma)**2
-                         + 2 * cos_d(alpha) * cos_d(beta) * cos_d(gamma))
+    V = (
+        a
+        * b
+        * c
+        * sqrt(
+            1 - cos_d(alpha) ** 2 - cos_d(beta) ** 2 - cos_d(gamma) ** 2 + 2 * cos_d(alpha) * cos_d(beta) * cos_d(gamma)
+        )
+    )
 
-    d_star_squared = (1 / V**2) * (s11 * h**2 + s22 * k**2 + s33 * l**2
-                                   + 2 * s12 * h * k + 2 * s23 * k * l + 2 * s13 * h * l)
+    d_star_squared = (1 / V**2) * (
+        s11 * h**2 + s22 * k**2 + s33 * l**2 + 2 * s12 * h * k + 2 * s23 * k * l + 2 * s13 * h * l
+    )
     return sqrt(d_star_squared)

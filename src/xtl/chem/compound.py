@@ -8,7 +8,6 @@ from xtl.exceptions import InvalidArgument
 
 
 class Compound:
-
     COMPOUND_TYPES = ['simple', 'protein', 'w/v']
 
     def __init__(self, name: str = None, molar_mass: int or float = 0, formula: str = None, type: str = 'simple'):
@@ -62,7 +61,6 @@ class Compound:
 
 
 class CompoundLibrary:
-
     def __init__(self):
         """
         Class for holding a collection of Compound instances.
@@ -77,7 +75,7 @@ class CompoundLibrary:
         if item in self._data:
             return self._data[item]
         else:
-            print(f'No compound named \'{item}\' in library.')
+            print(f"No compound named '{item}' in library.")
             return None
 
     def export_to_file(self, filename: str or Path, overwrite: bool = False):
@@ -85,8 +83,9 @@ class CompoundLibrary:
         fp.suffix = '.csv'
         if not fp.exists() or overwrite:
             compounds = dict(sorted(self._data.items()))
-            data = '\n'.join([','.join([compound.name, compound.formula, compound.molar_mass])
-                              for compound in compounds.values()])
+            data = '\n'.join(
+                [','.join([compound.name, compound.formula, compound.molar_mass]) for compound in compounds.values()]
+            )
             fp.write_text(data, 'utf-8')
         else:
             print(f'File {fp} already exists. Skipping export...')
@@ -111,4 +110,3 @@ class CompoundLibrary:
         lib = cls()
         lib.import_from_file(filename)
         return lib
-

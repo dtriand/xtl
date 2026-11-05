@@ -5,6 +5,7 @@ This module defines custom serializers for use with `Pydantic` models.
 """
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from xtl.common.os import FilePermissions
 

@@ -11,7 +11,6 @@ from xtl.exceptions import InvalidArgument, FileError
 
 
 class TestInstrumentalParameters:
-
     class TestLoadFile:
         def test_load_success(self, gsas2_iparam_lab, gsas2_iparam_synchrotron):
             # Randomized files created by conftest.py
@@ -151,4 +150,3 @@ class TestInstrumentalParameters:
 
             with pytest.raises(InvalidArgument, match='number between 0.5 and 1.0'):
                 ips.polarization = 0.3
-
