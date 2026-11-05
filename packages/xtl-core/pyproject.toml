@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xtl-core"
+dynamic = ["version"]
+authors = [
+    {name = "Dimitris P. Triandafillidis", email = "64985525+dtriand@users.noreply.github.com"}
+]
+description = "Core functionality for XTL"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+homepage = "https://github.com/dtriand/xtl"
+
+[dependency-groups]
+test = [
+    "pytest>=7.2.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.hatch.version]
+path = "src/xtl_core/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xtl_core"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "session"  # same as the root config

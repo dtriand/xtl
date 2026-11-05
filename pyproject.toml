@@ -97,6 +97,9 @@ dev = [
     {include-group = "lint"},
 ]
 
+[tool.uv.workspace]
+members = ["packages/*"]
+
 [tool.hatch.version]
 source = "code"
 path = "src/xtl/config/version.py"
@@ -164,7 +167,7 @@ pass_env = ["PRE_COMMIT_HOME"]
 commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure", { replace = "posargs", extend = true }]]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "packages/xtl-core/tests"]
 timeout = 300
 markers = [
     "requires_network: Tests requiring a network connection",
