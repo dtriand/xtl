@@ -18,44 +18,17 @@ class RadialQuantity(Units):
             pretty='2\u03b8',
             latex=r'$2\theta$',
             aliases=('2th', '2theta', 'tth', 'ttheta'),
-        )
+        ),
     )
 
-    D = (
-        'd',
-        UnitsDescription(
-            name='d',
-            desc='d-spacing',
-            repr='d',
-            pretty='d',
-            latex=r'$d$',
-            aliases=('d', )
-        )
-    )
+    D = ('d', UnitsDescription(name='d', desc='d-spacing', repr='d', pretty='d', latex=r'$d$', aliases=('d',)))
 
     Q = (
         'q',
-        UnitsDescription(
-            name='q',
-            desc='q-spacing (2 * pi / d)',
-            repr='q',
-            pretty='q',
-            latex=r'$q$',
-            aliases=('q', )
-        )
+        UnitsDescription(name='q', desc='q-spacing (2 * pi / d)', repr='q', pretty='q', latex=r'$q$', aliases=('q',)),
     )
 
-    S = (
-        's',
-        UnitsDescription(
-            name='s',
-            desc='s-spacing (1 / d)',
-            repr='s',
-            pretty='s',
-            latex=r'$s$',
-            aliases=('s', )
-        )
-    )
+    S = ('s', UnitsDescription(name='s', desc='s-spacing (1 / d)', repr='s', pretty='s', latex=r'$s$', aliases=('s',)))
 
 
 class RadialPhysicalUnits(Units):
@@ -68,7 +41,7 @@ class RadialPhysicalUnits(Units):
             pretty='\u00b0',
             latex=r'$^\circ$',
             aliases=('deg', 'degrees'),
-        )
+        ),
     )
 
     RAD = (
@@ -80,7 +53,7 @@ class RadialPhysicalUnits(Units):
             pretty='rad',
             latex=r'\mathrm{rad}',
             aliases=('rad', 'radians'),
-        )
+        ),
     )
 
     A = (
@@ -91,8 +64,8 @@ class RadialPhysicalUnits(Units):
             repr='A',
             pretty='\u212b',
             latex='\mathrm{\AA}',
-            aliases=('A', 'angstrom', 'angstroms', 'angstroem', 'angstroems')
-        )
+            aliases=('A', 'angstrom', 'angstroms', 'angstroem', 'angstroems'),
+        ),
     )
 
     NM = (
@@ -104,7 +77,7 @@ class RadialPhysicalUnits(Units):
             pretty='nm',
             latex=r'\mathrm{nm}',
             aliases=('nm', 'nanometers'),
-        )
+        ),
     )
 
     INV_A = (
@@ -113,10 +86,10 @@ class RadialPhysicalUnits(Units):
             name='1/A',
             desc='Reciprocal Angstroms',
             repr='1/A',
-            pretty='A\u207B\u00B9',
+            pretty='A\u207b\u00b9',
             latex=r'$\mathrm{\AA}^{-1}$',
-            aliases=('1/A', 'A^-1', 'rA', 'reciprocal_angstroms')
-        )
+            aliases=('1/A', 'A^-1', 'rA', 'reciprocal_angstroms'),
+        ),
     )
 
     INV_NM = (
@@ -125,10 +98,10 @@ class RadialPhysicalUnits(Units):
             name='1/nm',
             desc='Reciprocal nanometers',
             repr='1/nm',
-            pretty='nm\u207B\u00B9',
+            pretty='nm\u207b\u00b9',
             latex=r'$\mathrm{nm}^{-1}$',
-            aliases=('1/nm', 'nm^-1', 'rnm', 'reciprocal_nanometers')
-        )
+            aliases=('1/nm', 'nm^-1', 'rnm', 'reciprocal_nanometers'),
+        ),
     )
 
     INV_A2 = (
@@ -137,10 +110,10 @@ class RadialPhysicalUnits(Units):
             name='1/A^2',
             desc='Reciprocal Angstroms squared',
             repr='1/A^2',
-            pretty='A\u207B\u00B2',
+            pretty='A\u207b\u00b2',
             latex='\mathrm{\AA}^{-2}',
-            aliases=('1/A2', 'reciprocal angstroms squared')
-        )
+            aliases=('1/A2', 'reciprocal angstroms squared'),
+        ),
     )
 
     INV_NM2 = (
@@ -149,10 +122,10 @@ class RadialPhysicalUnits(Units):
             name='1/nm^2',
             desc='Reciprocal nanometers squared',
             repr='1/nm^2',
-            pretty='nm\u207B\u00B2',
+            pretty='nm\u207b\u00b2',
             latex=r'\mathrm{nm}^{-2}',
             aliases=('1/nm2', 'reciprocal nanometers squared'),
-        )
+        ),
     )
 
     INV_A4 = (
@@ -161,10 +134,10 @@ class RadialPhysicalUnits(Units):
             name='1/A^4',
             desc='Reciprocal Angstroms to the fourth power',
             repr='1/A^4',
-            pretty='A\u207B\u2074',
+            pretty='A\u207b\u2074',
             latex='\mathrm{\AA}^{-4}',
-            aliases=('1/A4', )
-        )
+            aliases=('1/A4',),
+        ),
     )
 
     INV_NM4 = (
@@ -173,10 +146,10 @@ class RadialPhysicalUnits(Units):
             name='1/nm^4',
             desc='Reciprocal nanometers to the fourth power',
             repr='1/nm^4',
-            pretty='nm\u207B\u2074',
+            pretty='nm\u207b\u2074',
             latex=r'\mathrm{nm}^{-4}',
-            aliases=('1/nm4', ),
-        )
+            aliases=('1/nm4',),
+        ),
     )
 
 
@@ -195,12 +168,25 @@ class RadialUnits(Units):
             repr='2theta (deg)',
             pretty='2\u03b8 (\u00b0)',
             latex=r'$2\theta\ (^\circ)$',
-            aliases=('2th', '2theta', 'tth', 'ttheta', 'deg', 'degrees',
-                     '2th_deg', '2th_degrees', '2theta_deg', '2theta_degrees',
-                     'tth_deg', 'tth_degrees', 'ttheta_deg', 'ttheta_degrees'),
+            aliases=(
+                '2th',
+                '2theta',
+                'tth',
+                'ttheta',
+                'deg',
+                'degrees',
+                '2th_deg',
+                '2th_degrees',
+                '2theta_deg',
+                '2theta_degrees',
+                'tth_deg',
+                'tth_degrees',
+                'ttheta_deg',
+                'ttheta_degrees',
+            ),
             quantity=RadialQuantity.TWOTHETA,
-            physical_units=RadialPhysicalUnits.DEG
-        )
+            physical_units=RadialPhysicalUnits.DEG,
+        ),
     )
 
     TWOTHETA_RAD = (
@@ -211,12 +197,21 @@ class RadialUnits(Units):
             repr='2theta (rad)',
             pretty='2\u03b8 (rad)',
             latex=r'$2\theta\ (\mathrm{rad})$',
-            aliases=('rad', 'radians', '2th_rad', '2theta_rad', '2th_radians',
-                     '2theta_radians', 'tth_rad', 'tth_radians', 'ttheta_rad',
-                     'ttheta_radians'),
+            aliases=(
+                'rad',
+                'radians',
+                '2th_rad',
+                '2theta_rad',
+                '2th_radians',
+                '2theta_radians',
+                'tth_rad',
+                'tth_radians',
+                'ttheta_rad',
+                'ttheta_radians',
+            ),
             quantity=RadialQuantity.TWOTHETA,
-            physical_units=RadialPhysicalUnits.RAD
-        )
+            physical_units=RadialPhysicalUnits.RAD,
+        ),
     )
 
     D_A = (
@@ -227,11 +222,10 @@ class RadialUnits(Units):
             repr='d (A)',
             pretty='d (\u212b)',
             latex=r'$d\ (\mathrm{\AA})$',
-            aliases=('d', 'd_a', 'a', 'angstrom', 'angstroem',
-                     'd_ang', 'd_angstrom', 'd_angstroem'),
+            aliases=('d', 'd_a', 'a', 'angstrom', 'angstroem', 'd_ang', 'd_angstrom', 'd_angstroem'),
             quantity=RadialQuantity.D,
-            physical_units=RadialPhysicalUnits.A
-        )
+            physical_units=RadialPhysicalUnits.A,
+        ),
     )
 
     D_NM = (
@@ -244,8 +238,8 @@ class RadialUnits(Units):
             latex=r'$d\ (\mathrm{nm})$',
             aliases=('d_nm', 'd_nanometers', 'nm', 'nanometers'),
             quantity=RadialQuantity.D,
-            physical_units=RadialPhysicalUnits.NM
-        )
+            physical_units=RadialPhysicalUnits.NM,
+        ),
     )
 
     Q_A = (
@@ -254,13 +248,22 @@ class RadialUnits(Units):
             name='q_1/A',
             desc='q-spacing (2 * pi / d) in reciprocal Angstroms',
             repr='q (1/A)',
-            pretty='q (\u212b\u207B\u00B9)',
+            pretty='q (\u212b\u207b\u00b9)',
             latex=r'$q\ (\mathrm{\AA}^{-1})$',
-            aliases=('q_a', 'q_1/a', '1/a', 'A^-1', 'q_ra', 'q_angstrom',
-                     'q_angstroem', 'q_reciprocal_angstrom', 'q_reciprocal_angstroem'),
+            aliases=(
+                'q_a',
+                'q_1/a',
+                '1/a',
+                'A^-1',
+                'q_ra',
+                'q_angstrom',
+                'q_angstroem',
+                'q_reciprocal_angstrom',
+                'q_reciprocal_angstroem',
+            ),
             quantity=RadialQuantity.Q,
-            physical_units=RadialPhysicalUnits.INV_A
-        )
+            physical_units=RadialPhysicalUnits.INV_A,
+        ),
     )
 
     Q_NM = (
@@ -269,13 +272,22 @@ class RadialUnits(Units):
             name='q_1/nm',
             desc='q-spacing (2 * pi / d) in reciprocal nanometers',
             repr='q (1/nm)',
-            pretty='q (nm\u207B\u00B9)',
+            pretty='q (nm\u207b\u00b9)',
             latex=r'$q\ (\mathrm{nm}^{-1})$',
-            aliases=('q', 'q_nm', 'q_nanometers', 'q_1/nm', '1/nm', 'nm^-1',
-                     'q_nm^-1', 'q_rnm', 'q_reciprocal_nanometers'),
+            aliases=(
+                'q',
+                'q_nm',
+                'q_nanometers',
+                'q_1/nm',
+                '1/nm',
+                'nm^-1',
+                'q_nm^-1',
+                'q_rnm',
+                'q_reciprocal_nanometers',
+            ),
             quantity=RadialQuantity.Q,
-            physical_units=RadialPhysicalUnits.INV_NM
-        )
+            physical_units=RadialPhysicalUnits.INV_NM,
+        ),
     )
 
     S_A = (
@@ -284,13 +296,20 @@ class RadialUnits(Units):
             name='s_1/A',
             desc='s-spacing (1 / d) in reciprocal Angstroms',
             repr='s (1/A)',
-            pretty='s (\u212b\u207B\u00B9)',
+            pretty='s (\u212b\u207b\u00b9)',
             latex=r'$s\ (\mathrm{\AA}^{-1})$',
-            aliases=('s_a', 's_1/a', 's_ra', 's_angstrom', 's_angstroem',
-                     's_reciprocal_angstrom', 's_reciprocal_angstroem'),
+            aliases=(
+                's_a',
+                's_1/a',
+                's_ra',
+                's_angstrom',
+                's_angstroem',
+                's_reciprocal_angstrom',
+                's_reciprocal_angstroem',
+            ),
             quantity=RadialQuantity.S,
-            physical_units=RadialPhysicalUnits.INV_A
-        )
+            physical_units=RadialPhysicalUnits.INV_A,
+        ),
     )
 
     S_NM = (
@@ -299,13 +318,12 @@ class RadialUnits(Units):
             name='s_1/nm',
             desc='s-spacing (1 / d) in reciprocal nanometers',
             repr='s (1/nm)',
-            pretty='s (nm\u207B\u00B9)',
+            pretty='s (nm\u207b\u00b9)',
             latex=r'$s\ (\mathrm{nm}^{-1})$',
-            aliases=('s', 's_nm', 's_nanometers', 's_1/nm',
-                     's_rnm', 's_reciprocal_nanometers'),
+            aliases=('s', 's_nm', 's_nanometers', 's_1/nm', 's_rnm', 's_reciprocal_nanometers'),
             quantity=RadialQuantity.S,
-            physical_units=RadialPhysicalUnits.INV_NM
-        )
+            physical_units=RadialPhysicalUnits.INV_NM,
+        ),
     )
 
     @property
@@ -319,7 +337,6 @@ class RadialUnits(Units):
 
 @dataclass
 class RadialValue:
-
     value: float | int | np.ndarray
     kind: RadialUnits
 
@@ -339,13 +356,18 @@ class RadialValue:
             's': RadialUnits.S_A,
         }
         self._supported_quantities = {
-            RadialQuantity.TWOTHETA, RadialQuantity.D,
-            RadialQuantity.Q, RadialQuantity.S,
+            RadialQuantity.TWOTHETA,
+            RadialQuantity.D,
+            RadialQuantity.Q,
+            RadialQuantity.S,
         }
         self._supported_units = {
-            RadialPhysicalUnits.DEG, RadialPhysicalUnits.RAD,
-            RadialPhysicalUnits.A, RadialPhysicalUnits.NM,
-            RadialPhysicalUnits.INV_A, RadialPhysicalUnits.INV_NM
+            RadialPhysicalUnits.DEG,
+            RadialPhysicalUnits.RAD,
+            RadialPhysicalUnits.A,
+            RadialPhysicalUnits.NM,
+            RadialPhysicalUnits.INV_A,
+            RadialPhysicalUnits.INV_NM,
         }
 
     def __repr__(self) -> str:
@@ -356,8 +378,13 @@ class RadialValue:
         yield 'units', self.kind.repr
         yield 'kind', self.kind
 
-    def convert_to(self, units: RadialUnits | str, /, wavelength: Optional[float | int] = None,
-           energy: Optional[float | int] = None) -> 'RadialValue':
+    def convert_to(
+        self,
+        units: RadialUnits | str,
+        /,
+        wavelength: Optional[float | int] = None,
+        energy: Optional[float | int] = None,
+    ) -> 'RadialValue':
         if isinstance(units, (str, RadialUnits)):
             target = RadialUnits(units)
         else:
@@ -366,18 +393,23 @@ class RadialValue:
         # Validate target unit
         target_quantity, target_unit = target.quantity, target.physical_units
         if target_quantity not in self._supported_quantities:
-            raise NotImplementedError(f'Unsupported radial quantity: {target_quantity!r}, '
-                                      f'must be one of: {", ".join(self._supported_quantities)}')
+            raise NotImplementedError(
+                f'Unsupported radial quantity: {target_quantity!r}, '
+                f'must be one of: {", ".join(self._supported_quantities)}'
+            )
         if target_unit not in self._supported_units:
-            raise NotImplementedError(f'Unsupported unit: {target_unit!r}, '
-                                      f'must be one of: {", ".join(self._supported_units)}')
+            raise NotImplementedError(
+                f'Unsupported unit: {target_unit!r}, must be one of: {", ".join(self._supported_units)}'
+            )
 
         # Check if wavelength/energy is required for conversion
         _q0, _q1 = sorted([self._quantity, target_quantity])
         if _q0 == '2theta' and _q1 in {'d', 'q', 's'}:
             if wavelength is None and energy is None:
-                raise ValueError(f'One of `wavelength` or `energy` must be specified to convert '
-                                 f'from {self.kind.repr} to {target.repr}')
+                raise ValueError(
+                    f'One of `wavelength` or `energy` must be specified to convert '
+                    f'from {self.kind.repr} to {target.repr}'
+                )
             elif wavelength is None:
                 wavelength = KEV_PER_A / energy
 

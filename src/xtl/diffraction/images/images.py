@@ -17,7 +17,6 @@ from xtl.diffraction.images.masks import detector_masks
 
 
 class Image:
-
     def __init__(self):
         # I/O options
         self.file: Path = None
@@ -73,8 +72,10 @@ class Image:
             print(f'Found {self.no_frames} frames.')
             if self.frame != self._current_frame and self.frame <= self.no_frames:
                 # self._current_frame is read from the filename, while self.frame is provided upon the function call
-                print(f'Eagerly loading frame {self.frame} instead of frame {self._current_frame} which was provided '
-                      f'as an input file.')
+                print(
+                    f'Eagerly loading frame {self.frame} instead of frame {self._current_frame} which was provided '
+                    f'as an input file.'
+                )
                 self._current_frame = self.frame
                 self.file = self.file.parent / self._get_frame_name(self._current_frame)
                 self._fabio = fabio.open(self.file, self.frame)
@@ -88,8 +89,7 @@ class Image:
         self.fmt = self._fabio.classname
         self.header_only = True
 
-    def save(self):
-        ...
+    def save(self): ...
 
     @property
     def data(self):
@@ -123,10 +123,10 @@ class Image:
 
         # Save list of frames
         if match.a == match.b == 0:
-            self._filename_template = fname0[match.a:match.a+match.size]
-            self._frames_digits = len(fname0[match.a+match.size:])
+            self._filename_template = fname0[match.a : match.a + match.size]
+            self._frames_digits = len(fname0[match.a + match.size :])
             # Assuming frames are 1-indexed
-            self._no_frames = int(fname1[match.b+match.size:])
+            self._no_frames = int(fname1[match.b + match.size :])
             self._current_frame = int(self.file.name.split(self._file_ext)[0].replace(self._filename_template, '')) - 1
 
     def _get_frame_name(self, frame_no):
@@ -265,10 +265,12 @@ class Image:
         """
         if dim == 1:
             from xtl.diffraction.images.integrators import AzimuthalIntegrator1D
+
             self.ai1 = AzimuthalIntegrator1D(image=self)
             return self.ai1
         elif dim == 2:
             from xtl.diffraction.images.integrators import AzimuthalIntegrator2D
+
             self.ai2 = AzimuthalIntegrator2D(image=self)
             return self.ai2
         else:
@@ -300,10 +302,21 @@ class Image:
         self.ai2.integrate()
         return self.ai2.results
 
-    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
-             title: str = None, zscale: str = None, zmin: float = None, zmax: float = None, cmap: str = None,
-             bad_value_color: str = None, apply_mask: bool = True, overlay_mask: bool = False) \
-            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+    def plot(
+        self,
+        ax: plt.Axes = None,
+        fig: plt.Figure = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        title: str = None,
+        zscale: str = None,
+        zmin: float = None,
+        zmax: float = None,
+        cmap: str = None,
+        bad_value_color: str = None,
+        apply_mask: bool = True,
+        overlay_mask: bool = False,
+    ) -> tuple[plt.Axes, plt.Figure, AxesImage]:
         """
         Prepare a plot of the recorded intensity data. ``plt.show()`` must be called separately to display the plot.
 
@@ -332,7 +345,7 @@ class Image:
         elif zscale in ['log', 'log10']:
             norm = partial(LogNorm, clip=False)
         else:
-            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log')
+            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log")
 
         if cmap is None:
             cmap = plt.get_cmap(self.cmap)
@@ -356,10 +369,12 @@ class Image:
         if self.geometry:
             ax.scatter(*self.beam_center, marker='X', s=70, facecolors='red', edgecolors='white')
         if overlay_mask:
-            mask_cmap = LinearSegmentedColormap.from_list(name='mask', N=2,
-                                                          colors=[to_rgba(self.mask_color), (1, 1, 1, 0)])
-            ax.imshow(self.mask.data, cmap=mask_cmap, alpha=self.mask_alpha, origin=self.detector_image_origin,
-                      vmin=0, vmax=1)
+            mask_cmap = LinearSegmentedColormap.from_list(
+                name='mask', N=2, colors=[to_rgba(self.mask_color), (1, 1, 1, 0)]
+            )
+            ax.imshow(
+                self.mask.data, cmap=mask_cmap, alpha=self.mask_alpha, origin=self.detector_image_origin, vmin=0, vmax=1
+            )
         return ax, fig, img
 
     def plot_1d(self, **kwargs):
@@ -370,8 +385,9 @@ class Image:
         :return:
         """
         if self.ai1 is None:
-            raise Exception('Azimuthal integrator not initialized yet. '
-                            'Run initialize_azimuthal_integrator(dim=1) first.')
+            raise Exception(
+                'Azimuthal integrator not initialized yet. Run initialize_azimuthal_integrator(dim=1) first.'
+            )
         return self.ai1.plot(**kwargs)
 
     def plot_cake(self, **kwargs):
@@ -382,13 +398,13 @@ class Image:
         :return:
         """
         if self.ai2 is None:
-            raise Exception('Azimuthal integrator not initialized yet. '
-                            'Run initialize_azimuthal_integrator(dim=2) first.')
+            raise Exception(
+                'Azimuthal integrator not initialized yet. Run initialize_azimuthal_integrator(dim=2) first.'
+            )
         return self.ai2.plot(**kwargs)
 
 
 class ImageMask:
-
     def __init__(self, nx: int, ny: int, parent: Image = None):
         self.nx = nx
         self.ny = ny
@@ -411,21 +427,21 @@ class ImageMask:
         self._data[y, x] = False
 
     def mask_rows(self, i: int, j: int):
-        self._data[i:j+1, :] = False
+        self._data[i : j + 1, :] = False
 
     def mask_cols(self, i: int, j: int):
-        self._data[:, i:j+1] = False
+        self._data[:, i : j + 1] = False
 
     def mask_rectangle(self, pt1: tuple, pt2: tuple):
         x1, y1 = pt1
         x2, y2 = pt2
-        self._data[y1:y2+1, x1:x2+1] = False
+        self._data[y1 : y2 + 1, x1 : x2 + 1] = False
 
     def mask_polygon(self, pts: tuple):
         vertices = [(y, x) for x, y in pts]
         polygon = matplotlib.path.Path(vertices)
 
-        x, y = np.mgrid[0:self.nx, 0:self.ny]
+        x, y = np.mgrid[0 : self.nx, 0 : self.ny]
         coords = np.hstack((x.reshape(-1, 1), y.reshape(-1, 1)))
         masked_points = ~polygon.contains_points(coords)
 
@@ -435,7 +451,7 @@ class ImageMask:
     def mask_circle(self, center: tuple, radius: float):
         circle = matplotlib.path.Path.circle(center, radius)
 
-        x, y = np.mgrid[0:self.nx, 0:self.ny]
+        x, y = np.mgrid[0 : self.nx, 0 : self.ny]
         coords = np.hstack((x.reshape(-1, 1), y.reshape(-1, 1)))
         masked_points = ~circle.contains_points(coords)
 
@@ -462,8 +478,9 @@ class ImageMask:
 
     def mask_detector(self, detector: str or dict, gaps=True, frame=True, double_pixels=True):
         if isinstance(detector, str) and detector not in detector_masks.keys():
-            raise Exception(f'No mask available for detector {detector}. Choose one from: '
-                            f'{", ".join(detector_masks.keys())}')
+            raise Exception(
+                f'No mask available for detector {detector}. Choose one from: {", ".join(detector_masks.keys())}'
+            )
         if isinstance(detector, dict):
             mask = detector
         else:

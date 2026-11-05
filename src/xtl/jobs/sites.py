@@ -22,14 +22,14 @@ from xtl.logging import Logger
 from xtl.exceptions.base import SubprocessError
 
 
-__all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite',
-           'ModulesSite']
+__all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite', 'ModulesSite']
 
 
 logger = Logger(__name__)
 
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
@@ -97,9 +97,11 @@ class BaseComputeSite(ABC):
         if isinstance(other, ComputeSite):
             return self == other.get()
         elif isinstance(other, BaseComputeSite):
-            return (self.default_shell == other.default_shell and
-                    self.supported_shells == other.supported_shells and
-                    self.policy == other.policy)
+            return (
+                self.default_shell == other.default_shell
+                and self.supported_shells == other.supported_shells
+                and self.policy == other.policy
+            )
         raise NotImplementedError(f'Cannot compare {type(self)} with {type(other)}')
 
     def is_valid_shell(self, shell: Shell) -> bool:
@@ -108,10 +110,9 @@ class BaseComputeSite(ABC):
         return shell in self.supported_shells
 
     @abstractmethod
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType) -> str: ...
+    def prepare_preamble(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> str: ...
 
     @abstractmethod
     def prepare_command(self, command: str) -> str: ...
@@ -123,9 +124,9 @@ class BaseComputeSite(ABC):
     def prepare_postamble(self) -> str: ...
 
     @staticmethod
-    def resolve_dependencies(dependencies: Iterable[DependencySettings | str]
-                                           | DependencySettings | str
-                                           | None) -> list[DependencySettings]:
+    def resolve_dependencies(
+        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
+    ) -> list[DependencySettings]:
         """
         Resolves dependencies from settings based on the provided dependency names or
         DependencySettings objects.
@@ -142,14 +143,12 @@ class BaseComputeSite(ABC):
         return settings.dependencies.resolve(dependencies)
 
     @abstractmethod
-    def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
-                                               | DependencySettings | str
-                                               | None,
-                           shell: ShellType) -> bool: ...
+    def check_dependencies(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> bool: ...
 
     @staticmethod
-    def execute_command(command: Sequence[str], timeout: int = 20) \
-            -> subprocess.CompletedProcess | None:
+    def execute_command(command: Sequence[str], timeout: int = 20) -> subprocess.CompletedProcess | None:
         """
         Execute a command locally and return the CompletedProcess object.
 
@@ -159,16 +158,14 @@ class BaseComputeSite(ABC):
             None if the command timed out.
         """
         try:
-            result = subprocess.run(command, capture_output=True, text=True,
-                                    shell=False, timeout=timeout)
+            result = subprocess.run(command, capture_output=True, text=True, shell=False, timeout=timeout)
         except TimeoutError:
             logger.error('Command `%s` timed out', ' '.join(command))
             return None
         return result
 
     @abstractmethod
-    async def execute_batch(self, batch: BatchFile, **kwargs):
-        ...
+    async def execute_batch(self, batch: BatchFile, **kwargs): ...
 
     @staticmethod
     def _prepare_shebang(shell: ShellType) -> str:
@@ -183,10 +180,9 @@ class LocalSite(BaseComputeSite):
     executables are available on PATH.
     """
 
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType) -> str:
+    def prepare_preamble(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> str:
         preamble = self._prepare_shebang(shell)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
@@ -199,17 +195,15 @@ class LocalSite(BaseComputeSite):
     def prepare_postamble(self) -> str:
         return self.policy.intercept_postamble('') if self.policy else ''
 
-    def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
-                                               | DependencySettings | str
-                                               | None,
-                           shell: ShellType) -> bool:
+    def check_dependencies(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> bool:
 
         for dep in self.resolve_dependencies(dependencies):
             # Check if the dependency executables are available
             for exe in dep.provides:
                 try:
-                    cmd = shell.get_dependency_resolution_command(dependency=exe,
-                                                                  as_list=True)
+                    cmd = shell.get_dependency_resolution_command(dependency=exe, as_list=True)
                 except ValueError as e:
                     # ValueError indicates an unsafe dependency name
                     logger.error(e)
@@ -219,20 +213,21 @@ class LocalSite(BaseComputeSite):
                 if result is None:
                     return False
                 if result.stdout.strip() == '0':
-                    logger.debug('Found executable `%(exe)s` for dependency '
-                                 '`%(dependency)s`', {'exe': exe,
-                                                      'dependency': dep.name})
+                    logger.debug(
+                        'Found executable `%(exe)s` for dependency `%(dependency)s`',
+                        {'exe': exe, 'dependency': dep.name},
+                    )
                 else:
-                    logger.error('Missing executable `%(exe)s` for dependency '
-                                 '`%(dependency)s`', {'exe': exe,
-                                                      'dependency': dep.name})
+                    logger.error(
+                        'Missing executable `%(exe)s` for dependency `%(dependency)s`',
+                        {'exe': exe, 'dependency': dep.name},
+                    )
                     return False
         else:
             logger.debug('All dependencies are met.')
             return True
 
-    async def execute_batch(self, batch: BatchFile, stdout: Path = None,
-                            stderr: Path = None, **kwargs):
+    async def execute_batch(self, batch: BatchFile, stdout: Path = None, stderr: Path = None, **kwargs):
         # Get command to execute the batch file
         args = kwargs.pop('batch_args', [])
         cmd = batch.shell.get_execute_batch_command(batch.file, arguments=args, as_list=True)
@@ -247,21 +242,16 @@ class LocalSite(BaseComputeSite):
         try:
             # Start batch execution
             batch._process = await asyncio.create_subprocess_exec(
-                *cmd,
-                shell=False,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                *cmd, shell=False, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             batch._status = BatchFileStatus.RUNNING
 
             # Start logging of streams
             stdout_task = asyncio.create_task(
-                self._log_stream_to_file(batch.process.stdout, stdout),
-                name='stdout_logger'
+                self._log_stream_to_file(batch.process.stdout, stdout), name='stdout_logger'
             )
             stderr_task = asyncio.create_task(
-                self._log_stream_to_file(batch.process.stderr, stderr),
-                name='stderr_logger'
+                self._log_stream_to_file(batch.process.stderr, stderr), name='stderr_logger'
             )
 
             # Wait for all tasks to complete. This is where the main thread waits.
@@ -277,22 +267,19 @@ class LocalSite(BaseComputeSite):
             raise e
         except Exception as e:
             # Log any other exceptions during execution
-            logger.error('Error executing batch file %(file)s: %(exc)s',
-                         {'file': batch.file, 'exc': str(e)})
+            logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
             batch._status = BatchFileStatus.FAILED
             raise SubprocessError(f'Error executing file {batch.file}', raiser=batch, command=cmd) from e
         finally:
             # Terminate batch if still running
             if batch.process and batch.process.returncode is None:
-                logger.debug('Terminating batch file %{file}s',
-                             {'file': batch.file})
+                logger.debug('Terminating batch file %{file}s', {'file': batch.file})
                 await self._terminate_batch(batch)
 
             # Terminate logging tasks
             for task in (stdout_task, stderr_task):
                 if task and not task.done():
-                    logger.debug('Cancelling async task %{name}s',
-                                 {'name': task.get_name()})
+                    logger.debug('Cancelling async task %{name}s', {'name': task.get_name()})
                     task.cancel()
                     try:
                         await task
@@ -301,8 +288,7 @@ class LocalSite(BaseComputeSite):
 
     async def cancel_batch(self, batch: BatchFile, **kwargs):
         if batch.status != BatchFileStatus.RUNNING:
-            logger.warning('Cannot cancel batch file %{file}s; it is not running',
-                           {'file': batch.file})
+            logger.warning('Cannot cancel batch file %{file}s; it is not running', {'file': batch.file})
             return
         logger.info('Cancelling batch file %{file}s', {'file': batch.file})
         batch._status = BatchFileStatus.CANCELLED
@@ -312,22 +298,19 @@ class LocalSite(BaseComputeSite):
     async def _terminate_batch(batch: BatchFile, **kwargs):
         if batch.process and batch.process.returncode is None:
             # Request graceful termination of the process
-            logger.debug('Sending SIGTERM to batch process PID %{pid}d',
-                         {'pid': batch.process.pid})
+            logger.debug('Sending SIGTERM to batch process PID %{pid}d', {'pid': batch.process.pid})
             batch.process.terminate()
             try:
                 # Wait 10 s for a graceful shutdown
                 await asyncio.wait_for(batch.process.wait(), timeout=10)
             except asyncio.TimeoutError:
                 # Force kill the process
-                logger.debug('Sending SIGKILL to batch process PID %{pid}d',
-                             {'pid': batch.process.pid})
+                logger.debug('Sending SIGKILL to batch process PID %{pid}d', {'pid': batch.process.pid})
                 batch.process.kill()
                 await batch.process.wait()
 
     @staticmethod
-    async def _log_stream_to_file(stream: asyncio.StreamReader,
-                                  file: Optional[Path] = None):
+    async def _log_stream_to_file(stream: asyncio.StreamReader, file: Optional[Path] = None):
         # Open the file for writing if provided
         f = await aiofiles.open(file, mode='wb') if file else None
         try:
@@ -387,10 +370,9 @@ class ModulesSite(LocalSite):
             cmd = f'call {cmd}'
         return cmd + shell.new_line_char
 
-    def _prepare_modules_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                                 | DependencySettings | str
-                                                 | None,
-                                 shell: ShellType) -> str:
+    def _prepare_modules_preamble(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> str:
         from xtl.cli.utilities.common import REQUIRED_DEPENDENCIES
 
         preamble = self._purge_modules(shell=shell)
@@ -402,10 +384,9 @@ class ModulesSite(LocalSite):
                 preamble += self._load_modules(modules=dep.modules, shell=shell)
         return preamble
 
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType) -> str:
+    def prepare_preamble(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> str:
         """
         Prepare the preamble for loading required modules based on dependencies. The
         preamble has the following structure:
@@ -420,14 +401,12 @@ class ModulesSite(LocalSite):
         :return: The preamble string.
         """
         preamble = self._prepare_shebang(shell)
-        preamble += self._prepare_modules_preamble(dependencies=dependencies,
-                                                   shell=shell)
+        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
-    def check_dependencies(self, dependencies: Iterable[DependencySettings | str]
-                                               | DependencySettings | str
-                                               | None,
-                           shell: ShellType) -> bool:
+    def check_dependencies(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
+    ) -> bool:
         # Check if the `module` command is available
         cmd = shell.get_dependency_resolution_command(dependency='module', as_list=True)
         result = self.execute_command(command=cmd, timeout=20)
@@ -446,13 +425,14 @@ class ModulesSite(LocalSite):
             for module in dep.modules:
                 module = str(module).strip()
                 if not self._is_module_name_safe(module):
-                    logger.error('Invalid module name `%(module)s`. Module names may '
-                                 'only contain alphanumeric characters, hyphens, '
-                                 'underscores, periods and slashes.',
-                                 {'module': module})
+                    logger.error(
+                        'Invalid module name `%(module)s`. Module names may '
+                        'only contain alphanumeric characters, hyphens, '
+                        'underscores, periods and slashes.',
+                        {'module': module},
+                    )
                     return False
-                cmd = shell.get_execute_command(f'module avail -t -a {module}',
-                                                as_list=True)
+                cmd = shell.get_execute_command(f'module avail -t -a {module}', as_list=True)
                 result = self.execute_command(command=cmd, timeout=20)
                 if result is None:
                     return False
@@ -507,12 +487,12 @@ class SlurmSite(SchedulerSite, ABC):
     Abstract base class for compute sites that utilize the
     `SLURM <https://slurm.schedmd.com/>`_ job scheduler.
     """
+
     _default_shell = Shell.BASH
     _supported_shells = frozenset([Shell.BASH])
 
     @staticmethod
-    def _prepare_slurm_preamble(shell: ShellType,
-                                config: BatchJobConfig | dict = None) -> str:
+    def _prepare_slurm_preamble(shell: ShellType, config: BatchJobConfig | dict = None) -> str:
         from xtl.jobs.config import BatchJobConfig
 
         args = []
@@ -550,12 +530,13 @@ class SlurmLocalSite(SlurmSite, LocalSite):
     and assumes that all required executables are available on PATH.
     """
 
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType,
-                         config: BatchJobConfig | dict = None,
-                         **kwargs) -> str:
+    def prepare_preamble(
+        self,
+        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
+        shell: ShellType,
+        config: BatchJobConfig | dict = None,
+        **kwargs,
+    ) -> str:
         preamble = self._prepare_shebang(shell=shell)
         # SBATCH preamble
         if config:
@@ -570,19 +551,19 @@ class SlurmModulesSite(SlurmSite, ModulesSite):
     software dependencies.
     """
 
-    def prepare_preamble(self, dependencies: Iterable[DependencySettings | str]
-                                             | DependencySettings | str
-                                             | None,
-                         shell: ShellType,
-                         config: BatchJobConfig | dict = None,
-                         **kwargs) -> str:
+    def prepare_preamble(
+        self,
+        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
+        shell: ShellType,
+        config: BatchJobConfig | dict = None,
+        **kwargs,
+    ) -> str:
         preamble = self._prepare_shebang(shell=shell)
         # SBATCH preamble
         if config:
             preamble += self._prepare_slurm_preamble(shell=shell, config=config)
         # Modules preamble
-        preamble += self._prepare_modules_preamble(dependencies=dependencies,
-                                                   shell=shell)
+        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
@@ -590,6 +571,7 @@ class VirtualizationSite(BaseComputeSite, ABC): ...
 
 
 class WSLSite(VirtualizationSite): ...
+
 
 # NB: We could implement a new WSLComputeSite enum with tabulated values for specific
 #  distros
@@ -606,6 +588,7 @@ class BiotixHPC(SlurmModulesSite):
     """
     A compute site that represents the Biotix HPC cluster.
     """
+
     _default_shell = Shell.BASH.get()
     _supported_shells = frozenset({Shell.BASH.get()})
     _policy = CommandPolicy.DEFAULT.get()

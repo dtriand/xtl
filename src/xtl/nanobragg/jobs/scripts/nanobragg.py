@@ -7,6 +7,7 @@ simulated patterns can be saved in CBF format, as NumPy arrays, and/or plotted a
 
 Note that this script is intended to be run with a `cctbx` environment and not with the `xtl` environment.
 """
+
 import argparse
 from collections import ChainMap
 from copy import deepcopy
@@ -30,8 +31,9 @@ try:
     import matplotlib.pyplot as plt
     import numpy as np
 except (ImportError, ModuleNotFoundError) as e_:
-    raise ImportError('Error importing required modules. '
-                      'Ensure that simtbx.nanoBragg and its dependencies are installed.') from e_
+    raise ImportError(
+        'Error importing required modules. Ensure that simtbx.nanoBragg and its dependencies are installed.'
+    ) from e_
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 K = TypeVar('K')
 V = TypeVar('V')
+
 
 class DeepChainMap(Generic[K, V], ChainMap[K, V]):
     """
@@ -74,50 +77,33 @@ class DeepChainMap(Generic[K, V], ChainMap[K, V]):
 
 
 class Simulator:
-
     _default_config = {
         'structure': {
             'resolution': 2.0,
         },
         'crystal': {
             'shape_transform': 'gaussian',
-            'size': [0., 0., 0.],
+            'size': [0.0, 0.0, 0.0],
             'no_unit_cells': [100, 100, 100],
             'no_mosaic_domains': 1,
-            'mosaic_domain_spread': 0.,
+            'mosaic_domain_spread': 0.0,
         },
-        'amorphous_content': [
-            {
-                'name': 'water',
-                'density': 1.,
-                'size': [0., 0.001, 0.001],
-                'molecular_weight': 18.
-            }
-        ],
+        'amorphous_content': [{'name': 'water', 'density': 1.0, 'size': [0.0, 0.001, 0.001], 'molecular_weight': 18.0}],
         'detector': {
             'type': 'simple',
             'nx': 1024,
             'ny': 1024,
-            'distance': 200.,
+            'distance': 200.0,
             'pixel_size': 0.075,
-            'adc_offset': 40.,
+            'adc_offset': 40.0,
         },
         'beam': {
-            'wavelength': 1.,
+            'wavelength': 1.0,
             'flux': 1e12,
             'size': 0.02,
-            'spectrum': {
-                'no_wavelengths': 1,
-                'wavelength_step': 0.001,
-                'wavelength_list': [1.],
-                'flux_list': [1e12]
-            }
+            'spectrum': {'no_wavelengths': 1, 'wavelength_step': 0.001, 'wavelength_list': [1.0], 'flux_list': [1e12]},
         },
-        'experiment': {
-            'exposure': 1e-2,
-            'oscillation_range': 0.,
-            'crystal_orientation_mode': 'stationary'
-        },
+        'experiment': {'exposure': 1e-2, 'oscillation_range': 0.0, 'crystal_orientation_mode': 'stationary'},
         'simulation': {
             'no_images': 1,
             'oversample': 1,
@@ -125,8 +111,8 @@ class Simulator:
             'include_noise': False,
             'include_background': False,
             'seed': -1,
-            'mosaic_seed': -1
-        }
+            'mosaic_seed': -1,
+        },
     }
 
     def __init__(self, config: Union[str, Path], **kwargs):
@@ -139,11 +125,7 @@ class Simulator:
             configuration file parameters, with `kwargs` taking precedence.
         """
         logger.info('Loading configuration... ')
-        self._config = DeepChainMap(
-            kwargs,
-            self._load_config(config),
-            deepcopy(self._default_config)
-        )
+        self._config = DeepChainMap(kwargs, self._load_config(config), deepcopy(self._default_config))
 
         logger.info('Creating detector... ')
         self._detector = self._get_detector()
@@ -216,7 +198,7 @@ class Simulator:
             return SimData.simple_detector(
                 detector_distance_mm=config['distance'],
                 pixelsize_mm=config['pixel_size'],
-                image_shape=(config['nx'], config['ny'])
+                image_shape=(config['nx'], config['ny']),
             )
         else:
             raise ValueError(f'Unsupported detector type: {config["type"]}')
@@ -264,7 +246,7 @@ class Simulator:
             'round': shapetype.Round,
             'gaussian': shapetype.Gauss,
             'gaussian_argchk': shapetype.Gauss_argchk,
-            'tophat': shapetype.Tophat
+            'tophat': shapetype.Tophat,
         }
         return shapes.get(self._config['crystal']['shape_transform'], shapes.get('gaussian'))
 
@@ -272,9 +254,7 @@ class Simulator:
         """
         Get an initialized `simtbx.nanoBragg.nanoBragg` simulator object based on the configuration parameters.
         """
-        simulator = simtbx.nanoBragg.nanoBragg(
-            self._detector, self._beam
-        )
+        simulator = simtbx.nanoBragg.nanoBragg(self._detector, self._beam)
         simulator.xray_beams = self._wavelength_spectrum
         simulator.Fhkl = self._hkl
 
@@ -336,7 +316,7 @@ class Simulator:
             and the second column is the corresponding structure factor amplitude (e/A^3).
         """
         stol_dir = Path(__file__).parent / 'stol'
-        materials = { file.stem for file in stol_dir.glob('*.txt') }
+        materials = {file.stem for file in stol_dir.glob('*.txt')}
 
         if material in materials:
             logger.info(f'Loading radial structure factors for {material}... ')
@@ -386,11 +366,20 @@ class Simulator:
         """
         Reset the raw pixel intensities in the simulator to zero or to the background if it has been calculated.
         """
-        self._simulator.raw_pixels *= 0.
+        self._simulator.raw_pixels *= 0.0
         self._simulator.raw_pixels += self._bkg
 
-    def simulate(self, n: int = None, output: Union[str, Path] = None, seed: int = None, mosaic_seed: int = None,
-                 save_cbf: bool = True, save_npy: bool = False, plot: bool = False, use_gpu: bool = False) -> None:
+    def simulate(
+        self,
+        n: int = None,
+        output: Union[str, Path] = None,
+        seed: int = None,
+        mosaic_seed: int = None,
+        save_cbf: bool = True,
+        save_npy: bool = False,
+        plot: bool = False,
+        use_gpu: bool = False,
+    ) -> None:
         """
         Simulate patterns and save them to disk.
 
@@ -411,8 +400,10 @@ class Simulator:
         mosaic_seed = mosaic_seed or self._config['simulation']['mosaic_seed']
         orientation = self._config['experiment']['crystal_orientation_mode'].lower()
 
-        logger.debug('Setting random seeds: seed=%(seed)d, mosaic_seed=%(mosaic_seed)d',
-                     {'seed': seed, 'mosaic_seed': mosaic_seed})
+        logger.debug(
+            'Setting random seeds: seed=%(seed)d, mosaic_seed=%(mosaic_seed)d',
+            {'seed': seed, 'mosaic_seed': mosaic_seed},
+        )
         self._simulator.seed = seed
         self._simulator.mosaic_seed = mosaic_seed
 
@@ -427,12 +418,18 @@ class Simulator:
 
         # Log timings
         timings = {
-            'frame': [], 'background': [], 'noise': [], 'save_cbf': [], 'save_npy': [],
-            'plot': [], 'save_png': []
+            'frame': [],
+            'background': [],
+            'noise': [],
+            'save_cbf': [],
+            'save_npy': [],
+            'plot': [],
+            'save_png': [],
         }
 
-        logger.info(f'Simulating %(n)d frames with %(orientation)s crystal orientation',
-                    {'n': n, 'orientation': orientation})
+        logger.info(
+            f'Simulating %(n)d frames with %(orientation)s crystal orientation', {'n': n, 'orientation': orientation}
+        )
         t0 = time.time()
 
         # Background calculation is always done on the CPU
@@ -555,16 +552,18 @@ def cli():
         epilog=r'</> with <3 by \033[3;35m_dtriand\033[0m',
     )
     parser.add_argument(
-        '-i', '--config',
+        '-i',
+        '--config',
         type=Path,
         required=True,
-        help='Path to JSON configuration file containing simulation parameters.'
+        help='Path to JSON configuration file containing simulation parameters.',
     )
     parser.add_argument(
-        '-o', '--output',
+        '-o',
+        '--output',
         type=Path,
         default=Path.cwd(),
-        help='Directory to save the simulated images (default: current working directory).'
+        help='Directory to save the simulated images (default: current working directory).',
     )
     parser.add_argument(
         '--fmt',
@@ -573,16 +572,8 @@ def cli():
         nargs='+',
         default=['cbf'],
     )
-    parser.add_argument(
-        '--gpu',
-        action='store_true',
-        help='Use GPU acceleration if available (default: False).'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug logging.'
-    )
+    parser.add_argument('--gpu', action='store_true', help='Use GPU acceleration if available (default: False).')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging.')
 
     args = parser.parse_args()
     if not args.config.exists():
@@ -593,7 +584,7 @@ def cli():
         level=logging.DEBUG if args.debug else logging.INFO,
         stream=sys.stdout,
         format='[%(asctime)s] %(levelname)s : %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        datefmt='%Y-%m-%d %H:%M:%S',
     )
 
     # Run the simulation
@@ -603,7 +594,7 @@ def cli():
         save_cbf='cbf' in args.fmt,
         save_npy='npy' in args.fmt,
         plot='png' in args.fmt,
-        use_gpu=args.gpu
+        use_gpu=args.gpu,
     )
 
 

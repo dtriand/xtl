@@ -12,36 +12,72 @@ app = typer.Typer()
 
 @app.command('1d', help='Perform 1D integration', epilog=epilog)
 def cli_diffraction_integrate_1d(
-        images: list[str] = typer.Argument(..., help='Images to integrate'),
-        geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file',
-                                      exists=True),
-        # mask: Path = typer.Option(None, '-m', '--mask', help='Mask file'),
-        # Integration parameters
-        points_radial: int = typer.Option(300, '-pR', '--points-radial', help='Number of points along the radial axis',
-                                          min=50, rich_help_panel='Integration parameters'),
-        units_radial: IntegrationRadialUnits = typer.Option(IntegrationRadialUnits.TWOTHETA_DEG.value, '-uR', '--units-radial', help='Units along the radial axis',
-                                                            rich_help_panel='Integration parameters'),
-        error_model: IntegrationErrorModel = typer.Option(IntegrationErrorModel.POISSON.value, '-e', '--error-model', help='Error model',
-                                                          rich_help_panel='Integration parameters'),
-        # Plotting parameters
-        plot: bool = typer.Option(False, '-P', '--plot', help='Plot the integrated data',
-                                    rich_help_panel='Plotting parameters', is_flag=True),
-        xlog: bool = typer.Option(False, '--xlog', help='Use logarithmic scale for the x-axis',
-                                    rich_help_panel='Plotting parameters', is_flag=True),
-        ylog: bool = typer.Option(False, '--ylog', help='Use logarithmic scale for the y-axis',
-                                    rich_help_panel='Plotting parameters', is_flag=True),
-        # Output parameters
-        output_dir: Path = typer.Option('.', '-o', '--output', help='Output directory',
-                                        rich_help_panel='Output parameters'),
-        include_headers: bool = typer.Option(False, '-H', '--headers', help='Include headers in the output files',
-                                             rich_help_panel='Output parameters', is_flag=True),
-        overwrite: bool = typer.Option(False, '-f', '--force', help='Overwrite existing files',
-                                        rich_help_panel='Output parameters', is_flag=True),
-        # Debugging
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
-                                    rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging'),
+    images: list[str] = typer.Argument(..., help='Images to integrate'),
+    geometry: Path = typer.Option(..., '-g', '--geometry', help='Geometry .PONI file', exists=True),
+    # mask: Path = typer.Option(None, '-m', '--mask', help='Mask file'),
+    # Integration parameters
+    points_radial: int = typer.Option(
+        300,
+        '-pR',
+        '--points-radial',
+        help='Number of points along the radial axis',
+        min=50,
+        rich_help_panel='Integration parameters',
+    ),
+    units_radial: IntegrationRadialUnits = typer.Option(
+        IntegrationRadialUnits.TWOTHETA_DEG.value,
+        '-uR',
+        '--units-radial',
+        help='Units along the radial axis',
+        rich_help_panel='Integration parameters',
+    ),
+    error_model: IntegrationErrorModel = typer.Option(
+        IntegrationErrorModel.POISSON.value,
+        '-e',
+        '--error-model',
+        help='Error model',
+        rich_help_panel='Integration parameters',
+    ),
+    # Plotting parameters
+    plot: bool = typer.Option(
+        False, '-P', '--plot', help='Plot the integrated data', rich_help_panel='Plotting parameters', is_flag=True
+    ),
+    xlog: bool = typer.Option(
+        False,
+        '--xlog',
+        help='Use logarithmic scale for the x-axis',
+        rich_help_panel='Plotting parameters',
+        is_flag=True,
+    ),
+    ylog: bool = typer.Option(
+        False,
+        '--ylog',
+        help='Use logarithmic scale for the y-axis',
+        rich_help_panel='Plotting parameters',
+        is_flag=True,
+    ),
+    # Output parameters
+    output_dir: Path = typer.Option(
+        '.', '-o', '--output', help='Output directory', rich_help_panel='Output parameters'
+    ),
+    include_headers: bool = typer.Option(
+        False,
+        '-H',
+        '--headers',
+        help='Include headers in the output files',
+        rich_help_panel='Output parameters',
+        is_flag=True,
+    ),
+    overwrite: bool = typer.Option(
+        False, '-f', '--force', help='Overwrite existing files', rich_help_panel='Output parameters', is_flag=True
+    ),
+    # Debugging
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
@@ -63,7 +99,7 @@ def cli_diffraction_integrate_1d(
         cli.print(f'Error: Failed to load geometry file {geometry} for image {input_images[i]}', style='red')
         raise typer.Abort()
     g = images[0].geometry
-    cli.print(f'Wavelength read from geometry file: {g.get_wavelength() * 1e10:.6f} \u212B')
+    cli.print(f'Wavelength read from geometry file: {g.get_wavelength() * 1e10:.6f} \u212b')
 
     try:
         for i, image in enumerate(images):

@@ -2,7 +2,6 @@ from typing import Any
 
 
 class Error(Exception):
-
     def __init__(self, message='', raiser=None):
         self.raiser = raiser
         self.message = message
@@ -16,7 +15,6 @@ class InvalidArgument(Error):
 
 
 class DimensionalityError(Error):
-
     def __init__(self, raiser=None, src_units='', dst_units=''):
         self.raiser = raiser
         self.src_units = src_units
@@ -28,7 +26,6 @@ class DimensionalityError(Error):
 
 
 class FileError(Error):
-
     def __init__(self, file, message, details=None):
         self.file = file
         self.message = message
@@ -39,7 +36,6 @@ class FileError(Error):
 
 
 class MissingArgument(Error):
-
     def __init__(self, arg, message):
         self.arg = arg
         self.message = message
@@ -49,7 +45,6 @@ class MissingArgument(Error):
 
 
 class SubprocessError(Error):
-
     def __init__(self, message: str, command: Any, raiser=None):
         self.message = message
         self.command = command
@@ -57,7 +52,6 @@ class SubprocessError(Error):
 
 
 class StderrError(Error):
-
     def __init__(self, message: str, stderr: str, raiser=None):
         self.message = message
         self.stderr = stderr

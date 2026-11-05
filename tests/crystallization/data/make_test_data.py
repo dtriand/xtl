@@ -23,25 +23,27 @@ def generate_test_data_reshape(shape: tuple[int, int], data_shape: tuple[int, in
 
     # Calculate location map
     location_map = np.full(shape, False)
-    location_map[r1:r2+1, c1:c2+1] = True
+    location_map[r1 : r2 + 1, c1 : c2 + 1] = True
 
     # Calculate the reshaped arrays
     data_reshaped = np.full(shape, np.nan)
-    data_reshaped[r1:r2+1, c1:c2+1] = data * mask
+    data_reshaped[r1 : r2 + 1, c1 : c2 + 1] = data * mask
 
     mask_reshaped = np.full(shape, np.nan)
-    mask_reshaped[r1:r2+1, c1:c2+1] = mask
+    mask_reshaped[r1 : r2 + 1, c1 : c2 + 1] = mask
 
     # Save results to an NPX file
-    npx = NpxFile(**{
-                      'shape': shape,
-                      'indices': np.array([[r1, c1], [r2, c2]]),
-                      'data': data,
-                      'location_map': location_map,
-                      'mask': mask,
-                      'data_reshaped': data_reshaped,
-                      'mask_reshaped': mask_reshaped
-                  })
+    npx = NpxFile(
+        **{
+            'shape': shape,
+            'indices': np.array([[r1, c1], [r2, c2]]),
+            'data': data,
+            'location_map': location_map,
+            'mask': mask,
+            'data_reshaped': data_reshaped,
+            'mask_reshaped': mask_reshaped,
+        }
+    )
     return npx
 
 

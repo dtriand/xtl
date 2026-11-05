@@ -11,9 +11,10 @@ from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 
 no_datasets = 2
 no_images = 100
-cbf_images = [f'./a/b/c/dataset_1_{j+1}_{i+1:04d}.cbf' for j in range(no_datasets)  for i in range(no_images)]
-h5_images = [f'./a/b/c/dataset_1_{j+1}_master.h5' for j in range(no_datasets)] + \
-            [f'./a/b/c/dataset_1_{j+1}_data_{i+1:04d}.h5' for j in range(no_datasets)  for i in range(no_images)]
+cbf_images = [f'./a/b/c/dataset_1_{j + 1}_{i + 1:04d}.cbf' for j in range(no_datasets) for i in range(no_images)]
+h5_images = [f'./a/b/c/dataset_1_{j + 1}_master.h5' for j in range(no_datasets)] + [
+    f'./a/b/c/dataset_1_{j + 1}_data_{i + 1:04d}.h5' for j in range(no_datasets) for i in range(no_images)
+]
 
 
 @pytest.fixture
@@ -26,13 +27,9 @@ def datasets(temp_files) -> list[DiffractionDataset]:
 
 
 @pytest.mark.parametrize(
-        'temp_files, is_h5', [
-        (cbf_images, False),
-        (h5_images,  True)
-        ], indirect=['temp_files'], ids=['cbf', 'h5']
-    )
+    'temp_files, is_h5', [(cbf_images, False), (h5_images, True)], indirect=['temp_files'], ids=['cbf', 'h5']
+)
 class TestAutoPROCJob:
-
     def test_init(self, datasets, is_h5):
         config = AutoPROCConfig()
         job = AutoPROCJob(datasets=datasets, config=config)
@@ -58,13 +55,13 @@ class TestAutoPROCJob:
         # Existing output_dir
         d = datasets[0]
         for run in range(5):
-            output_dir = (d.processed_data / f'autoproc_run{run+1:02d}')
+            output_dir = d.processed_data / f'autoproc_run{run + 1:02d}'
             output_dir.mkdir(parents=True, exist_ok=True)
         assert job._determine_run_no() == 6
 
         # More than 99 runs
         for run in range(100):
-            output_dir = (d.processed_data / f'autoproc_run{run+1:02d}')
+            output_dir = d.processed_data / f'autoproc_run{run + 1:02d}'
             output_dir.mkdir(parents=True, exist_ok=True)
         with pytest.raises(FileExistsError):
             job._determine_run_no()
@@ -76,16 +73,23 @@ class TestAutoPROCJob:
         assert job._datasets[0].sweep_id == 1
         assert job._datasets[0].autoproc_id == 'xtl0409s01'
         if not is_h5:
-            assert job._datasets[0].autoproc_idn == \
-                   f'xtl0409s01,{datasets[0].raw_data},' \
-                   f'{",".join(map(str, datasets[0].get_image_template(first_last=True)))}'
+            assert (
+                job._datasets[0].autoproc_idn == f'xtl0409s01,{datasets[0].raw_data},'
+                f'{",".join(map(str, datasets[0].get_image_template(first_last=True)))}'
+            )
         assert job._datasets[0].output_dir == datasets[0].output_dir
 
     @seed(42)
     def test_get_macro_content(self, datasets, is_h5):
-        config = AutoPROCConfig(unit_cell=[78, 78, 37, 90, 90, 90], space_group='P 43 21 2', xds_njobs=16,
-                                batch_mode=True, resolution_cutoff_criterion='CC1/2', beamline='PetraIIIP14',
-                                extra_params={'autoPROC_XdsIntegPostrefNumCycle': 5})
+        config = AutoPROCConfig(
+            unit_cell=[78, 78, 37, 90, 90, 90],
+            space_group='P 43 21 2',
+            xds_njobs=16,
+            batch_mode=True,
+            resolution_cutoff_criterion='CC1/2',
+            beamline='PetraIIIP14',
+            extra_params={'autoPROC_XdsIntegPostrefNumCycle': 5},
+        )
         job = AutoPROCJob(datasets=datasets, config=config)
         content = job._get_macro_content()
         print(content)
@@ -102,12 +106,12 @@ class TestAutoPROCJob:
                 ids = [arg.replace('"', '').replace(' ', '').split(',') for arg in args if arg]
                 for i, id in enumerate(ids):
                     if is_h5:
-                        assert Path(id[0]).parts[-4:] == ('a', 'b', 'c', f'dataset_1_{i+1}_master.h5')
+                        assert Path(id[0]).parts[-4:] == ('a', 'b', 'c', f'dataset_1_{i + 1}_master.h5')
                     else:
                         autoproc_id, raw_data, image_template, img_no_first, img_no_last = id
-                        assert autoproc_id == f'xtl0409s0{i+1}'
+                        assert autoproc_id == f'xtl0409s0{i + 1}'
                         assert Path(raw_data).parts[-3:] == ('a', 'b', 'c')
-                        assert image_template == f'dataset_1_{i+1}_####.cbf'
+                        assert image_template == f'dataset_1_{i + 1}_####.cbf'
                         assert img_no_first == '1'
                         assert img_no_last == '100'
             if line.startswith('cell'):
@@ -123,11 +127,16 @@ class TestAutoPROCJob:
             if line.startswith('# run_number'):
                 assert line == f'# run_number = 1'
             if line.startswith('# job_dir'):
-                assert Path(line.replace('# job_dir', '')).parts[-5:] == \
-                       ('a', 'b', 'processed', 'c', 'autoproc_run01')
+                assert Path(line.replace('# job_dir', '')).parts[-5:] == ('a', 'b', 'processed', 'c', 'autoproc_run01')
             if line.startswith('# autoproc_output_dir'):
-                assert Path(line.replace('# autoproc_output_dir', '')).parts[-6:] == \
-                       ('a', 'b', 'processed', 'c', 'autoproc_run01', 'autoproc')
+                assert Path(line.replace('# autoproc_output_dir', '')).parts[-6:] == (
+                    'a',
+                    'b',
+                    'processed',
+                    'c',
+                    'autoproc_run01',
+                    'autoproc',
+                )
             if line.startswith('# single_sweep'):
                 assert line == f'# single_sweep = False'
             if line.startswith('# is_h5'):

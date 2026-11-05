@@ -15,7 +15,6 @@ def env(monkeypatch):
 
 
 class TestEnvVar:
-
     def test_unset(self, env):
         var = EnvVar(NAME)
         assert var.raw is None

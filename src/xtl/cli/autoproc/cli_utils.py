@@ -57,7 +57,7 @@ def get_attributes_dataset() -> list[list[str]]:
         ['first_image', 'Path', 'Full path to the first image file'],
         ['processed_data_dir', 'Path', 'Path to the processed data directory'],
         ['output_dir', 'str', 'Subdirectory within the processed data directory'],
-        ['output_subdir', 'str', 'Subdirectory within the output directory']
+        ['output_subdir', 'str', 'Subdirectory within the output directory'],
     ]
     return attributes
 
@@ -116,9 +116,8 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = 
         'dataset': {key: [] for key in parsable_attrs_dataset},
         'config': {key: [] for key in parsable_attrs_config},
         'extra': {},
-        'index': {key: 'dataset' for key in parsable_attrs_dataset} |
-                     {key: 'config' for key in parsable_attrs_config},
-        'headers': []
+        'index': {key: 'dataset' for key in parsable_attrs_dataset} | {key: 'config' for key in parsable_attrs_config},
+        'headers': [],
     }
 
     if extra_headers:
@@ -128,7 +127,7 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = 
     indices = {key: None for key in csv_dict['index'].keys()}
 
     if not csv_file.read_text().startswith('#'):
-        echo(f'CSV file {csv_file} does not have a header line starting with \'#\'', style='red')
+        echo(f"CSV file {csv_file} does not have a header line starting with '#'", style='red')
         raise typer.Abort()
     headers = csv_file.read_text().splitlines()[0].replace('#', '').replace(' ', '').split(',')
     for i, header in enumerate(headers):
@@ -157,8 +156,12 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = 
                 v = values[indices[key]]
                 if not v:
                     v = None
-                if key in ['unit_cell', 'xds_idxref_refine_params', 'xds_integrate_refine_params',
-                           'xds_correct_refine_params']:
+                if key in [
+                    'unit_cell',
+                    'xds_idxref_refine_params',
+                    'xds_integrate_refine_params',
+                    'xds_correct_refine_params',
+                ]:
                     v = v.split(';')
                 elif key == 'extra_params':  # Parse extra parameters
                     v = parse_extra_params(v.split(';'))
@@ -169,15 +172,31 @@ def parse_csv(csv_file: Path, extra_headers: list[str] = None, echo: Callable = 
     return csv_dict
 
 
-def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None,
-                          echo: Callable = print) -> list:
+def sanitize_csv_datasets(
+    csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None, echo: Callable = print
+) -> list:
     datasets_input = []
-    for i, (group_id, raw_data_dir, dataset_dir, dataset_name, first_image, processed_data_dir, output_dir, output_subdir) in (
-            enumerate(zip(csv_dict['dataset']['group_id'], csv_dict['dataset']['raw_data_dir'],
-                          csv_dict['dataset']['dataset_dir'], csv_dict['dataset']['dataset_name'],
-                          csv_dict['dataset']['first_image'], csv_dict['dataset']['processed_data_dir'],
-                          csv_dict['dataset']['output_dir'], csv_dict['dataset']['output_subdir']))):
-
+    for i, (
+        group_id,
+        raw_data_dir,
+        dataset_dir,
+        dataset_name,
+        first_image,
+        processed_data_dir,
+        output_dir,
+        output_subdir,
+    ) in enumerate(
+        zip(
+            csv_dict['dataset']['group_id'],
+            csv_dict['dataset']['raw_data_dir'],
+            csv_dict['dataset']['dataset_dir'],
+            csv_dict['dataset']['dataset_name'],
+            csv_dict['dataset']['first_image'],
+            csv_dict['dataset']['processed_data_dir'],
+            csv_dict['dataset']['output_dir'],
+            csv_dict['dataset']['output_subdir'],
+        )
+    ):
         # Initialize via DiffractionDataset.from_image class method
         if first_image:
             first_image = Path(first_image)
@@ -186,8 +205,11 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
             # If the first image is not an absolute path, append the raw_data_dir and dataset_dir
             if not first_image.is_absolute():
                 if not raw_data_dir:
-                    echo(f'Image on line {i + 1} is a relative path and a \'raw_data_dir\' was not provided or a '
-                         f'global raw data directory was not specified with --raw-dir', style='red')
+                    echo(
+                        f"Image on line {i + 1} is a relative path and a 'raw_data_dir' was not provided or a "
+                        f'global raw data directory was not specified with --raw-dir',
+                        style='red',
+                    )
                     raise typer.Abort()
                 raw_data_dir = Path(raw_data_dir).resolve()
                 if dataset_dir:
@@ -198,26 +220,32 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
         # Initialize via DiffractionDataset.__init__ method
         else:
             if not dataset_name:
-                echo(f'Dataset on line {i + 1} does not have attribute \'dataset_name\'', style='red')
+                echo(f"Dataset on line {i + 1} does not have attribute 'dataset_name'", style='red')
                 raise typer.Abort()
             if not dataset_dir:
-                echo(f'Dataset on line {i + 1} does not have attribute \'dataset_dir\'', style='red')
+                echo(f"Dataset on line {i + 1} does not have attribute 'dataset_dir'", style='red')
                 raise typer.Abort()
 
             # If no raw_data directory is specified, use the global raw directory
             if not raw_data_dir:
                 raw_data_dir = raw_dir
             if not raw_data_dir:
-                echo(f'Dataset on line {i + 1} does not have the attribute \'raw_data_dir\' and a global '
-                     f'raw data directory was not specified with --raw-dir', style='red')
+                echo(
+                    f"Dataset on line {i + 1} does not have the attribute 'raw_data_dir' and a global "
+                    f'raw data directory was not specified with --raw-dir',
+                    style='red',
+                )
                 raise typer.Abort()
             raw_data_dir = Path(raw_data_dir).resolve()
 
         # If no processed_data directory is specified, use the global output directory
         if not processed_data_dir:
             if not out_dir:
-                echo(f'Dataset on line {i + 1} does not have the attribute \'processed_data_dir\' and a global '
-                     f'output directory was not specified with --out-dir', style='red')
+                echo(
+                    f"Dataset on line {i + 1} does not have the attribute 'processed_data_dir' and a global "
+                    f'output directory was not specified with --out-dir',
+                    style='red',
+                )
                 raise typer.Abort()
             else:
                 processed_data_dir = out_dir
@@ -234,25 +262,43 @@ def sanitize_csv_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
             elif output_subdir[0] in ['/', '\\']:
                 output_subdir = output_subdir[1:]
 
-        datasets_input.append([group_id, raw_data_dir, dataset_dir, dataset_name, first_image,
-                               processed_data_dir, output_dir, output_subdir])
+        datasets_input.append(
+            [
+                group_id,
+                raw_data_dir,
+                dataset_dir,
+                dataset_name,
+                first_image,
+                processed_data_dir,
+                output_dir,
+                output_subdir,
+            ]
+        )
     return datasets_input
 
 
-def sanitize_nml_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None,
-                          echo: Callable = print) -> list:
+def sanitize_nml_datasets(
+    csv_dict: dict, raw_dir: Path, out_dir: Path, out_subdir: str = None, echo: Callable = print
+) -> list:
     nml_input = []
-    for i, (nml_file, raw_data_dir, processed_data_dir, output_dir, output_subdir) in (
-            enumerate(zip(csv_dict['extra']['nml_file'], csv_dict['dataset']['raw_data_dir'],
-                          csv_dict['dataset']['processed_data_dir'], csv_dict['dataset']['output_dir'],
-                          csv_dict['dataset']['output_subdir']))):
-
+    for i, (nml_file, raw_data_dir, processed_data_dir, output_dir, output_subdir) in enumerate(
+        zip(
+            csv_dict['extra']['nml_file'],
+            csv_dict['dataset']['raw_data_dir'],
+            csv_dict['dataset']['processed_data_dir'],
+            csv_dict['dataset']['output_dir'],
+            csv_dict['dataset']['output_subdir'],
+        )
+    ):
         # Determine raw_data_dir
         if not raw_data_dir:
             raw_data_dir = raw_dir
         if not raw_data_dir:
-            echo(f'Dataset on line {i + 1} does not have the attribute \'raw_data_dir\' and a global '
-                 f'raw data directory was not specified with --raw-dir', style='red')
+            echo(
+                f"Dataset on line {i + 1} does not have the attribute 'raw_data_dir' and a global "
+                f'raw data directory was not specified with --raw-dir',
+                style='red',
+            )
             raise typer.Abort()
         raw_data_dir = Path(raw_data_dir).resolve()
 
@@ -260,8 +306,11 @@ def sanitize_nml_datasets(csv_dict: dict, raw_dir: Path, out_dir: Path, out_subd
         if not processed_data_dir:
             processed_data_dir = out_dir
         if not processed_data_dir:
-            echo(f'Dataset on line {i + 1} does not have the attribute \'processed_data_dir\' and a global '
-                 f'output directory was not specified with --out-dir', style='red')
+            echo(
+                f"Dataset on line {i + 1} does not have the attribute 'processed_data_dir' and a global "
+                f'output directory was not specified with --out-dir',
+                style='red',
+            )
             raise typer.Abort()
         processed_data_dir = Path(processed_data_dir).resolve()
 

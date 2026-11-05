@@ -13,13 +13,11 @@ NAMES = ['env', 'local', 'user', 'global']
 
 
 def _records(caplog, level: int) -> list[str]:
-    return [r.getMessage() for r in caplog.records
-            if r.levelno == level and r.name == 'xtl.config.settings']
+    return [r.getMessage() for r in caplog.records if r.levelno == level and r.name == 'xtl.config.settings']
 
 
 def _path(locs, name: str) -> Path:
-    return {'env': locs.env, 'local': locs.local, 'user': locs.user,
-            'global': locs.global_}[name]
+    return {'env': locs.env, 'local': locs.local, 'user': locs.user, 'global': locs.global_}[name]
 
 
 def test_session_uses_temp_config():
@@ -35,7 +33,6 @@ def test_session_uses_temp_config():
 
 
 class TestLocations:
-
     def test_without_env(self, locs):
         locations = XTLSettings.locations()
         assert [loc.name for loc in locations] == ['local', 'user', 'global']
@@ -50,8 +47,12 @@ class TestLocations:
 
     def test_creatable(self, locs):
         locs.set_env()
-        assert {loc.name: loc.creatable for loc in XTLSettings.locations()} == \
-               {'env': True, 'local': False, 'user': True, 'global': True}
+        assert {loc.name: loc.creatable for loc in XTLSettings.locations()} == {
+            'env': True,
+            'local': False,
+            'user': True,
+            'global': True,
+        }
 
     def test_env_directory_is_ignored(self, locs, caplog):
         env_dir = locs.root / 'env'
@@ -60,8 +61,7 @@ class TestLocations:
         with caplog.at_level(logging.WARNING):
             locations = XTLSettings.locations()
         assert [loc.name for loc in locations] == ['local', 'user', 'global']
-        assert any('points to a directory' in m
-                   for m in _records(caplog, logging.WARNING))
+        assert any('points to a directory' in m for m in _records(caplog, logging.WARNING))
 
     def test_env_is_read_on_every_call(self, locs):
         assert 'env' not in [loc.name for loc in XTLSettings.locations()]
@@ -71,8 +71,7 @@ class TestLocations:
     def test_user_path(self, monkeypatch):
         # appauthor=False, otherwise Windows gives ...\xtl\xtl
         calls = []
-        monkeypatch.setattr('platformdirs.user_config_dir',
-                            lambda *args, **kwargs: calls.append((args, kwargs)) or '.')
+        monkeypatch.setattr('platformdirs.user_config_dir', lambda *args, **kwargs: calls.append((args, kwargs)) or '.')
         XTLSettings.locations()
         assert calls == [(('xtl',), {'appauthor': False})]
 
@@ -82,7 +81,6 @@ class TestLocations:
 
 
 class TestActive:
-
     def test_none(self, locs):
         assert XTLSettings.active() is None
 
@@ -101,14 +99,12 @@ class TestActive:
 
 
 class TestInitialize:
-
     @pytest.mark.parametrize('name', NAMES)
     def test_precedence(self, locs, name):
         # A file in a location beats the files in all later locations
         locs.set_env()
-        for n in NAMES[NAMES.index(name):]:
-            locs.write(_path(locs, n), f'[units]\ntemperature = "K"\n'
-                       if n == name else '[units]\ntemperature = "F"\n')
+        for n in NAMES[NAMES.index(name) :]:
+            locs.write(_path(locs, n), f'[units]\ntemperature = "K"\n' if n == name else '[units]\ntemperature = "F"\n')
         before = locs.files()
 
         s = XTLSettings.initialize()
@@ -176,10 +172,13 @@ class TestInitialize:
         assert XTLSettings.initialize().units.temperature == 'K'
         assert locs.files() == {Path('env/config.cfg')}
 
-    @pytest.mark.parametrize('text', [
-        pytest.param('[units\n', id='invalid toml'),
-        pytest.param('[units]\ntemperature = "X"\n', id='invalid value'),
-    ])
+    @pytest.mark.parametrize(
+        'text',
+        [
+            pytest.param('[units\n', id='invalid toml'),
+            pytest.param('[units]\ntemperature = "X"\n', id='invalid value'),
+        ],
+    )
     def test_broken_file(self, locs, caplog, text):
         # D-021: defaults, the file isn't overwritten, later locations are ignored
         locs.write(locs.local, text)
@@ -200,8 +199,7 @@ class TestInitialize:
         with caplog.at_level(logging.WARNING):
             s = XTLSettings.initialize()
         assert s.source.name == 'local'
-        assert _records(caplog, logging.WARNING) == \
-               ['Found and ignored unknown keys in the config file: units.colour']
+        assert _records(caplog, logging.WARNING) == ['Found and ignored unknown keys in the config file: units.colour']
 
 
 def test_defaults_are_not_shared():
@@ -213,29 +211,28 @@ def test_defaults_are_not_shared():
 
 
 class TestCheck:
-
     def test_defaults(self):
         assert XTLSettings().check() == []
 
-    @pytest.mark.parametrize('version, message', [
-        ('0.0.1', 'older version'),
-        ('99.0.0', 'newer version'),
-        ('not-a-version', 'Invalid settings version'),
-        ('0.1', 'Invalid settings version'),
-    ])
+    @pytest.mark.parametrize(
+        'version, message',
+        [
+            ('0.0.1', 'older version'),
+            ('99.0.0', 'newer version'),
+            ('not-a-version', 'Invalid settings version'),
+            ('0.1', 'Invalid settings version'),
+        ],
+    )
     def test_version(self, version, message):
         problems = XTLSettings(version=version).check()
         assert len(problems) == 1
         assert message in problems[0]
 
     def test_unknown_keys(self):
-        s = XTLSettings.from_toml('colour = "blue"\n'
-                                  '[units]\ncolour = "blue"\n'
-                                  '[jobs.resources]\nfoo = 1\nbar = 2\n')
+        s = XTLSettings.from_toml('colour = "blue"\n[units]\ncolour = "blue"\n[jobs.resources]\nfoo = 1\nbar = 2\n')
         problems = s.check()
         assert len(problems) == 1
-        assert problems[0].endswith(': colour, units.colour, jobs.resources.foo, '
-                                    'jobs.resources.bar')
+        assert problems[0].endswith(': colour, units.colour, jobs.resources.foo, jobs.resources.bar')
 
     def test_does_not_mutate(self):
         s = XTLSettings.from_toml('[units]\ncolour = "blue"\n')
@@ -245,7 +242,6 @@ class TestCheck:
 
 
 class TestCheckFile:
-
     def test_valid(self, locs):
         path = locs.write(locs.local, XTLSettings().to_toml())
         assert XTLSettings.check_file(path) == ([], [])
@@ -257,8 +253,7 @@ class TestCheckFile:
         assert len(warnings) == 2
 
     def test_invalid_values(self, locs):
-        path = locs.write(locs.local, '[units]\ntemperature = "X"\n'
-                                      '[cli]\nmax_fps = 1000\n')
+        path = locs.write(locs.local, '[units]\ntemperature = "X"\n[cli]\nmax_fps = 1000\n')
         errors, warnings = XTLSettings.check_file(path)
         assert warnings == []
         assert len(errors) == 2
@@ -279,30 +274,28 @@ class TestCheckFile:
 
 
 class TestLazyImport:
-
     @staticmethod
     def _run(code: str) -> str:
-        result = subprocess.run([sys.executable, '-c', code], capture_output=True,
-                                text=True, timeout=120)
+        result = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=120)
         assert result.returncode == 0, result.stderr
         return result.stdout.strip()
 
     @pytest.mark.parametrize('module', ['xtl', 'xtl.cli.config'])
     def test_import_does_not_load_settings(self, module):
-        out = self._run(f'import sys, xtl, {module}\n'
-                        f'print("xtl.config.settings" in sys.modules, '
-                        f'"settings" in vars(xtl))')
+        out = self._run(
+            f'import sys, xtl, {module}\nprint("xtl.config.settings" in sys.modules, "settings" in vars(xtl))'
+        )
         assert out == 'False False'
 
     def test_import_xtl_is_cheap(self):
-        out = self._run('import sys, xtl\n'
-                        'print(any(m in sys.modules for m in ("xtl.automate", '
-                        '"xtl.jobs")))')
+        out = self._run('import sys, xtl\nprint(any(m in sys.modules for m in ("xtl.automate", "xtl.jobs")))')
         assert out == 'False'
 
     def test_settings_is_cached(self):
-        out = self._run('from xtl import settings as a\n'
-                        'from xtl import settings as b\n'
-                        'import xtl\n'
-                        'print(a is b is xtl.settings, type(a).__name__)')
+        out = self._run(
+            'from xtl import settings as a\n'
+            'from xtl import settings as b\n'
+            'import xtl\n'
+            'print(a is b is xtl.settings, type(a).__name__)'
+        )
         assert out == 'True XTLSettings'

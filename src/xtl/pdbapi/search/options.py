@@ -5,71 +5,71 @@ from dataclasses import dataclass
 class ReturnType(Enum):
     # https://search.rcsb.org/#return-type
     ENTRY = 'entry'
-        # Returns a list of PDB IDs.
+    # Returns a list of PDB IDs.
     ASSEMBLY = 'assembly'
-        # Returns a list of PDB IDs appended with assembly IDs in the format of a [pdb_id]-[assembly_id], corresponding
-        # to biological assemblies.
+    # Returns a list of PDB IDs appended with assembly IDs in the format of a [pdb_id]-[assembly_id], corresponding
+    # to biological assemblies.
     POLYMER_ENTITY = 'polymer_entity'
-        # Returns a list of PDB IDs appended with entity IDs in the format of a [pdb_id]_[entity_id], corresponding to
-        # polymeric molecular entities.
+    # Returns a list of PDB IDs appended with entity IDs in the format of a [pdb_id]_[entity_id], corresponding to
+    # polymeric molecular entities.
     NON_POLYMER_ENTITY = 'non_polymer_entity'
-        # Returns a list of PDB IDs appended with entity IDs in the format of a [pdb_id]_[entity_id], corresponding to
-        # non-polymeric entities (or ligands).
+    # Returns a list of PDB IDs appended with entity IDs in the format of a [pdb_id]_[entity_id], corresponding to
+    # non-polymeric entities (or ligands).
     POLYMER_INSTANCE = 'polymer_instance'
-        # Returns a list of PDB IDs appended with asym IDs in the format of a [pdb_id].[asym_id], corresponding to
-        # instances of certain polymeric molecular entities, also known as chains. Note, that asym_id in the instance
-        # identifier corresponds to the _label_asym_id from the mmCIF schema (assigned by the PDB). It can differ from
-        # _auth_asym_id (selected by the author at the time of deposition).
+    # Returns a list of PDB IDs appended with asym IDs in the format of a [pdb_id].[asym_id], corresponding to
+    # instances of certain polymeric molecular entities, also known as chains. Note, that asym_id in the instance
+    # identifier corresponds to the _label_asym_id from the mmCIF schema (assigned by the PDB). It can differ from
+    # _auth_asym_id (selected by the author at the time of deposition).
     MOL_DEFINITION = 'mol_definition'
-        # Returns a list of molecular definition identifiers that include:
-        # - Chemical component entries identified by the alphanumeric code, COMP ID: e.g. ATP, ZN
-        # - BIRD entries identified by BIRD ID, e.g. PRD_000154
+    # Returns a list of molecular definition identifiers that include:
+    # - Chemical component entries identified by the alphanumeric code, COMP ID: e.g. ATP, ZN
+    # - BIRD entries identified by BIRD ID, e.g. PRD_000154
 
 
 class NodeType(Enum):
     # https://search.rcsb.org/#building-search-request
     TERMINAL = 'terminal'
-        # Performs an atomic search operation, e.g. searches for a particular value in a particular field. Parameters
-        # in the terminal query clause provide match criteria for finding relevant search hits. The set of parameters
-        # differs for different search services.
+    # Performs an atomic search operation, e.g. searches for a particular value in a particular field. Parameters
+    # in the terminal query clause provide match criteria for finding relevant search hits. The set of parameters
+    # differs for different search services.
     GROUP = 'group'
-        # Wraps other terminal or group nodes and is used to combine multiple queries in a logical fashion.
+    # Wraps other terminal or group nodes and is used to combine multiple queries in a logical fashion.
 
 
 class SearchService(Enum):
     # https://search.rcsb.org/#search-services
     TEXT = 'text'
-        # Performs attribute searches against textual annotations associated with PDB structures.
-        # Refer to https://search.rcsb.org/structure-search-attributes.html for a full list of annotations.
+    # Performs attribute searches against textual annotations associated with PDB structures.
+    # Refer to https://search.rcsb.org/structure-search-attributes.html for a full list of annotations.
     TEXT_CHEM = 'text_chem'
-        # Performs attribute searches against textual annotations associated with PDB molecular definitions.
-        # Refer to https://search.rcsb.org/chemical-search-attributes.html for a full list of annotations.
+    # Performs attribute searches against textual annotations associated with PDB molecular definitions.
+    # Refer to https://search.rcsb.org/chemical-search-attributes.html for a full list of annotations.
     FULL_TEXT = 'full_text'
-        # Performs unstructured searches against textual annotations associated with PDB structures or molecular
-        # definitions. Unstructured search performs a full-text searches against multiple text attributes.
+    # Performs unstructured searches against textual annotations associated with PDB structures or molecular
+    # definitions. Unstructured search performs a full-text searches against multiple text attributes.
     SEQUENCE = 'sequence'
-        # This service employs the MMseqs2 software (https://github.com/soedinglab/MMseqs2) and performs fast sequence
-        # matching searches (BLAST-like) based on a user-provided FASTA sequence (with E-value or % Identity cutoffs).
-        # Following searches are available:
-        # - protein: search for protein sequences
-        # - dna: search for DNA sequences
-        # - rna: search for RNA sequences
+    # This service employs the MMseqs2 software (https://github.com/soedinglab/MMseqs2) and performs fast sequence
+    # matching searches (BLAST-like) based on a user-provided FASTA sequence (with E-value or % Identity cutoffs).
+    # Following searches are available:
+    # - protein: search for protein sequences
+    # - dna: search for DNA sequences
+    # - rna: search for RNA sequences
     SEQMOTIF = 'seqmotif'
-        # Performs short motif searches against nucleotide or protein sequences, using three different types of input
-        # format:
-        # - simple (e.g., CXCXXL)
-        # - prosite (e.g., C-X-C-X(2)-[LIVMYFWC])
-        # - regex (e.g., CXCX{2}[LIVMYFWC])
+    # Performs short motif searches against nucleotide or protein sequences, using three different types of input
+    # format:
+    # - simple (e.g., CXCXXL)
+    # - prosite (e.g., C-X-C-X(2)-[LIVMYFWC])
+    # - regex (e.g., CXCX{2}[LIVMYFWC])
     STRUCTURE = 'structure'
-        # Performs fast searches matching a global 3D shape of assemblies or chains of a given entry (identified by PDB
-        # ID), in either strict (strict_shape_match) or relaxed (relaxed_shape_match) modes, using a BioZernike
-        # descriptor strategy
+    # Performs fast searches matching a global 3D shape of assemblies or chains of a given entry (identified by PDB
+    # ID), in either strict (strict_shape_match) or relaxed (relaxed_shape_match) modes, using a BioZernike
+    # descriptor strategy
     STRUCMOTIF = 'strucmotif'
-        # Performs structure motif searches on all available PDB structures.
+    # Performs structure motif searches on all available PDB structures.
     CHEMICAL = 'chemical'
-        # Enables queries of small-molecule constituents of PDB structures, based on chemical formula and chemical
-        # structure. Both molecular formula and formula range searches are supported. Queries for matching and similar
-        # chemical structures can be performed using SMILES and InChI descriptors as search targets.
+    # Enables queries of small-molecule constituents of PDB structures, based on chemical formula and chemical
+    # structure. Both molecular formula and formula range searches are supported. Queries for matching and similar
+    # chemical structures can be performed using SMILES and InChI descriptors as search targets.
 
 
 class LogicalOperator(Enum):
@@ -118,10 +118,7 @@ class SortOptions:
         self.direction = direction
 
     def to_dict(self):
-        return {
-            'sort_by': self.sort_by,
-            'direction': self.direction.value
-        }
+        return {'sort_by': self.sort_by, 'direction': self.direction.value}
 
 
 @dataclass
@@ -133,10 +130,7 @@ class PagerOptions:
         self.rows = rows
 
     def to_dict(self):
-        return {
-            'start': self.start,
-            'rows': self.rows
-        }
+        return {'start': self.start, 'rows': self.rows}
 
 
 @dataclass
@@ -150,19 +144,22 @@ class FacetsOptions:
         self.aggregation_type = aggregation_type
 
     def to_dict(self):
-        return {
-            'name': self.name,
-            'attribute': self.attribute,
-            'aggregation_type': self.aggregation_type
-        }
+        return {'name': self.name, 'attribute': self.attribute, 'aggregation_type': self.aggregation_type}
 
 
 @dataclass
 class RequestOptions:
-
-    def __init__(self, scoring_strategy: ScoringStrategy = None, sort_options: list[SortOptions] = [],
-                 pager: PagerOptions = None, return_all_hits=False, return_counts=False, return_explain_metadata=False,
-                 facets: list[FacetsOptions] = [], results_content_type: list[ResultsContentType] = []):
+    def __init__(
+        self,
+        scoring_strategy: ScoringStrategy = None,
+        sort_options: list[SortOptions] = [],
+        pager: PagerOptions = None,
+        return_all_hits=False,
+        return_counts=False,
+        return_explain_metadata=False,
+        facets: list[FacetsOptions] = [],
+        results_content_type: list[ResultsContentType] = [],
+    ):
         """
         Controls various aspects of the search request including pagination, sorting, scoring and faceting. If omitted,
         the default parameters for sorting, scoring and pagination will be applied.
@@ -200,9 +197,7 @@ class RequestOptions:
     def to_dict(self):
         # https://search.rcsb.org/index.html#return-count
         if self.return_counts:
-            return {
-                'return_counts': True
-            }
+            return {'return_counts': True}
 
         result = {}
         if self.scoring_strategy:

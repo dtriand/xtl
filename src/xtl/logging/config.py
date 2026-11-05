@@ -10,10 +10,11 @@ class LoggingFormat(Options):
     """
     Configuration for the logging format.
     """
-    format: str = Option(default='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s',
-                         desc='Format string for log messages')
-    datefmt: str = Option(default='%H:%M:%S',
-                          desc='Date format string for log messages')
+
+    format: str = Option(
+        default='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s', desc='Format string for log messages'
+    )
+    datefmt: str = Option(default='%H:%M:%S', desc='Date format string for log messages')
 
     def get_formatter(self) -> logging.Formatter:
         """
@@ -28,13 +29,10 @@ class HandlerConfig(Options):
     """
     Base configuration for a logging handler.
     """
-    handler: type(logging.Handler) = Option(default=logging.Handler,
-                                            desc='Handler class for logging')
-    format: LoggingFormat = Option(default=LoggingFormat(),
-                                   desc='Format configuration for the handler')
-    options: dict = Option(default=dict(),
-                           desc='Additional keyword arguments to pass to the '
-                                'handler constructor')
+
+    handler: type(logging.Handler) = Option(default=logging.Handler, desc='Handler class for logging')
+    format: LoggingFormat = Option(default=LoggingFormat(), desc='Format configuration for the handler')
+    options: dict = Option(default=dict(), desc='Additional keyword arguments to pass to the handler constructor')
 
     def get_handler(self) -> logging.Handler:
         """
@@ -52,10 +50,9 @@ class StreamHandlerConfig(HandlerConfig):
     """
     Configuration for a stream handler.
     """
-    handler: type(logging.Handler) = Option(default=logging.StreamHandler,
-                                            desc='Handler class for the stream')
-    stream: Any = Option(default=sys.stdout,
-                         desc='Stream to which log messages are sent')
+
+    handler: type(logging.Handler) = Option(default=logging.StreamHandler, desc='Handler class for the stream')
+    stream: Any = Option(default=sys.stdout, desc='Stream to which log messages are sent')
 
     def get_handler(self) -> logging.Handler:
         """
@@ -73,12 +70,10 @@ class FileHandlerConfig(HandlerConfig):
     """
     Configuration for a file handler.
     """
-    handler: type(logging.Handler) = Option(default=logging.FileHandler,
-                                      desc='Handler class for the file')
-    filename: str = Option(default='job.log', desc='File to which log messages are '
-                                                   'written')
-    mode: str = Option(default='a', desc='File mode for the log file (e.g., "a" for '
-                                         'append)')
+
+    handler: type(logging.Handler) = Option(default=logging.FileHandler, desc='Handler class for the file')
+    filename: str = Option(default='job.log', desc='File to which log messages are written')
+    mode: str = Option(default='a', desc='File mode for the log file (e.g., "a" for append)')
     encoding: str = Option(default='utf-8', desc='Encoding for the log file')
 
     def get_handler(self) -> logging.Handler:
@@ -88,9 +83,9 @@ class FileHandlerConfig(HandlerConfig):
         :return: A logging.FileHandler instance configured with the specified filename,
                  mode, encoding, format, and options
         """
-        handler = getattr(self, 'handler', logging.FileHandler)(filename=self.filename,
-                                                                mode=self.mode,
-                                                                encoding=self.encoding)
+        handler = getattr(self, 'handler', logging.FileHandler)(
+            filename=self.filename, mode=self.mode, encoding=self.encoding
+        )
         handler.setFormatter(self.format.get_formatter())
         return handler
 
@@ -99,13 +94,14 @@ class LoggerConfig(Options):
     """
     Configuration for a Job logger.
     """
-    level: int = Option(default=logging.INFO, desc='Logging level for the job logger',
-                        ge=0, le=50)  # logging.UNSET to logging.CRITICAL
-    propagate: bool = Option(default=False, desc='Whether to propagate log messages to '
-                                                 'parent loggers')
-    handlers: list[HandlerConfig] = Option(default_factory=\
-                                               lambda: [StreamHandlerConfig()],
-                                           desc='List of handlers for the job logger')
+
+    level: int = Option(
+        default=logging.INFO, desc='Logging level for the job logger', ge=0, le=50
+    )  # logging.UNSET to logging.CRITICAL
+    propagate: bool = Option(default=False, desc='Whether to propagate log messages to parent loggers')
+    handlers: list[HandlerConfig] = Option(
+        default_factory=lambda: [StreamHandlerConfig()], desc='List of handlers for the job logger'
+    )
 
     def configure(self, logger: logging.Logger) -> None:
         """

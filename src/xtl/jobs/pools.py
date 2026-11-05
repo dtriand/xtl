@@ -19,14 +19,24 @@ from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
 from xtl.jobs.logging import get_logger_config
-from xtl.jobs.ipc import (IPCBackend, IPCHandle, IPCHandleNames, IPCLock, IPCQueue, IPCState, AsyncIPCBackend,
-                          ThreadedIPCBackend, ProcessIPCBackend)
+from xtl.jobs.ipc import (
+    IPCBackend,
+    IPCHandle,
+    IPCHandleNames,
+    IPCLock,
+    IPCQueue,
+    IPCState,
+    AsyncIPCBackend,
+    ThreadedIPCBackend,
+    ProcessIPCBackend,
+)
 from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum):
         pass
 
@@ -36,8 +46,16 @@ else:
     from typing import Self
 
 
-__all__ = ['PoolProtocol', 'JobPool', 'BasePool', 'SimplePool', 'AsyncPool', 'ThreadedPool', 'MultiprocessPool',
-           'JOB_POOL_TYPES']
+__all__ = [
+    'PoolProtocol',
+    'JobPool',
+    'BasePool',
+    'SimplePool',
+    'AsyncPool',
+    'ThreadedPool',
+    'MultiprocessPool',
+    'JOB_POOL_TYPES',
+]
 
 
 uuid = UUIDFactory()
@@ -86,7 +104,6 @@ class PoolProtocol(Protocol):
 
 
 class BasePool(PoolProtocol, abc.ABC):
-
     _logging_level = logging.INFO
     """Default logging level for the pool's logger configuration. Setting after initialization has no effect"""
 
@@ -100,8 +117,15 @@ class BasePool(PoolProtocol, abc.ABC):
     _ipc_cls: type[IPCBackend]
     """The IPCBackend class to use for this pool."""
 
-    def __init__(self, name: str | None = None, max_jobs: int = 1, logger_config: LoggerConfig = None,
-                 resources: Resources | None = None, resources_manager: ResourceManager | None = None, **kwargs):
+    def __init__(
+        self,
+        name: str | None = None,
+        max_jobs: int = 1,
+        logger_config: LoggerConfig = None,
+        resources: Resources | None = None,
+        resources_manager: ResourceManager | None = None,
+        **kwargs,
+    ):
         """
         Abstract base class for job pools.
 
@@ -121,8 +145,9 @@ class BasePool(PoolProtocol, abc.ABC):
         if max_jobs < 1:
             raise ValueError(f'`max_jobs` must be at least 1, got {max_jobs}')
         if logger_config and not isinstance(logger_config, LoggerConfig):
-            raise TypeError(f'Expected a {LoggerConfig.__name__} instance for `logger_config`, '
-                            f'got {type(logger_config).__name__}')
+            raise TypeError(
+                f'Expected a {LoggerConfig.__name__} instance for `logger_config`, got {type(logger_config).__name__}'
+            )
 
         # Set up pool_id and name
         self._pool_id = uuid.random(settings.jobs.job_digits)
@@ -131,7 +156,7 @@ class BasePool(PoolProtocol, abc.ABC):
         # Configure logger for this pool
         self._logger = self.get_logger(
             logger_id=f'{self.__class__.__name__}|{self._name or self._pool_id}',
-            config=logger_config or self._logger_config
+            config=logger_config or self._logger_config,
         )
         self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
 
@@ -172,8 +197,10 @@ class BasePool(PoolProtocol, abc.ABC):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if not hasattr(cls, '_ipc_cls') or not issubclass(cls._ipc_cls, IPCBackend):
-            raise TypeError(f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
-                            f'subclass of {IPCBackend.__name__}')
+            raise TypeError(
+                f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
+                f'subclass of {IPCBackend.__name__}'
+            )
 
     @abc.abstractmethod
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
@@ -222,7 +249,9 @@ class BasePool(PoolProtocol, abc.ABC):
         return self._logger
 
     @classmethod
-    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None, update_config: bool = True) -> logging.Logger:
+    def get_logger(
+        cls, logger_id: str, config: LoggerConfig | None = None, update_config: bool = True
+    ) -> logging.Logger:
         """
         Get or create a logger for the pool with the specified ID. If a `config` is not specified, the default
         configuration is chosen.
@@ -248,8 +277,9 @@ class BasePool(PoolProtocol, abc.ABC):
         Enter the context manager.
         """
         if self._in_ctx:
-            raise RuntimeError(f'{self.__class__.__name__} is already in a context manager and cannot be entered '
-                               f'multiple times')
+            raise RuntimeError(
+                f'{self.__class__.__name__} is already in a context manager and cannot be entered multiple times'
+            )
 
         # Acquire resources for this pool
         self.logger.debug('Requesting resources for the pool: %s', self._rc_requested.__dict__)
@@ -284,8 +314,11 @@ class BasePool(PoolProtocol, abc.ABC):
             if interrupted:
                 self.logger.error('Pool execution was interrupted by user')
             else:
-                self.logger.error('An exception occurred within the pool context: %s',
-                              exc_type.__name__, exc_info=settings.jobs.tracebacks)
+                self.logger.error(
+                    'An exception occurred within the pool context: %s',
+                    exc_type.__name__,
+                    exc_info=settings.jobs.tracebacks,
+                )
             self._error = exc_val
 
             # Request cancellation of all running tasks
@@ -387,9 +420,9 @@ class BasePool(PoolProtocol, abc.ABC):
             i += 1
         return job_ids
 
-
-    def submit(self, job_cls: Type[Job], configs: JobConfig | None | Iterable[JobConfig | None] = None, **kwargs) -> \
-            list[Job]:
+    def submit(
+        self, job_cls: Type[Job], configs: JobConfig | None | Iterable[JobConfig | None] = None, **kwargs
+    ) -> list[Job]:
         """
         Submit a job to the pool for execution. This method must be called from within the pool's context manager.
 
@@ -435,7 +468,9 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Check for length consistency
         if len(job_ids) != len(configs_list):
-            raise ValueError(f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs_list)})')
+            raise ValueError(
+                f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs_list)})'
+            )
 
         # Create and register jobs
         created_jobs: list[Job] = []
@@ -505,8 +540,7 @@ class BasePool(PoolProtocol, abc.ABC):
                 self._completed_jobs.add(job_id)
                 return result
             except Exception as exc:
-                self.logger.error('Job %s failed with exception: %s', job_id, exc,
-                                  exc_info=settings.jobs.tracebacks)
+                self.logger.error('Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks)
                 return JobResults(job_id=job_id, data=None, error=exc)
             finally:
                 self._running_jobs.discard(job_id)
@@ -538,7 +572,7 @@ class BasePool(PoolProtocol, abc.ABC):
             return await self._launch_all()
         elif mode == 'stream':
             return self._launch_stream()
-        raise ValueError(f'Invalid mode: {mode!r}. Expected \'all\' or \'stream\'.')
+        raise ValueError(f"Invalid mode: {mode!r}. Expected 'all' or 'stream'.")
 
     async def _launch_all(self) -> list[JobResults]:
         """
@@ -663,7 +697,6 @@ class BasePool(PoolProtocol, abc.ABC):
 
 
 class ProxyPool(PoolProtocol):
-
     _PROXY_SENTINEL = '<proxy>'
 
     def __init__(self, ipc: IPCBackend):
@@ -864,7 +897,6 @@ class MultiprocessPool(BasePool):
     _executor: ProcessPoolExecutor | None
     _ipc_cls = ProcessIPCBackend
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -907,8 +939,7 @@ class MultiprocessPool(BasePool):
         # Start the eavesdropping task
         self.logger.debug('Starting eavesdropper...')
         self._eavesdropping = asyncio.create_task(
-            _listen(),
-            name=f'{self.__class__.__name__}:{self.pool_id}-Eavesdropper'
+            _listen(), name=f'{self.__class__.__name__}:{self.pool_id}-Eavesdropper'
         )
 
     @contextlib.asynccontextmanager
@@ -980,7 +1011,7 @@ class MultiprocessPool(BasePool):
         # Initialize the process pool executor
         self._executor = self._executor_cls(
             max_workers=self._resources.jobs,  # type: ignore
-            initializer=self._rename_current_process
+            initializer=self._rename_current_process,
         )
 
         # Ensure that the log queue and default lock are created before any jobs are submitted

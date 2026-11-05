@@ -19,25 +19,30 @@ from xtl.units.scattering.radial import RadialUnits, RadialUnitsDescription
 
 
 class _ScatteringBase:
-
-    def __init__(self,
-                 # pd.DataFrame arguments
-                 data: ArrayLike | Iterable | dict | pd.DataFrame | ScatteringData,
-                 /,
-                 index: ArrayLike | pd.Index | None = None,
-                 columns: ArrayLike | pd.Index | Iterable | None = None,
-                 dtypes: Iterable | pd.Index | pd.Series | Dtype | str |
-                        dict[str, Dtype | str] | None = None,
-                 copy: bool = False,
-                 # XTL arguments
-                 radial_col: str | None = None,
-                 wavelength: float | None = None,
-                 energy: float | None = None,
-                 metadata: ScatteringProfileMetadataType | None = None
-                 ):
+    def __init__(
+        self,
+        # pd.DataFrame arguments
+        data: ArrayLike | Iterable | dict | pd.DataFrame | ScatteringData,
+        /,
+        index: ArrayLike | pd.Index | None = None,
+        columns: ArrayLike | pd.Index | Iterable | None = None,
+        dtypes: Iterable | pd.Index | pd.Series | Dtype | str | dict[str, Dtype | str] | None = None,
+        copy: bool = False,
+        # XTL arguments
+        radial_col: str | None = None,
+        wavelength: float | None = None,
+        energy: float | None = None,
+        metadata: ScatteringProfileMetadataType | None = None,
+    ):
         self._data = ScatteringData(
-            data=data, index=index, columns=columns, dtypes=dtypes, copy=copy, wavelength=wavelength, energy=energy,
-            radial_col=radial_col
+            data=data,
+            index=index,
+            columns=columns,
+            dtypes=dtypes,
+            copy=copy,
+            wavelength=wavelength,
+            energy=energy,
+            radial_col=radial_col,
         )
 
         # Check for at least one radial dtype
@@ -47,8 +52,7 @@ class _ScatteringBase:
         # Store metadata
         if metadata:
             if not isinstance(metadata, ScatteringProfileMetadata):
-                raise TypeError(f'Expected {ScatteringProfileMetadata.__name__}, '
-                                f'got {type(metadata)}')
+                raise TypeError(f'Expected {ScatteringProfileMetadata.__name__}, got {type(metadata)}')
             self._metadata = metadata
         else:
             self._metadata = None
@@ -130,29 +134,38 @@ class _ScatteringBase:
 
 
 class ScatteringProfile(_ScatteringBase):
-
-    def __init__(self,
-                 data: ArrayLike | Iterable | dict | pd.DataFrame | ScatteringData,
-                 /,
-                 index: ArrayLike | pd.Index | None = None,
-                 columns: ArrayLike | pd.Index | Iterable | None = None,
-                 dtypes: Iterable[Dtype | str] | None = None,
-                 copy: bool = False,
-                 radial_col: str | None = None,
-                 wavelength: float | None = None,
-                 energy: float | None = None,
-                 metadata: ScatteringProfileMetadataType | None = None
-                 ):
+    def __init__(
+        self,
+        data: ArrayLike | Iterable | dict | pd.DataFrame | ScatteringData,
+        /,
+        index: ArrayLike | pd.Index | None = None,
+        columns: ArrayLike | pd.Index | Iterable | None = None,
+        dtypes: Iterable[Dtype | str] | None = None,
+        copy: bool = False,
+        radial_col: str | None = None,
+        wavelength: float | None = None,
+        energy: float | None = None,
+        metadata: ScatteringProfileMetadataType | None = None,
+    ):
         super().__init__(
-            data, index=index, columns=columns, dtypes=dtypes, copy=copy, radial_col=radial_col, wavelength=wavelength,
-            energy=energy, metadata=metadata
+            data,
+            index=index,
+            columns=columns,
+            dtypes=dtypes,
+            copy=copy,
+            radial_col=radial_col,
+            wavelength=wavelength,
+            energy=energy,
+            metadata=metadata,
         )
 
         # Check shape
         ncols = self._data.shape[1]
         if ncols < 2 or ncols > 3:
-            raise ValueError(f'{self.__class__.__name__} must have 2 or 3 columns: radial, intensity, and optional '
-                             f'sigma, not {self._data.shape[1]}')
+            raise ValueError(
+                f'{self.__class__.__name__} must have 2 or 3 columns: radial, intensity, and optional '
+                f'sigma, not {self._data.shape[1]}'
+            )
 
         # Identify column types
         self._cols: dict[str, str | None] = {'x': None, 'y': None, 'e': None}
@@ -241,8 +254,14 @@ class ScatteringProfile(_ScatteringBase):
 
         return np.array([x, y, e])
 
-    def _format_plot_axes(self, ax: 'plt.Axes', units_x: RadialUnits | None,
-                          units_y: Units | None = None, title: str | None = None, **kwargs) -> None:
+    def _format_plot_axes(
+        self,
+        ax: 'plt.Axes',
+        units_x: RadialUnits | None,
+        units_y: Units | None = None,
+        title: str | None = None,
+        **kwargs,
+    ) -> None:
         # Set ticks
         ax.tick_params(axis='x', direction='in', top=True)
         ax.tick_params(axis='y', direction='in', right=True)
@@ -255,8 +274,9 @@ class ScatteringProfile(_ScatteringBase):
         if title:
             ax.set_title(title)
 
-    def plot(self, ax: 'plt.Axes' = None, units: RadialUnits | str = RadialUnits.Q_NM, errors: bool = False,
-             **kwargs) -> 'plt.Axes':
+    def plot(
+        self, ax: 'plt.Axes' = None, units: RadialUnits | str = RadialUnits.Q_NM, errors: bool = False, **kwargs
+    ) -> 'plt.Axes':
         import matplotlib.pyplot as plt
 
         units = RadialUnits(units)
@@ -272,9 +292,16 @@ class ScatteringProfile(_ScatteringBase):
         x = self.get_radial_array(units=units)
         line = ax.plot(x, self.intensity, label=label, color=color)
         if errors and self.sigma is not None:
-            ax.fill_between(x, self.intensity - self.sigma, self.intensity + self.sigma,
-                            label=label, color=line[0].get_color(), alpha=0.3, edgecolor=None,
-                            zorder=line[0].get_zorder() - 1)
+            ax.fill_between(
+                x,
+                self.intensity - self.sigma,
+                self.intensity + self.sigma,
+                label=label,
+                color=line[0].get_color(),
+                alpha=0.3,
+                edgecolor=None,
+                zorder=line[0].get_zorder() - 1,
+            )
 
         self._format_plot_axes(ax, units_x=units, units_y=self.intensity.dtype.units)
 

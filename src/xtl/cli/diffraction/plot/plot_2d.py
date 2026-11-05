@@ -12,40 +12,66 @@ app = typer.Typer()
 
 @app.command('2d', help='Plot diffraction images', epilog=epilog)
 def cli_diffraction_plot_2d(
-        images: list[str] = typer.Argument(..., help='Images to integrate'),
-        # Plotting parameters
-        zscale: ZScale = typer.Option(ZScale.LINEAR.value, '-z', '--zscale', help='Intensity scale',
-                                      rich_help_panel='Plotting parameters'),
-        zmin: float = typer.Option(None, '--zmin', help='Minimum value for intensities',
-                                    rich_help_panel='Plotting parameters'),
-        zmax: float = typer.Option(None, '--zmax', help='Maximum value for intensities',
-                                    rich_help_panel='Plotting parameters'),
-        normalize: bool = typer.Option(False, '-n', '--normalize', help='Normalize the intensities',
-                                       rich_help_panel='Plotting parameters'),
-        nstd: float = typer.Option(4.0, '-N', '--nstd', help='Number of standard deviations for normalization',
-                                   rich_help_panel='Plotting parameters'),
-        hot_pixels: float = typer.Option(None, '-hp', '--hot-pixels', help='Mask pixels with value greater than this',
-                                         rich_help_panel='Plotting parameters'),
-        # Output parameters
-        save: bool = typer.Option(False, '-s', '--save', help='Export images to files',
-                                  rich_help_panel='Output parameters', is_flag=True),
-        save_only: bool = typer.Option(False, '-S', '--save-only', help='Only save the resulting images',
-                                        rich_help_panel='Output parameters', is_flag=True),
-        output_dir: Path = typer.Option('.', '-o', '--output', help='Output directory',
-                                        rich_help_panel='Output parameters'),
-        overwrite: bool = typer.Option(False, '-f', '--force', help='Overwrite existing files',
-                                        rich_help_panel='Output parameters', is_flag=True),
-        # Debugging
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
-                                    rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging'),
+    images: list[str] = typer.Argument(..., help='Images to integrate'),
+    # Plotting parameters
+    zscale: ZScale = typer.Option(
+        ZScale.LINEAR.value, '-z', '--zscale', help='Intensity scale', rich_help_panel='Plotting parameters'
+    ),
+    zmin: float = typer.Option(
+        None, '--zmin', help='Minimum value for intensities', rich_help_panel='Plotting parameters'
+    ),
+    zmax: float = typer.Option(
+        None, '--zmax', help='Maximum value for intensities', rich_help_panel='Plotting parameters'
+    ),
+    normalize: bool = typer.Option(
+        False, '-n', '--normalize', help='Normalize the intensities', rich_help_panel='Plotting parameters'
+    ),
+    nstd: float = typer.Option(
+        4.0,
+        '-N',
+        '--nstd',
+        help='Number of standard deviations for normalization',
+        rich_help_panel='Plotting parameters',
+    ),
+    hot_pixels: float = typer.Option(
+        None,
+        '-hp',
+        '--hot-pixels',
+        help='Mask pixels with value greater than this',
+        rich_help_panel='Plotting parameters',
+    ),
+    # Output parameters
+    save: bool = typer.Option(
+        False, '-s', '--save', help='Export images to files', rich_help_panel='Output parameters', is_flag=True
+    ),
+    save_only: bool = typer.Option(
+        False,
+        '-S',
+        '--save-only',
+        help='Only save the resulting images',
+        rich_help_panel='Output parameters',
+        is_flag=True,
+    ),
+    output_dir: Path = typer.Option(
+        '.', '-o', '--output', help='Output directory', rich_help_panel='Output parameters'
+    ),
+    overwrite: bool = typer.Option(
+        False, '-f', '--force', help='Overwrite existing files', rich_help_panel='Output parameters', is_flag=True
+    ),
+    # Debugging
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
 
     try:
         from xtl.cli.diffraction.cli_utils import get_image_frames
+
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
@@ -62,8 +88,17 @@ def cli_diffraction_plot_2d(
     nimages = len(images)
     ncols = math.ceil(math.sqrt(nimages))
     nrows = math.ceil(nimages / ncols)
-    grid = AxesGrid(fig, 111, nrows_ncols=(nrows, ncols), axes_pad=0., share_all=True,
-                    cbar_mode='single', cbar_location='right', cbar_pad=0.1, cbar_size=0.1)
+    grid = AxesGrid(
+        fig,
+        111,
+        nrows_ncols=(nrows, ncols),
+        axes_pad=0.0,
+        share_all=True,
+        cbar_mode='single',
+        cbar_location='right',
+        cbar_pad=0.1,
+        cbar_size=0.1,
+    )
 
     for i, image in enumerate(images):
         vmin, vmax = np.nanmin(image.data_masked), np.nanmax(image.data_masked)
@@ -85,21 +120,30 @@ def cli_diffraction_plot_2d(
             else:
                 vmax = mean + nstd * std
             if verbose:
-                cli.print(f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}', style='cyan')
+                cli.print(
+                    f'Normalization: mean={mean:.4e}, std={std:.4e}, zmin={vmin:.4e}, zmax={vmax:.4e}', style='cyan'
+                )
         else:
             if zmin is not None:
                 vmin = zmin
             if zmax is not None:
                 vmax = zmax
 
-
-        _, _, m = image.plot(ax=ax, fig=fig, zscale=zscale.value, zmin=vmin, zmax=vmax, title='',
-                             cmap='magma', bad_value_color='black')
+        _, _, m = image.plot(
+            ax=ax, fig=fig, zscale=zscale.value, zmin=vmin, zmax=vmax, title='', cmap='magma', bad_value_color='black'
+        )
 
         # Frame numbering
         if nimages > 1:
-            ax.text(0.95, 0.95, f'#{i}', va='top', ha='right', transform=ax.transAxes,
-                    bbox={'facecolor': 'white', 'alpha': 0.5, 'linewidth': 0})
+            ax.text(
+                0.95,
+                0.95,
+                f'#{i}',
+                va='top',
+                ha='right',
+                transform=ax.transAxes,
+                bbox={'facecolor': 'white', 'alpha': 0.5, 'linewidth': 0},
+            )
             if i == nimages - 1:
                 ax.cax.colorbar(m)
                 if verbose:

@@ -11,6 +11,7 @@ from xtl.common.options import Option, Options
 from xtl.common.typed_vars import TypedList
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum):
         pass
 else:
@@ -21,18 +22,9 @@ logger = Logger(__name__)
 
 
 class StructureOptions(Options):
+    reflections: Path = Option(path_exists=True, desc='Path to the reflections file (e.g., .mtz, .hkl, .cif)')
 
-    reflections: Path = \
-        Option(
-            path_exists=True,
-            desc='Path to the reflections file (e.g., .mtz, .hkl, .cif)'
-        )
-
-    resolution: float = \
-        Option(
-            default=2.0,
-            desc='Resolution cutoff for reflections (in Angstroms)'
-        )
+    resolution: float = Option(default=2.0, desc='Resolution cutoff for reflections (in Angstroms)')
 
 
 class CrystalShapeTransform(StrEnum):
@@ -40,6 +32,7 @@ class CrystalShapeTransform(StrEnum):
     Enumeration of shape-transform of the crystal. This is used to determine the shape of the spots in reciprocal space
     and the falloff of the intensity as a function of resolution.
     """
+
     SQUARE = 'square'
     """Crystal is modeled as a parallelepiped. Falloff is sinc(d) and anisotropic across h, k, l."""
 
@@ -61,41 +54,25 @@ class CrystalOptions(Options):
     Options about the crystal.
     """
 
-    shape_transform: CrystalShapeTransform = \
-        Option(
-            default=CrystalShapeTransform.GAUSSIAN,
-            desc='Shape transform of the crystal'
-        )
+    shape_transform: CrystalShapeTransform = Option(
+        default=CrystalShapeTransform.GAUSSIAN, desc='Shape transform of the crystal'
+    )
 
-    size: tuple[float, float, float] = \
-        Option(
-            default=(0., 0., 0.),
-            desc='Size of the crystal in mm (x, y, z). Controls spot intensity.'
-        )
+    size: tuple[float, float, float] = Option(
+        default=(0.0, 0.0, 0.0), desc='Size of the crystal in mm (x, y, z). Controls spot intensity.'
+    )
 
-    no_unit_cells: tuple[int, int, int] = \
-        Option(
-            default=(100, 100, 100),
-            desc='Number of unit cells in the crystal along a, b, c. '
-        )
+    no_unit_cells: tuple[int, int, int] = Option(
+        default=(100, 100, 100), desc='Number of unit cells in the crystal along a, b, c. '
+    )
 
-    no_mosaic_domains: int = \
-        Option(
-            default=1,
-            desc='Number of mosaic domains in the crystal'
-        )
+    no_mosaic_domains: int = Option(default=1, desc='Number of mosaic domains in the crystal')
 
-    mosaic_domains_spread: float = \
-        Option(
-            default=0.0,
-            desc='Spread of mosaic domains in degrees'
-        )
+    mosaic_domains_spread: float = Option(default=0.0, desc='Spread of mosaic domains in degrees')
 
-    orientation: tuple[float, float, float] = \
-        Option(
-            default=(0., 0., 0.),
-            desc='Crystal orientation in degrees around the laboratory x, y, z reference axes.'
-        )
+    orientation: tuple[float, float, float] = Option(
+        default=(0.0, 0.0, 0.0), desc='Crystal orientation in degrees around the laboratory x, y, z reference axes.'
+    )
 
     def randomize_orientation(self, seed: int = None) -> None:
         """
@@ -106,16 +83,19 @@ class CrystalOptions(Options):
         if seed is not None:
             np.random.seed(seed)
         self.orientation = (
-            np.random.random() * 360. - 180.,  # Between -180 and 180 degrees
-            np.random.random() * 360. - 180.,
-            np.random.random() * 360. - 180.
+            np.random.random() * 360.0 - 180.0,  # Between -180 and 180 degrees
+            np.random.random() * 360.0 - 180.0,
+            np.random.random() * 360.0 - 180.0,
         )
 
     def model_post_init(self, context: Any, /) -> None:
-        if self.size != CrystalOptions.model_fields['size'].default and \
-                self.no_unit_cells != CrystalOptions.model_fields['no_unit_cells'].default:
-            logger.warning('Both `size` and `no_unit_cells` are set. Only `size` will have an effect on the '
-                           'simulation.')
+        if (
+            self.size != CrystalOptions.model_fields['size'].default
+            and self.no_unit_cells != CrystalOptions.model_fields['no_unit_cells'].default
+        ):
+            logger.warning(
+                'Both `size` and `no_unit_cells` are set. Only `size` will have an effect on the simulation.'
+            )
 
 
 class AmorphousMaterialOptions(Options):
@@ -124,28 +104,15 @@ class AmorphousMaterialOptions(Options):
     during simulation.
     """
 
-    name: str = \
-        Option(
-            desc='Name of the amorphous material'
-        )
+    name: str = Option(desc='Name of the amorphous material')
 
-    density: float = \
-        Option(
-            gt=0.,
-            desc='Density of the amorphous material in g/cm^3'
-        )
+    density: float = Option(gt=0.0, desc='Density of the amorphous material in g/cm^3')
 
-    size: tuple[float, float, float] = \
-        Option(
-            default=(0., 0.001, 0.001),
-            desc='Sample size in mm along z, y and x (thickness, height, width)'
-        )
+    size: tuple[float, float, float] = Option(
+        default=(0.0, 0.001, 0.001), desc='Sample size in mm along z, y and x (thickness, height, width)'
+    )
 
-    molecular_weight: float = \
-        Option(
-            gt=0.,
-            desc='Molecular weight of the amorphous material in g/mol'
-        )
+    molecular_weight: float = Option(gt=0.0, desc='Molecular weight of the amorphous material in g/mol')
 
 
 class AmorphousMaterials(StrEnum):
@@ -160,107 +127,52 @@ class AmorphousMaterials(StrEnum):
         if self == AmorphousMaterials.WATER:
             # Density for water at 25 C
             #  https://en.wikipedia.org/wiki/Water
-            return AmorphousMaterialOptions(
-                name='water',
-                density=0.997048,
-                molecular_weight=18.015
-            )
+            return AmorphousMaterialOptions(name='water', density=0.997048, molecular_weight=18.015)
         elif self == AmorphousMaterials.AIR:
             # Average density/molecular weight for atmospheric air at 25 C
             #  https://en.wikipedia.org/wiki/Density_of_air
             #  https://en.wikipedia.org/wiki/Atmosphere_of_Earth#Composition
-            return AmorphousMaterialOptions(
-                name='air',
-                density=0.001204,
-                molecular_weight=28.95
-            )
+            return AmorphousMaterialOptions(name='air', density=0.001204, molecular_weight=28.95)
         elif self == AmorphousMaterials.HELIUM:
             # Density for helium at 20 C
             #  https://en.wikipedia.org/wiki/Helium
-            return AmorphousMaterialOptions(
-                name='helium',
-                density=0.0001786,
-                molecular_weight=4.0026
-            )
+            return AmorphousMaterialOptions(name='helium', density=0.0001786, molecular_weight=4.0026)
         elif self in {AmorphousMaterials.ICE, AmorphousMaterials.NANOICE}:
             # Density for Ih ice at 93 K (-180 C)
             #  https://en.wikipedia.org/wiki/Ice#Physical_properties
-            return AmorphousMaterialOptions(
-                name='ice',
-                density=0.9340,
-                molecular_weight=18.015
-            )
+            return AmorphousMaterialOptions(name='ice', density=0.9340, molecular_weight=18.015)
         elif self == AmorphousMaterials.PARATONE_N:
             # Density for Paratone-N at 15 C (best guess!)
             #  https://hamptonresearch.com/product-Parabar-10312-previously-known-as-Paratone-404.html
-            return AmorphousMaterialOptions(
-                name='paratone-n',
-                density=0.88,
-                molecular_weight=20_000.0
-            )
+            return AmorphousMaterialOptions(name='paratone-n', density=0.88, molecular_weight=20_000.0)
         else:
             raise NotImplementedError(f'Material options for {self.value} not implemented')
 
 
 class DetectorOptions(Options):
+    type: str = Option(choices={'simple'}, desc='Detector type.')
 
-    type: str = \
-        Option(
-            choices={'simple'},
-            desc='Detector type.'
-        )
+    distance: float = Option(gt=0.0, desc='Sample to detector distance in mm')
 
-    distance: float = \
-        Option(
-            gt=0.,
-            desc='Sample to detector distance in mm'
-        )
+    nx: int = Option(gt=0, desc='Number of pixels along x-axis')
 
-    nx: int = \
-        Option(
-            gt=0,
-            desc='Number of pixels along x-axis'
-        )
+    ny: int = Option(gt=0, desc='Number of pixels along y-axis')
 
-    ny: int = \
-        Option(
-            gt=0,
-            desc='Number of pixels along y-axis'
-        )
+    pixel_size: float = Option(gt=0.0, desc='Pixel size in mm (same across x and y)')
 
-    pixel_size: float = \
-        Option(
-            gt=0.,
-            desc='Pixel size in mm (same across x and y)'
-        )
-
-    adc_offset: float = \
-        Option(
-            default=40.,
-            desc='Analog-to-Digital converter (ADC) offset in analog-to-digital units (ADU)'
-        )
+    adc_offset: float = Option(
+        default=40.0, desc='Analog-to-Digital converter (ADC) offset in analog-to-digital units (ADU)'
+    )
 
 
 class SimpleDetectorOptions(DetectorOptions):
-
     type: str = 'simple'
 
 
 class BeamSpectrumOptions(Options):
+    no_wavelengths: int = Option(default=1, gt=0, desc='Number of wavelengths to simulate.')
 
-    no_wavelengths: int = \
-        Option(
-            default=1,
-            gt=0,
-            desc='Number of wavelengths to simulate.'
-        )
-
-    wavelength_step: float = \
-        Option(
-            default=0.001,
-            gt=0.,
-            desc='Wavelength step in Angstroms'
-        )
+    wavelength_step: float = Option(default=0.001, gt=0.0, desc='Wavelength step in Angstroms')
 
     _wavelength_mean: float | None = PrivateAttr(None)
     """Average wavelength in Angstroms"""
@@ -299,26 +211,11 @@ class BeamSpectrumOptions(Options):
 class BeamOptions(Options):
     model_config = Options.model_config | {'extra': 'allow'}
 
-    wavelength: float = \
-        Option(
-            default=1.,
-            gt=0.,
-            desc='X-ray wavelength in Angstroms'
-        )
+    wavelength: float = Option(default=1.0, gt=0.0, desc='X-ray wavelength in Angstroms')
 
-    flux: float = \
-        Option(
-            default=1e12,
-            gt=0.,
-            desc='X-ray flux in photons/s'
-        )
+    flux: float = Option(default=1e12, gt=0.0, desc='X-ray flux in photons/s')
 
-    size: float = \
-        Option(
-            default=0.02,
-            gt=0.,
-            desc='Beam size in mm (same across x and y)'
-        )
+    size: float = Option(default=0.02, gt=0.0, desc='Beam size in mm (same across x and y)')
 
     _spectrum: BeamSpectrumOptions | None = PrivateAttr(None)
 
@@ -351,92 +248,50 @@ class CrystalOrientationMode(StrEnum):
 
 
 class ExperimentOptions(Options):
+    exposure: float = Option(default=0.01, gt=0.0, desc='Exposure time in seconds')
 
-    exposure: float = \
-        Option(
-            default=0.01,
-            gt=0.,
-            desc='Exposure time in seconds'
-        )
+    oscillation_range: float = Option(
+        default=0.0, ge=0.0, desc='Oscillation range per frame in degrees. If 0, simulates a still image.'
+    )
 
-    oscillation_range: float = \
-        Option(
-            default=0.,
-            ge=0.,
-            desc='Oscillation range per frame in degrees. If 0, simulates a still image.'
-        )
-
-    crystal_orientation_mode: CrystalOrientationMode = \
-        Option(
-            default=CrystalOrientationMode.RANDOM,
-            desc='Crystal orientation between frames.'
-        )
+    crystal_orientation_mode: CrystalOrientationMode = Option(
+        default=CrystalOrientationMode.RANDOM, desc='Crystal orientation between frames.'
+    )
 
 
 class SimulationOptions(Options):
+    no_images: int = Option(default=1, gt=0, desc='Number of images to simulate.')
 
-    no_images: int = \
-        Option(
-            default=1,
-            gt=0,
-            desc='Number of images to simulate.'
-        )
+    oversample: int = Option(default=1, gt=0, desc='Number of subpixels to compute per pixel')
 
-    oversample: int = \
-        Option(
-            default=1,
-            gt=0,
-            desc='Number of subpixels to compute per pixel'
-        )
+    spot_scale: float = Option(default=1.0, gt=0.0, desc='Scale factor for spot intensities')
 
-    spot_scale: float = \
-        Option(
-            default=1.,
-            gt=0.,
-            desc='Scale factor for spot intensities'
-        )
+    seed: int = Option(default_factory=lambda: np.random.randint(0, 10_000), desc='Random seed for reproducibility.')
 
-    seed: int = \
-        Option(
-            default_factory=lambda: np.random.randint(0, 10_000),
-            desc='Random seed for reproducibility.'
-        )
-
-    mosaic_seed: int = \
-        Option(
-            default_factory=lambda: np.random.randint(0, 10_000),
-            desc='Random seed for mosaic domain generation. Only used if `crystal.mosaic_domains_spread` > 0.'
-        )
+    mosaic_seed: int = Option(
+        default_factory=lambda: np.random.randint(0, 10_000),
+        desc='Random seed for mosaic domain generation. Only used if `crystal.mosaic_domains_spread` > 0.',
+    )
 
 
 class NanoBraggOptions(Options):
-
     structure: StructureOptions
 
-    crystal: CrystalOptions = \
-        Option(
-            default_factory=CrystalOptions,
-            desc='Physical properties of the crystal'
-        )
+    crystal: CrystalOptions = Option(default_factory=CrystalOptions, desc='Physical properties of the crystal')
 
-    amorphous_content: TypedList[AmorphousMaterialOptions] = \
-        Option(
-            default_factory=lambda: TypedList(AmorphousMaterialOptions),
-            desc='List of amorphous materials in the sample, if any'
-        )
+    amorphous_content: TypedList[AmorphousMaterialOptions] = Option(
+        default_factory=lambda: TypedList(AmorphousMaterialOptions),
+        desc='List of amorphous materials in the sample, if any',
+    )
 
     detector: DetectorOptions
 
     beam: BeamOptions
 
-    experiment: ExperimentOptions = \
-        Option(
-            default_factory=ExperimentOptions,
-            desc='Experimental parameters such as exposure time and oscillation range'
-        )
+    experiment: ExperimentOptions = Option(
+        default_factory=ExperimentOptions, desc='Experimental parameters such as exposure time and oscillation range'
+    )
 
-    simulation: SimulationOptions = \
-        Option(
-            default_factory=SimulationOptions,
-            desc='Simulation parameters such as number of images and oversampling'
-        )
+    simulation: SimulationOptions = Option(
+        default_factory=SimulationOptions, desc='Simulation parameters such as number of images and oversampling'
+    )

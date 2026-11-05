@@ -185,6 +185,7 @@ class IPCHandleNames:
     """
     Names of IPC primitives to include in an IPCHandle.
     """
+
     locks: set[str] = field(default_factory=set)
     queues: set[str] = field(default_factory=set)
     states: set[str] = field(default_factory=set)

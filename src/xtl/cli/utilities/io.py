@@ -22,8 +22,6 @@ def resolve_paths_or_glob(raw: list) -> list[Path]:
         else:
             matches = glob.glob(str(entry))
             if not matches:
-                raise typer.BadParameter(
-                    f"'{entry}' is neither an existing file nor a glob pattern with matches"
-                )
+                raise typer.BadParameter(f"'{entry}' is neither an existing file nor a glob pattern with matches")
             resolved.extend(map(Path, matches))
     return resolved

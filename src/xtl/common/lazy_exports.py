@@ -9,6 +9,7 @@ Typical usage:
     def __dir__() -> list[str]:
         return lazy_dir(globals(), __all__)
 """
+
 from __future__ import annotations
 
 from importlib import import_module
@@ -18,8 +19,7 @@ ExportTarget: TypeAlias = tuple[str, str]
 ExportMap: TypeAlias = Mapping[str, ExportTarget]
 
 
-def lazy_getattr(package_name: str, exports: ExportMap, namespace: MutableMapping[str, Any],
-                 name: str) -> Any:
+def lazy_getattr(package_name: str, exports: ExportMap, namespace: MutableMapping[str, Any], name: str) -> Any:
     """
     Resolve and cache a lazily exported symbol.
 
@@ -33,7 +33,7 @@ def lazy_getattr(package_name: str, exports: ExportMap, namespace: MutableMappin
     try:
         module_name, attr_name = exports[name]
     except KeyError as exc:
-        raise AttributeError(f"module {package_name!r} has no attribute {name!r}") from exc
+        raise AttributeError(f'module {package_name!r} has no attribute {name!r}') from exc
 
     # Fast-path, use cache
     cached = namespace.get(name)
@@ -65,6 +65,5 @@ def validate_exports(package_name: str, exports: ExportMap) -> None:
         module = import_module(module_name, package_name)
         if not hasattr(module, attr_name):
             raise AttributeError(
-                f'Invalid lazy export {public_name!r} -> ({module_name!r}, {attr_name!r}) '
-                f'in {package_name!r}'
+                f'Invalid lazy export {public_name!r} -> ({module_name!r}, {attr_name!r}) in {package_name!r}'
             )

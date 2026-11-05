@@ -4,7 +4,6 @@ import logging
 
 
 class BufferingHandler(logging.Handler):
-
     def __init__(self, tail_size: int = 20):
         super().__init__(level=logging.NOTSET)
         self._records: deque[logging.LogRecord] = deque(maxlen=10_000)  # NB: Limit the maximum number of stored records
@@ -34,7 +33,6 @@ class BufferingHandler(logging.Handler):
 
 
 class LoggerHandlerPatcher:
-
     def __init__(self, handler: logging.Handler) -> None:
         self._logging_getLogger = logging.getLogger
         self._handler = handler

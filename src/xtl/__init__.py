@@ -1,12 +1,11 @@
-__all__ = [
-    'version', '__version__', '__version_tuple__', '__version_hex__', '__date__',
-    'settings', 'Logger'
-]
+__all__ = ['Logger', '__date__', '__version__', '__version_hex__', '__version_tuple__', 'settings', 'version']
 
 from .logging import Logger
+
 logger = Logger(__name__)
 
 from .config.version import version
+
 logger.info(f'XTL version: {version} [{version.release_date}]')
 
 version: 'xtl.config.version.VersionInfo'
@@ -53,12 +52,15 @@ def _load_settings() -> 'XTLSettings':
             return globals()['settings']
         # The RLock lets the same thread re-enter, so recursion is caught here
         if _settings_loading:
-            raise RuntimeError('xtl.settings was accessed while it was being '
-                               'initialized. Import it lazily inside the function '
-                               'that needs it instead.')
+            raise RuntimeError(
+                'xtl.settings was accessed while it was being '
+                'initialized. Import it lazily inside the function '
+                'that needs it instead.'
+            )
         _settings_loading = True
         try:
             from .config.settings import XTLSettings
+
             _settings = XTLSettings.initialize()
             globals()['settings'] = _settings
         finally:

@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
 
 class JobOverviewColumn(rich.progress.ProgressColumn):
-
     def __init__(self, sep: str = '/'):
         super().__init__()
         self._sep = sep
@@ -59,7 +58,6 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
 
 
 class PoolProgress(ProgressBar):
-
     def __init__(self, *, console: 'ConsoleIO') -> None:
         # Setting transient=False, since it's managed by the Live instance
         super().__init__(console=console, transient=False)
@@ -116,17 +114,9 @@ class PoolProgress(ProgressBar):
         self._job_task.description = description
 
 
-
 class LogPanel:
-
     def __init__(
-            self,
-            handler: BufferingHandler,
-            console: 'ConsoleIO',
-            *,
-            title: str = None,
-            subtitle: str = None,
-            **kwargs
+        self, handler: BufferingHandler, console: 'ConsoleIO', *, title: str = None, subtitle: str = None, **kwargs
     ) -> None:
         self._handler = handler
         self._console = console
@@ -138,17 +128,15 @@ class LogPanel:
             highlighters={
                 'job': JobHighlighter(),
                 'pool': PoolHighlighter(),
-             },
-            **kwargs
+            },
+            **kwargs,
         )
 
     def __rich__(self):
         logs = [self._renderer.render(record) for record in self._handler.tail_records()]
 
         if not logs:
-            logs = [
-                rich.text.Text('Waiting for logs...', style='dim italic', justify='center')
-            ]
+            logs = [rich.text.Text('Waiting for logs...', style='dim italic', justify='center')]
 
         return rich.panel.Panel(
             rich.console.Group(*logs),
@@ -163,7 +151,9 @@ class LogPanel:
         limit = self._handler._records.maxlen
 
         if len(records) >= limit:
-            self._console.print(f'[dim italic]Displaying the latest {limit:,} records[/]', justify='center', highlight=False)
+            self._console.print(
+                f'[dim italic]Displaying the latest {limit:,} records[/]', justify='center', highlight=False
+            )
 
         for record in records:
             log = self._renderer.render(record, time_format='%Y-%m-%d %H:%M:%S,%f')
@@ -171,13 +161,12 @@ class LogPanel:
 
 
 class LivePool(PoolProtocol):
-
     def __init__(
-            self,
-            console: 'ConsoleIO',
-            pool_type: JobPool | JOB_POOL_TYPES | None = None,
-            max_jobs: int = 1,
-            progress: bool = True,
+        self,
+        console: 'ConsoleIO',
+        pool_type: JobPool | JOB_POOL_TYPES | None = None,
+        max_jobs: int = 1,
+        progress: bool = True,
     ) -> None:
         """
         Α job pool with interactive rich elements on the console.
@@ -202,32 +191,25 @@ class LivePool(PoolProtocol):
             log_fmt = '[%(name)s] %(message)s'
 
         # Rich components
-        self._log_panel = LogPanel(
-            console=self._console,
-            handler=self._buffer,
-            title='Job logs',
-            log_fmt=log_fmt
+        self._log_panel = LogPanel(console=self._console, handler=self._buffer, title='Job logs', log_fmt=log_fmt)
+        self._progress = (
+            PoolProgress(
+                console=self._console,
+            )
+            if progress
+            else None
         )
-        self._progress = PoolProgress(
-            console=self._console,
-        ) if progress else None
         self._live: rich.live.Live | None = None
 
         # Pool and loggers
         self._pool = self._create_pool(pool_type, max_jobs)
-        self._patcher = LoggerHandlerPatcher(
-            handler=self._buffer
-        )
+        self._patcher = LoggerHandlerPatcher(handler=self._buffer)
 
         # Job submissions
         self._tasks: dict[str, str] = {}
         self._results = []
 
-    def _create_pool(
-            self,
-            pool_type: JobPool | JOB_POOL_TYPES | None = None,
-            max_jobs: int = 1
-    ) -> BasePool:
+    def _create_pool(self, pool_type: JobPool | JOB_POOL_TYPES | None = None, max_jobs: int = 1) -> BasePool:
         """
         Create a preconfigured job pool.
 
@@ -235,19 +217,12 @@ class LivePool(PoolProtocol):
         :param max_jobs: The maximum number of jobs to run concurrently in the pool.
         """
         logger_config = LoggerConfig(
-            level=logging.DEBUG if self._console.debug else logging.INFO,
-            propagate=False,
-            handlers=[]
+            level=logging.DEBUG if self._console.debug else logging.INFO, propagate=False, handlers=[]
         )
         if pool_type is None:
             pool_type = JobPool.SIMPLE
         pool_cls = JobPool(pool_type).get()
-        return pool_cls(
-            name='root',
-            max_jobs=max_jobs,
-            logger_config=logger_config,
-            job_logger_config=logger_config
-        )
+        return pool_cls(name='root', max_jobs=max_jobs, logger_config=logger_config, job_logger_config=logger_config)
 
     async def __aenter__(self) -> Self:
         from xtl import settings
@@ -264,10 +239,7 @@ class LivePool(PoolProtocol):
 
         # Create Live instance and start
         live = rich.live.Live(
-            renderable=renderable,
-            console=self._console,
-            refresh_per_second=settings.cli.max_fps,
-            transient=True
+            renderable=renderable, console=self._console, refresh_per_second=settings.cli.max_fps, transient=True
         )
         self._live = live
         live.start()
@@ -303,8 +275,9 @@ class LivePool(PoolProtocol):
             # Replay logs if there were any errors on the jobs
             if exc_val or job_errors:
                 self._console.print('An error occurred while executing jobs', style='red')
-                if (not self._console.is_terminal or
-                        self._console.confirm('Would you like to print the job logs?', default=True)):
+                if not self._console.is_terminal or self._console.confirm(
+                    'Would you like to print the job logs?', default=True
+                ):
                     self._replay_logs()
 
             # Let the pool exit normally
@@ -360,10 +333,10 @@ class LivePool(PoolProtocol):
         self._console.print(f'[dim]--- End of job logs ---[/]', justify='center')
 
     def submit(
-            self,
-            job_cls: Type['Job'],
-            configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
-            **kwargs
+        self,
+        job_cls: Type['Job'],
+        configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
+        **kwargs,
     ) -> list['Job']:
         """
         Submit one or more jobs to the pool.
@@ -391,7 +364,7 @@ class LivePool(PoolProtocol):
         :param mode: Whether to return all results together (`'all'`) or yield them as each job completes (`'stream'`).
         """
         if mode not in ['all', 'stream']:
-            raise BadParameter(f'`mode` must be one of: \'all\', \'stream\'')
+            raise BadParameter(f"`mode` must be one of: 'all', 'stream'")
 
         # Start progress bar
         if self._progress:

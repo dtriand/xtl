@@ -4,7 +4,6 @@ from tests.cli.config.conftest import INVALID, VALID, WARNINGS
 
 
 class TestWhere:
-
     @staticmethod
     def _json(cli) -> dict:
         result = cli('where', '--json')
@@ -19,10 +18,13 @@ class TestWhere:
         data = self._json(cli)
         assert data['active'] is None
         assert data['will_create'] == 'user'
-        assert self._statuses(data) == {'env': 'not set', 'local': 'missing',
-                                        'user': 'will create', 'global': 'missing'}
-        assert [loc['name'] for loc in data['locations']] == \
-               ['env', 'local', 'user', 'global']
+        assert self._statuses(data) == {
+            'env': 'not set',
+            'local': 'missing',
+            'user': 'will create',
+            'global': 'missing',
+        }
+        assert [loc['name'] for loc in data['locations']] == ['env', 'local', 'user', 'global']
         assert data['locations'][0]['path'] is None
         assert data['locations'][1]['path'] == str(locs.local)
 
@@ -52,16 +54,14 @@ class TestWhere:
         data = self._json(cli)
         assert data['active'] == 'local'
         assert data['will_create'] is None
-        assert self._statuses(data) == {'env': 'not set', 'local': 'active',
-                                        'user': 'missing', 'global': 'shadowed'}
+        assert self._statuses(data) == {'env': 'not set', 'local': 'active', 'user': 'missing', 'global': 'shadowed'}
 
     def test_env_active(self, cli, locs):
         locs.write(locs.set_env(), VALID)
         locs.write(locs.user, VALID)
         data = self._json(cli)
         assert data['active'] == 'env'
-        assert self._statuses(data) == {'env': 'active', 'local': 'missing',
-                                        'user': 'shadowed', 'global': 'missing'}
+        assert self._statuses(data) == {'env': 'active', 'local': 'missing', 'user': 'shadowed', 'global': 'missing'}
 
     def test_env_directory(self, cli, locs):
         env_dir = locs.root / 'env'
@@ -69,9 +69,15 @@ class TestWhere:
         locs.set_env(env_dir)
         data = self._json(cli)
         assert data['locations'][0] == {
-            'name': 'env', 'path': str(env_dir), 'exists': False, 'creatable': False,
-            'writable': None, 'status': 'ignored', 'valid': None, 'errors': [],
-            'warnings': []
+            'name': 'env',
+            'path': str(env_dir),
+            'exists': False,
+            'creatable': False,
+            'writable': None,
+            'status': 'ignored',
+            'valid': None,
+            'errors': [],
+            'warnings': [],
         }
         assert self._statuses(data)['user'] == 'will create'
         assert 'not a file' in cli('where').stdout
@@ -82,10 +88,8 @@ class TestWhere:
         locs.write(locs.global_, INVALID)
         locations = {loc['name']: loc for loc in self._json(cli)['locations']}
         assert locations['env']['valid'] is None
-        assert (locations['local']['valid'], len(locations['local']['warnings'])) == \
-               (True, 0)
-        assert (locations['user']['valid'], len(locations['user']['warnings'])) == \
-               (True, 2)
+        assert (locations['local']['valid'], len(locations['local']['warnings'])) == (True, 0)
+        assert (locations['user']['valid'], len(locations['user']['warnings'])) == (True, 2)
         assert locations['global']['valid'] is False
         assert locations['global']['errors'][0].startswith('units.temperature: ')
 

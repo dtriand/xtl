@@ -14,14 +14,12 @@ if TYPE_CHECKING:
 
 
 class ConsoleIO(rich.console.Console):
-
     STYLES: dict[str, str] = {
         'xtl.jobs.job.job_id': 'blue',
         'xtl.jobs.pool.name': 'magenta',
     }
 
     class logger_config:
-
         JOB: LoggerConfig
         POOL: LoggerConfig
 
@@ -57,11 +55,11 @@ class ConsoleIO(rich.console.Console):
 
             self.print(f'Using compute site: [dim]{options.compute_site}[/]')
             if options.permissions.update and OS_POSIX:
-                self.print(f'Updating permissions to: [dim]'
-                           f'{options.permissions.files.octal[2:]} (files) and '
-                           f'{options.permissions.directories.octal[2:]} (directories)',
-                           highlight=False)
+                self.print(
+                    f'Updating permissions to: [dim]'
+                    f'{options.permissions.files.octal[2:]} (files) and '
+                    f'{options.permissions.directories.octal[2:]} (directories)',
+                    highlight=False,
+                )
             if options.compute_site == 'modules' and options.modules:
-                self.print(f'Using modules: '
-                           f'[dim]{", ".join(options.modules)}[/]',
-                           highlight=False)
+                self.print(f'Using modules: [dim]{", ".join(options.modules)}[/]', highlight=False)

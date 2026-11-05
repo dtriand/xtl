@@ -14,25 +14,36 @@ app = typer.Typer()
 
 @app.command('sum', help='Sum or average diffraction images', epilog=epilog)
 def cli_diffraction_sum(
-        images: list[str] = typer.Argument(..., help='Images to integrate'),
-        # Summation parameters
-        average: bool = typer.Option(False, '-a', '--average', help='Average the images instead',
-                                     rich_help_panel='Summation parameters', is_flag=True),
-        # Plotting parameters
-        plot: bool = typer.Option(False, '-P', '--plot', help='Plot the summed image',
-                                    rich_help_panel='Plotting parameters', is_flag=True),
-        # Output parameters
-        output_dir: Path = typer.Option('.', '-o', '--output', help='Output directory',
-                                        rich_help_panel='Output parameters'),
-        # include_headers: bool = typer.Option(False, '-H', '--headers', help='Include headers in the output files',
-        #                                      rich_help_panel='Output parameters', is_flag=True),
-        overwrite: bool = typer.Option(False, '-f', '--force', help='Overwrite existing files',
-                                        rich_help_panel='Output parameters', is_flag=True),
-        # Debugging
-        verbose: int = typer.Option(0, '-v', '--verbose', count=True, help='Print additional information',
-                                    rich_help_panel='Debugging'),
-        debug: bool = typer.Option(False, '--debug', hidden=True, help='Print debug information',
-                                   rich_help_panel='Debugging'),
+    images: list[str] = typer.Argument(..., help='Images to integrate'),
+    # Summation parameters
+    average: bool = typer.Option(
+        False,
+        '-a',
+        '--average',
+        help='Average the images instead',
+        rich_help_panel='Summation parameters',
+        is_flag=True,
+    ),
+    # Plotting parameters
+    plot: bool = typer.Option(
+        False, '-P', '--plot', help='Plot the summed image', rich_help_panel='Plotting parameters', is_flag=True
+    ),
+    # Output parameters
+    output_dir: Path = typer.Option(
+        '.', '-o', '--output', help='Output directory', rich_help_panel='Output parameters'
+    ),
+    # include_headers: bool = typer.Option(False, '-H', '--headers', help='Include headers in the output files',
+    #                                      rich_help_panel='Output parameters', is_flag=True),
+    overwrite: bool = typer.Option(
+        False, '-f', '--force', help='Overwrite existing files', rich_help_panel='Output parameters', is_flag=True
+    ),
+    # Debugging
+    verbose: int = typer.Option(
+        0, '-v', '--verbose', count=True, help='Print additional information', rich_help_panel='Debugging'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', hidden=True, help='Print debug information', rich_help_panel='Debugging'
+    ),
 ):
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
@@ -47,12 +58,18 @@ def cli_diffraction_sum(
     shape = images[0].data.shape
     for i, image in enumerate(images[1:]):
         if image.data.shape != shape:
-            cli.print(f'Error: Image {input_images[i+1]} has a different shape than the first image', style='red')
+            cli.print(f'Error: Image {input_images[i + 1]} has a different shape than the first image', style='red')
             raise typer.Abort()
 
     data = images[0].data
-    with Progress(SpinnerColumn(), *Progress.get_default_columns(), TimeElapsedColumn(),
-                  MofNCompleteColumn(), transient=True, console=cli) as progress:
+    with Progress(
+        SpinnerColumn(),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        MofNCompleteColumn(),
+        transient=True,
+        console=cli,
+    ) as progress:
         task = progress.add_task('Summing images...', total=len(images))
         for img in images[1:]:
             data += img.data

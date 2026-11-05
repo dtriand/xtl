@@ -9,17 +9,12 @@ from xtl.jobs import Job, JobConfig
 
 
 class CreateDirectoryJobConfig(JobConfig):
-    directory: Path = \
-        Option(
-            ...,
-            desc='Path to directory to create',
-            path_exists=False,
-        )
-    permissions: FilePermissions | None = \
-        Option(
-            default=None,
-            desc='Permissions for the created directory'
-        )
+    directory: Path = Option(
+        ...,
+        desc='Path to directory to create',
+        path_exists=False,
+    )
+    permissions: FilePermissions | None = Option(default=None, desc='Permissions for the created directory')
 
 
 class CreateDirectoryJob(Job[CreateDirectoryJobConfig]):
@@ -59,8 +54,10 @@ class CreateDirectoryJob(Job[CreateDirectoryJobConfig]):
 
             # Check that permission were actually correctly set
             if FilePermissions.from_path(config.directory) != permissions:
-                raise RuntimeError(f'Permissions for {config.directory} were not set to {permissions.octal[2:]}, '
-                                   f'check permissions of parent directories and umask settings')
+                raise RuntimeError(
+                    f'Permissions for {config.directory} were not set to {permissions.octal[2:]}, '
+                    f'check permissions of parent directories and umask settings'
+                )
             return {'directory': config.directory, 'permissions': permissions}
         else:
             return {'directory': config.directory, 'permissions': None}

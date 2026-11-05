@@ -9,11 +9,7 @@ def pytest_collection_modifyitems(items):
     for item in items:
         if item.path.parent.is_relative_to(item.session.fspath / 'tests' / 'GSAS2'):
             # Skip all tests in the GSAS2 directory
-            item.add_marker(
-                pytest.mark.skip(
-                    reason='Deprecated: GSAS2 is no longer supported.'
-                )
-            )
+            item.add_marker(pytest.mark.skip(reason='Deprecated: GSAS2 is no longer supported.'))
 
 
 # NOTE: Deprecated: GSAS2 is no longer supported.
@@ -54,7 +50,6 @@ SH/L:{}"""
 
 
 class Iparam:
-
     def __init__(self, type, seed):
         self.type = type
         self.seed = seed

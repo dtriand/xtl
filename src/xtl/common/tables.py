@@ -3,8 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from numbers import Number
 from pathlib import Path
-from typing import (List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple,
-                    Callable, Set)
+from typing import List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple, Callable, Set
 
 from xtl.common import XTLUndefined
 
@@ -15,6 +14,7 @@ class MissingValue:
 
     :param value: The original value
     """
+
     value: Any
 
     def __str__(self):
@@ -33,12 +33,12 @@ class MissingValueConfig:
     :param repr: Value to use when representing missing values
     :param checker: Optional function to check if a value should be considered missing
     """
+
     values: Set[Any] = field(default_factory=set)
     repr: Any = None
     checker: Optional[Callable[[Any], bool]] = None
 
-    def __init__(self, values: Any, repr: Any = XTLUndefined,
-                 checker: Optional[Callable[[Any], bool]] = None):
+    def __init__(self, values: Any, repr: Any = XTLUndefined, checker: Optional[Callable[[Any], bool]] = None):
         # Process values
         if values == XTLUndefined:
             # Create an empty set if no values are provided
@@ -83,11 +83,15 @@ class MissingValueConfig:
 
 
 class Table:
-    def __init__(self, data: Optional[List[List[Any]]] = None, *,
-                 headers: Optional[List[str]] = None,
-                 missing_values: MissingValueConfig | Any = XTLUndefined,
-                 missing_value_repr: Any = None,
-                 formats: Optional[Dict[Union[str, int], str]] = None):
+    def __init__(
+        self,
+        data: Optional[List[List[Any]]] = None,
+        *,
+        headers: Optional[List[str]] = None,
+        missing_values: MissingValueConfig | Any = XTLUndefined,
+        missing_value_repr: Any = None,
+        formats: Optional[Dict[Union[str, int], str]] = None,
+    ):
         """Initialize a Table object.
 
         :param data: Optional data as a list of rows
@@ -238,8 +242,9 @@ class Table:
             return self._formats.get(self._headers[col_idx])
         return self._formats.get(col_idx)
 
-    def _subset_formats(self, col_indices: Iterable[int],
-                        headers: Optional[List[str]] = None) -> Dict[Union[str, int], str]:
+    def _subset_formats(
+        self, col_indices: Iterable[int], headers: Optional[List[str]] = None
+    ) -> Dict[Union[str, int], str]:
         """Get the formats of a subset of columns, keyed for a new table.
 
         :param col_indices: Indices of the columns in this table
@@ -300,8 +305,7 @@ class Table:
         align = self._spec_align(fmt)
         if align is not None:
             return '>' if align == '=' else align
-        if any(isinstance(row[col_idx], Number) and not isinstance(row[col_idx], bool)
-               for row in self._data):
+        if any(isinstance(row[col_idx], Number) and not isinstance(row[col_idx], bool) for row in self._data):
             return '>'
         return '<'
 
@@ -423,9 +427,10 @@ class Table:
                 new_row[col_idx] = value
 
             # Process the row (convert to MissingValue objects where appropriate)
-            processed_row = [self._process_value(v) if v != dummy_missing
-                             else MissingValue(self.default_missing_value)
-                             for v in new_row]
+            processed_row = [
+                self._process_value(v) if v != dummy_missing else MissingValue(self.default_missing_value)
+                for v in new_row
+            ]
             self._data.append(processed_row)
 
         # Handle iterable input
@@ -436,8 +441,13 @@ class Table:
             processed_row = [self._process_value(v) for v in data]
             self._data.append(processed_row)
 
-    def add_col(self, data: List[Any] | Dict[str, Any] | str = None, *,
-                col_name: Optional[str] = None, fmt: Optional[str] = None):
+    def add_col(
+        self,
+        data: List[Any] | Dict[str, Any] | str = None,
+        *,
+        col_name: Optional[str] = None,
+        fmt: Optional[str] = None,
+    ):
         """Append a new column to the table.
 
         :param data: The column data to append
@@ -453,8 +463,7 @@ class Table:
         elif isinstance(data, dict):
             # Handle dict input
             if len(data.keys()) > 1:
-                raise ValueError('Only one column can be added at a time with a dict '
-                                 'input')
+                raise ValueError('Only one column can be added at a time with a dict input')
             if col_name is None:
                 col_name = list(data.keys())[0]
             data = list(data.values())[0]
@@ -474,9 +483,9 @@ class Table:
         if self._data and len(data) != self.no_rows:
             raise ValueError('Column length does not match number of rows')
 
-        processed_values = [self._process_value(v) if v != dummy_missing
-                            else MissingValue(self.default_missing_value)
-                            for v in data]
+        processed_values = [
+            self._process_value(v) if v != dummy_missing else MissingValue(self.default_missing_value) for v in data
+        ]
         for i, val in enumerate(processed_values):
             self._data[i].append(val)
 
@@ -519,8 +528,7 @@ class Table:
                 col_idx += len(self._data[0])  # Convert negative index to positive
 
             # Check if index is valid
-            if col_idx < 0 or (self._data and col_idx >= len(self._data[0])) or \
-                    (not self._data and col_idx > 0):
+            if col_idx < 0 or (self._data and col_idx >= len(self._data[0])) or (not self._data and col_idx > 0):
                 raise IndexError(f'Column index {col_idx} out of range')
 
         return [row[col_idx] for row in self._data]
@@ -555,8 +563,7 @@ class Table:
             col_idx = self._headers.index(idx)
         else:
             col_idx = idx
-            if col_idx < 0 or (self._data and col_idx >= len(self._data[0])) or \
-                    (not self._data and col_idx > 0):
+            if col_idx < 0 or (self._data and col_idx >= len(self._data[0])) or (not self._data and col_idx > 0):
                 raise IndexError(f'Column index {col_idx} is out of range')
 
         # Process input values to handle missing values
@@ -633,14 +640,20 @@ class Table:
             if cast_as:
                 values = [cast_as(self._to_repr(v)) for v in row]
             else:
-                values = [None if self._to_repr(v) is None
-                          else self._format_cell(i, v) for i, v in enumerate(row)]
+                values = [None if self._to_repr(v) is None else self._format_cell(i, v) for i, v in enumerate(row)]
             table.add_row(*values)
         return table
 
-    def to_csv(self, filename: str | Path = None, delimiter: str = ',',
-               new_line: str = '\n', header_char: str = '', overwrite: bool = False,
-               keep_file_ext: bool = False, formatted: bool = True) -> str | Path:
+    def to_csv(
+        self,
+        filename: str | Path = None,
+        delimiter: str = ',',
+        new_line: str = '\n',
+        header_char: str = '',
+        overwrite: bool = False,
+        keep_file_ext: bool = False,
+        formatted: bool = True,
+    ) -> str | Path:
         """Write the table to a CSV file. If ``filename`` is not provided, then the
         CSV will be returned as a string.
 
@@ -687,10 +700,14 @@ class Table:
         return filename
 
     @classmethod
-    def from_dict(cls, data: Dict[str | int, List[Any]], *,
-                  missing_values: MissingValueConfig | Any = XTLUndefined,
-                  missing_value_repr: Any = None,
-                  formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
+    def from_dict(
+        cls,
+        data: Dict[str | int, List[Any]],
+        *,
+        missing_values: MissingValueConfig | Any = XTLUndefined,
+        missing_value_repr: Any = None,
+        formats: Optional[Dict[Union[str, int], str]] = None,
+    ) -> 'Table':
         """Create a Table from a dictionary of columns.
 
         :param data: Dictionary with column names as keys and column data as values
@@ -701,8 +718,9 @@ class Table:
         :raises ValueError: If the columns are not of equal length
         """
         if not data:
-            return cls(headers=[], missing_values=missing_values,
-                       missing_value_repr=missing_value_repr, formats=formats)
+            return cls(
+                headers=[], missing_values=missing_values, missing_value_repr=missing_value_repr, formats=formats
+            )
 
         # Extract headers and check column lengths
         headers = list(data.keys())
@@ -719,15 +737,24 @@ class Table:
             row = [data[col][i] for col in headers]
             rows.append(row)
 
-        return cls(data=rows, headers=headers, missing_values=missing_values,
-                   missing_value_repr=missing_value_repr, formats=formats)
+        return cls(
+            data=rows,
+            headers=headers,
+            missing_values=missing_values,
+            missing_value_repr=missing_value_repr,
+            formats=formats,
+        )
 
     @classmethod
-    def from_numpy(cls, array: 'np.ndarray', *,
-                   headers: Optional[List[str]] = None,
-                   missing_values: MissingValueConfig | Any = XTLUndefined,
-                   missing_value_repr: Any = None,
-                   formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
+    def from_numpy(
+        cls,
+        array: 'np.ndarray',
+        *,
+        headers: Optional[List[str]] = None,
+        missing_values: MissingValueConfig | Any = XTLUndefined,
+        missing_value_repr: Any = None,
+        formats: Optional[Dict[Union[str, int], str]] = None,
+    ) -> 'Table':
         """Create a Table from a numpy ndarray.
 
         :param array: 2D numpy array
@@ -749,15 +776,24 @@ class Table:
 
         data = array.tolist()
 
-        return cls(data=data, headers=headers, missing_values=MissingValueConfig(
-            values=missing_values, repr=missing_value_repr, checker=lambda v: v is np.nan
-        ), formats=formats)
+        return cls(
+            data=data,
+            headers=headers,
+            missing_values=MissingValueConfig(
+                values=missing_values, repr=missing_value_repr, checker=lambda v: v is np.nan
+            ),
+            formats=formats,
+        )
 
     @classmethod
-    def from_pandas(cls, df: 'pd.DataFrame', *,
-                    missing_values: MissingValueConfig | Any = XTLUndefined,
-                    missing_value_repr: Any = None,
-                    formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
+    def from_pandas(
+        cls,
+        df: 'pd.DataFrame',
+        *,
+        missing_values: MissingValueConfig | Any = XTLUndefined,
+        missing_value_repr: Any = None,
+        formats: Optional[Dict[Union[str, int], str]] = None,
+    ) -> 'Table':
         """Create a Table from a pandas DataFrame.
 
         :param df: pandas DataFrame
@@ -775,14 +811,26 @@ class Table:
         headers = df.columns.tolist()
         data = df.values.tolist()
 
-        return cls(data=data, headers=headers, missing_values=MissingValueConfig(
-            values=missing_values, repr=missing_value_repr, checker=lambda v: pd.isna(v)
-        ), formats=formats)
+        return cls(
+            data=data,
+            headers=headers,
+            missing_values=MissingValueConfig(
+                values=missing_values, repr=missing_value_repr, checker=lambda v: pd.isna(v)
+            ),
+            formats=formats,
+        )
 
     @classmethod
-    def from_csv(cls, s: str | Path, *, delimiter: str = ',', new_line: str = '\n',
-                 header_line: int = None, header_char: str = '',
-                 formats: Optional[Dict[Union[str, int], str]] = None) -> 'Table':
+    def from_csv(
+        cls,
+        s: str | Path,
+        *,
+        delimiter: str = ',',
+        new_line: str = '\n',
+        header_line: int = None,
+        header_char: str = '',
+        formats: Optional[Dict[Union[str, int], str]] = None,
+    ) -> 'Table':
         """Create a Table from a CSV file or string.
 
         :param s: Path to CSV file or CSV string content
@@ -820,7 +868,7 @@ class Table:
             header_line = lines[header_line]
             # Remove header character if present
             if header_char and header_line.startswith(header_char):
-                header_line = header_line[len(header_char):]
+                header_line = header_line[len(header_char) :]
             headers = [h for h in header_line.split(delimiter)]
 
         # Process data rows
@@ -845,18 +893,22 @@ class Table:
             return '(Empty table)'
 
         # Convert values to strings, handling missing values and column formats
-        data = [[self._format_cell(i, v) for i, v in enumerate(row)]
-                for row in self._data]
+        data = [[self._format_cell(i, v) for i, v in enumerate(row)] for row in self._data]
 
         if not self._headers:
             # Print as plain rows
             return '\n'.join(' | '.join(row) for row in data)
 
-        col_widths = [max(len(str(col)), max((len(row[i]) for row in data), default=0)) for i, col in enumerate(self._headers)]
+        col_widths = [
+            max(len(str(col)), max((len(row[i]) for row in data), default=0)) for i, col in enumerate(self._headers)
+        ]
         col_aligns = [self._col_align(i) for i in range(len(self._headers))]
         header = ' | '.join(self._pad(str(col), col_widths[i], col_aligns[i]) for i, col in enumerate(self._headers))
         sep = '-+-'.join('-' * w for w in col_widths)
-        rows = [' | '.join(self._pad(row[i], col_widths[i], col_aligns[i]) for i in range(len(self._headers))) for row in data]
+        rows = [
+            ' | '.join(self._pad(row[i], col_widths[i], col_aligns[i]) for i in range(len(self._headers)))
+            for row in data
+        ]
         return '\n'.join([header, sep] + rows)
 
     def __len__(self):
@@ -916,19 +968,15 @@ class Table:
                 if len(result) == 1:
                     # Create a new table with the column data
                     new_data = [[val] for val in result[0]]
-                    return Table(data=new_data, headers=col_headers,
-                                 missing_values=self._missing, formats=formats)
+                    return Table(data=new_data, headers=col_headers, missing_values=self._missing, formats=formats)
 
                 # Otherwise, transpose the result to get rows and create a new table
-                new_data = [[result[c][r] for c in range(len(result))]
-                            for r in range(len(result[0]))]
-                return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing, formats=formats)
+                new_data = [[result[c][r] for c in range(len(result))] for r in range(len(result[0]))]
+                return Table(data=new_data, headers=col_headers, missing_values=self._missing, formats=formats)
             else:
                 # Handle single row: table[..., row]
                 if not isinstance(row_spec, int):
-                    raise TypeError(f'Row indices must be integers or slices, not '
-                                    f'{type(row_spec).__name__}')
+                    raise TypeError(f'Row indices must be integers or slices, not {type(row_spec).__name__}')
 
                 # Adjust negative indices
                 row_idx = row_spec
@@ -945,8 +993,7 @@ class Table:
 
                 # Otherwise, return a new table with the single row
                 new_data = [[col[row_idx] for col in columns]]
-                return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing, formats=formats)
+                return Table(data=new_data, headers=col_headers, missing_values=self._missing, formats=formats)
 
         # Case 2: table[col] or table[col0:col1]
         elif isinstance(key, (str, int, slice)):
@@ -960,13 +1007,10 @@ class Table:
                 columns = [self._get_col_raw(i) for i in col_indices]
                 if not columns:
                     # Empty table with selected headers
-                    return Table(headers=col_headers, missing_values=self._missing,
-                                 formats=formats)
+                    return Table(headers=col_headers, missing_values=self._missing, formats=formats)
 
-                new_data = [[columns[c][r] for c in range(len(columns))]
-                            for r in range(len(columns[0]))]
-                return Table(data=new_data, headers=col_headers,
-                             missing_values=self._missing, formats=formats)
+                new_data = [[columns[c][r] for c in range(len(columns))] for r in range(len(columns[0]))]
+                return Table(data=new_data, headers=col_headers, missing_values=self._missing, formats=formats)
             else:
                 # Handle single column: table[col]
                 try:
@@ -980,9 +1024,12 @@ class Table:
                         col_idx = self._headers.index(key)
                     # Create the data as a list of single-item rows
                     new_data = [[val] for val in column_data]
-                    return Table(data=new_data, headers=col_header,
-                                 missing_values=self._missing,
-                                 formats=self._subset_formats([col_idx], col_header))
+                    return Table(
+                        data=new_data,
+                        headers=col_header,
+                        missing_values=self._missing,
+                        formats=self._subset_formats([col_idx], col_header),
+                    )
                 except (KeyError, IndexError) as e:
                     raise e
 
@@ -1076,8 +1123,7 @@ class Table:
 
             # Handle the column specification
             if isinstance(col_spec, slice):
-                raise NotImplementedError('Setting multiple columns with a slice is '
-                                          'not supported')
+                raise NotImplementedError('Setting multiple columns with a slice is not supported')
 
             # Get the current column data
             try:
@@ -1095,8 +1141,7 @@ class Table:
                     # Scalar value - repeat for all indices
                     value = [value] * len(row_indices)
                 elif len(value) != len(row_indices):
-                    raise ValueError(f'Value length {len(value)} does not match target '
-                                     f'length {len(row_indices)}')
+                    raise ValueError(f'Value length {len(value)} does not match target length {len(row_indices)}')
 
                 # Update the column data
                 new_col_data = list(col_data)
@@ -1108,8 +1153,7 @@ class Table:
             else:
                 # Handle single row: table[col, row] = value
                 if not isinstance(row_spec, int):
-                    raise TypeError(f'Row indices must be integers or slices, not '
-                                    f'{type(row_spec).__name__}')
+                    raise TypeError(f'Row indices must be integers or slices, not {type(row_spec).__name__}')
 
                 # Adjust negative indices
                 row_idx = row_spec
@@ -1137,8 +1181,7 @@ class Table:
 
         # Case 3: table[col0:col1] = values (not supported)
         elif isinstance(key, slice):
-            raise NotImplementedError('Setting multiple columns with a slice is not '
-                                      'supported')
+            raise NotImplementedError('Setting multiple columns with a slice is not supported')
 
         else:
             raise TypeError(f'Invalid key type: {type(key).__name__}')
@@ -1167,17 +1210,19 @@ class Table:
 
         # Check if both tables have the same columns
         if self._headers != other._headers:
-            raise ValueError('Tables must have the same column headers to be '
-                             'concatenated')
+            raise ValueError('Tables must have the same column headers to be concatenated')
 
         # Create a new table with combined data
         combined_data = [row for row in self._data]  # Create a copy of the data
         combined_data.extend(other._data)
 
         # Use the same missing value configuration
-        return Table(data=combined_data, headers=self._headers[:],
-                     missing_values=self._missing,
-                     formats=self._subset_formats(range(self.no_cols)))
+        return Table(
+            data=combined_data,
+            headers=self._headers[:],
+            missing_values=self._missing,
+            formats=self._subset_formats(range(self.no_cols)),
+        )
 
     def __or__(self, other: 'Table') -> 'Table':
         """Concatenate columns from another table to this table.
@@ -1189,13 +1234,11 @@ class Table:
         :raises ValueError: If the tables have different numbers of rows
         """
         if not isinstance(other, Table):
-            raise TypeError(f'Cannot use \'|\' operator between Table and '
-                            f'{type(other).__name__}')
+            raise TypeError(f"Cannot use '|' operator between Table and {type(other).__name__}")
 
         # Check if both tables have the same number of rows
         if len(self) != len(other):
-            raise ValueError('Tables must have the same number of rows to concatenate '
-                             'columns')
+            raise ValueError('Tables must have the same number of rows to concatenate columns')
 
         # Combine headers
         combined_headers = self._headers + other._headers
@@ -1214,8 +1257,7 @@ class Table:
 
         # Create a new table with combined data
         # For missing values, prefer the configuration from the first table
-        return Table(data=combined_data, headers=combined_headers,
-                     missing_values=self._missing, formats=formats)
+        return Table(data=combined_data, headers=combined_headers, missing_values=self._missing, formats=formats)
 
     def __iadd__(self, other: Union['Table', List[Any], Dict[Union[str, int], Any]]) -> 'Table':
         """In-place row concatenation (append rows from another table or add a new row).
@@ -1239,8 +1281,7 @@ class Table:
 
             # Check if both tables have the same columns
             if self._headers != headers:
-                raise ValueError('Tables must have the same column headers to be '
-                                 'concatenated')
+                raise ValueError('Tables must have the same column headers to be concatenated')
 
             # Append the data from other table to this table
             for row in data:
@@ -1274,8 +1315,7 @@ class Table:
 
             # Check if both tables have the same number of rows
             if len(self) != len(data):
-                raise ValueError('Tables must have the same number of rows to concatenate '
-                                 'columns')
+                raise ValueError('Tables must have the same number of rows to concatenate columns')
 
             # Append the formats from other table, keeping existing ones
             no_cols = self.no_cols
@@ -1347,8 +1387,7 @@ class Table:
                 self._formats.pop(col_name, None)
         elif not self._headers:
             # Shift index-keyed formats
-            self._formats = {(k - 1 if k > col_idx else k): v
-                             for k, v in self._formats.items() if k != col_idx}
+            self._formats = {(k - 1 if k > col_idx else k): v for k, v in self._formats.items() if k != col_idx}
 
     def __sub__(self, other: Union['Table', str, List[str], Tuple[str, ...]]) -> 'Table':
         """Remove columns from the table or compute the column-wise difference with another table.
@@ -1374,8 +1413,7 @@ class Table:
                     raise KeyError(f'Column {col!r} does not exist')
 
             # Get indices of columns to keep
-            keep_indices = [i for i, col in enumerate(self._headers)
-                           if col not in cols_to_remove]
+            keep_indices = [i for i, col in enumerate(self._headers) if col not in cols_to_remove]
 
             # Create new headers and data
             new_headers = [self._headers[i] for i in keep_indices]
@@ -1384,8 +1422,12 @@ class Table:
                 new_data.append([row[i] for i in keep_indices])
 
             # Create and return new table
-            return Table(data=new_data, headers=new_headers, missing_values=self._missing,
-                         formats=self._subset_formats(keep_indices))
+            return Table(
+                data=new_data,
+                headers=new_headers,
+                missing_values=self._missing,
+                formats=self._subset_formats(keep_indices),
+            )
 
         # Case 2: Column-wise difference with another table
         elif isinstance(other, Table):
@@ -1405,8 +1447,12 @@ class Table:
                 new_data.append([row[i] for i in keep_indices])
 
             # Create and return new table
-            return Table(data=new_data, headers=diff_cols, missing_values=self._missing,
-                         formats=self._subset_formats(keep_indices))
+            return Table(
+                data=new_data,
+                headers=diff_cols,
+                missing_values=self._missing,
+                formats=self._subset_formats(keep_indices),
+            )
 
         else:
             raise TypeError(f'Cannot subtract {type(other).__name__} from Table')

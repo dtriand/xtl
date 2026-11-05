@@ -3,7 +3,6 @@ from xtl.exceptions import InvalidArgument
 
 
 class PhaseMixture:
-
     def __init__(self, phases=[], weight_ratios=[]):
         self._phases = []
         self._ratios = []
@@ -36,15 +35,11 @@ class PhaseMixture:
     @property
     def contents(self):
         return [
-            {
-                'phase': phase.name,
-                'weight_ratio': ratio,
-                'G2Phase': phase
-            }
+            {'phase': phase.name, 'weight_ratio': ratio, 'G2Phase': phase}
             for phase, ratio in zip(self._phases, self._ratios)
         ]
 
     def _normalize_weight_ratios(self):
         ratios_sum = sum(self._ratios_raw)
         for ratio_raw in self._ratios_raw:
-            self._ratios += [round(ratio_raw/ratios_sum, 4)]
+            self._ratios += [round(ratio_raw / ratios_sum, 4)]

@@ -52,10 +52,7 @@ class ConstantApplicator(_ReagentApplicator):
         return data
 
     def to_dict(self):
-        return {
-            'name': self.name.value,
-            'value': self.value
-        }
+        return {'name': self.name.value, 'value': self.value}
 
 
 @dataclass
@@ -63,17 +60,22 @@ class GradientApplicator(_ReagentApplicator):
     min_value: float
     max_value: float
 
-    def __init__(self, min_value: float, max_value: float,
-                 method: str | ApplicationMethod = ApplicationMethod.HORIZONTAL,
-                 scale: str | GradientScale = GradientScale.LINEAR, reverse: bool = False):
+    def __init__(
+        self,
+        min_value: float,
+        max_value: float,
+        method: str | ApplicationMethod = ApplicationMethod.HORIZONTAL,
+        scale: str | GradientScale = GradientScale.LINEAR,
+        reverse: bool = False,
+    ):
         self.name = ReagentApplicatorType.GRADIENT
         self.min_value = min_value
         self.max_value = max_value
         for value, name in zip((min_value, max_value), ('min_value', 'max_value')):
             if not isinstance(value, (int, float)):
-                raise TypeError(f'Value \'{name}\' must be an integer or float, not {type(value)}')
+                raise TypeError(f"Value '{name}' must be an integer or float, not {type(value)}")
             if value < 0:
-                raise ValueError(f'Value \'{name}\'  must be positive')
+                raise ValueError(f"Value '{name}'  must be positive")
         if self.min_value > self.max_value:
             self.min_value, self.max_value = self.max_value, self.min_value
 
@@ -125,8 +127,9 @@ class GradientApplicator(_ReagentApplicator):
             'max_value': self.max_value,
             'method': self.method.value,
             'scale': self.scale.value,
-            'reverse': self.reverse
+            'reverse': self.reverse,
         }
+
 
 @dataclass
 class StepFixedApplicator(_ReagentApplicator):
@@ -134,18 +137,22 @@ class StepFixedApplicator(_ReagentApplicator):
     max_value: float
     step: float
 
-    def __init__(self, start_value: float, step: float,
-                 method: str | ApplicationMethod = ApplicationMethod.HORIZONTAL,
-                 reverse: bool = False):
+    def __init__(
+        self,
+        start_value: float,
+        step: float,
+        method: str | ApplicationMethod = ApplicationMethod.HORIZONTAL,
+        reverse: bool = False,
+    ):
         self.name = ReagentApplicatorType.STEP_FIXED
         self.reverse = reverse
 
         # Type and value checking
         for value, name in zip((start_value, step), ('start_value', 'step')):
             if not isinstance(value, (int, float)):
-                raise TypeError(f'Value \'{name}\' must be an integer or float, not {type(value)}')
+                raise TypeError(f"Value '{name}' must be an integer or float, not {type(value)}")
         if start_value < 0:
-            raise ValueError(f'Value \'{name}\'  must non-negative')
+            raise ValueError(f"Value '{name}'  must non-negative")
         if step == 0:
             raise ValueError('Step must be non-zero')
 
@@ -187,8 +194,10 @@ class StepFixedApplicator(_ReagentApplicator):
         # Check if concentration drops below 0
         if self.min_value < 0:
             suggested_step = self.max_value / no_steps
-            raise ValueError(f'Invalid \'shape\' and/or \'step_size\': Minimum concentration is less than 0.'
-                             f'For the given shape, \'step_size\' should be less than {suggested_step}')
+            raise ValueError(
+                f"Invalid 'shape' and/or 'step_size': Minimum concentration is less than 0."
+                f"For the given shape, 'step_size' should be less than {suggested_step}"
+            )
 
         # Calculate datapoints
         if not self.reverse:
@@ -214,8 +223,9 @@ class StepFixedApplicator(_ReagentApplicator):
             'max_value': self.max_value,
             'step': self.step,
             'method': self.method.value,
-            'reverse': self.reverse
+            'reverse': self.reverse,
         }
+
 
 @dataclass
 class StepListApplicator(_ReagentApplicator):

@@ -17,13 +17,6 @@ def get_logger_config(level: int = logging.INFO) -> LoggerConfig:
     config = LoggerConfig(
         level=level,
         propagate=False,
-        handlers=[
-            StreamHandlerConfig(
-                format=LoggingFormat(
-                    format=fmt,
-                    datefmt='%H:%M:%S'
-                )
-            )
-        ]
+        handlers=[StreamHandlerConfig(format=LoggingFormat(format=fmt, datefmt='%H:%M:%S'))],
     )
     return config

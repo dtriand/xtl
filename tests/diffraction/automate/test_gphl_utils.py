@@ -8,7 +8,6 @@ from xtl.common.annotated_dataclass import afield, cfield, pfield, _ifield
 
 
 class TestGPhLConfig:
-
     def test_alias(self):
         @dataclass
         class TestConfig(GPhLConfig):
@@ -37,7 +36,7 @@ class TestGPhLConfig:
             a: bool = afield()
             b: str = afield()
             c: float = afield(formatter=lambda x: f'{x:.4f}')
-            d: list[int] = afield(formatter=lambda x: " ".join(map(str, x)))
+            d: list[int] = afield(formatter=lambda x: ' '.join(map(str, x)))
 
         config = TestConfig(a=True, b='Hello', c=3, d=[1, 2, 3])
         assert config.get_param_value('a') == {'a': 'yes'}
@@ -51,8 +50,7 @@ class TestGPhLConfig:
             a: str = pfield()
             b: int = pfield(formatter=lambda x: x * 2)
             c: int = cfield(members=['a', 'b'])
-            d: int = cfield(members=['a', 'b'],
-                            formatter=lambda x: {f'_{k}': v for k, v in x.items()})
+            d: int = cfield(members=['a', 'b'], formatter=lambda x: {f'_{k}': v for k, v in x.items()})
 
         config = TestConfig(a=1, b=2)
         assert config.get_param_value('c') == {'a': '1', 'b': 4}
@@ -82,12 +80,14 @@ class TestGPhLConfig:
             _groups: dict = _ifield(default_factory=lambda: {'Group1': 'Comment1', 'Group2': 'Comment2'})
 
         config = TestConfig(b=2, d=4)
-        assert config.get_all_params(grouped=True) == {'Group1': {'comment': 'Comment1', 'params': {'a': 1, 'b': 4}},
-                                                       'Group2': {'comment': 'Comment2', 'params': {'c': 3, 'd': 8}}}
-        assert config.get_all_params(grouped=True, modified_only=True) == {'Group1': {'comment': 'Comment1',
-                                                                                      'params': {'b': 4}},
-                                                                           'Group2': {'comment': 'Comment2',
-                                                                                      'params': {'d': 8}}}
+        assert config.get_all_params(grouped=True) == {
+            'Group1': {'comment': 'Comment1', 'params': {'a': 1, 'b': 4}},
+            'Group2': {'comment': 'Comment2', 'params': {'c': 3, 'd': 8}},
+        }
+        assert config.get_all_params(grouped=True, modified_only=True) == {
+            'Group1': {'comment': 'Comment1', 'params': {'b': 4}},
+            'Group2': {'comment': 'Comment2', 'params': {'d': 8}},
+        }
         assert config.get_all_params(grouped=False) == {'a': 1, 'b': 4, 'c': 3, 'd': 8}
         assert config.get_all_params(grouped=False, modified_only=True) == {'b': 4, 'd': 8}
 

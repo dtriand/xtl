@@ -42,9 +42,7 @@ def find_maximal_cliques(adjacency: np.ndarray) -> list[list[int]]:
             pivot_pool,
             key=lambda vertex: np.sum(adjacency[vertex][candidate_vertices]),
         )
-        extension_candidates = [
-            vertex for vertex in candidate_vertices if not adjacency[pivot, vertex]
-        ]
+        extension_candidates = [vertex for vertex in candidate_vertices if not adjacency[pivot, vertex]]
 
         for vertex in extension_candidates:
             bron_kerbosch(

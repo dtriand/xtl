@@ -15,18 +15,18 @@ from xtl.exceptions.warnings import IncompatibleShellWarning
 
 
 class TestLimitedConcurrency:
-
     @pytest.mark.asyncio
     async def test_decoration(self):
 
-        def f(): pass
+        def f():
+            pass
+
         f = limited_concurrency(10)(f)
 
         assert f._is_semaphore_limited == True
 
 
 class TestJob:
-
     def test_init(self):
         job = Job('test_job')
         assert job._name == 'test_job'
@@ -35,15 +35,22 @@ class TestJob:
         assert job._stdout.name == 'test_job.stdout.log'
         assert job._stderr.name == 'test_job.stderr.log'
 
-        custom_shell = Shell(name='csh',
-                             shebang='#!/bin/csh',
-                             file_ext='.csh',
-                             is_posix=True,
-                             executable='/bin/csh',
-                             batch_command='{executable} -c {batch_file} {batch_arguments}')
+        custom_shell = Shell(
+            name='csh',
+            shebang='#!/bin/csh',
+            file_ext='.csh',
+            is_posix=True,
+            executable='/bin/csh',
+            batch_command='{executable} -c {batch_file} {batch_arguments}',
+        )
 
-        job = Job('test_job', stdout_log='test_stdout.log', stderr_log='test_stderr.log',
-                  compute_site=BiotixHPC(), shell=custom_shell)
+        job = Job(
+            'test_job',
+            stdout_log='test_stdout.log',
+            stderr_log='test_stderr.log',
+            compute_site=BiotixHPC(),
+            shell=custom_shell,
+        )
         assert job._shell == custom_shell
         assert isinstance(job._compute_site, BiotixHPC)
         assert job._stdout.name == 'test_stdout.log'
@@ -62,11 +69,13 @@ class TestJob:
         # No shell but compute_site requirements -> compute_site defaults
         assert j._determine_shell_and_site(shell=None, compute_site=BiotixHPC()) == (BashShell, BiotixHPC())
         # Shell incompatible with compute_site -> shell but raise warning
-        with pytest.warns(IncompatibleShellWarning, match='Shell \'powershell\' is not compatible with compute_site \'BiotixHPC\''):
+        with pytest.warns(
+            IncompatibleShellWarning, match="Shell 'powershell' is not compatible with compute_site 'BiotixHPC'"
+        ):
             assert j._determine_shell_and_site(shell=PowerShell, compute_site=BiotixHPC()) == (PowerShell, BiotixHPC())
         # Shell incompatible with job -> shell but raise warning
         j._supported_shells = [CmdShell, BashShell]
-        with pytest.warns(IncompatibleShellWarning, match='Shell \'powershell\' is not compatible with job \'Job\''):
+        with pytest.warns(IncompatibleShellWarning, match="Shell 'powershell' is not compatible with job 'Job'"):
             assert j._determine_shell_and_site(shell=PowerShell, compute_site=LocalSite()) == (PowerShell, LocalSite())
         # No shell but both job and compute_site requirements -> multiple compatible shells -> job default
         cs = LocalSite()
@@ -122,10 +131,10 @@ class TestJob:
     @skipif_not_windows
     @pytest.mark.make_temp_files('test_dir')
     @pytest.mark.parametrize(
-        'shell,      cmd,             expected', [
-        (CmdShell,   'echo "%2"',     '"World!"\n'),
-        (PowerShell, 'echo $args[1]', 'World!\n')
-    ], ids=['cmd', 'powershell'])
+        'shell,      cmd,             expected',
+        [(CmdShell, 'echo "%2"', '"World!"\n'), (PowerShell, 'echo $args[1]', 'World!\n')],
+        ids=['cmd', 'powershell'],
+    )
     @pytest.mark.asyncio
     async def test_run_args_win(self, temp_files, shell, cmd, expected):
         job = Job('test_job', shell=shell)
@@ -152,7 +161,7 @@ class TestJob:
             pytest.skip(f'{distro} distro not installed')
 
         # Create a test script in a unique directory, so that parallel test runs don't collide
-        script = Path(fr'\\wsl.localhost\{distro}\tmp\pytest-{uuid4().hex[:8]}\test.sh')
+        script = Path(rf'\\wsl.localhost\{distro}\tmp\pytest-{uuid4().hex[:8]}\test.sh')
         script.parent.mkdir(parents=True, exist_ok=True)
         script.touch()
         assert script.exists()
@@ -171,8 +180,12 @@ class TestJob:
 
         stdout = script.parent / 'stdout.log'
         stderr = script.parent / 'stderr.log'
-        await job.run_batch(batchfile=batch, arguments=['Hello', 'to the World!'], # test for spaces in arguments
-                            stdout_log=stdout, stderr_log=stderr)
+        await job.run_batch(
+            batchfile=batch,
+            arguments=['Hello', 'to the World!'],  # test for spaces in arguments
+            stdout_log=stdout,
+            stderr_log=stderr,
+        )
 
         assert stdout.exists()
         assert stdout.read_text() == 'Hello to the World!\n'
@@ -193,8 +206,9 @@ class TestJob:
 
         for shell in [BashShell]:
             job = Job('test_job', shell=shell)
-            batch = job.create_batch(filename=(batch_dir / 'job').with_suffix(shell.file_ext),
-                                     cmds=['echo "Hello, World!"'])
+            batch = job.create_batch(
+                filename=(batch_dir / 'job').with_suffix(shell.file_ext), cmds=['echo "Hello, World!"']
+            )
             assert batch.file.exists()
 
             await job.run_batch(batchfile=batch, stdout_log=stdout, stderr_log=stderr)
@@ -206,10 +220,7 @@ class TestJob:
 
     @skipif_not_linux
     @pytest.mark.make_temp_files('test_dir')
-    @pytest.mark.parametrize(
-        'shell,     cmd,         expected', [
-        (BashShell, 'echo "$2"', 'World!\n')
-        ], ids=['bash'])
+    @pytest.mark.parametrize('shell,     cmd,         expected', [(BashShell, 'echo "$2"', 'World!\n')], ids=['bash'])
     @pytest.mark.asyncio
     async def test_run_args_lin(self, temp_files, shell, cmd, expected):
         job = Job('test_job', shell=shell)
@@ -237,8 +248,10 @@ class TestJob:
         stdout, stderr = temp_files.with_suffix('.stdout.log'), temp_files.with_suffix('.stderr.log')
         await job.run_batch(batchfile=batch, stdout_log=stdout, stderr_log=stderr)
         if OS_WINDOWS:
-            assert ('not recognized as an internal or external command, operable program or batch file' in
-                    stderr.read_text().replace('\n', ' '))
+            assert (
+                'not recognized as an internal or external command, operable program or batch file'
+                in stderr.read_text().replace('\n', ' ')
+            )
         else:
             assert 'No such file or directory' in stderr.read_text().replace('\n', ' ')
 

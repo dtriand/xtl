@@ -12,7 +12,6 @@ from xtl.automate.shells import Shell, BashShell, CmdShell, PowerShell, WslShell
 
 
 class TestBatchFile:
-
     def test_filename(self):
         b = BatchFile(filename='test', shell=BashShell)
         assert b.file.name == 'test.sh'
@@ -26,12 +25,14 @@ class TestBatchFile:
         b = BatchFile(filename='test')
         assert b.shell == shell
 
-        custom_shell = shell=Shell(name='csh',
-                                   shebang='#!/bin/csh',
-                                   file_ext='.csh',
-                                   is_posix=True,
-                                   executable='/bin/csh',
-                                   batch_command='{executable} -c {batch_file} {batch_arguments}')
+        custom_shell = shell = Shell(
+            name='csh',
+            shebang='#!/bin/csh',
+            file_ext='.csh',
+            is_posix=True,
+            executable='/bin/csh',
+            batch_command='{executable} -c {batch_file} {batch_arguments}',
+        )
 
         b = BatchFile(filename='test', shell=custom_shell)
         assert b.shell.name == 'csh'
@@ -50,14 +51,17 @@ class TestBatchFile:
 
         # Create a test script in a unique directory, so that parallel test runs don't collide
         tmp_dir = f'pytest-{uuid4().hex[:8]}'
-        script = Path(fr'\\wsl.localhost\{distro}\tmp\{tmp_dir}\test.sh')
+        script = Path(rf'\\wsl.localhost\{distro}\tmp\{tmp_dir}\test.sh')
         script.parent.mkdir(parents=True, exist_ok=True)
         script.touch()
         assert script.exists()
 
         # Create batch file
         b = BatchFile(filename=script, shell=WslShell(distro=distro, shell=BashShell))
-        assert b.get_execute_command() == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash "/tmp/{tmp_dir}/test.sh"'
+        assert (
+            b.get_execute_command()
+            == f'C:\\Windows\\System32\\wsl.exe -d {distro} -- /bin/bash "/tmp/{tmp_dir}/test.sh"'
+        )
 
         # Delete test script
         script.unlink()

@@ -11,18 +11,22 @@ try:
     sys.path.append(gsas_path)
     import GSASIIscriptable as G2sc
 except ModuleNotFoundError:
-    print('This operation requires a functional installation of GSAS-II.\n'
-          'GSAS-II can be downloaded from: https://subversion.xray.aps.anl.gov/trac/pyGSAS')
+    print(
+        'This operation requires a functional installation of GSAS-II.\n'
+        'GSAS-II can be downloaded from: https://subversion.xray.aps.anl.gov/trac/pyGSAS'
+    )
 
     path_invalid = True
     attempt = 1
 
     while path_invalid and attempt <= 3:
-        gsas_path = click.prompt("Please specify the GSAS-II installation folder "
-                                 "(should contain 'GSASIIscriptable.py')")
+        gsas_path = click.prompt(
+            "Please specify the GSAS-II installation folder (should contain 'GSASIIscriptable.py')"
+        )
         try:
             sys.path.append(gsas_path)
             import GSASIIscriptable as G2sc
+
             # Save the path to the config if the import was successful
             cfg.set('dependencies', 'gsas', gsas_path)
             cfg.save()
@@ -45,11 +49,7 @@ import GSASIImath as G2m
 class Settings:
     def __init__(self):
         self._working_directory = Path.cwd()
-        self._xtl_directories = {
-            'maps': 'maps',
-            'models': 'models',
-            'reflections': 'reflections'
-        }
+        self._xtl_directories = {'maps': 'maps', 'models': 'models', 'reflections': 'reflections'}
 
     @property
     def working_directory(self):

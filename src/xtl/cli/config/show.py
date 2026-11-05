@@ -62,16 +62,14 @@ def _paths(data: dict, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
     return paths
 
 
-def _diff(current: Any, default: Any, prefix: tuple[str, ...] = ()) \
-        -> list[tuple[str, ...]]:
+def _diff(current: Any, default: Any, prefix: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
     """
     Paths of the keys whose values differ between two (plain) TOML data.
     """
     if isinstance(current, dict) and isinstance(default, dict):
         paths = []
         for key in list(current) + [k for k in default if k not in current]:
-            paths.extend(_diff(current.get(key, _MISSING), default.get(key, _MISSING),
-                               prefix + (key,)))
+            paths.extend(_diff(current.get(key, _MISSING), default.get(key, _MISSING), prefix + (key,)))
         return paths
     return [] if current == default else [prefix]
 
@@ -86,10 +84,8 @@ def _resolve(settings, parts: tuple[str, ...]) -> Any:
     value = settings
     for part in parts:
         if isinstance(value, Options):
-            fields = {**value.__pydantic_fields__,
-                      **value.__pydantic_computed_fields__}
-            name = next((n for n, f in fields.items()
-                         if Options._toml_key(n, f) == part), None)
+            fields = {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}
+            name = next((n for n, f in fields.items() if Options._toml_key(n, f) == part), None)
             if name is None:
                 return _MISSING
             value = getattr(value, name)
@@ -110,30 +106,24 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
-@app.command(
-    name='show',
-    short_help='Show the effective settings',
-    epilog=epilog
-)
+@app.command(name='show', short_help='Show the effective settings', epilog=epilog)
 def cli_config_show(
     key: Optional[str] = typer.Argument(
-        None, metavar='[KEY]',
-        help='Section or key to show, in dotted notation (e.g. jobs.resources)'
+        None, metavar='[KEY]', help='Section or key to show, in dotted notation (e.g. jobs.resources)'
     ),
-    diff: bool = typer.Option(
-        False, '--diff',
-        help='Only show the values that differ from the defaults'
-    ),
+    diff: bool = typer.Option(False, '--diff', help='Only show the values that differ from the defaults'),
     file: Optional[Path] = typer.Option(
-        None, '--file',
-        exists=True, dir_okay=False, resolve_path=True,
-        help='Show the settings of this file instead of the active config file'
+        None,
+        '--file',
+        exists=True,
+        dir_okay=False,
+        resolve_path=True,
+        help='Show the settings of this file instead of the active config file',
     ),
     comments: bool = typer.Option(
-        True, '--comments/--no-comments',
-        help='Show the field descriptions (or the defaults, with --diff) as comments'
+        True, '--comments/--no-comments', help='Show the field descriptions (or the defaults, with --diff) as comments'
     ),
-    as_json: bool = typer.Option(False, '--json', help='Output as JSON')
+    as_json: bool = typer.Option(False, '--json', help='Output as JSON'),
 ):
     """
     Show the settings that XTL runs with, as TOML. These are read from the active
@@ -153,8 +143,7 @@ def cli_config_show(
     if file is not None:
         settings, errors, _ = XTLSettings._read(file)
         if settings is None:
-            stderr.print(f'[red]Error:[/] invalid config file: '
-                         f'{escape("; ".join(errors))}')
+            stderr.print(f'[red]Error:[/] invalid config file: {escape("; ".join(errors))}')
             stderr.print('See [b]xtl.config validate[/b] for details.')
             raise typer.Exit(1)
         source = str(file)
@@ -166,9 +155,11 @@ def cli_config_show(
         else:
             settings, errors, _ = XTLSettings._read(active.path)
             if settings is None:
-                stderr.print(f'[yellow]Warning:[/] the active [b]{active.name}[/b] '
-                             f'config is invalid, showing the in-memory defaults '
-                             f'instead. See [b]xtl.config validate[/b] for details.')
+                stderr.print(
+                    f'[yellow]Warning:[/] the active [b]{active.name}[/b] '
+                    f'config is invalid, showing the in-memory defaults '
+                    f'instead. See [b]xtl.config validate[/b] for details.'
+                )
                 source = f'in-memory defaults ({active.name} config is invalid)'
             else:
                 source = f'{active.name} ({active.path})'
@@ -184,8 +175,7 @@ def cli_config_show(
     value = _resolve(settings, parts)
     if value is _MISSING:
         # Suggest keys at the same depth, e.g. not the keys of a matched table
-        known = ['.'.join(p) for p in _paths(_plain(data)) + _paths(_plain(default_data))
-                 if len(p) == len(parts)]
+        known = ['.'.join(p) for p in _paths(_plain(data)) + _paths(_plain(default_data)) if len(p) == len(parts)]
         matches = difflib.get_close_matches(key, sorted(set(known)), n=3)
         hint = f' Did you mean: {", ".join(matches)}?' if matches else ''
         raise typer.BadParameter(f'Unknown key: {key}.{hint}', param_hint="'[KEY]'")
@@ -201,18 +191,18 @@ def cli_config_show(
         output = {}
         encoder = ExtendedTomlEncoder()
         for path in _diff(_plain(data), _plain(default_data)):
-            if path[:len(parts)] != parts:
+            if path[: len(parts)] != parts:
                 continue
             item = _get(data, path)
             default = _get(default_data, path)
-            default_str = 'not set' if default is _MISSING else \
-                str(encoder.dump_value(default)).strip()  # ints are not converted
+            default_str = (
+                'not set' if default is _MISSING else str(encoder.dump_value(default)).strip()
+            )  # ints are not converted
             if item is _MISSING:
                 notes.append(f'{".".join(path)} is not set (default: {default_str})')
                 continue
             if comments and not isinstance(item, dict):
-                item = CommentValue(val=_plain(item), comment=f'# default: {default_str}',
-                                    beginline=False, _dict=dict)
+                item = CommentValue(val=_plain(item), comment=f'# default: {default_str}', beginline=False, _dict=dict)
             _set(output, path, item)
     else:
         item = _get(data, parts) if parts else data

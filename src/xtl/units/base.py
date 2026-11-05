@@ -5,6 +5,7 @@ from typing import Optional, TypeVar
 from xtl.common.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum):
         pass
 else:
@@ -16,6 +17,7 @@ class UnitsDescription:
     """
     Description of a unit, including various string representations.
     """
+
     name: str
     """The canonical name of the unit, used for lookups and as a default for other representations."""
 
@@ -39,7 +41,6 @@ _U = TypeVar('_U', bound='Units')
 
 
 class Units(StrEnum):
-
     def __new__(cls, value: str, meta: Optional[UnitsDescription] = None):
         obj = str.__new__(cls, value)
         obj._value_ = value

@@ -23,7 +23,6 @@ class IncompatibleShellWarning(Warning_):
 
 
 class ObjectInstantiationWarning(Warning_):
-
     def __init__(self, message='', raiser=None):
         self.raiser = raiser
         self.message = message
@@ -33,7 +32,6 @@ class ObjectInstantiationWarning(Warning_):
 
 
 class ExistingReagentWarning(Warning_):
-
     def __init__(self, message='', raiser: 'xtl.crystallization.experiments.Reagent' = None):
         self.raiser = raiser
 

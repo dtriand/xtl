@@ -4,7 +4,6 @@ from tests.cli.config.conftest import INVALID, VALID, WARNINGS
 
 
 class TestValidate:
-
     def test_no_active(self, cli):
         result = cli('validate')
         assert result.exit_code == 0

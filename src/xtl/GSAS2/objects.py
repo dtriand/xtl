@@ -17,14 +17,15 @@ class MapData:
     """
     Dataclass for map dictionary data located under ``phase['General']['Map']``.
     """
+
     maptype: str = field(default='')
     reflist: list = field(default_factory=_make_empty_list_with_empty_string)
     gridstep: float = field(default=0.25)
     showbonds: bool = field(default=True)
     rho: list = field(default_factory=_make_empty_list)
-    rhomax: float = field(default=0.)
-    mapsize: float = field(default=10.)
-    cutoff: float = field(default=50.)
+    rhomax: float = field(default=0.0)
+    mapsize: float = field(default=10.0)
+    cutoff: float = field(default=50.0)
     flip: bool = field(default=False)
 
     @property
@@ -38,7 +39,7 @@ class MapData:
             'rhoMax': self.rhomax,
             'mapSize': self.mapsize,
             'cutOff': self.cutoff,
-            'Flip': self.flip
+            'Flip': self.flip,
         }
 
 
@@ -60,9 +61,12 @@ def get_map_type(map_name: str):
     elif mname in ('patt', 'patterson', 'fo^2', 'fo2', 'fosq', 'fobs^2', 'fobs2'):
         return Map(name=map_name, name_pretty='Fo2', gsas_map_type='Patterson')
     else:
-        raise InvalidArgument(raiser='map_name', message=f'{map_name}. Accepted values are: \n'
-                                                         f' Fo: Fobs\n'
-                                                         f' Fc: Fcalc\n'
-                                                         f' Fo-Fc: Fobs - Fcalc\n'
-                                                         f' 2Fo-Fc: 2 * Fobs - Fcalc\n'
-                                                         f' Fo2: Patterson (Fobs^2)')
+        raise InvalidArgument(
+            raiser='map_name',
+            message=f'{map_name}. Accepted values are: \n'
+            f' Fo: Fobs\n'
+            f' Fc: Fcalc\n'
+            f' Fo-Fc: Fobs - Fcalc\n'
+            f' 2Fo-Fc: 2 * Fobs - Fcalc\n'
+            f' Fo2: Patterson (Fobs^2)',
+        )

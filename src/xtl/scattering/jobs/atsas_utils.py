@@ -7,6 +7,7 @@ from xtl.common.options import Option, Options
 from xtl.common.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 
     from typing_extensions import Self
@@ -19,6 +20,7 @@ class ATSASOptions(Options):
     """
     Base class for ATSAS job options.
     """
+
     _executable: str = PrivateAttr()
 
     @property
@@ -56,38 +58,17 @@ class DatcmpOptions(ATSASOptions):
     """
     Configuration for an ATSAS datcmp job.
     """
+
     _executable: str = PrivateAttr(default='datcmp')
 
-    mode: DatcmpMode | None = \
-        Option(
-            default='PAIRWISE',
-            desc='Comparison mode'
-        )
-    test: DatcmpTest | None = \
-        Option(
-            default='CORMAP',
-            desc='Test name'
-        )
-    adjust: DatcmpAdjustment | None = \
-        Option(
-            default='FWER',
-            desc='Adjustment for multiple testing'
-        )
-    alpha: float | None = \
-        Option(
-            default=0.01,
-            desc='Significance level for clique search'
-        )
-    format: str | None = \
-        Option(
-            default='FULL',
-            desc='Output format',
-            choices={'FULL', 'CSV', None}
-        )
+    mode: DatcmpMode | None = Option(default='PAIRWISE', desc='Comparison mode')
+    test: DatcmpTest | None = Option(default='CORMAP', desc='Test name')
+    adjust: DatcmpAdjustment | None = Option(default='FWER', desc='Adjustment for multiple testing')
+    alpha: float | None = Option(default=0.01, desc='Significance level for clique search')
+    format: str | None = Option(default='FULL', desc='Output format', choices={'FULL', 'CSV', None})
 
 
 class DatopOperator(StrEnum):
-
     ADD = 'ADD'
     SUBTRACT = 'SUB'
     MULTIPLY = 'MUL'
@@ -96,31 +77,15 @@ class DatopOperator(StrEnum):
 
 
 class DatopOptions(ATSASOptions):
-
     _executable: str = PrivateAttr(default='datop')
 
-    operator: DatopOperator = \
-        Option(
-            desc='Arithmetic operator to apply to dataset'
-        )
+    operator: DatopOperator = Option(desc='Arithmetic operator to apply to dataset')
 
-    value: float | None = \
-        Option(
-            default=None,
-            desc='Numerical value to use with operator'
-        )
+    value: float | None = Option(default=None, desc='Numerical value to use with operator')
 
-    dataset: Path | None = \
-        Option(
-            default=None,
-            desc='Path to dataset to use with operator'
-        )
+    dataset: Path | None = Option(default=None, desc='Path to dataset to use with operator')
 
-    output: Path | None = \
-        Option(
-            default=None,
-            desc='Path to output file'
-        )
+    output: Path | None = Option(default=None, desc='Path to output file')
 
     @model_validator(mode='after')
     def _mutually_exclusive_options(self) -> Self:

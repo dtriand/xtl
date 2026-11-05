@@ -7,9 +7,7 @@ _alphanumeric = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 class UUIDFactory:
-
-    def __init__(self, alphabet: str = _alphanumeric,
-                 sort_alphabet: bool = True):
+    def __init__(self, alphabet: str = _alphanumeric, sort_alphabet: bool = True):
         """
         Simple factory for creating UUIDs using a custom alphabet.
 
@@ -18,7 +16,7 @@ class UUIDFactory:
             (default is True).
         """
         if not isinstance(alphabet, str):
-            raise TypeError('\'alphabet\' must be a string')
+            raise TypeError("'alphabet' must be a string")
 
         if sort_alphabet:
             self._alphabet = list(sorted(set(alphabet)))
@@ -47,7 +45,7 @@ class UUIDFactory:
         Encode a UUID into a string using the custom alphabet.
         """
         if not isinstance(u, uuid.UUID):
-            raise TypeError('\'u\' must be a UUID instance')
+            raise TypeError("'u' must be a UUID instance")
 
         output = ''
         num = u.int
@@ -63,7 +61,7 @@ class UUIDFactory:
         Decode a string back into a UUID using the custom alphabet.
         """
         if not isinstance(s, str):
-            raise TypeError('\'s\' must be a string')
+            raise TypeError("'s' must be a string")
 
         num = 0
         for char in s:

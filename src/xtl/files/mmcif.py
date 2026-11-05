@@ -5,7 +5,6 @@ import tabulate
 
 
 class mmCIF:
-
     def __init__(self, gemmi_doc, debug=False):
         """
 
@@ -19,6 +18,7 @@ class mmCIF:
 
     def pretty_export(self, filename):
         import json
+
         mmjson_string = self.doc.as_json(mmjson=True)
         if self.debug:
             with open(f'{os.path.splitext(filename)[0]}.json', 'w') as j:
@@ -63,13 +63,14 @@ class mmCIF:
             linebelowheader=None,
             linebetweenrows=None,
             linebelow=None,
-            headerrow=tabulate.DataRow("", "  ", ""),
-            datarow=tabulate.DataRow("", "   ", ""),  # 3 spaces between columns
+            headerrow=tabulate.DataRow('', '  ', ''),
+            datarow=tabulate.DataRow('', '   ', ''),  # 3 spaces between columns
             padding=0,
             with_header_hide=None,
         )
-        return tabulate.tabulate(array, tablefmt='plain', floatfmt=".4f", colalign=('right',),
-                                 missingval='?', showindex=False)
+        return tabulate.tabulate(
+            array, tablefmt='plain', floatfmt='.4f', colalign=('right',), missingval='?', showindex=False
+        )
 
     @staticmethod
     def _longest_length(category, dictionary):

@@ -1,6 +1,7 @@
 """
 Central location for environment variables and related utilities.
 """
+
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ class EnvVar(Generic[T]):
     An environment variable that is read on every access, so that changes to the
     environment are reflected immediately. Empty values are treated as unset.
     """
+
     name: str
     parser: Callable[[str], T] = str
     default: T | None = None
@@ -38,8 +40,7 @@ class EnvVar(Generic[T]):
         try:
             return self.parser(raw)
         except (ValueError, TypeError) as e:
-            raise ValueError(f'Invalid value for environment variable '
-                             f'{self.name}: {raw!r}') from e
+            raise ValueError(f'Invalid value for environment variable {self.name}: {raw!r}') from e
 
 
 def _normalize_path(value: str) -> Path:

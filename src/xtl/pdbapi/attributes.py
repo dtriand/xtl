@@ -14,7 +14,6 @@ Number = (int, float, date)
 
 @dataclass
 class _Attribute:
-
     fullname: str
     type: str
     description: str = field(repr=False)
@@ -36,7 +35,6 @@ class _Attribute:
 
 @dataclass
 class SearchAttribute(_Attribute):
-
     def exact_match(self, value: str):
         return SearchQueryField(ExactMatchOperator(attribute=self.fullname, value=value))
 
@@ -53,27 +51,38 @@ class SearchAttribute(_Attribute):
         return SearchQueryField(ContainsPhraseOperator(attribute=self.fullname, value=value))
 
     def equals(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.EQUAL,
-                                                   value=value))
+        return SearchQueryField(
+            ComparisonOperator(attribute=self.fullname, operation=ComparisonType.EQUAL, value=value)
+        )
 
     def greater(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER,
-                                                   value=value))
+        return SearchQueryField(
+            ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER, value=value)
+        )
 
     def greater_or_equal(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER_OR_EQUAL,
-                                                   value=value))
+        return SearchQueryField(
+            ComparisonOperator(attribute=self.fullname, operation=ComparisonType.GREATER_OR_EQUAL, value=value)
+        )
 
     def less(self, value: TNumber):
         return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS, value=value))
 
     def less_or_equal(self, value: TNumber):
-        return SearchQueryField(ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS_OR_EQUAL,
-                                                   value=value))
+        return SearchQueryField(
+            ComparisonOperator(attribute=self.fullname, operation=ComparisonType.LESS_OR_EQUAL, value=value)
+        )
 
     def range(self, value_from: TNumber, value_to: TNumber, inclusive_lower=False, inclusive_upper=False):
-        return SearchQueryField(RangeOperator(attribute=self.fullname, value_from=value_from, value_to=value_to,
-                                              inclusive_lower=inclusive_lower, inclusive_upper=inclusive_upper))
+        return SearchQueryField(
+            RangeOperator(
+                attribute=self.fullname,
+                value_from=value_from,
+                value_to=value_to,
+                inclusive_lower=inclusive_lower,
+                inclusive_upper=inclusive_upper,
+            )
+        )
 
     @overload
     def __eq__(self, other: 'SearchAttribute') -> bool: ...
@@ -147,7 +156,6 @@ class SearchAttribute(_Attribute):
 
 
 class DataAttribute(_Attribute):
-
     def __eq__(self, other: 'DataAttribute') -> bool:
         if isinstance(other, DataAttribute):
             return self.fullname == other.fullname
@@ -187,11 +195,7 @@ class _AttributeGroup:
         return [getattr(self, a) for a in self.children]
 
 
-class SearchAttributeGroup(_AttributeGroup):
-
-    ...
+class SearchAttributeGroup(_AttributeGroup): ...
 
 
-class DataAttributeGroup(_AttributeGroup):
-
-    ...
+class DataAttributeGroup(_AttributeGroup): ...

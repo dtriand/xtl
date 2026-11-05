@@ -3,6 +3,7 @@ This module defines a set of :class:`Options <xtl.common.options.Options>` `Pyda
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """
+
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import ClassVar, Iterable, Optional, Literal
 from pydantic import PrivateAttr
 
 from xtl import Logger
+
 logger = Logger(__name__)
 
 from xtl import version as current_version
@@ -70,15 +72,15 @@ class Settings(Options):
     #   in the model's `__pydantic_extra__` attribute.
 
 
-
 class UnitsSettings(Settings):
     """
     Physical units
     """
 
     # Model attributes
-    temperature: str = Option(default='C', choices=('C', 'K', 'F'),
-                              desc='C for Celsius, K for Kelvin, F for Fahrenheit')
+    temperature: str = Option(
+        default='C', choices=('C', 'K', 'F'), desc='C for Celsius, K for Kelvin, F for Fahrenheit'
+    )
 
 
 class AutomatePermissionsSettings(Settings):
@@ -87,32 +89,25 @@ class AutomatePermissionsSettings(Settings):
     """
 
     # Model attributes
-    update: bool = \
-        Option(
-            default=False,
-            desc='Update permissions of the output files after execution of external jobs'
-        )
-    scripts: FilePermissions = \
-        Option(
-            default=FilePermissions(0o700),
-            desc='Permissions octal for scripts',
-            cast_as=FilePermissions,
-            formatter=PermissionOctal
-        )
-    files: FilePermissions = \
-        Option(
-            default=FilePermissions(0o600),
-            desc='Permissions octal for files',
-            cast_as=FilePermissions,
-            formatter=PermissionOctal
-        )
-    directories: FilePermissions = \
-        Option(
-            default=FilePermissions(0o700),
-            desc='Permissions octal for directories',
-            cast_as=FilePermissions,
-            formatter=PermissionOctal
-        )
+    update: bool = Option(default=False, desc='Update permissions of the output files after execution of external jobs')
+    scripts: FilePermissions = Option(
+        default=FilePermissions(0o700),
+        desc='Permissions octal for scripts',
+        cast_as=FilePermissions,
+        formatter=PermissionOctal,
+    )
+    files: FilePermissions = Option(
+        default=FilePermissions(0o600),
+        desc='Permissions octal for files',
+        cast_as=FilePermissions,
+        formatter=PermissionOctal,
+    )
+    directories: FilePermissions = Option(
+        default=FilePermissions(0o700),
+        desc='Permissions octal for directories',
+        cast_as=FilePermissions,
+        formatter=PermissionOctal,
+    )
 
 
 class AutomateSettings(Settings):
@@ -121,25 +116,10 @@ class AutomateSettings(Settings):
     """
 
     # Model attributes
-    job_digits: int = \
-        Option(
-            default=5,
-            desc='Number of digits to use for generation of random job IDs'
-        )
-    compute_site: ComputeSite = \
-        Option(
-            default=ComputeSite.LOCAL,
-            desc='Default compute site for job execution'
-        )
-    permissions: AutomatePermissionsSettings = \
-        Option(
-            default=AutomatePermissionsSettings()
-        )
-    keep_temp: bool = \
-        Option(
-            default=False,
-            desc='Keep temporary files after job execution'
-        )
+    job_digits: int = Option(default=5, desc='Number of digits to use for generation of random job IDs')
+    compute_site: ComputeSite = Option(default=ComputeSite.LOCAL, desc='Default compute site for job execution')
+    permissions: AutomatePermissionsSettings = Option(default=AutomatePermissionsSettings())
+    keep_temp: bool = Option(default=False, desc='Keep temporary files after job execution')
 
 
 class ResourcesSettings(Settings):
@@ -148,21 +128,9 @@ class ResourcesSettings(Settings):
     """
 
     # Model attributes
-    max_jobs: int = \
-        Option(
-            default=CPU_CORES,
-            desc='Maximum number of jobs to run concurrently in a pool'
-        )
-    max_threads: int = \
-        Option(
-            default=CPU_CORES,
-            desc='Maximum number of threads to use for job execution'
-        )
-    max_processes: int = \
-        Option(
-            default=CPU_CORES,
-            desc='Maximum number of processes to use for job execution'
-        )
+    max_jobs: int = Option(default=CPU_CORES, desc='Maximum number of jobs to run concurrently in a pool')
+    max_threads: int = Option(default=CPU_CORES, desc='Maximum number of threads to use for job execution')
+    max_processes: int = Option(default=CPU_CORES, desc='Maximum number of processes to use for job execution')
 
 
 class JobsSettings(Settings):
@@ -171,47 +139,25 @@ class JobsSettings(Settings):
     """
 
     # Model attributes
-    job_digits: int = \
-        Option(
-            default=5,
-            desc='Number of digits to use for generation of random job IDs'
-        )
+    job_digits: int = Option(default=5, desc='Number of digits to use for generation of random job IDs')
 
-    compute_site: ComputeSite2 = \
-        Option(
-            default=ComputeSite2.LOCAL,
-            desc='Default compute site for job execution'
-        )
+    compute_site: ComputeSite2 = Option(default=ComputeSite2.LOCAL, desc='Default compute site for job execution')
 
-    keep_temp: bool = \
-        Option(
-            default=False,
-            desc='Keep temporary files after job execution'
-        )
+    keep_temp: bool = Option(default=False, desc='Keep temporary files after job execution')
 
-    tracebacks: bool = \
-        Option(
-            default=False,
-            desc='Whether to include tracebacks in job logs when exceptions occur'
-        )
+    tracebacks: bool = Option(default=False, desc='Whether to include tracebacks in job logs when exceptions occur')
 
-    threading_debug: bool = \
-        Option(
-            default=False,
-            desc='Enable thread and process names in job logs for debugging concurrency issues'
-        )
+    threading_debug: bool = Option(
+        default=False, desc='Enable thread and process names in job logs for debugging concurrency issues'
+    )
 
-    permissions: AutomatePermissionsSettings = \
-        Option(
-            default=AutomatePermissionsSettings(),
-            desc='Permissions settings for jobs'
-        )
+    permissions: AutomatePermissionsSettings = Option(
+        default=AutomatePermissionsSettings(), desc='Permissions settings for jobs'
+    )
 
-    resources: ResourcesSettings = \
-        Option(
-            default=ResourcesSettings(),
-            desc='Default resource settings for job execution'
-        )
+    resources: ResourcesSettings = Option(
+        default=ResourcesSettings(), desc='Default resource settings for job execution'
+    )
 
 
 class DependencySettings(Settings):
@@ -224,18 +170,9 @@ class DependencySettings(Settings):
     _provides: ClassVar[frozenset[str]] = frozenset()
 
     # Model attributes
-    path: Optional[Path] = \
-        Option(
-            default=None,
-            desc='Directory containing binaries',
-            validator=CastAsNoneIfEmpty()
-        )
+    path: Optional[Path] = Option(default=None, desc='Directory containing binaries', validator=CastAsNoneIfEmpty())
 
-    modules: set[str] = \
-        Option(
-            default_factory=set,
-            desc='Modules that provide the dependency'
-        )
+    modules: set[str] = Option(default_factory=set, desc='Modules that provide the dependency')
 
     @property
     def provides(self) -> frozenset[str]:
@@ -250,6 +187,7 @@ class AtsasSettings(DependencySettings):
     """
     Settings for `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_
     """
+
     _provides = frozenset({'datcmp'})
 
 
@@ -257,6 +195,7 @@ class AutoprocSettings(DependencySettings):
     """
     Settings for `autoPROC <https://www.globalphasing.com/autoproc/>`_
     """
+
     _provides = frozenset({'process', 'process_wf'})
 
 
@@ -264,6 +203,7 @@ class EasyBraggSettings(DependencySettings):
     """
     Settings for easyBragg
     """
+
     _provides = frozenset({'easyBragg.python'})
 
 
@@ -273,14 +213,13 @@ class DependenciesSettings(Settings):
     """
 
     # Model attributes
-    resolution: str = \
-        Option(
-            default='loose',
-            choices={'strict', 'loose'},
-            desc='Dependency resolution strategy. '
-                 'If "strict", jobs requiring missing dependencies will fail to run. '
-                 'If "loose", missing dependencies will be ignored.'
-        )
+    resolution: str = Option(
+        default='loose',
+        choices={'strict', 'loose'},
+        desc='Dependency resolution strategy. '
+        'If "strict", jobs requiring missing dependencies will fail to run. '
+        'If "loose", missing dependencies will be ignored.',
+    )
 
     atsas: AtsasSettings = Option(default=AtsasSettings())
     autoproc: AutoprocSettings = Option(default=AutoprocSettings())
@@ -291,9 +230,11 @@ class DependenciesSettings(Settings):
         """
         Names of the known dependencies, in definition order.
         """
-        return [name for name, field in cls.model_fields.items()
-                if isinstance(field.annotation, type)
-                and issubclass(field.annotation, DependencySettings)]
+        return [
+            name
+            for name, field in cls.model_fields.items()
+            if isinstance(field.annotation, type) and issubclass(field.annotation, DependencySettings)
+        ]
 
     def __contains__(self, name: object) -> bool:
         return name in self.names()
@@ -313,9 +254,9 @@ class DependenciesSettings(Settings):
         """
         return [(name, getattr(self, name)) for name in self.names()]
 
-    def resolve(self, dependencies: Iterable[DependencySettings | str]
-                                    | DependencySettings | str | None) \
-            -> list[DependencySettings]:
+    def resolve(
+        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None
+    ) -> list[DependencySettings]:
         """
         Resolve dependency names to their settings. Instances of
         :class:`DependencySettings` are passed through. Unknown names are skipped with a
@@ -337,8 +278,7 @@ class DependenciesSettings(Settings):
             if dep is None:
                 logger.warning('Dependency `%s` not found in settings', dependency)
                 if self.resolution == 'strict':
-                    logger.error('Strict dependency resolution enabled; missing '
-                                 'dependency `%s`', dependency)
+                    logger.error('Strict dependency resolution enabled; missing dependency `%s`', dependency)
                     raise ValueError(f'Missing dependency `{dependency}`')
                 continue
             # Skip duplicates (by identity: equal values may be different dependencies)
@@ -353,12 +293,14 @@ class CLIAutoprocSettings(Settings):
     """
 
     # Model attributes
-    collect_logs: bool = Option(default=False,
-                                desc='Collect logs during xtl.autoproc runs')
-    logs_dir: Optional[Path] = Option(default=None,
-                                      desc='Directory for storing logs',
-                                      validator=CastAsPathOrNone(), path_exists=True,
-                                      path_is_dir=True)
+    collect_logs: bool = Option(default=False, desc='Collect logs during xtl.autoproc runs')
+    logs_dir: Optional[Path] = Option(
+        default=None,
+        desc='Directory for storing logs',
+        validator=CastAsPathOrNone(),
+        path_exists=True,
+        path_is_dir=True,
+    )
 
 
 class CLIConsoleFormatSettings(Settings):
@@ -368,8 +310,7 @@ class CLIConsoleFormatSettings(Settings):
 
     # Model attributes
     rich: bool = Option(default=True, desc='Enable rich formatted output')
-    striped_tables: bool = Option(default=True,
-                                  desc='Alternating row colors in tables')
+    striped_tables: bool = Option(default=True, desc='Alternating row colors in tables')
 
 
 class CLISettings(Settings):
@@ -381,11 +322,7 @@ class CLISettings(Settings):
     format: CLIConsoleFormatSettings = Option(default=CLIConsoleFormatSettings())
     autoproc: CLIAutoprocSettings = Option(default=CLIAutoprocSettings())
 
-    max_fps: int = \
-        Option(
-            default=10, gt=1, lt=60,
-            desc='Maximum refreshes (per s) for live console elements'
-        )
+    max_fps: int = Option(default=10, gt=1, lt=60, desc='Maximum refreshes (per s) for live console elements')
 
 
 @dataclass(frozen=True)
@@ -393,6 +330,7 @@ class ConfigFileInfo:
     """
     A candidate location for the ``xtl.toml`` configuration file.
     """
+
     name: Literal['env', 'local', 'user', 'global']
     path: Path
     creatable: bool
@@ -460,16 +398,15 @@ class XTLSettings(Settings):
                          file location to load.
         :return: An instance of :class:`XTLSettings`
         """
-        logger.info('Reading %(name)s config: %(path)s',
-                    {'name': location.name, 'path': location.path})
+        logger.info('Reading %(name)s config: %(path)s', {'name': location.name, 'path': location.path})
 
         _settings, errors, warnings = cls._read(location.path)
         if _settings is None:
             # Log the error, but don't fall back to the next available location
-            logger.error('Failed to read %(name)s config %(path)s, using default '
-                         'settings instead: %(error)s',
-                         {'name': location.name, 'path': location.path,
-                          'error': '; '.join(errors)})
+            logger.error(
+                'Failed to read %(name)s config %(path)s, using default settings instead: %(error)s',
+                {'name': location.name, 'path': location.path, 'error': '; '.join(errors)},
+            )
             return cls()  # Return default settings if reading fails
 
         # Set provenance
@@ -494,8 +431,7 @@ class XTLSettings(Settings):
         except OptionsValidationError as e:
             # One error per invalid value, located without the model name
             #  (e.g. 'units.temperature' instead of 'XTLSettings.units.temperature')
-            errors = [f'{error["loc"].partition(".")[2] or error["loc"]}: '
-                      f'{error["msg"]}' for error in e.errors]
+            errors = [f'{error["loc"].partition(".")[2] or error["loc"]}: {error["msg"]}' for error in e.errors]
             return None, errors, []
         except (OSError, ValueError) as e:
             return None, [str(e)], []
@@ -517,19 +453,21 @@ class XTLSettings(Settings):
             problems.append(f'Invalid settings version: {self.version!r}')
         else:
             if _v.tuple_safe < current_version.tuple_safe:
-                problems.append(f'Using settings from an older version of XTL '
-                                f'({_v.string}, current {current_version.string}).')
+                problems.append(
+                    f'Using settings from an older version of XTL ({_v.string}, current {current_version.string}).'
+                )
             elif _v.tuple_safe > current_version.tuple_safe:
-                problems.append(f'Using settings from a newer version of XTL '
-                                f'({_v.string}, current {current_version.string}). '
-                                'XTL might not behave as intended. '
-                                'Use at your own risk!')
+                problems.append(
+                    f'Using settings from a newer version of XTL '
+                    f'({_v.string}, current {current_version.string}). '
+                    'XTL might not behave as intended. '
+                    'Use at your own risk!'
+                )
 
         # Check for extra keys in the nested Options
         extra = _flatten_keys(_get_extra_keys(self))
         if extra:
-            problems.append('Found and ignored unknown keys in the config file: '
-                            f'{", ".join(extra)}')
+            problems.append(f'Found and ignored unknown keys in the config file: {", ".join(extra)}')
 
         return problems
 
@@ -574,8 +512,7 @@ class XTLSettings(Settings):
         # If no config file exists, initialize with defaults
         _settings = cls()
         if not create:
-            logger.info('No %(toml)s found, initializing with default settings',
-                        {'toml': cls._toml})
+            logger.info('No %(toml)s found, initializing with default settings', {'toml': cls._toml})
             return _settings
 
         # Save config to the first creatable location
@@ -588,22 +525,22 @@ class XTLSettings(Settings):
                 # Another process might have created the file in the meantime
                 if isinstance(e, FileExistsError) and loc.exists:
                     return cls._load(loc)
-                logger.warning('Failed to create %(name)s config at %(path)s: '
-                               '%(error)s', {'name': loc.name, 'path': loc.path,
-                                             'error': e})
+                logger.warning(
+                    'Failed to create %(name)s config at %(path)s: %(error)s',
+                    {'name': loc.name, 'path': loc.path, 'error': e},
+                )
                 continue
-            logger.info('Created %(name)s config at %(path)s',
-                        {'name': loc.name, 'path': loc.path})
+            logger.info('Created %(name)s config at %(path)s', {'name': loc.name, 'path': loc.path})
             _settings._source = loc
             return _settings
 
-        logger.warning('Failed to create a config file in any of the candidate '
-                       'locations, using default settings in-memory')
+        logger.warning(
+            'Failed to create a config file in any of the candidate locations, using default settings in-memory'
+        )
         return _settings
 
     @classmethod
-    def active(cls, locations: Optional[list[ConfigFileInfo]] = None) \
-            -> Optional[ConfigFileInfo]:
+    def active(cls, locations: Optional[list[ConfigFileInfo]] = None) -> Optional[ConfigFileInfo]:
         """
         The active config file: the first existing one in :meth:`locations`, which is
         the file that :meth:`initialize` loads. Whether the file can be read is not
@@ -634,27 +571,19 @@ class XTLSettings(Settings):
         env_path = XTL_CONFIG.value
         if env_path is not None:
             if env_path.is_dir():
-                logger.warning('Ignoring XTL_CONFIG, it points to a directory: '
-                               '%(path)s', {'path': env_path})
+                logger.warning('Ignoring XTL_CONFIG, it points to a directory: %(path)s', {'path': env_path})
             else:
-                locations.append(
-                    ConfigFileInfo(name='env', path=env_path, creatable=True))
+                locations.append(ConfigFileInfo(name='env', path=env_path, creatable=True))
 
         # Local config (never create automatically)
-        locations.append(ConfigFileInfo(name='local', path=Path.cwd() / cls._toml,
-                                        creatable=False))
+        locations.append(ConfigFileInfo(name='local', path=Path.cwd() / cls._toml, creatable=False))
 
         # User config (platform-dependent)
         locations.append(
-            ConfigFileInfo(
-                name='user',
-                path=Path(user_config_dir('xtl', appauthor=False)) / cls._toml,
-                creatable=True
-            )
+            ConfigFileInfo(name='user', path=Path(user_config_dir('xtl', appauthor=False)) / cls._toml, creatable=True)
         )
 
         # Global config (installation directory)
-        locations.append(ConfigFileInfo(name='global', path=cls.global_config,
-                                        creatable=True))
+        locations.append(ConfigFileInfo(name='global', path=cls.global_config, creatable=True))
 
         return locations

@@ -8,8 +8,7 @@ from xtl.config.version import ReleaseLevel, VersionInfo, version
 
 
 def _v(major=1, minor=2, micro=3, level=ReleaseLevel.FINAL, serial=0, date=None):
-    return VersionInfo(major=major, minor=minor, micro=micro, level=level,
-                       serial=serial, date=date)
+    return VersionInfo(major=major, minor=minor, micro=micro, level=level, serial=serial, date=date)
 
 
 # level, release_level, string, pep440
@@ -24,7 +23,6 @@ LEVELS = [
 
 
 class TestProperties:
-
     @pytest.mark.parametrize('level, release_level, string, pep440', LEVELS)
     def test_release_level(self, level, release_level, string, pep440):
         assert _v(level=level).release_level == release_level
@@ -57,7 +55,6 @@ class TestProperties:
 
 
 class TestPep440:
-
     @pytest.mark.parametrize('level, release_level, string, pep440', LEVELS)
     def test_levels(self, level, release_level, string, pep440):
         v = _v(level=level, serial=4)
@@ -75,13 +72,15 @@ class TestPep440:
 
 
 class TestHex:
-
-    @pytest.mark.parametrize('v, h', [
-        (_v(level=ReleaseLevel.ALPHA, serial=4), '0x010203a4'),
-        (_v(level=ReleaseLevel.FINAL, serial=0), '0x010203f0'),
-        (_v(0, 2, 0, ReleaseLevel.DEV, 0), '0x00020000'),
-        (_v(255, 255, 255, ReleaseLevel.RC, 15), '0xffffffdf'),
-    ])
+    @pytest.mark.parametrize(
+        'v, h',
+        [
+            (_v(level=ReleaseLevel.ALPHA, serial=4), '0x010203a4'),
+            (_v(level=ReleaseLevel.FINAL, serial=0), '0x010203f0'),
+            (_v(0, 2, 0, ReleaseLevel.DEV, 0), '0x00020000'),
+            (_v(255, 255, 255, ReleaseLevel.RC, 15), '0xffffffdf'),
+        ],
+    )
     def test_hex(self, v, h):
         assert v.hex == h
         assert VersionInfo.from_hex(h) == v
@@ -103,26 +102,27 @@ class TestHex:
 
 
 class TestFromStr:
-
-    @pytest.mark.parametrize('string, expected', [
-        ('0.1.0', (0, 1, 0, ReleaseLevel.FINAL, 0)),
-        ('1.2.10', (1, 2, 10, ReleaseLevel.FINAL, 0)),
-        ('1.2.3final0', (1, 2, 3, ReleaseLevel.FINAL, 0)),
-        ('1.2.3final2', (1, 2, 3, ReleaseLevel.FINAL, 2)),
-        ('1.2.3a1', (1, 2, 3, ReleaseLevel.ALPHA, 1)),
-        ('1.2.3b2', (1, 2, 3, ReleaseLevel.BETA, 2)),
-        ('1.2.3g5', (1, 2, 3, ReleaseLevel.GAMMA, 5)),
-        ('1.2.3rc3', (1, 2, 3, ReleaseLevel.RC, 3)),
-        ('1.2.3dev4', (1, 2, 3, ReleaseLevel.DEV, 4)),
-        ('1.2.13a1', (1, 2, 13, ReleaseLevel.ALPHA, 1)),
-    ])
+    @pytest.mark.parametrize(
+        'string, expected',
+        [
+            ('0.1.0', (0, 1, 0, ReleaseLevel.FINAL, 0)),
+            ('1.2.10', (1, 2, 10, ReleaseLevel.FINAL, 0)),
+            ('1.2.3final0', (1, 2, 3, ReleaseLevel.FINAL, 0)),
+            ('1.2.3final2', (1, 2, 3, ReleaseLevel.FINAL, 2)),
+            ('1.2.3a1', (1, 2, 3, ReleaseLevel.ALPHA, 1)),
+            ('1.2.3b2', (1, 2, 3, ReleaseLevel.BETA, 2)),
+            ('1.2.3g5', (1, 2, 3, ReleaseLevel.GAMMA, 5)),
+            ('1.2.3rc3', (1, 2, 3, ReleaseLevel.RC, 3)),
+            ('1.2.3dev4', (1, 2, 3, ReleaseLevel.DEV, 4)),
+            ('1.2.13a1', (1, 2, 13, ReleaseLevel.ALPHA, 1)),
+        ],
+    )
     def test_valid(self, string, expected):
         v = VersionInfo.from_str(string)
         assert (v.major, v.minor, v.micro, v.level, v.serial) == expected
         assert v.date is None
 
-    @pytest.mark.parametrize('string', ['0.1', '1.2.3.4', '1.2.a1', '1.2.3x1', '',
-                                        'a.b.c'])
+    @pytest.mark.parametrize('string', ['0.1', '1.2.3.4', '1.2.a1', '1.2.3x1', '', 'a.b.c'])
     def test_invalid(self, string):
         with pytest.raises(ValueError):
             VersionInfo.from_str(string)
@@ -140,18 +140,18 @@ class TestFromStr:
 
 
 class TestFromValue:
-
     def test_instance(self):
         v = _v()
         assert VersionInfo.from_value(v) is v
 
     def test_dict(self):
-        assert VersionInfo.from_value({'major': 1, 'minor': 2, 'micro': 3,
-                                       'level': ReleaseLevel.FINAL, 'serial': 0}) == _v()
+        assert (
+            VersionInfo.from_value({'major': 1, 'minor': 2, 'micro': 3, 'level': ReleaseLevel.FINAL, 'serial': 0})
+            == _v()
+        )
 
     def test_hex_string(self):
-        assert VersionInfo.from_value('0x010203a4') == \
-               _v(level=ReleaseLevel.ALPHA, serial=4)
+        assert VersionInfo.from_value('0x010203a4') == _v(level=ReleaseLevel.ALPHA, serial=4)
 
     def test_version_string(self):
         assert VersionInfo.from_value('1.2.3a4') == _v(level=ReleaseLevel.ALPHA, serial=4)
@@ -168,7 +168,6 @@ class TestFromValue:
 
 
 class TestPackageVersion:
-
     def test_exported(self):
         assert xtl.version is version
         assert isinstance(version, VersionInfo)

@@ -70,13 +70,13 @@ from enum import Enum
 from xtl.common.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
+
     class StrEnum(str, Enum): ...
 else:
     from enum import StrEnum
 
 
-__all__ = ['CommandPolicy', 'CommandPolicyType',
-           'BaseCommandPolicy', 'DefaultCommandPolicy', 'NiceCommandPolicy']
+__all__ = ['CommandPolicy', 'CommandPolicyType', 'BaseCommandPolicy', 'DefaultCommandPolicy', 'NiceCommandPolicy']
 
 
 class CommandPolicy(StrEnum):

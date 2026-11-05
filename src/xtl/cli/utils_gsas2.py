@@ -24,7 +24,7 @@ def get_phase_info(gpx, phase, verbose=0):
         'ID': phase.id,
         'Name': phase.name,
         'Space Group': f'{gpx.get_spacegroup(phase).hm} ({gpx.get_spacegroup(phase).number})',
-        'Type': gpx.get_phase_type(phase).title()
+        'Type': gpx.get_phase_type(phase).title(),
     }
 
     if verbose:
@@ -56,7 +56,7 @@ def get_histogram_info(gpx, histogram, verbose=0):
     info = {
         'ID': histogram.id,
         'Name': histogram.name,
-        f'2{theta} range ({degree})': ' - '.join([str(round(ttheta, 4)) for ttheta in gpx.get_data_range(histogram)])
+        f'2{theta} range ({degree})': ' - '.join([str(round(ttheta, 4)) for ttheta in gpx.get_data_range(histogram)]),
     }
 
     if verbose:
@@ -91,7 +91,7 @@ def get_cell_info(phase, verbose=0):
             # a(da) [A] : 78.41(3)
             v, e, s = round_value_and_esd(cv, ce)
             if s > 0:  # esd is < 1 (e.g. 0.13)
-                info[f'{lp}({delta}{lp}) [{lpu}]'] = f'{v}({int(e * (10 ** s))})'
+                info[f'{lp}({delta}{lp}) [{lpu}]'] = f'{v}({int(e * (10**s))})'
             else:
                 info[f'{lp}({delta}{lp}) [{lpu}]'] = f'{v:.0f}({int(e)})'
 
@@ -113,7 +113,7 @@ def get_density_info(phase, verbose=0):
     info = {
         'Mass (Da)': round(mass, 4),
         f'Density (Da/{angstrom}{superscript_three})': round(density, 4),
-        f'Matthews coef. ({angstrom}{superscript_three}/Da)': round(matthews_coeff, 4)
+        f'Matthews coef. ({angstrom}{superscript_three}/Da)': round(matthews_coeff, 4),
     }
 
     if verbose:
@@ -138,13 +138,13 @@ def get_map_info(phase, verbose=0):
         '2*Fo-Fc': '2Fo-Fc',
         'Omit': 'Omit (Fo)',
         '2Fo-Fc Omit': 'Omit (2Fo-Fc)',
-        'Patterson': 'Patterson'
+        'Patterson': 'Patterson',
     }
 
     info = {
         'Type': map_types[gsas_map_type],
         'Histogram': ', '.join(map_data['RefList']),
-        'Grid step': map_data['GridStep']
+        'Grid step': map_data['GridStep'],
     }
 
     if verbose:

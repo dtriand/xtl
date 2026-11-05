@@ -3,12 +3,17 @@ from pathlib import Path
 
 import pytest
 
-from xtl.config.settings import (AtsasSettings, AutoprocSettings, DependencySettings,
-                                 DependenciesSettings, EasyBraggSettings, XTLSettings)
+from xtl.config.settings import (
+    AtsasSettings,
+    AutoprocSettings,
+    DependencySettings,
+    DependenciesSettings,
+    EasyBraggSettings,
+    XTLSettings,
+)
 
 
 class TestDependencySettings:
-
     def test_provides(self):
         assert AtsasSettings().provides == {'datcmp'}
         assert AutoprocSettings().provides == {'process', 'process_wf'}
@@ -25,8 +30,7 @@ class TestDependencySettings:
         #  executables of the dependency
         s = XTLSettings.from_toml('[dependencies.atsas]\nprovides = ["evil"]\n')
         assert s.dependencies.atsas.provides == {'datcmp'}
-        assert ('Found and ignored unknown keys in the config file: '
-                'dependencies.atsas.provides') in s.check()
+        assert ('Found and ignored unknown keys in the config file: dependencies.atsas.provides') in s.check()
 
     def test_partial_table(self):
         # A table with only some keys keeps the executables of the dependency
@@ -56,7 +60,6 @@ class TestDependencySettings:
 
 
 class TestDependenciesSettings:
-
     @pytest.fixture
     def deps(self) -> DependenciesSettings:
         # An unknown dependency table, as read from a config file
@@ -78,13 +81,11 @@ class TestDependenciesSettings:
         assert deps.get('missing') is None
 
     def test_items(self, deps):
-        assert deps.items() == [('atsas', deps.atsas), ('autoproc', deps.autoproc),
-                                ('easybragg', deps.easybragg)]
+        assert deps.items() == [('atsas', deps.atsas), ('autoproc', deps.autoproc), ('easybragg', deps.easybragg)]
 
     def test_unknown_table_is_reported(self):
         s = XTLSettings.from_toml('[dependencies.foo]\npath = "/x"\n')
-        assert ('Found and ignored unknown keys in the config file: '
-                'dependencies.foo.path') in s.check()
+        assert ('Found and ignored unknown keys in the config file: dependencies.foo.path') in s.check()
 
     @staticmethod
     def _ids(deps: list) -> list[int]:
@@ -96,17 +97,16 @@ class TestDependenciesSettings:
         assert self._ids(deps.resolve('atsas')) == self._ids([deps.atsas])
         assert self._ids(deps.resolve(deps.atsas)) == self._ids([deps.atsas])
         # In the given order
-        assert self._ids(deps.resolve(['easybragg', 'atsas'])) == \
-               self._ids([deps.easybragg, deps.atsas])
+        assert self._ids(deps.resolve(['easybragg', 'atsas'])) == self._ids([deps.easybragg, deps.atsas])
 
         # Instances are passed through, even if they are not in the settings
         other = AtsasSettings()
-        assert self._ids(deps.resolve([other, 'easybragg'])) == \
-               self._ids([other, deps.easybragg])
+        assert self._ids(deps.resolve([other, 'easybragg'])) == self._ids([other, deps.easybragg])
 
     def test_resolve_duplicates(self, deps):
-        assert self._ids(deps.resolve(['atsas', 'autoproc', deps.atsas, 'atsas'])) == \
-               self._ids([deps.atsas, deps.autoproc])
+        assert self._ids(deps.resolve(['atsas', 'autoproc', deps.atsas, 'atsas'])) == self._ids(
+            [deps.atsas, deps.autoproc]
+        )
         # An equal but different instance is kept
         other = AtsasSettings()
         assert other == deps.atsas

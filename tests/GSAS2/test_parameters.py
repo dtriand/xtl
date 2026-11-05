@@ -11,7 +11,6 @@ from xtl.exceptions import InvalidArgument, FileError
 
 
 class TestInstrumentalParameters:
-
     class TestLoadFile:
         def test_load_success(self, gsas2_iparam_lab, gsas2_iparam_synchrotron):
             # Randomized files created by conftest.py

@@ -17,20 +17,18 @@ class ScatteringData(pd.DataFrame):
     # Propagate custom attributes through pandas operations
     _metadata = ['_radial_col', '_wavelength_A', '_energy_keV']
 
-
     def __init__(
-            self,
-            # pd.DataFrame arguments
-            data: ArrayLike | Iterable | dict | pd.DataFrame | None = None,
-            index: ArrayLike | pd.Index | None = None,
-            columns: ArrayLike | Iterable | pd.Index | None = None,
-            dtypes: Iterable | pd.Index | pd.Series | Dtype | str |
-                   dict[str, Dtype | str] | None = None,
-            copy: bool = False,
-            # XTL arguments
-            radial_col: Optional[str] = None,
-            wavelength: Optional[float] = None,
-            energy: Optional[float] = None
+        self,
+        # pd.DataFrame arguments
+        data: ArrayLike | Iterable | dict | pd.DataFrame | None = None,
+        index: ArrayLike | pd.Index | None = None,
+        columns: ArrayLike | Iterable | pd.Index | None = None,
+        dtypes: Iterable | pd.Index | pd.Series | Dtype | str | dict[str, Dtype | str] | None = None,
+        copy: bool = False,
+        # XTL arguments
+        radial_col: Optional[str] = None,
+        wavelength: Optional[float] = None,
+        energy: Optional[float] = None,
     ) -> None:
         if wavelength is not None and energy is not None:
             raise ValueError('Specify only one of wavelength and energy, not both')
@@ -62,8 +60,7 @@ class ScatteringData(pd.DataFrame):
 
         self._radial_col = radial_col
         if self.has_radial and not isinstance(self.radial.dtype, ScatteringAngleDtype):
-            raise TypeError(f'Radial column {self._radial_col} must have an angular dtype, '
-                            f'got {self.radial.dtype}')
+            raise TypeError(f'Radial column {self._radial_col} must have an angular dtype, got {self.radial.dtype}')
 
         # Copy over _metadata if present in provided data
         if isinstance(data, ScatteringData):

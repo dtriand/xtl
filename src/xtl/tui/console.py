@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 
 
 class ConsoleIO(rich.console.Console):
-
     def __init__(self, *args, verbose: int = 0, debug: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.verbose = verbose
@@ -51,19 +50,21 @@ class ConsoleIO(rich.console.Console):
 
             self.print(f'Using compute site: [dim]{options.compute_site}[/]', highlight=False)
             if options.permissions.update and OS_POSIX:
-                self.print(f'Updating permissions to: [dim]'
-                           f'{options.permissions.files.octal[2:]} (files), '
-                           f'{options.permissions.directories.octal[2:]} (directories)',
-                           highlight=False)
+                self.print(
+                    f'Updating permissions to: [dim]'
+                    f'{options.permissions.files.octal[2:]} (files), '
+                    f'{options.permissions.directories.octal[2:]} (directories)',
+                    highlight=False,
+                )
             if options.compute_site == 'modules' and any(REQUIRED_DEPENDENCIES.values()):
                 self.print(f'Using modules: ', highlight=False)
                 for dep, modules in sorted(REQUIRED_DEPENDENCIES.items()):
                     if modules:
                         self.print(f'- {dep}: [dim]{", ".join(modules)}[/dim]', highlight=False)
 
-
-    def get_pool(self, pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = None,
-                 max_jobs: int = 1) -> 'LivePool':
+    def get_pool(
+        self, pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = None, max_jobs: int = 1
+    ) -> 'LivePool':
         """
         Get a pool for job execution which redirects job logs and status updates to a transient Live view on the
         console.

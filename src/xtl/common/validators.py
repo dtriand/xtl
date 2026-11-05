@@ -11,7 +11,7 @@ __all__ = [
     'PathIsAbsoluteValidator',
     'CastAsValidator',
     'CastAsNoneIfEmpty',
-    'CastAsPathOrNone'
+    'CastAsPathOrNone',
 ]
 
 from functools import partial
@@ -42,8 +42,7 @@ def validate_choices(value: Any, choices: Iterable[Any]) -> Any:
     return value
 
 
-def validate_path_exists(value: None | Path | Iterable[Path]) -> \
-        None | Path | Iterable[Path]:
+def validate_path_exists(value: None | Path | Iterable[Path]) -> None | Path | Iterable[Path]:
     """
     Check if the path exists.
     """
@@ -59,8 +58,7 @@ def validate_path_exists(value: None | Path | Iterable[Path]) -> \
     return value
 
 
-def validate_path_is_file(value: None | Path | Iterable[Path]) -> \
-        None | Path | Iterable[Path]:
+def validate_path_is_file(value: None | Path | Iterable[Path]) -> None | Path | Iterable[Path]:
     """
     Check if a path is a file.
     """
@@ -76,8 +74,7 @@ def validate_path_is_file(value: None | Path | Iterable[Path]) -> \
     return value
 
 
-def validate_path_is_dir(value: None | Path | Iterable[Path]) -> \
-        None | Path | Iterable[Path]:
+def validate_path_is_dir(value: None | Path | Iterable[Path]) -> None | Path | Iterable[Path]:
     """
     Check if the path is a directory.
     """
@@ -89,12 +86,11 @@ def validate_path_is_dir(value: None | Path | Iterable[Path]) -> \
                 raise ValueError(f'Path[{i}] is not a directory: {v!r}') from None
     else:
         if not value.is_dir():
-                raise ValueError(f'Path is not a directory: {value!r}') from None
+            raise ValueError(f'Path is not a directory: {value!r}') from None
     return value
 
 
-def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> \
-        None | Path | Iterable[Path]:
+def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> None | Path | Iterable[Path]:
     """
     Check if the path is absolute.
     """
@@ -106,7 +102,7 @@ def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> \
                 raise ValueError(f'Path[{i}] is not absolute: {v!r}') from None
     else:
         if not value.is_absolute():
-                raise ValueError(f'Path is not absolute: {value!r}') from None
+            raise ValueError(f'Path is not absolute: {value!r}') from None
     return value
 
 

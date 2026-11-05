@@ -7,18 +7,11 @@ from xtl.common.options import Option
 from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.math.jobs.clustering import CliqueSearchJob, CliqueSearchJobConfig
 from xtl.scattering.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
-from xtl.scattering.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, \
-    DatcmpAdjustment
+from xtl.scattering.jobs.atsas_utils import DatcmpOptions, DatcmpMode, DatcmpTest, DatcmpAdjustment
 
 
 class SAXSCompareJobConfig(SteppedJobConfig):
-    files: list[Path] = \
-        Option(
-            ...,
-            desc='List of data files to compare',
-            min_length=2,
-            path_exists=True
-        )
+    files: list[Path] = Option(..., desc='List of data files to compare', min_length=2, path_exists=True)
 
 
 @dataclass
@@ -39,6 +32,7 @@ class SAXSCompareJob(SteppedJob[SAXSCompareJobConfig]):
     """
     Job to compare SAXS datasets using ATSAS `datcmp`.
     """
+
     _steps = (
         StepSpec(
             name='datcmp_batch',
@@ -51,32 +45,28 @@ class SAXSCompareJob(SteppedJob[SAXSCompareJobConfig]):
                     adjust=DatcmpAdjustment.FWER,
                     alpha=0.01,
                     mode=DatcmpMode.PAIRWISE,
-                    format='CSV'
+                    format='CSV',
                 ).to_dict()
             },
-            dynamic_defaults=lambda ctx: {
-                'input': ctx.parent.config.files
-            },
+            dynamic_defaults=lambda ctx: {'input': ctx.parent.config.files},
             post_processor=lambda results, ctx: {
                 'alpha': ctx.step.config.options.alpha,
-                'matrix': SAXSCompareJob.datcmp_to_matrix(results.data.stdout, len(ctx.step.config.input))
-            }
+                'matrix': SAXSCompareJob.datcmp_to_matrix(results.data.stdout, len(ctx.step.config.input)),
+            },
         ),
         StepSpec(
             name='clique_search',
             desc='Find cliques of similar datasets based on datcmp results',
             job_cls=CliqueSearchJob,
             config_cls=CliqueSearchJobConfig,
-            defaults={
-                'max_cliques': None
-            },
+            defaults={'max_cliques': None},
             dynamic_defaults=lambda ctx: {
                 'data': SAXSCompareJob.similarity_to_adjacency(ctx.data['matrix'].p_value, ctx.data['alpha'])
             },
             post_processor=lambda results, ctx: {
                 'cliques': [[ctx.parent.config.files[i] for i in clique] for clique in results.data]
-            }
-        )
+            },
+        ),
     )
 
     @staticmethod
@@ -92,7 +82,7 @@ class SAXSCompareJob(SteppedJob[SAXSCompareJobConfig]):
         data = SAXSComparisonMatrix(
             correlation_length=np.zeros((no_files, no_files)),
             p_value=np.ones((no_files, no_files)),
-            p_value_adjusted=np.ones((no_files, no_files))
+            p_value_adjusted=np.ones((no_files, no_files)),
         )
         for i, line in enumerate(csv_output.splitlines()):
             if not line.startswith('Correlation Map test'):

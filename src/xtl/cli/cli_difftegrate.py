@@ -18,19 +18,19 @@ def get_detectors_list():
     for detname, det in ALL_DETECTORS.items():
         detector = det()
         if detector.name not in detectors_dict:
-            detectors_dict[detector.name] = {
-                'detector': detector,
-                'alias': [detname]
-            }
+            detectors_dict[detector.name] = {'detector': detector, 'alias': [detname]}
         else:
             detectors_dict[detector.name]['alias'].append(detname)
 
     for detname in detectors_dict.keys():
         detector = detectors_dict[detname]['detector']
         aliases = ', '.join(detectors_dict[detname]['alias'])
-        manufacturer = ' '.join(detector.MANUFACTURER) if isinstance(detector.MANUFACTURER, list) \
-            else detector.MANUFACTURER
-        pixel_size = '\u00d7'.join([f'{pix*1e6:.2f}' for pix in (detector.pixel2, detector.pixel1) if pix is not None])
+        manufacturer = (
+            ' '.join(detector.MANUFACTURER) if isinstance(detector.MANUFACTURER, list) else detector.MANUFACTURER
+        )
+        pixel_size = '\u00d7'.join(
+            [f'{pix * 1e6:.2f}' for pix in (detector.pixel2, detector.pixel1) if pix is not None]
+        )
         detectors_list.append([manufacturer, detname, pixel_size, aliases])
     return detectors_list
 

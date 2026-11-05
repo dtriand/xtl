@@ -16,11 +16,14 @@ logger = Logger(__name__)
 
 
 class BatchFile:
-
-    def __init__(self, filename: str | Path, compute_site: ComputeSite = None,
-                 shell: Shell | WslShell = DefaultShell,
-                 dependencies: str | Iterable[str] = None,
-                 dependency_resolution: Literal['strict', 'loose'] = 'strict'):
+    def __init__(
+        self,
+        filename: str | Path,
+        compute_site: ComputeSite = None,
+        shell: Shell | WslShell = DefaultShell,
+        dependencies: str | Iterable[str] = None,
+        dependency_resolution: Literal['strict', 'loose'] = 'strict',
+    ):
         """
         A class for programmatically creating batch files. Additional configuration can be done by passing a ComputeSite
         instance.
@@ -35,7 +38,7 @@ class BatchFile:
             skipped. If 'loose', they will be passed along to the `compute_site`
         """
         if not isinstance(shell, Shell | WslShell):
-            raise TypeError(f'\'shell\' must be an instance of Shell, not {type(shell)}')
+            raise TypeError(f"'shell' must be an instance of Shell, not {type(shell)}")
         self._shell = shell
 
         self._filename = Path(filename).with_suffix(self.shell.file_ext)
@@ -51,7 +54,7 @@ class BatchFile:
         if compute_site is None:
             compute_site = LocalSite()
         elif not isinstance(compute_site, ComputeSite):
-            raise TypeError(f"compute_site must be an instance of ComputeSite, not {type(compute_site)}")
+            raise TypeError(f'compute_site must be an instance of ComputeSite, not {type(compute_site)}')
         self._compute_site = compute_site
 
         # Set dependencies
@@ -110,6 +113,7 @@ class BatchFile:
         Returns a list of DependencySettings that are required by this batch file.
         """
         from xtl import settings
+
         deps = list()
 
         for dname, dep in settings.dependencies.items():
@@ -120,15 +124,16 @@ class BatchFile:
         for dname in self._dependencies:
             if dname not in settings.dependencies:
                 if self._strict_resolution:
-                    logger.warning('Dependency %(name)s not found in xtl.settings, '
-                                   'skipping', {'name': dname})
+                    logger.warning('Dependency %(name)s not found in xtl.settings, skipping', {'name': dname})
                 else:
                     deps.append(dname)
         return deps
 
     def get_execute_command(self, arguments: list = None, as_list: bool = False) -> str:
         if self._wsl_filename:
-            return self.shell.get_batch_command(batch_file=self._wsl_filename, batch_arguments=arguments, as_list=as_list)
+            return self.shell.get_batch_command(
+                batch_file=self._wsl_filename, batch_arguments=arguments, as_list=as_list
+            )
         return self.shell.get_batch_command(batch_file=self.file, batch_arguments=arguments, as_list=as_list)
 
     def _add_line(self, line: str) -> None:
@@ -143,9 +148,9 @@ class BatchFile:
         Add an empty line to the batch file.
         """
         if not isinstance(count, int):
-            raise TypeError(f'\'count\' must be an int, not {type(count)}')
+            raise TypeError(f"'count' must be an int, not {type(count)}")
         if count < 1:
-            raise ValueError('\'count\' must be greater than 0')
+            raise ValueError("'count' must be greater than 0")
         for _ in range(count):
             self._lines.append('')
 
@@ -165,14 +170,14 @@ class BatchFile:
             commands = [commands]
         for command in commands:
             if not isinstance(command, str):
-                raise TypeError(f'\'command\' must be a str, not {type(command)}')
+                raise TypeError(f"'command' must be a str, not {type(command)}")
             self.add_command(command)
 
     def add_comment(self, comment):
         """
         Add a comment to the batch file.
         """
-        self._add_line(f"{self.shell.comment_char} {comment}")
+        self._add_line(f'{self.shell.comment_char} {comment}')
 
     def load_modules(self, modules: str | Iterable[str]):
         """
@@ -189,8 +194,7 @@ class BatchFile:
         self.add_command(self.compute_site.purge_modules())
 
     def get_preamble(self) -> list[str]:
-        return self.compute_site.get_preamble(dependencies=self.dependencies,
-                                              shell=self.shell)
+        return self.compute_site.get_preamble(dependencies=self.dependencies, shell=self.shell)
 
     def assign_variable(self, variable: str, value: Any):
         """

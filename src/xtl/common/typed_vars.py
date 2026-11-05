@@ -17,7 +17,6 @@ VT = TypeVar('VT')
 
 @runtime_checkable
 class TypedMutable(Protocol):
-
     def _validate(self, value: Any) -> bool: ...
 
     def _serialize(self) -> Any: ...
@@ -34,7 +33,6 @@ def _type_name(tp: Any) -> str:
 
 
 class TypedIterable(ABC, TypedMutable, Generic[T]):
-
     _builtin_type: type
     _data: Iterable[T]
 
@@ -55,14 +53,14 @@ class TypedIterable(ABC, TypedMutable, Generic[T]):
                     InitErrorDetails(
                         type=PydanticCustomError(
                             'value_error',
-                            'Value error, Invalid data type for validation, ' + \
-                            'expected {itemtype} got {valuetype} instead',
-                            {'itemtype': _type_name(self._item_type), 'valuetype': _type_name(type(value))}
+                            'Value error, Invalid data type for validation, '
+                            + 'expected {itemtype} got {valuetype} instead',
+                            {'itemtype': _type_name(self._item_type), 'valuetype': _type_name(type(value))},
                         ),
                         loc=('item',),
                         input=value,
                     )
-                ]
+                ],
             )
             raise OptionsValidationError(exc, type(self).__name__) from exc
 
@@ -74,7 +72,7 @@ class TypedIterable(ABC, TypedMutable, Generic[T]):
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type, handler):
-        (item_type, ) = get_args(source_type)
+        (item_type,) = get_args(source_type)
         list_schema = handler.generate_schema(list[item_type])
 
         def validate(value: TypedIterable[T]):
@@ -106,15 +104,13 @@ class TypedIterable(ABC, TypedMutable, Generic[T]):
 
 
 class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
-
     _builtin_type: type
     _data: Mapping[KT, VT]
 
     def __init__(self, key_type: type[KT], value_type: type[VT], initial=None):
         self._data = self._builtin_type()
         if not hasattr(key_type, '__hash__'):
-            raise TypeError(f'Key type {key_type} is not hashable, cannot be used as a key in '
-                            f'{type(self).__name__}')
+            raise TypeError(f'Key type {key_type} is not hashable, cannot be used as a key in {type(self).__name__}')
         self._key_type = key_type
         self._value_type = value_type
         self._key_adapter = TypeAdapter(self._key_type)
@@ -134,14 +130,14 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
                     InitErrorDetails(
                         type=PydanticCustomError(
                             'value_error',
-                            'Value error, Invalid data type for validation, ' + \
-                            'expected {keytype} got {valuetype} instead',
-                            {'keytype': _type_name(self._key_type), 'valuetype': _type_name(type(value))}
+                            'Value error, Invalid data type for validation, '
+                            + 'expected {keytype} got {valuetype} instead',
+                            {'keytype': _type_name(self._key_type), 'valuetype': _type_name(type(value))},
                         ),
                         loc=('key',),
                         input=value,
                     )
-                ]
+                ],
             )
 
             raise OptionsValidationError(exc, type(self).__name__) from exc
@@ -158,14 +154,14 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
                     InitErrorDetails(
                         type=PydanticCustomError(
                             'value_error',
-                            'Value error, Invalid data type for validation, ' + \
-                            'expected {valuetype} got {inputtype} instead',
-                            {'valuetype': _type_name(self._value_type), 'inputtype': _type_name(type(value))}
+                            'Value error, Invalid data type for validation, '
+                            + 'expected {valuetype} got {inputtype} instead',
+                            {'valuetype': _type_name(self._value_type), 'inputtype': _type_name(type(value))},
                         ),
                         loc=('value',),
                         input=value,
                     )
-                ]
+                ],
             )
             raise OptionsValidationError(exc, type(self).__name__) from exc
 
@@ -199,15 +195,10 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
     def update(self, values: Mapping[KT, VT]) -> None: ...
 
     def __repr__(self):
-        return (
-            f'{self.__class__.__name__}'
-            f'<{_type_name(self._key_type)}, {_type_name(self._value_type)}>'
-            f'({self._data})'
-        )
+        return f'{self.__class__.__name__}<{_type_name(self._key_type)}, {_type_name(self._value_type)}>({self._data})'
 
 
 class TypedList(TypedIterable[T], MutableSequence[T]):
-
     _builtin_type = list
     _data: list[T]
 
@@ -262,7 +253,6 @@ class TypedList(TypedIterable[T], MutableSequence[T]):
 
 
 class TypedDict(TypedMapping[KT, VT], MutableMapping[KT, VT]):
-
     _builtin_type = dict
     _data: dict[KT, VT]
 

@@ -16,11 +16,10 @@ from xtl.common.os import get_permissions_in_decimal
 from xtl import settings
 
 
-epilog='</> with [red]<3[/] by [i magenta]_dtriand[/]'
+epilog = '</> with [red]<3[/] by [i magenta]_dtriand[/]'
 
 
 class CliIO:
-
     def __init__(self, debug: bool = False, verbose: int = 0, silent: bool = False):
         self.indent = '\t'
         self.debug = debug
@@ -30,7 +29,7 @@ class CliIO:
             'info': {},
             'debug': {'fg': typer.colors.BRIGHT_MAGENTA},
             'warning': {'fg': typer.colors.YELLOW},
-            'error': {'fg': typer.colors.BRIGHT_RED}
+            'error': {'fg': typer.colors.BRIGHT_RED},
         }
 
     def echo(self, message: str, level='info', verbose=0, **kwargs):
@@ -50,11 +49,15 @@ class CliIO:
 
 
 class Console(rich.console.Console):
-
-    def __init__(self, verbose: int = 0, debug: bool = False, log_file: Optional[Path] = None,
-                 rich_output: bool = settings.cli.format.rich,
-                 striped_table_rows: bool = settings.cli.format.striped_tables,
-                 **console_kwargs):
+    def __init__(
+        self,
+        verbose: int = 0,
+        debug: bool = False,
+        log_file: Optional[Path] = None,
+        rich_output: bool = settings.cli.format.rich,
+        striped_table_rows: bool = settings.cli.format.striped_tables,
+        **console_kwargs,
+    ):
         self.verbose = verbose
         self.debug = debug
 
@@ -124,8 +127,14 @@ class Console(rich.console.Console):
             return
         rich.pretty.pprint(obj, **kwargs)
 
-    def print_table(self, table: rich.table.Table | list, headers: list[str], column_kwargs: list[dict] = None,
-                    table_kwargs: dict = None, **kwargs):
+    def print_table(
+        self,
+        table: rich.table.Table | list,
+        headers: list[str],
+        column_kwargs: list[dict] = None,
+        table_kwargs: dict = None,
+        **kwargs,
+    ):
         # Default arguments
         if column_kwargs is None:
             column_kwargs = [{} for _ in headers]

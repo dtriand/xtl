@@ -24,17 +24,21 @@ class OptionsValidationError(ValueError):
                 for inner_error in cause.errors:
                     # Drop the inner model name
                     _, _, inner = inner_error['loc'].partition('.')  # inner is empty for model level errors
-                    errors.append({
-                        **inner_error,
-                        'loc': f'{outer}.{inner}' if inner else outer,  # Re-prefix with outer model name
-                    })
+                    errors.append(
+                        {
+                            **inner_error,
+                            'loc': f'{outer}.{inner}' if inner else outer,  # Re-prefix with outer model name
+                        }
+                    )
             else:
-                errors.append({
-                    'loc': self._format_location(error['loc']),
-                    'msg': error['msg'],
-                    'type': error['type'],
-                    'input': error.get('input', None),
-                })
+                errors.append(
+                    {
+                        'loc': self._format_location(error['loc']),
+                        'msg': error['msg'],
+                        'type': error['type'],
+                        'input': error.get('input', None),
+                    }
+                )
         return errors
 
     def _format_location(self, loc: tuple) -> str:

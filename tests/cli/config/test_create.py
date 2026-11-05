@@ -8,7 +8,6 @@ from xtl.config.settings import XTLSettings
 
 
 class TestCreate:
-
     def test_default_is_local(self, cli, locs):
         result = cli('create', writes=True)
         assert result.exit_code == 0, result.output
@@ -20,20 +19,22 @@ class TestCreate:
         assert 'Note:' not in result.stdout
         assert 'not in the lookup path' not in result.stdout
 
-    @pytest.mark.parametrize('args, name', [
-        (['--local'], 'local'),
-        (['--user'], 'user'),
-        (['--global'], 'global'),
-        (['--env'], 'env'),
-        (['-l', 'user'], 'user'),
-        (['--location', 'GLOBAL'], 'global'),
-        (['--location', 'env'], 'env'),
-        (['-l', 'user', '--user'], 'user'),  # same location twice
-    ])
+    @pytest.mark.parametrize(
+        'args, name',
+        [
+            (['--local'], 'local'),
+            (['--user'], 'user'),
+            (['--global'], 'global'),
+            (['--env'], 'env'),
+            (['-l', 'user'], 'user'),
+            (['--location', 'GLOBAL'], 'global'),
+            (['--location', 'env'], 'env'),
+            (['-l', 'user', '--user'], 'user'),  # same location twice
+        ],
+    )
     def test_location(self, cli, locs, args, name):
         locs.set_env()
-        path = {'env': locs.env, 'local': locs.local, 'user': locs.user,
-                'global': locs.global_}[name]
+        path = {'env': locs.env, 'local': locs.local, 'user': locs.user, 'global': locs.global_}[name]
         result = cli('create', *args, writes=True)
         assert result.exit_code == 0, result.output
         assert locs.files() == {path.relative_to(locs.root)}
@@ -45,11 +46,14 @@ class TestCreate:
         assert locs.files() == {Path('custom/my.cfg')}  # file extension kept
         assert 'not in the lookup path' in result.stdout
 
-    @pytest.mark.parametrize('args', [
-        ['--user', '--global'],
-        ['--local', '--path', 'x.toml'],
-        ['-l', 'user', '--global'],
-    ])
+    @pytest.mark.parametrize(
+        'args',
+        [
+            ['--user', '--global'],
+            ['--local', '--path', 'x.toml'],
+            ['-l', 'user', '--global'],
+        ],
+    )
     def test_conflicting_locations(self, cli, args):
         result = cli('create', *args)
         assert result.exit_code == 2

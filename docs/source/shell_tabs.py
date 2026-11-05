@@ -20,6 +20,7 @@ For other commands, use a `tab-set` with the same sync group and keys::
        .. tab-item:: cmd
           :sync: cmd
 """
+
 from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
@@ -39,6 +40,7 @@ class SetEnvDirective(SphinxDirective):
     current session. The ``:windows:`` option gives a different value for the Windows
     shells (*e.g.* a Windows path).
     """
+
     required_arguments = 2
     final_argument_whitespace = True
     option_spec = {'windows': directives.unchanged}
@@ -50,13 +52,18 @@ class SetEnvDirective(SphinxDirective):
         lines = ['.. tab-set::', '   :sync-group: shell', '']
         for label, key, lexer, prompt, template, is_windows in SHELLS:
             command = template.format(name=name, value=windows if is_windows else value)
-            lines += [f'   .. tab-item:: {label}', f'      :sync: {key}', '',
-                      f'      .. code-block:: {lexer}', '',
-                      f'         {prompt}{command}', '']
+            lines += [
+                f'   .. tab-item:: {label}',
+                f'      :sync: {key}',
+                '',
+                f'      .. code-block:: {lexer}',
+                '',
+                f'         {prompt}{command}',
+                '',
+            ]
 
         container = nodes.container()
-        self.state.nested_parse(StringList(lines, source=self.get_source_info()[0]),
-                                self.content_offset, container)
+        self.state.nested_parse(StringList(lines, source=self.get_source_info()[0]), self.content_offset, container)
         return container.children
 
 

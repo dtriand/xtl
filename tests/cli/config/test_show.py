@@ -7,7 +7,6 @@ from xtl.config.settings import XTLSettings
 
 
 class TestShow:
-
     @staticmethod
     def _show(cli, *args: str, code: int = 0):
         result = cli('show', *args)
@@ -27,16 +26,14 @@ class TestShow:
         assert toml.loads(out)['units'] == {'temperature': 'K'}
 
     def test_section(self, cli):
-        assert toml.loads(self._show(cli, 'units').stdout) == \
-               {'units': {'temperature': 'C'}}
+        assert toml.loads(self._show(cli, 'units').stdout) == {'units': {'temperature': 'C'}}
         data = toml.loads(self._show(cli, 'dependencies.atsas').stdout)
         assert list(data) == ['dependencies']
         assert list(data['dependencies']) == ['atsas']
 
     def test_key(self, cli):
         # Without the parent tables
-        assert toml.loads(self._show(cli, 'units.temperature').stdout) == \
-               {'temperature': 'C'}
+        assert toml.loads(self._show(cli, 'units.temperature').stdout) == {'temperature': 'C'}
 
     def test_unknown_key(self, cli):
         result = self._show(cli, 'units.temp', code=2)
@@ -104,8 +101,7 @@ class TestShow:
         locs.write(locs.local, INVALID)
         result = self._show(cli)
         assert 'Warning:' in result.stderr
-        assert result.stdout.startswith(
-            '# Source: in-memory defaults (local config is invalid)\n')
+        assert result.stdout.startswith('# Source: in-memory defaults (local config is invalid)\n')
         assert toml.loads(result.stdout) == defaults()
 
     def test_json(self, cli, locs):
@@ -113,11 +109,9 @@ class TestShow:
         data = json.loads(self._show(cli, '--json').stdout)
         assert data['units'] == {'temperature': 'K'}
         assert data['version'] == XTLSettings().version
-        assert json.loads(self._show(cli, '--json', 'units').stdout) == \
-               {'temperature': 'K'}
+        assert json.loads(self._show(cli, '--json', 'units').stdout) == {'temperature': 'K'}
         assert json.loads(self._show(cli, '--json', 'units.temperature').stdout) == 'K'
-        assert json.loads(self._show(cli, '--json', '--diff').stdout) == \
-               {'units': {'temperature': 'K'}}
+        assert json.loads(self._show(cli, '--json', '--diff').stdout) == {'units': {'temperature': 'K'}}
 
     def test_no_comments(self, cli):
         lines = self._show(cli, '--no-comments').stdout.splitlines()

@@ -32,10 +32,13 @@ def get_formatted_dtype(obj):
 
 
 @app.command('h5peek', help='Explore the data structure of HDF5 files')
-def cli_h5peek(fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to inspect'),
-               fpath: str = typer.Argument(metavar='PATH', default='/', help='Path directive'),
-               dslice: str = typer.Argument(metavar='SLICE', default=None, help='[EXPERIMENTAL!] Slice operator for '
-                                                                                'retrieving data')):
+def cli_h5peek(
+    fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to inspect'),
+    fpath: str = typer.Argument(metavar='PATH', default='/', help='Path directive'),
+    dslice: str = typer.Argument(
+        metavar='SLICE', default=None, help='[EXPERIMENTAL!] Slice operator for retrieving data'
+    ),
+):
     # Check file and file format
     cli = CliIO()
     if not fname.exists():
@@ -52,13 +55,14 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to i
     if '.' in fpath:
         path, attr = fpath.split('.')
         if path.split('/')[-1] == '':
-            cli.echo(f'Path cannot be None. Is there a trailing \'/\' on path? path=\'{path}\' '
-                     f'attribute=\'{attr}\'', level='error')
+            cli.echo(
+                f"Path cannot be None. Is there a trailing '/' on path? path='{path}' attribute='{attr}'", level='error'
+            )
             raise typer.Abort()
     else:
         path, attr = fpath, None
     if path not in f:
-        cli.echo(f'Object \'{path}\' does not exist.', level='error')
+        cli.echo(f"Object '{path}' does not exist.", level='error')
         f.close()
         raise typer.Abort()
 
@@ -69,7 +73,7 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to i
             a = f[path].attrs.get(attr)
 
             if a is None:  # check if attribute exists
-                cli.echo(f'No attribute \'{attr}\' under path \'{path}\'', level='error')
+                cli.echo(f"No attribute '{attr}' under path '{path}'", level='error')
                 raise typer.Abort()
 
             dtype = get_formatted_dtype(a)
@@ -132,7 +136,7 @@ def cli_h5peek(fname: Path = typer.Argument(metavar='FILE', help='HDF5 file to i
             cli.echo(tabulate(tree, tablefmt='plain'))
     except KeyError:
         parent, child = path.rsplit('/', maxsplit=1)
-        cli.echo(f'Object \'{child}\' does not exist under path \'{parent}\'', level='error')
+        cli.echo(f"Object '{child}' does not exist under path '{parent}'", level='error')
         raise typer.Abort()
     finally:
         f.close()

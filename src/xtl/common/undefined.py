@@ -29,7 +29,6 @@ class _Undefined:
         return False
 
 
-
 # Global singleton instance
 XTLUndefined = _Undefined()
 """A singleton instance for undefined values."""

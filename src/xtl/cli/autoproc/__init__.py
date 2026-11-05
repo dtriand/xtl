@@ -9,8 +9,13 @@ from .summarize import app as summarize_app
 from xtl.cli.cliio import epilog
 
 
-app = typer.Typer(name='xtl.autoproc', help='Execute multiple autoPROC jobs',
-                  add_completion=False, rich_markup_mode='rich', epilog=epilog)
+app = typer.Typer(
+    name='xtl.autoproc',
+    help='Execute multiple autoPROC jobs',
+    add_completion=False,
+    rich_markup_mode='rich',
+    epilog=epilog,
+)
 app.add_typer(options_app)
 app.add_typer(process_app)
 app.add_typer(process_wf_app)

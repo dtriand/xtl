@@ -7,7 +7,6 @@ from xtl.common import AnnotatedDataclass
 
 @dataclass
 class GPhLConfig(AnnotatedDataclass):
-
     def _get_alias_value(self, param: Field):
         """
         Format the value of a parameter using an `alias_fstring` metadata field and the values of other parameters

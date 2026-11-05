@@ -8,7 +8,6 @@ from xtl.common.annotated_dataclass import AnnotatedDataclass, afield, cfield, p
 
 
 class TestFields:
-
     def test_afield(self):
         # Default value
         field = afield(param1='value1', default=42)
@@ -39,7 +38,6 @@ class TestFields:
 
 
 class TestAnnotatedDataclass:
-
     def test_post_init(self):
         @dataclass
         class TestClass(AnnotatedDataclass):
@@ -56,8 +54,17 @@ class TestAnnotatedDataclass:
             param11: int = _ifield()
 
         # Valid initialization
-        t = TestClass(param1=42, param2='test', param3='A', param4=[1, 2, 3], param5={'a': 1, 'b': 2},
-                      param6=(1, 2, 3), param7={1, 2, 3}, param8=3.14, param9=3+4j)
+        t = TestClass(
+            param1=42,
+            param2='test',
+            param3='A',
+            param4=[1, 2, 3],
+            param5={'a': 1, 'b': 2},
+            param6=(1, 2, 3),
+            param7={1, 2, 3},
+            param8=3.14,
+            param9=3 + 4j,
+        )
         assert t.param1 == 42
         assert t.param2 == 'test'
         assert t.param3 == 'A'
@@ -66,7 +73,7 @@ class TestAnnotatedDataclass:
         assert t.param6 == (1, 2, 3)
         assert t.param7 == {1, 2, 3}
         assert t.param8 == 3.14
-        assert t.param9 == 3+4j
+        assert t.param9 == 3 + 4j
 
         # Invalid initialization
         with pytest.raises(ValueError):

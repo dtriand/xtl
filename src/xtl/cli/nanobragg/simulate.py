@@ -19,42 +19,35 @@ app = typer.Typer()
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
 async def cli_nanobragg_simulate(
-        options_file: Path = \
-                typer.Argument(
-                    ...,
-                    exists=True,
-                    help='Path to the nanoBragg options file',
-                ),
-        mtz: Path = \
-                typer.Option(
-                    None, '-r', '--reflections',
-                    exists=True,
-                    rich_help_panel='Simulation',
-                    help='Path to the reflections file (overrides the one from the config file)'
-                ),
-        use_gpu: bool = \
-                typer.Option(
-                    False, '--gpu',
-                    is_flag=True,
-                    rich_help_panel='Simulation',
-                    help='Use GPU for simulation (if available)'
-                ),
-        output_dir: Path = \
-                typer.Option(
-                    '.', '-o', '--output',
-                    exists=False,
-                    rich_help_panel='Output',
-                    help='Path to the output directory'
-                ),
-        force: bool = \
-                typer.Option(
-                    False, '-f', '--force',
-                    is_flag=True,
-                    rich_help_panel='Output',
-                    help='Force overwrite of output directory if it already exists'
-                ),
-        job_options: JobOptions = typer.Option(),
-        console_options: ConsoleOptions = typer.Option(),
+    options_file: Path = typer.Argument(
+        ...,
+        exists=True,
+        help='Path to the nanoBragg options file',
+    ),
+    mtz: Path = typer.Option(
+        None,
+        '-r',
+        '--reflections',
+        exists=True,
+        rich_help_panel='Simulation',
+        help='Path to the reflections file (overrides the one from the config file)',
+    ),
+    use_gpu: bool = typer.Option(
+        False, '--gpu', is_flag=True, rich_help_panel='Simulation', help='Use GPU for simulation (if available)'
+    ),
+    output_dir: Path = typer.Option(
+        '.', '-o', '--output', exists=False, rich_help_panel='Output', help='Path to the output directory'
+    ),
+    force: bool = typer.Option(
+        False,
+        '-f',
+        '--force',
+        is_flag=True,
+        rich_help_panel='Output',
+        help='Force overwrite of output directory if it already exists',
+    ),
+    job_options: JobOptions = typer.Option(),
+    console_options: ConsoleOptions = typer.Option(),
 ):
     """
     Run a nanoBragg simulation based on the provided [magenta]options.json[/] file.
@@ -110,8 +103,8 @@ async def cli_nanobragg_simulate(
                 'input': options.to_json(output_dir / 'nanobragg_options.json'),
                 'use_gpu': use_gpu,
                 'debug': console.debug,
-                }
-        }
+            }
+        },
     )
 
     async with console.get_pool() as pool:

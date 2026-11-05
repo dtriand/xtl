@@ -6,6 +6,7 @@ from matplotlib.colors import Normalize, LogNorm, to_rgba, LinearSegmentedColorm
 from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 import numpy as np
+
 try:  # pyFAI >= 2025.01
     from pyFAI.integrator.azimuthal import AzimuthalIntegrator as _AzimuthalIntegrator
 except ImportError:  # pyFAI < 2025.01
@@ -17,9 +18,17 @@ from xtl.files.npx import NpxFile
 
 
 class _Integrator:
-
-    UNITS_2THETA_DEGREES = ['2theta', '2th', 'tth', 'ttheta', '2\u03B8',
-                            '2theta_deg', '2th_deg', 'tth_deg', 'ttheta_deg']
+    UNITS_2THETA_DEGREES = [
+        '2theta',
+        '2th',
+        'tth',
+        'ttheta',
+        '2\u03b8',
+        '2theta_deg',
+        '2th_deg',
+        'tth_deg',
+        'ttheta_deg',
+    ]
     UNITS_2THETA_RADIANS = ['2theta_rad', '2th_rad', 'tth_rad', 'ttheta_rad']
     UNITS_Q_NM = ['q', 'q_nm', 'q_nm^-1']
     UNITS_Q_ANGSTROM = ['q_A', 'q_A^-1']
@@ -85,13 +94,17 @@ class _Integrator:
 
 
 class AzimuthalIntegrator1D(_Integrator):
-
     def __init__(self, image: Image):
         super().__init__(image)
         self._results: Integrate1dResult = None
 
-    def initialize(self, points_radial: int = None, units_radial: str = '2theta', masked_pixels_value: float = np.nan,
-                   error_model: str = None) -> None:
+    def initialize(
+        self,
+        points_radial: int = None,
+        units_radial: str = '2theta',
+        masked_pixels_value: float = np.nan,
+        error_model: str = None,
+    ) -> None:
         """
         Initialize settings for integrator. If ``points_radial`` is not specified, then the maximum number of pixels
         along the radial axis is chosen.
@@ -119,12 +132,13 @@ class AzimuthalIntegrator1D(_Integrator):
             self.units_radial = 'q_nm^-1'
             self.units_radial_repr = 'Q (nm$^{-1}$)'
         else:
-            raise ValueError(f'Unknown units: \'{units_radial}\'. Choose one from: '
-                             f'{", ".join(self.SUPPORTED_UNITS_RADIAL)}')
+            raise ValueError(
+                f"Unknown units: '{units_radial}'. Choose one from: {', '.join(self.SUPPORTED_UNITS_RADIAL)}"
+            )
 
         self.masked_pixels_value = float(masked_pixels_value)
         if error_model not in [None, 'poisson', 'azimuthal']:
-            raise ValueError(f'Unknown error model. Must be one of: None, \'poisson\', \'azimuthal\'')
+            raise ValueError(f"Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
@@ -166,14 +180,27 @@ class AzimuthalIntegrator1D(_Integrator):
         normalization_factor = kwargs.get('normalization_factor', 1.0)
         metadata = kwargs.get('metadata', None)
 
-        result = self._integrator.integrate1d_ng(data=self.image.data, npt=self.points_radial, filename=None,
-                                                 correctSolidAngle=correctSolidAngle, variance=variance,
-                                                 error_model=self.error_model, radial_range=radial_range,
-                                                 azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=dummy, delta_dummy=delta_dummy,
-                                                 polarization_factor=polarization_factor, dark=dark, flat=flat,
-                                                 method=method, unit=self.units_radial, safe=safe,
-                                                 normalization_factor=normalization_factor, metadata=metadata)
+        result = self._integrator.integrate1d_ng(
+            data=self.image.data,
+            npt=self.points_radial,
+            filename=None,
+            correctSolidAngle=correctSolidAngle,
+            variance=variance,
+            error_model=self.error_model,
+            radial_range=radial_range,
+            azimuth_range=azimuth_range,
+            mask=~self.image.mask.data,
+            dummy=dummy,
+            delta_dummy=delta_dummy,
+            polarization_factor=polarization_factor,
+            dark=dark,
+            flat=flat,
+            method=method,
+            unit=self.units_radial,
+            safe=safe,
+            normalization_factor=normalization_factor,
+            metadata=metadata,
+        )
         # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
 
         if keep:
@@ -195,13 +222,26 @@ class AzimuthalIntegrator1D(_Integrator):
         header += f'Frame: {self.image.frame}\n\n'
 
         header += 'Geometry options:\n'
-        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
-                            self.image.geometry.get_config().items()) + '\n\n'
+        header += (
+            '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in self.image.geometry.get_config().items())
+            + '\n\n'
+        )
 
         header += 'Integration options:\n'
-        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
-                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
-                    'normalization_factor', 'metadata']:
+        for key in [
+            'unit',
+            'error_model',
+            'method_called',
+            'method',
+            'compute_engine',
+            'has_mask_applied',
+            'has_flat_correction',
+            'has_dark_correction',
+            'has_solidangle_correction',
+            'polarization_factor',
+            'normalization_factor',
+            'metadata',
+        ]:
             header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
         header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
 
@@ -211,8 +251,17 @@ class AzimuthalIntegrator1D(_Integrator):
             header += f'\nColumns: {self.units_radial_repr}, intensity (a.u.)'
         return header
 
-    def save(self, filename: str | Path, overwrite: bool = False, header: bool = True, delimiter: str = None,
-             newline: str = None, comments: str = None, fmt: str = None, encoding: str = None) -> None:
+    def save(
+        self,
+        filename: str | Path,
+        overwrite: bool = False,
+        header: bool = True,
+        delimiter: str = None,
+        newline: str = None,
+        comments: str = None,
+        fmt: str = None,
+        encoding: str = None,
+    ) -> None:
         """
         Save integration results in a three-column, space-delimited .xye file (radial angle, intensity, intensity
         uncertainty). If no errors have been calculated during integration, the output file will contain only two
@@ -250,12 +299,30 @@ class AzimuthalIntegrator1D(_Integrator):
             fmt = '%-15.15s'
         if encoding is None:
             encoding = 'utf-8'
-        np.savetxt(file, data, header=header, delimiter=delimiter, newline=newline, comments=comments, fmt=fmt,
-                   encoding=encoding)
+        np.savetxt(
+            file,
+            data,
+            header=header,
+            delimiter=delimiter,
+            newline=newline,
+            comments=comments,
+            fmt=fmt,
+            encoding=encoding,
+        )
 
-    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
-             title: str = None, label: str = None, xscale: str = None, yscale: str = None, line_color: str = None,
-             errors: bool = False) -> tuple[plt.Axes, plt.Figure]:
+    def plot(
+        self,
+        ax: plt.Axes = None,
+        fig: plt.Figure = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        title: str = None,
+        label: str = None,
+        xscale: str = None,
+        yscale: str = None,
+        line_color: str = None,
+        errors: bool = False,
+    ) -> tuple[plt.Axes, plt.Figure]:
         """
         Prepare a plot of the 1D integration results. ``plt.show()`` must be called separately to display the plot.
 
@@ -290,11 +357,11 @@ class AzimuthalIntegrator1D(_Integrator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError(f"Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError(f"Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
 
         intensities, radial = self.results.intensity, self.results.radial
         ax.plot(radial, intensities, color=line_color, label=label)
@@ -311,7 +378,6 @@ class AzimuthalIntegrator1D(_Integrator):
 
 
 class AzimuthalIntegrator2D(_Integrator):
-
     def __init__(self, image: Image):
         super().__init__(image)
         self.points_azimuthal: int = None
@@ -319,8 +385,14 @@ class AzimuthalIntegrator2D(_Integrator):
         self.units_azimuthal_repr: str = '\u03c7 (\u00b0)'
         self._results: Integrate2dResult = None
 
-    def initialize(self, points_radial: int = None, points_azimuthal: int = None, units_radial: str = '2theta',
-                   masked_pixels_value: float = np.nan, error_model: str = None) -> None:
+    def initialize(
+        self,
+        points_radial: int = None,
+        points_azimuthal: int = None,
+        units_radial: str = '2theta',
+        masked_pixels_value: float = np.nan,
+        error_model: str = None,
+    ) -> None:
         """
         Initialize settings for integrator. If ``points_radial`` is not specified, then the maximum number of pixels
         along the radial axis is chosen. If ``points_azimuthal`` is not specified, then it is set to ~1 point/pixel at
@@ -358,12 +430,13 @@ class AzimuthalIntegrator2D(_Integrator):
             self.units_radial = 'q_nm^-1'
             self.units_radial_repr = 'Q (nm$^{-1}$)'
         else:
-            raise ValueError(f'Unknown units: \'{units_radial}\'. Choose one from: '
-                             f'{", ".join(self.SUPPORTED_UNITS_RADIAL)}')
+            raise ValueError(
+                f"Unknown units: '{units_radial}'. Choose one from: {', '.join(self.SUPPORTED_UNITS_RADIAL)}"
+            )
 
         self.masked_pixels_value = float(masked_pixels_value)
         if error_model not in [None, 'poisson', 'azimuthal']:
-            raise ValueError(f'Unknown error model. Must be one of: None, \'poisson\', \'azimuthal\'')
+            raise ValueError(f"Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
@@ -405,15 +478,28 @@ class AzimuthalIntegrator2D(_Integrator):
         normalization_factor = kwargs.get('normalization_factor', 1.0)
         metadata = kwargs.get('metadata', None)
 
-        result = self._integrator.integrate2d_ng(data=self.image.data, npt_rad=self.points_radial,
-                                                 npt_azim=self.points_azimuthal, filename=None,
-                                                 correctSolidAngle=correctSolidAngle, variance=variance,
-                                                 error_model=self.error_model, radial_range=radial_range,
-                                                 azimuth_range=azimuth_range, mask=~self.image.mask.data,
-                                                 dummy=dummy, delta_dummy=delta_dummy,
-                                                 polarization_factor=polarization_factor, dark=dark, flat=flat,
-                                                 method=method, unit=self.units_radial, safe=safe,
-                                                 normalization_factor=normalization_factor, metadata=metadata)
+        result = self._integrator.integrate2d_ng(
+            data=self.image.data,
+            npt_rad=self.points_radial,
+            npt_azim=self.points_azimuthal,
+            filename=None,
+            correctSolidAngle=correctSolidAngle,
+            variance=variance,
+            error_model=self.error_model,
+            radial_range=radial_range,
+            azimuth_range=azimuth_range,
+            mask=~self.image.mask.data,
+            dummy=dummy,
+            delta_dummy=delta_dummy,
+            polarization_factor=polarization_factor,
+            dark=dark,
+            flat=flat,
+            method=method,
+            unit=self.units_radial,
+            safe=safe,
+            normalization_factor=normalization_factor,
+            metadata=metadata,
+        )
         # Note that the mask needs to be inverted! (for pyFAI True means mask that pixel)
 
         if keep:
@@ -435,13 +521,26 @@ class AzimuthalIntegrator2D(_Integrator):
         header += f'Frame: {self.image.frame}\n\n'
 
         header += 'Geometry options:\n'
-        header += '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in
-                            self.image.geometry.get_config().items()) + '\n\n'
+        header += (
+            '\n'.join(f'pyFAI.Geometry.{key}: {value}' for key, value in self.image.geometry.get_config().items())
+            + '\n\n'
+        )
 
         header += 'Integration options:\n'
-        for key in ['unit', 'error_model', 'method_called', 'method', 'compute_engine', 'has_mask_applied',
-                    'has_flat_correction', 'has_dark_correction', 'has_solidangle_correction', 'polarization_factor',
-                    'normalization_factor', 'metadata']:
+        for key in [
+            'unit',
+            'error_model',
+            'method_called',
+            'method',
+            'compute_engine',
+            'has_mask_applied',
+            'has_flat_correction',
+            'has_dark_correction',
+            'has_solidangle_correction',
+            'polarization_factor',
+            'normalization_factor',
+            'metadata',
+        ]:
             header += f'{self._header_prefix}.{key}: {getattr(self.results, key)}\n'
         header += f'{self._header_prefix}.npt_rad: {self.points_radial}\n'
         header += f'{self._header_prefix}.npt_azim: {self.points_azimuthal}\n'
@@ -475,7 +574,7 @@ class AzimuthalIntegrator2D(_Integrator):
         data = {
             'radial': self.results.radial,
             'azimuthal': self.results.azimuthal,
-            'intensities': self.results.intensity
+            'intensities': self.results.intensity,
         }
         sigma = self.results.sigma
         if sigma is not None:
@@ -485,10 +584,22 @@ class AzimuthalIntegrator2D(_Integrator):
         npx = NpxFile(header=header, **data)
         npx.save(file, compressed=True)
 
-    def plot(self, ax: plt.Axes = None, fig: plt.Figure = None, xlabel: str = None, ylabel: str = None,
-             title: str = None, xscale: str = None, yscale: str = None, zscale: str = None, zmin: float = None,
-             zmax: float = None, cmap: str = None, bad_value_color: str = None, overlay_mask: bool = False) \
-            -> tuple[plt.Axes, plt.Figure, AxesImage]:
+    def plot(
+        self,
+        ax: plt.Axes = None,
+        fig: plt.Figure = None,
+        xlabel: str = None,
+        ylabel: str = None,
+        title: str = None,
+        xscale: str = None,
+        yscale: str = None,
+        zscale: str = None,
+        zmin: float = None,
+        zmax: float = None,
+        cmap: str = None,
+        bad_value_color: str = None,
+        overlay_mask: bool = False,
+    ) -> tuple[plt.Axes, plt.Figure, AxesImage]:
         """
         Prepare a plot of the 2D integration results. ``plt.show()`` must be called separately to display the plot.
 
@@ -526,17 +637,17 @@ class AzimuthalIntegrator2D(_Integrator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'xscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError(f"Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f'Invalid value for \'yscale\'. Must be one of: ' + ', '.join(axis_scales))
+            raise ValueError(f"Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
         if zscale in [None, 'linear']:
             norm = partial(Normalize, clip=False)
         elif zscale in ['log', 'log10']:
             norm = partial(LogNorm, clip=False)
         else:
-            raise ValueError(f'Invalid value for \'zscale\'. Must be one of: linear, log')
+            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log")
 
         if cmap is None:
             cmap = plt.get_cmap(self.image.cmap)
@@ -548,17 +659,31 @@ class AzimuthalIntegrator2D(_Integrator):
             cmap.set_bad(color=bad_value_color, alpha=1.0)
 
         intensities, radial, azimuthal = self.results.intensity, self.results.radial, self.results.azimuthal
-        img = ax.imshow(intensities, origin='lower', aspect='auto', interpolation='nearest', cmap=cmap,
-                        norm=norm(vmin=zmin, vmax=zmax),
-                        extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+        img = ax.imshow(
+            intensities,
+            origin='lower',
+            aspect='auto',
+            interpolation='nearest',
+            cmap=cmap,
+            norm=norm(vmin=zmin, vmax=zmax),
+            extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()),
+        )
 
         if overlay_mask:
             mask = ~np.isnan(intensities)
-            mask_cmap = LinearSegmentedColormap.from_list(name='mask', N=2,
-                                                          colors=[to_rgba(self.image.mask_color), (1, 1, 1, 0)])
+            mask_cmap = LinearSegmentedColormap.from_list(
+                name='mask', N=2, colors=[to_rgba(self.image.mask_color), (1, 1, 1, 0)]
+            )
             mask_alpha = self.image.mask_alpha
-            ax.imshow(mask, origin='lower', aspect='auto', interpolation='nearest', cmap=mask_cmap, alpha=mask_alpha,
-                      extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()))
+            ax.imshow(
+                mask,
+                origin='lower',
+                aspect='auto',
+                interpolation='nearest',
+                cmap=mask_cmap,
+                alpha=mask_alpha,
+                extent=(radial.min(), radial.max(), azimuthal.min(), azimuthal.max()),
+            )
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)

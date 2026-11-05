@@ -37,14 +37,13 @@ def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
     # Note: Passing parameters in ctx.obj might not be necessary after all, since each cli and its subcommands accept
     #  the same options (i.e. debug, verbose).
     ctx.ensure_object(dict)  # creates ctx.obj if function is called without obj={}
-    ctx.obj = {
-        'debug': debug,
-        'verbose': verbose
-    }
+    ctx.obj = {'debug': debug, 'verbose': verbose}
 
 
-@cli_main.command(short_help='Access to RCSB PDB Search API.',
-                  context_settings=dict(ignore_unknown_options=True, allow_interspersed_args=False))
+@cli_main.command(
+    short_help='Access to RCSB PDB Search API.',
+    context_settings=dict(ignore_unknown_options=True, allow_interspersed_args=False),
+)
 @click.pass_context
 @click.argument('argopts', nargs=-1, type=click.UNPROCESSED)  # consumes all arguments and options
 def pdbapi(ctx: click.core.Context, argopts):
@@ -66,6 +65,7 @@ def pdbapi(ctx: click.core.Context, argopts):
 
     # Call the relevant command with all arguments and options
     from subprocess import call
+
     cmd = ['pdbapi'] + list(argopts)
     call(cmd)
 

@@ -5,7 +5,6 @@ from typing import Any, Optional
 
 @dataclass
 class AnnotatedDataclass:
-
     def _derive_type(self, field_: Field):
         t = field_.type
         if hasattr(t, '__origin__'):
@@ -60,29 +59,33 @@ class AnnotatedDataclass:
         if isinstance(value, str | list | tuple):
             if 'len' in validator:
                 if len(value) != validator['len']:
-                    raise ValueError(f'Invalid value for {param.name}\nExpected length {validator["len"]}, '
-                                     f'got {len(value)}')
+                    raise ValueError(
+                        f'Invalid value for {param.name}\nExpected length {validator["len"]}, got {len(value)}'
+                    )
         if isinstance(value, list | tuple):
             if 'choices' in validator:
                 for i, v in enumerate(value):
                     if v not in validator['choices']:
-                        raise ValueError(f'Invalid value for {param.name}[{i}]\nExpected one of {validator["choices"]}, '
-                                         f'got {v}')
+                        raise ValueError(
+                            f'Invalid value for {param.name}[{i}]\nExpected one of {validator["choices"]}, got {v}'
+                        )
         if isinstance(value, float | int):
             if 'gt' in validator:
                 if value <= validator['gt']:
                     raise ValueError(f'Invalid value for {param.name}\nExpected value > {validator["gt"]}, got {value}')
             if 'ge' in validator:
                 if value < validator['ge']:
-                    raise ValueError(f'Invalid value for {param.name}\nExpected value >= {validator["ge"]}, '
-                                     f'got {value}')
+                    raise ValueError(
+                        f'Invalid value for {param.name}\nExpected value >= {validator["ge"]}, got {value}'
+                    )
             if 'lt' in validator:
                 if value >= validator['lt']:
                     raise ValueError(f'Invalid value for {param.name}\nExpected value < {validator["lt"]}, got {value}')
             if 'le' in validator:
                 if value > validator['le']:
-                    raise ValueError(f'Invalid value for {param.name}\nExpected value <= {validator["le"]}, '
-                                     f'got {value}')
+                    raise ValueError(
+                        f'Invalid value for {param.name}\nExpected value <= {validator["le"]}, got {value}'
+                    )
 
     def _typecheck_all(self):
         for param in self.__dataclass_fields__.values():
@@ -97,8 +100,10 @@ class AnnotatedDataclass:
             try:
                 setattr(self, param.name, self._cast_param(param))
             except ValueError:
-                raise ValueError(f'Invalid value for {param.name}: {getattr(self, param.name)}\n'
-                                 f'Expected type {param.type}, got {type(getattr(self, param.name))}')
+                raise ValueError(
+                    f'Invalid value for {param.name}: {getattr(self, param.name)}\n'
+                    f'Expected type {param.type}, got {type(getattr(self, param.name))}'
+                )
 
     def _validate_all(self):
         for param in self.__dataclass_fields__.values():

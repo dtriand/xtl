@@ -14,19 +14,15 @@ class ConsoleOptions:
 
 
 console_options_panel = 'Debugging'
+
+
 def get_console_options(
-    verbose: int = \
-        typer.Option(
-            0, '--verbose', '-v',
-            count=True,
-            rich_help_panel=console_options_panel,
-            help='Print additional information'),
-    debug: bool = \
-        typer.Option(
-            False, '--debug',
-            show_default=True,
-            rich_help_panel=console_options_panel,
-            help='Print debug information'),
+    verbose: int = typer.Option(
+        0, '--verbose', '-v', count=True, rich_help_panel=console_options_panel, help='Print additional information'
+    ),
+    debug: bool = typer.Option(
+        False, '--debug', show_default=True, rich_help_panel=console_options_panel, help='Print debug information'
+    ),
 ):
     return ConsoleOptions(verbose=verbose, debug=debug)
 
@@ -77,9 +73,7 @@ class JobOptions:
 
     @staticmethod
     def parse_module_names(value: str) -> dict[str, list[str]]:
-        modules = {
-            'extra': []
-        }
+        modules = {'extra': []}
 
         if not value:
             return modules
@@ -102,51 +96,49 @@ class JobOptions:
     def has_modules(self) -> bool:
         return any(self.modules.values())
 
+
 job_options_panel = 'Job execution'
+
+
 def get_job_options(
-    compute_site: ComputeSite = \
-        typer.Option(
-            settings.jobs.compute_site, '--compute-site',
-            rich_help_panel=job_options_panel,
-            help='Compute site for configuring job execution'),
-    modules: str = \
-        typer.Option(
-            REQUIRED_MODULES,
-            '--modules',
-            parser=JobOptions._ignore_default_modules,
-            metavar='',  # This hides the parser signature
-            rich_help_panel=job_options_panel,
-            help='Module to load before job execution (only for `modules` site)'),
-    update_permissions: bool = \
-        typer.Option(
-            settings.jobs.permissions.update,
-            '--chmod/--dont-chmod',
-            rich_help_panel=job_options_panel,
-            help='Update permissions of output files',
-        ),
-    permissions: str = \
-        typer.Option(
-            f'{settings.jobs.permissions.files}, {settings.jobs.permissions.directories}',
-            '--permissions',
-            rich_help_panel=job_options_panel,
-            metavar='FILES,DIRS',
-            help='Permissions for output files and directories'
-        ),
-    keep_temp: bool = \
-        typer.Option(
-            settings.jobs.keep_temp, '--keep-temp/--delete-temp',
-            rich_help_panel=job_options_panel,
-            help='Keep temporary files after job execution'
-        )
+    compute_site: ComputeSite = typer.Option(
+        settings.jobs.compute_site,
+        '--compute-site',
+        rich_help_panel=job_options_panel,
+        help='Compute site for configuring job execution',
+    ),
+    modules: str = typer.Option(
+        REQUIRED_MODULES,
+        '--modules',
+        parser=JobOptions._ignore_default_modules,
+        metavar='',  # This hides the parser signature
+        rich_help_panel=job_options_panel,
+        help='Module to load before job execution (only for `modules` site)',
+    ),
+    update_permissions: bool = typer.Option(
+        settings.jobs.permissions.update,
+        '--chmod/--dont-chmod',
+        rich_help_panel=job_options_panel,
+        help='Update permissions of output files',
+    ),
+    permissions: str = typer.Option(
+        f'{settings.jobs.permissions.files}, {settings.jobs.permissions.directories}',
+        '--permissions',
+        rich_help_panel=job_options_panel,
+        metavar='FILES,DIRS',
+        help='Permissions for output files and directories',
+    ),
+    keep_temp: bool = typer.Option(
+        settings.jobs.keep_temp,
+        '--keep-temp/--delete-temp',
+        rich_help_panel=job_options_panel,
+        help='Keep temporary files after job execution',
+    ),
 ):
     f_permissions, d_permissions = PermissionsOptions.parse_permissions_pair(permissions)
     return JobOptions(
         compute_site=compute_site,
-        permissions=PermissionsOptions(
-            update=update_permissions,
-            files=f_permissions,
-            directories=d_permissions
-        ),
+        permissions=PermissionsOptions(update=update_permissions, files=f_permissions, directories=d_permissions),
         modules=JobOptions.parse_module_names(modules),
-        keep_temp=keep_temp
+        keep_temp=keep_temp,
     )

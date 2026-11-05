@@ -42,7 +42,7 @@ def si_units(value, suffix='', base=1000, digits=None):
     :return:
     """
     if value == 0:
-        return f"{value} {suffix}"
+        return f'{value} {suffix}'
     magnitude = int(math.floor(math.log(value, base)))
     scaled = value / math.pow(base, magnitude)
     if digits is not None:
@@ -55,4 +55,4 @@ def si_units(value, suffix='', base=1000, digits=None):
         if magnitude < -8:  # less than yocto prefix
             raise NotImplemented
         prefix = ['', 'm', '\u03bc', 'n', 'p', 'f', 'a', 'z', 'y'][abs(magnitude)]
-    return f"{scaled} {prefix}{suffix}"
+    return f'{scaled} {prefix}{suffix}'

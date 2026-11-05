@@ -9,7 +9,6 @@ from xtl.exceptions import InvalidArgument
 
 
 class Baseline:
-
     BASELINE_TYPES = ['zero', 'flat']
 
     def __int__(self):
@@ -24,13 +23,12 @@ class Baseline:
 
 
 class AbsorptionSpectrum(Spectrum):
-
     def __init__(self, **kwargs):
-        '''
+        """
         Representation of a UV-vis absorption spectrum.
 
         :param kwargs:
-        '''
+        """
         super().__init__(**kwargs)
         self.data.baseline = Baseline()
 
@@ -39,12 +37,12 @@ class AbsorptionSpectrum(Spectrum):
         self.data.y_label = 'Absorbance'
 
     def find_baseline(self, search_region: list or tuple):
-        '''
+        """
         Determine a baseline by averaging the absorbance values in ``search_region``.
 
         :param search_region: wavelength range for deremination of baseline
         :return:
-        '''
+        """
         if not isinstance(search_region, list) and not isinstance(search_region, tuple):
             raise InvalidArgument(raiser='search_region', message='Must be an iterable')
         if len(search_region) != 2:
@@ -67,11 +65,11 @@ class AbsorptionSpectrum(Spectrum):
         self.data.baseline.y = np.ones_like(self.data.x) * baseline
 
     def subtract_baseline(self):
-        '''
+        """
         Subtract a pre-calculated baseline.
 
         :return:
-        '''
+        """
         if self.data.baseline:
             self.data.y - self.data.baseline.y
             self.data.baseline.y = np.zeros_like(self.data.baseline.x)
@@ -80,26 +78,26 @@ class AbsorptionSpectrum(Spectrum):
             raise Exception('Baseline not initialized. Run find_baseline() first.')
 
     def normalize(self, eliminate_negatives=False):
-        '''
+        """
         Normalize absorbance values.
 
         :param eliminate_negatives: remove negative values first
         :return:
-        '''
+        """
         if eliminate_negatives:
             self.data.y += np.abs(self.data.y.min())
         self.data.y /= self.data.y.max()
         self.data.y_label = 'Normalized absorbance'
 
     def smooth_data(self, func: callable = moving_average, inplace=False, **func_kwargs):
-        '''
+        """
         Apply smoothing function to data.
 
         :param func: function to apply. Must have signature func(x: np.ndarray, **kwargs)
         :param inplace: replace original data with smoothed data
         :param func_kwargs: additional arguments to pass to smoothing function
         :return: new AbsorptionSpectrum instance with smoothed data if inplace=True
-        '''
+        """
         if not callable(func):
             raise InvalidArgument(raiser='func', message='Must be a function or callable')
 
@@ -113,13 +111,13 @@ class AbsorptionSpectrum(Spectrum):
             return obj
 
     def plot(self, baseline=False, **kwargs):
-        '''
+        """
         Plot spectrum
 
         :param baseline: plot baseline
         :param kwargs: additional arguments for matplotlib.pyplot.plot()
         :return:
-        '''
+        """
         plt.figure()
         plt.plot(self.data.x, self.data.y, label=self.dataset, **kwargs)
 
