@@ -34,10 +34,44 @@ jobs:
       - name: Lint with tox
         run: uvx --with tox-uv tox -e lint
 
+  # xtl-core on its own: without xtl and the scientific stack
+  core:
+    name: core / ubuntu-latest / py${{ matrix.python-version }}
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.14']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Install xtl-core alone
+        run: uv sync --package xtl-core --group test --group lint --locked --python "$PYTHON_VERSION"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+
+      - name: Check that xtl and the scientific stack are not installed
+        run: >-
+          uv run --no-sync python -c "import sys, importlib.util as u;
+          found = [m for m in ('xtl', 'numpy', 'pandas', 'gemmi') if u.find_spec(m)];
+          sys.exit(f'Installed, but must not be: {found}' if found else 0)"
+
+      - name: Test
+        run: uv run --no-sync pytest packages/xtl-core/tests
+
+      - name: Check that xtl-core never imports xtl
+        run: uv run --no-sync lint-imports --config packages/xtl-core/pyproject.toml
+
   # Locked dependencies (uv.lock) through tox-uv, as when testing locally
   uv:
     name: uv / ${{ matrix.os }} / py${{ matrix.python-version }}
     if: github.event_name != 'schedule'
+    needs: core  # the full suite only runs once xtl-core passes on its own
     strategy:
       fail-fast: false
       matrix:
@@ -65,6 +99,7 @@ jobs:
   lowest:
     name: lowest / ${{ matrix.os }}
     if: github.event_name != 'schedule'
+    needs: core  # the full suite only runs once xtl-core passes on its own
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +119,7 @@ jobs:
   pip:
     name: pip / ${{ matrix.os }} / py${{ matrix.python-version }}
     if: github.event_name != 'schedule'
+    needs: core  # the full suite only runs once xtl-core passes on its own
     strategy:
       fail-fast: false
       matrix:

@@ -34,6 +34,9 @@ test = [
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
 ]
+lint = [
+    "import-linter>=2.1",
+]
 
 [tool.hatch.version]
 path = "src/xtl_core/_version.py"
@@ -47,3 +50,13 @@ include = ["/src", "/tests", "/README.md", "/LICENSE"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "session"  # same as the root config
+
+[tool.importlinter]
+root_package = "xtl_core"
+include_external_packages = true  # so that `xtl` can be forbidden without being installed
+
+[[tool.importlinter.contracts]]
+name = "xtl-core never imports xtl"
+type = "forbidden"
+source_modules = ["xtl_core"]
+forbidden_modules = ["xtl"]
