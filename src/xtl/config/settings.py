@@ -12,9 +12,6 @@ from typing import ClassVar, Iterable, Optional, Literal
 from pydantic import PrivateAttr
 
 from xtl import Logger
-
-logger = Logger(__name__)
-
 from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
@@ -25,6 +22,8 @@ from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl.exceptions.pydantic import OptionsValidationError
+
+logger = Logger(__name__)
 
 
 def _get_extra_keys(options: Options) -> dict:

@@ -21,7 +21,6 @@ from typing import Any, Generic, Mapping, TypeVar, Union
 try:
     import cctbx
     import dxtbx
-    import iotbx
     from iotbx.reflection_file_reader import any_reflection_file
     import simtbx
     from scitbx.array_family import flex

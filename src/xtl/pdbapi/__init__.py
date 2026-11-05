@@ -1,4 +1,52 @@
+__all__ = [
+    'Client',
+    'ComparisonOperator',
+    'ComparisonType',
+    'ContainsPhraseOperator',
+    'ContainsWordsOperator',
+    'ExactMatchOperator',
+    'ExistsOperator',
+    'FacetsOptions',
+    'InOperator',
+    'LogicalOperator',
+    'NodeType',
+    'PagerOptions',
+    'RangeOperator',
+    'RequestOptions',
+    'ResultsContentType',
+    'ReturnType',
+    'ScoringStrategy',
+    'SearchQueryField',
+    'SearchQueryGroup',
+    'SearchService',
+    'SortingDirectionOption',
+    'SortOptions',
+    'UnstructuredTextOperator',
+]
+
 from xtl.pdbapi.client import Client
 from xtl.pdbapi.search.nodes import SearchQueryField, SearchQueryGroup
-from xtl.pdbapi.search.operators import *
-from xtl.pdbapi.search.options import *
+from xtl.pdbapi.search.operators import (
+    UnstructuredTextOperator,
+    ExactMatchOperator,
+    InOperator,
+    ExistsOperator,
+    ContainsWordsOperator,
+    ContainsPhraseOperator,
+    ComparisonOperator,
+    RangeOperator,
+)
+from xtl.pdbapi.search.options import (
+    ReturnType,
+    NodeType,
+    SearchService,
+    LogicalOperator,
+    ComparisonType,
+    SortingDirectionOption,
+    ScoringStrategy,
+    ResultsContentType,
+    SortOptions,
+    PagerOptions,
+    FacetsOptions,
+    RequestOptions,
+)

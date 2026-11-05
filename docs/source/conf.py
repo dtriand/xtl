@@ -22,7 +22,7 @@ atexit.register(shutil.rmtree, _config_dir, ignore_errors=True)
 (Path(_config_dir) / 'xtl.toml').touch()
 os.environ['XTL_CONFIG'] = str(Path(_config_dir) / 'xtl.toml')
 
-import xtl
+import xtl  # noqa: E402 (after setting XTL_CONFIG)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

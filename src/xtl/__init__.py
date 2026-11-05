@@ -1,11 +1,16 @@
 __all__ = ['Logger', '__date__', '__version__', '__version_hex__', '__version_tuple__', 'settings', 'version']
 
+import threading
+from typing import TYPE_CHECKING, Any
+
 from .logging import Logger
-
-logger = Logger(__name__)
-
 from .config.version import version
 
+if TYPE_CHECKING:
+    from .config.settings import XTLSettings
+    from .config.version import VersionInfo
+
+logger = Logger(__name__)
 logger.info(f'XTL version: {version} [{version.release_date}]')
 
 version: 'VersionInfo'
@@ -17,14 +22,6 @@ __version__ = version.string
 __version_tuple__ = version.tuple_safe
 __version_hex__ = version.hex
 __date__ = version.date
-
-
-import threading
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from .config.settings import XTLSettings
-    from .config.version import VersionInfo
 
 # NB: `settings` is only annotated, never assigned here, so that the module-level
 #   `__getattr__` below is called on first access (PEP 562). Assigning it would
