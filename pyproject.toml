@@ -87,9 +87,14 @@ docs = [
     "sphinx-design>=0.6.1",
     "sphinx-favicon>=1.0.1"
 ]
+lint = [
+    "pre-commit>=4.0",
+    "ruff>=0.17.3",
+]
 dev = [
     {include-group = "test"},
-    {include-group = "docs"}
+    {include-group = "docs"},
+    {include-group = "lint"},
 ]
 
 [tool.hatch.version]
@@ -102,6 +107,12 @@ packages = ["src/xtl"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "single"
 
 [tool.tox]
 requires = ["tox>=4.22", "tox-uv>=1.11"]

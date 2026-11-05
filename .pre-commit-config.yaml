@@ -16,6 +16,11 @@ repos:
       - id: check-added-large-files
       - id: debug-statements
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3  # keep in step with ruff in uv.lock
+    hooks:
+      - id: ruff-format
+
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.27
     hooks:
