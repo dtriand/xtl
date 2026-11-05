@@ -156,4 +156,3 @@ async def test_nested_pool_context_restores_current_lease_scope():
         assert CURRENT_LEASE.get() is outer_lease
 
     assert CURRENT_LEASE.get() is None
-

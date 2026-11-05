@@ -38,7 +38,7 @@ pip install .
 ```
 
 ## Documentation
-An, admittedly incomplete, API and CLI documentation is available at 
+An, admittedly incomplete, API and CLI documentation is available at
 [dtriand.github.io/xtl](https://dtriand.github.io/xtl/index.html).
 
 ## Contribute

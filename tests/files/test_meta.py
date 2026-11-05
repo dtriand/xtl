@@ -333,7 +333,3 @@ class TestConcreteReaders:
         # Invalid json file
         invalid_json = test_dir / "invalid.json"
         assert JsonFileReader.sniff(invalid_json) is False
-
-
-
-

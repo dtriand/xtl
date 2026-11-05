@@ -227,7 +227,7 @@ class ScatteringProfile(_ScatteringBase):
             e = np.full_like(self.intensity, np.nan)
 
         return np.array([x, y, e])
-    
+
     def get_porod_array(self, units: RadialUnits | str = RadialUnits.Q_NM) -> np.ndarray:
         q = self.get_radial_array(units=units)
         x = q**4

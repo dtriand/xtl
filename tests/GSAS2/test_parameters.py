@@ -151,4 +151,3 @@ class TestInstrumentalParameters:
 
             with pytest.raises(InvalidArgument, match='number between 0.5 and 1.0'):
                 ips.polarization = 0.3
-

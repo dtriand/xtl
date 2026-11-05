@@ -411,9 +411,9 @@ class XTLSettings(Settings):
     _toml: ClassVar[str] = 'xtl.toml'
     global_config: ClassVar[Path] = (Path(__file__).parent.parent / _toml).absolute()
     """
-    Path to the global configuration file, typically located in the XTL installation 
+    Path to the global configuration file, typically located in the XTL installation
     directory.
-    
+
     :meta hide-value:
     """
 

@@ -1177,4 +1177,3 @@ class AutoPROCJobResults:
         json_file = dest_dir / self._json_fname
         json_file.write_text(self.to_json())
         return json_file
-

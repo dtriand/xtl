@@ -51,4 +51,3 @@ OS_MACOS: bool = sys.platform == 'darwin'
 
 OS_POSIX: bool = OS_LINUX or OS_MACOS
 """Operating system is POSIX compliant (Linux or macOS)"""
-

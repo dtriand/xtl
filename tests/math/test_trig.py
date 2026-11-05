@@ -93,4 +93,3 @@ class TestTanAll:
         @pytest.mark.parametrize('angle, value', [(0, 0), (1, pi / 4)])
         def test_atan_r(self, angle, value):
             assert atan_r(angle) == approx(value)
-

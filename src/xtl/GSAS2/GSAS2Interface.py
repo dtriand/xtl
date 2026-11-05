@@ -73,4 +73,3 @@ settings = Settings()
 
 def _path_wrap(path: Union[str, Path]) -> Path:
     return settings.working_directory / path
-

@@ -111,4 +111,3 @@ class CompoundLibrary:
         lib = cls()
         lib.import_from_file(filename)
         return lib
-

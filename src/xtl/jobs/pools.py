@@ -94,7 +94,7 @@ class BasePool(PoolProtocol, abc.ABC):
     """Default logging config for the pool's logger."""
 
     _executor_cls: Executor | None = None
-    """The executor class to use for this pool. If None, the pool does not use an executor and runs jobs in the 
+    """The executor class to use for this pool. If None, the pool does not use an executor and runs jobs in the
     main thread."""
 
     _ipc_cls: type[IPCBackend]

@@ -56,4 +56,3 @@ def si_units(value, suffix='', base=1000, digits=None):
             raise NotImplemented
         prefix = ['', 'm', '\u03bc', 'n', 'p', 'f', 'a', 'z', 'y'][abs(magnitude)]
     return f"{scaled} {prefix}{suffix}"
-

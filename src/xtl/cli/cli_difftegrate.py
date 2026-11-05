@@ -72,5 +72,3 @@ def cli_difftegrate_2d():
     cli = CliIO()
     cli.echo('NotImplementedError', level='error')
     raise typer.Abort()
-
-

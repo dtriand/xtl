@@ -27,4 +27,3 @@ def resolve_paths_or_glob(raw: list) -> list[Path]:
                 )
             resolved.extend(map(Path, matches))
     return resolved
-

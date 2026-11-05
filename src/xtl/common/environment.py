@@ -60,7 +60,7 @@ Path to the config file, which takes precedence over all other config file locat
 
 XTL_COMPUTE_SITE: EnvVar[str] = EnvVar('XTL_COMPUTE_SITE')
 """
-Enables compute sites (see :class:`xtl.jobs.sites.ComputeSite`) for specific facilities. 
+Enables compute sites (see :class:`xtl.jobs.sites.ComputeSite`) for specific facilities.
 Read when :mod:`xtl.jobs.sites` is imported. Currently supported values are:
 
 - ``BIOTIX_HPC`` enables ``biotix``

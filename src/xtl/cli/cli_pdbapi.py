@@ -193,5 +193,3 @@ def cli_pdbapi(ctx: click.core.Context, debug: bool, verbose: int):
 
 if __name__ == '__main__':
     cli_pdbapi(obj={})
-
-

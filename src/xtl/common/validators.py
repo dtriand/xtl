@@ -214,4 +214,3 @@ def CastAsPathOrNone() -> BeforeValidator:
     value is empty.
     """
     return BeforeValidator(cast_as_path_or_none)
-

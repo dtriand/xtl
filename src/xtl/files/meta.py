@@ -195,4 +195,3 @@ class FileReaderMeta(abc.ABCMeta, Generic[FileContainerType, FileTypeEnum, DataT
             return reader.read()
         raise ValueError(f'No registered reader can read the file {path} of type '
                          f'{file_types}')
-

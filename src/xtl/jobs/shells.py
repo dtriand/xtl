@@ -90,16 +90,16 @@ class Shell(StrEnum):
     """
 
     DEFAULT = 'default'
-    """The default shell for the current operating system 
+    """The default shell for the current operating system
     (see: :class:`DefaultShell <xtl.jobs.shells.DefaultShell>`)"""
     BASH = 'bash'
-    """The Bash shell 
+    """The Bash shell
     (see: :class:`BashShell <xtl.jobs.shells.BashShell>`)"""
     CMD = 'cmd'
-    """The Windows Command Prompt shell 
+    """The Windows Command Prompt shell
     (see: :class:`CmdShell <xtl.jobs.shells.CmdShell>`)"""
     POWERSHELL = 'powershell'
-    """The Windows PowerShell shell 
+    """The Windows PowerShell shell
     (see: :class:`PowerShell <xtl.jobs.shells.PowerShell>`)"""
 
     def get(self) -> ShellType:
@@ -143,7 +143,7 @@ class BaseShell:
 
     # Shell syntax properties
     shebang: str = field(init=False, repr=False)
-    """The shebang line for the shell 
+    """The shebang line for the shell
     (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_)"""
     comment_char: str = field(init=False, repr=False)
     """The character used to denote comments in the shell"""
@@ -154,7 +154,7 @@ class BaseShell:
 
     # Commands
     batch_command: str = field(init=False, repr=False)
-    """The command used to execute the batch file. This is an f-string that should 
+    """The command used to execute the batch file. This is an f-string that should
     contain the keys ``executable``, ``batch_file`` and ``batch_arguments``."""
     _batch_command_fstring_keys: frozenset[str] = \
         field(init=False, repr=False, default_factory=lambda: frozenset(
@@ -163,7 +163,7 @@ class BaseShell:
 
     dependency_command: str = field(init=False, repr=False)
     """The command used to resolve dependencies in the shell. This is an f-string that
-    should contain the key ``dependency``. This command should 
+    should contain the key ``dependency``. This command should
     return an exit code of 0 if the executable is found, and non-zero otherwise."""
     _dependency_command_fstring_keys: frozenset[str] = \
         field(init=False, repr=False, default_factory=lambda: frozenset(
@@ -417,8 +417,8 @@ class PowerShell(BaseShell):
 # Set the default shell based on the OS
 DefaultShell = CmdShell if OS_WINDOWS else BashShell
 """
-The default shell for the current operating system. 
-:class:`CmdShell <xtl.jobs.shells.CmdShell>` for Windows, 
+The default shell for the current operating system.
+:class:`CmdShell <xtl.jobs.shells.CmdShell>` for Windows,
 :class:`BashShell <xtl.jobs.shells.BashShell>` for POSIX systems.
 """
 

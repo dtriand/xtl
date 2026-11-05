@@ -179,4 +179,3 @@ class DataQueryGroup:
                     self.nodes.append(node)
                     self._attributes.append(attr.fullname)
         return self
-

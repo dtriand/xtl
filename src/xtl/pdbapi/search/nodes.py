@@ -78,5 +78,3 @@ class SearchQueryGroup(SearchQueryNode):
 
     def __or__(self, other):
         return SearchQueryGroup(nodes=[self, other], logical_operator=LogicalOperator.OR)
-
-

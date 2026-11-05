@@ -9,4 +9,3 @@ XTL: A crystallographic tools library
    common/index.rst
    cli/index.rst
    api/modules.rst
-

@@ -108,4 +108,3 @@ def cli_math_spacing(
                                           'box': None})
     if catcher.raised:
         raise typer.Abort()
-
