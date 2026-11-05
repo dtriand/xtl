@@ -8,7 +8,7 @@ from .config.version import version
 
 logger.info(f'XTL version: {version} [{version.release_date}]')
 
-version: 'xtl.config.version.VersionInfo'
+version: 'VersionInfo'
 """
 Version information for XTL.
 """
@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .config.settings import XTLSettings
+    from .config.version import VersionInfo
 
 # NB: `settings` is only annotated, never assigned here, so that the module-level
 #   `__getattr__` below is called on first access (PEP 562). Assigning it would

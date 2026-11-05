@@ -7,7 +7,7 @@ from pathlib import Path
 import os
 import re
 import shutil
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 import warnings
 
 from defusedxml import ElementTree as DET
@@ -19,6 +19,9 @@ from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.diffraction.automate.xds_utils import CorrectLp
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.exceptions.warnings import FileNotFoundWarning, HTMLUpdateWarning
+
+if TYPE_CHECKING:
+    from xml.etree.ElementTree import Element
 
 
 @dataclass
@@ -605,7 +608,7 @@ class ReflectionsXml(AutoProcXmlParser):
                     self._process_autoproc_scaling_stats(stats)
         self._is_processed = True
 
-    def _process_autoproc_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_element(self, element: 'Element'):
         space_group = element.find('spaceGroup')
         if space_group is not None:
             self._space_group = space_group.text.replace(' ', '')
@@ -631,12 +634,12 @@ class ReflectionsXml(AutoProcXmlParser):
         if cell_gamma is not None:
             self._cell_gamma = float(cell_gamma.text)
 
-    def _process_autoproc_scaling_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_element(self, element: 'Element'):
         record_timestamp = element.find('recordTimeStamp')
         if record_timestamp is not None:
             self._processing_time = dateutil.parser.parse(record_timestamp.text)
 
-    def _process_autoproc_scaling_stats(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_stats(self, element: 'Element'):
         for e in element.iter():
             if e.tag == 'scalingStatisticsType':
                 self._resolution_shell.append(e.text.replace('Shell', ''))
@@ -842,7 +845,7 @@ class StaranisoUnique(ReflectionsXml):
     _resolution_ellipsoid_value_2: float = None
     _resolution_ellipsoid_value_3: float = None
 
-    def _process_autoproc_scaling_element(self, element: 'xml.etree.ElementTree.Element'):
+    def _process_autoproc_scaling_element(self, element: 'Element'):
         super()._process_autoproc_scaling_element(element)
         for e in element.iter():
             if e.tag == 'recordTimeStamp':

@@ -1,3 +1,9 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from xtl.crystallization.experiments import Reagent
+
+
 class Warning_(Warning):
     pass
 
@@ -32,7 +38,7 @@ class ObjectInstantiationWarning(Warning_):
 
 
 class ExistingReagentWarning(Warning_):
-    def __init__(self, message='', raiser: 'xtl.crystallization.experiments.Reagent' = None):
+    def __init__(self, message='', raiser: 'Reagent' = None):
         self.raiser = raiser
 
     def __str__(self):

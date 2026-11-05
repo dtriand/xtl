@@ -3,9 +3,14 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from numbers import Number
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple, Callable, Set
+from typing import TYPE_CHECKING, List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple, Callable, Set
 
 from xtl.common import XTLUndefined
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
+    import rich.table
 
 
 @dataclass
@@ -594,7 +599,7 @@ class Table:
         headers = self._headers if self._headers else list(range(len(self._data[0])))
         return {col: self.get_col(col) for col in headers}
 
-    def to_numpy(self) -> 'numpy.ndarray':
+    def to_numpy(self) -> 'np.ndarray':
         """Convert the table to a numpy ndarray. Requires numpy to be installed.
 
         :return: The table as a numpy array
@@ -606,7 +611,7 @@ class Table:
 
         return np.array(self.data)
 
-    def to_pandas(self) -> 'pandas.DataFrame':
+    def to_pandas(self) -> 'pd.DataFrame':
         """Convert the table to a pandas DataFrame. Requires pandas to be installed.
 
         :return: The table as a DataFrame
