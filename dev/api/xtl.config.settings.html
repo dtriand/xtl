@@ -34,6 +34,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -45,6 +46,7 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.config.settings';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/js/version-selector.js?v=b659abb7"></script>
@@ -220,6 +222,11 @@
     <div class="bd-toc-item navbar-nav active">
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../common/options.html">Options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../common/tables.html">Tables</a></li>
@@ -227,12 +234,14 @@
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="modules.html">API documentation</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl.html">xtl</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
@@ -389,6 +398,7 @@
             </div>
             <nav aria-label="Page">
                 <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AtsasSettings"><code class="docutils literal notranslate"><span class="pre">AtsasSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.directories"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.directories</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.files"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.files</span></code></a></li>
@@ -403,6 +413,7 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.permissions"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.permissions</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutoprocSettings"><code class="docutils literal notranslate"><span class="pre">AutoprocSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings.collect_logs"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings.collect_logs</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings.logs_dir"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings.logs_dir</span></code></a></li>
@@ -419,11 +430,23 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.max_fps"><code class="docutils literal notranslate"><span class="pre">CLISettings.max_fps</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.__init__"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.creatable"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.creatable</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.exists"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.exists</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.name"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.path"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.path</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.atsas"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.atsas</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.autoproc"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.autoproc</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.easybragg"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.easybragg</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.get"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.get()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.items"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.items()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.names"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.names()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolution"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolution</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolve"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolve()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings"><code class="docutils literal notranslate"><span class="pre">DependencySettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
@@ -432,6 +455,7 @@
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.provides"><code class="docutils literal notranslate"><span class="pre">DependencySettings.provides</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.EasyBraggSettings"><code class="docutils literal notranslate"><span class="pre">EasyBraggSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings"><code class="docutils literal notranslate"><span class="pre">JobsSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">JobsSettings.compute_site</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">JobsSettings.job_digits</span></code></a></li>
@@ -454,13 +478,17 @@
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings"><code class="docutils literal notranslate"><span class="pre">XTLSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.active"><code class="docutils literal notranslate"><span class="pre">XTLSettings.active()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.automate"><code class="docutils literal notranslate"><span class="pre">XTLSettings.automate</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.check"><code class="docutils literal notranslate"><span class="pre">XTLSettings.check()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.check_file"><code class="docutils literal notranslate"><span class="pre">XTLSettings.check_file()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.cli"><code class="docutils literal notranslate"><span class="pre">XTLSettings.cli</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.dependencies"><code class="docutils literal notranslate"><span class="pre">XTLSettings.dependencies</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.global_config"><code class="docutils literal notranslate"><span class="pre">XTLSettings.global_config</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.initialize"><code class="docutils literal notranslate"><span class="pre">XTLSettings.initialize()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.jobs"><code class="docutils literal notranslate"><span class="pre">XTLSettings.jobs</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.local_config"><code class="docutils literal notranslate"><span class="pre">XTLSettings.local_config</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.locations"><code class="docutils literal notranslate"><span class="pre">XTLSettings.locations()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.source"><code class="docutils literal notranslate"><span class="pre">XTLSettings.source</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.units"><code class="docutils literal notranslate"><span class="pre">XTLSettings.units</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.version"><code class="docutils literal notranslate"><span class="pre">XTLSettings.version</span></code></a></li>
 </ul>
@@ -482,8 +510,15 @@
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a>.</p>
 <dl class="py class">
+<dt class="sig sig-object py" id="xtl.config.settings.AtsasSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AtsasSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L249-L253"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AtsasSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySettings</span></code></a></p>
+<p>Settings for <a class="reference external" href="https://www.embl-hamburg.de/biosaxs/software.html">ATSAS</a></p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomatePermissionsSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomatePermissionsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L68-L99"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomatePermissionsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L84-L115"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomatePermissionsSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Permission handling when using :mod:xtl.automate</p>
 <dl class="py attribute">
@@ -510,7 +545,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.AutomateSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomateSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L102-L126"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomateSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutomateSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L118-L142"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutomateSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for <code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.automate</span></code></p>
 <dl class="py attribute">
@@ -536,8 +571,15 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="xtl.config.settings.AutoprocSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">AutoprocSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L256-L260"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.AutoprocSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySettings</span></code></a></p>
+<p>Settings for <a class="reference external" href="https://www.globalphasing.com/autoproc/">autoPROC</a></p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.CLIAutoprocSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIAutoprocSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L265-L276"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIAutoprocSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIAutoprocSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L350-L361"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIAutoprocSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for <code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code> CLI</p>
 <dl class="py attribute">
@@ -554,7 +596,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.CLIConsoleFormatSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIConsoleFormatSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L279-L287"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIConsoleFormatSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLIConsoleFormatSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L364-L372"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLIConsoleFormatSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>CLI console formatting settings</p>
 <dl class="py attribute">
@@ -571,7 +613,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.CLISettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLISettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L290-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLISettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">CLISettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L375-L388"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.CLISettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for CLI tools</p>
 <dl class="py attribute">
@@ -592,37 +634,144 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">ConfigFileInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L391-L402"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A candidate location for the <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> configuration file.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">creatable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>Literal</em><em>[</em><em>'env'</em><em>, </em><em>'local'</em><em>, </em><em>'user'</em><em>, </em><em>'global'</em><em>]</em>)</p></li>
+<li><p><strong>path</strong> (<em>Path</em>)</p></li>
+<li><p><strong>creatable</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo.creatable">
+<span class="sig-name descname"><span class="pre">creatable</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo.creatable" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo.exists">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">exists</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo.exists" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'env'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'local'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'user'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'global'</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo.name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.config.settings.ConfigFileInfo.path">
+<span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Path</span></span><a class="headerlink" href="#xtl.config.settings.ConfigFileInfo.path" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependenciesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L228-L262"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependenciesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L270-L347"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for external tools and dependencies</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.atsas">
-<span class="sig-name descname"><span class="pre">atsas</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.atsas" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">atsas</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AtsasSettings" title="xtl.config.settings.AtsasSettings"><span class="pre">AtsasSettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.atsas" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.autoproc">
-<span class="sig-name descname"><span class="pre">autoproc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.autoproc" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">autoproc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutoprocSettings" title="xtl.config.settings.AutoprocSettings"><span class="pre">AutoprocSettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.autoproc" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.easybragg">
-<span class="sig-name descname"><span class="pre">easybragg</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><span class="pre">DependencySettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.easybragg" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">easybragg</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.EasyBraggSettings" title="xtl.config.settings.EasyBraggSettings"><span class="pre">EasyBraggSettings</span></a></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.easybragg" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L301-L308"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.get" title="Link to this definition">#</a></dt>
+<dd><p>Get the settings of a known dependency by name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – Name of the dependency, <em>e.g.</em> <code class="docutils literal notranslate"><span class="pre">'atsas'</span></code></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dependency settings, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if there is no such dependency</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.items">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L310-L314"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.items" title="Link to this definition">#</a></dt>
+<dd><p>The known dependencies as <code class="docutils literal notranslate"><span class="pre">(name,</span> <span class="pre">settings)</span></code> pairs, in definition order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[<a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.tuple" title="xtl.config.version.VersionInfo.tuple">tuple</a>[str, <a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.names">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L289-L296"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.names" title="Link to this definition">#</a></dt>
+<dd><p>Names of the known dependencies, in definition order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.resolution">
 <span class="sig-name descname"><span class="pre">resolution</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.resolution" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.DependenciesSettings.resolve">
+<span class="sig-name descname"><span class="pre">resolve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L316-L347"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependenciesSettings.resolve" title="Link to this definition">#</a></dt>
+<dd><p>Resolve dependency names to their settings. Instances of
+<a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySettings</span></code></a> are passed through. Unknown names are skipped with a
+warning, or raise an error if <a class="reference internal" href="#xtl.config.settings.DependenciesSettings.resolution" title="xtl.config.settings.DependenciesSettings.resolution"><code class="xref py py-attr docutils literal notranslate"><span class="pre">resolution</span></code></a> is <code class="docutils literal notranslate"><span class="pre">'strict'</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><em>str</em><em>] </em><em>| </em><a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><em>str</em><em> | </em><em>None</em>) – Dependency names or settings, or <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resolved dependency settings, in the given order and without
+duplicates</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If a name is unknown and the resolution is <code class="docutils literal notranslate"><span class="pre">'strict'</span></code></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[<a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.DependencySettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependencySettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L201-L225"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependencySettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">DependencySettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L217-L246"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.DependencySettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
-<p>Generic external dependency settings</p>
+<p>Generic external dependency settings. Each known dependency is a subclass that
+defines the executables it provides.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.DependencySettings.modules">
 <span class="sig-name descname"><span class="pre">modules</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.config.settings.DependencySettings.modules" title="Link to this definition">#</a></dt>
@@ -633,16 +782,25 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 <span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl.config.settings.DependencySettings.path" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
+<dl class="py property">
 <dt class="sig sig-object py" id="xtl.config.settings.DependencySettings.provides">
-<span class="sig-name descname"><span class="pre">provides</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.config.settings.DependencySettings.provides" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">provides</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.config.settings.DependencySettings.provides" title="Link to this definition">#</a></dt>
+<dd><p>Executables provided by this dependency. These are defined by XTL for each
+dependency and cannot be changed in the config file.</p>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="xtl.config.settings.EasyBraggSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">EasyBraggSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L263-L267"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.EasyBraggSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencySettings</span></code></a></p>
+<p>Settings for easyBragg</p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.JobsSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">JobsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L152-L198"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.JobsSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">JobsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L168-L214"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.JobsSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for jobs in <a class="reference internal" href="xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a></p>
 <dl class="py attribute">
@@ -684,7 +842,7 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.ResourcesSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">ResourcesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L129-L149"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.ResourcesSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">ResourcesSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L145-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.ResourcesSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Resource settings for jobs</p>
 <dl class="py attribute">
@@ -706,14 +864,14 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.Settings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">Settings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L41-L55"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.Settings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">Settings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L59-L70"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.Settings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a></p>
 <p>Base class for settings in XTL.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.UnitsSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">UnitsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L58-L65"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.UnitsSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">UnitsSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L74-L81"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.UnitsSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Physical units</p>
 <dl class="py attribute">
@@ -725,13 +883,68 @@ settings is <a class="reference internal" href="#xtl.config.settings.XTLSettings
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">XTLSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L306-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.settings.</span></span><span class="sig-name descname"><span class="pre">XTLSettings</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L405-L660"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.config.settings.Settings" title="xtl.config.settings.Settings"><code class="xref py py-class docutils literal notranslate"><span class="pre">Settings</span></code></a></p>
 <p>Settings for XTL</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.active">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">active</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">locations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L604-L618"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.active" title="Link to this definition">#</a></dt>
+<dd><p>The active config file: the first existing one in <a class="reference internal" href="#xtl.config.settings.XTLSettings.locations" title="xtl.config.settings.XTLSettings.locations"><code class="xref py py-meth docutils literal notranslate"><span class="pre">locations()</span></code></a>, which is
+the file that <a class="reference internal" href="#xtl.config.settings.XTLSettings.initialize" title="xtl.config.settings.XTLSettings.initialize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">initialize()</span></code></a> loads. Whether the file can be read is not
+checked (see <a class="reference internal" href="#xtl.config.settings.XTLSettings.check_file" title="xtl.config.settings.XTLSettings.check_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">check_file()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>locations</strong> (<em>list</em><em>[</em><a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><em>ConfigFileInfo</em></a><em>] </em><em>| </em><em>None</em>) – Candidate locations to search, as returned
+by <a class="reference internal" href="#xtl.config.settings.XTLSettings.locations" title="xtl.config.settings.XTLSettings.locations"><code class="xref py py-meth docutils literal notranslate"><span class="pre">locations()</span></code></a> (default: computed now)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigFileInfo</span></code></a>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no config file exists</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><em>ConfigFileInfo</em></a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.automate">
 <span class="sig-name descname"><span class="pre">automate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.AutomateSettings" title="xtl.config.settings.AutomateSettings"><span class="pre">AutomateSettings</span></a></span><a class="headerlink" href="#xtl.config.settings.XTLSettings.automate" title="Link to this definition">#</a></dt>
 <dd><p>Settings for the <code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.automate</span></code> module</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L504-L534"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.check" title="Link to this definition">#</a></dt>
+<dd><p>Check the settings for potential issues, such as version mismatches or unknown
+keys. Returns a list of warning messages for any issues found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of warning messages for any issues found in the settings.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.check_file">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">check_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L536-L548"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.check_file" title="Link to this definition">#</a></dt>
+<dd><p>Check a given configuration file for potential issues, such as version
+mismatches, unknown keys, or file read errors. Returns a tuple containing a list
+of errors and warnings for any issues found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>Path</em>) – Path to the configuration file to check.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing a list of errors and a list of warnings for any
+issues found in the configuration file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.tuple" title="xtl.config.version.VersionInfo.tuple">tuple</a>[list[str], list[str]]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -757,17 +970,25 @@ directory.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.initialize">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L352-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
-<dd><p>Initialize by reading an <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> file. Determines whether to load a
-local or global configuration file, and initializes the settings accordingly.
-If neither file exists, it initializes with default values.</p>
-<p>Once the settings are loaded, a version compatibility check is performed.</p>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L550-L602"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.initialize" title="Link to this definition">#</a></dt>
+<dd><p>Initialize from the first existing <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> in <a class="reference internal" href="#xtl.config.settings.XTLSettings.locations" title="xtl.config.settings.XTLSettings.locations"><code class="xref py py-meth docutils literal notranslate"><span class="pre">locations()</span></code></a>, in
+lookup order: <code class="docutils literal notranslate"><span class="pre">XTL_CONFIG</span></code>, local, user and global. Once loaded, the
+problems found by <a class="reference internal" href="#xtl.config.settings.XTLSettings.check" title="xtl.config.settings.XTLSettings.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">check()</span></code></a> are logged as warnings.</p>
+<p>If no file exists and <code class="docutils literal notranslate"><span class="pre">create</span></code> is True, the default settings are written
+to the first creatable location that succeeds (<code class="docutils literal notranslate"><span class="pre">XTL_CONFIG</span></code>, user, global;
+never local), logging a warning for each one that fails. If all of them fail,
+or <code class="docutils literal notranslate"><span class="pre">create</span></code> is False, the default settings are used in-memory.</p>
+<p>This method never raises: a file that cannot be read is logged as an error
+and the default settings are used instead.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>An instance of <a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a></p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>create</strong> (<em>bool</em>) – Whether to create a config file if none is found</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><em>XTLSettings</em></a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of <a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><em>XTLSettings</em></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -778,12 +999,28 @@ If neither file exists, it initializes with default values.</p>
 <dd><p>Settings for jobs in <a class="reference internal" href="xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a></p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.local_config">
-<span class="sig-name descname"><span class="pre">local_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.config.settings.XTLSettings.local_config" title="Link to this definition">#</a></dt>
-<dd><p>Path to the local configuration file, located in the current working directory.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.locations">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">locations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/settings.py#L620-L660"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.settings.XTLSettings.locations" title="Link to this definition">#</a></dt>
+<dd><p>Candidate config file locations in lookup order: <code class="docutils literal notranslate"><span class="pre">XTL_CONFIG</span></code>, local, user
+and global. Computed on every call, so that changes to the environment or the
+working directory are picked up.</p>
 <dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of <a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigFileInfo</span></code></a>, whether the files exist or not</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[<a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><em>ConfigFileInfo</em></a>]</p>
+</dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.config.settings.XTLSettings.source">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><span class="pre">ConfigFileInfo</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl.config.settings.XTLSettings.source" title="Link to this definition">#</a></dt>
+<dd><p>The source of the settings. This is either a <a class="reference internal" href="#xtl.config.settings.ConfigFileInfo" title="xtl.config.settings.ConfigFileInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigFileInfo</span></code></a> object
+representing the configuration file that was loaded, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for in-memory
+defaults.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -849,6 +1086,7 @@ If neither file exists, it initializes with default values.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AtsasSettings"><code class="docutils literal notranslate"><span class="pre">AtsasSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.directories"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.directories</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomatePermissionsSettings.files"><code class="docutils literal notranslate"><span class="pre">AutomatePermissionsSettings.files</span></code></a></li>
@@ -863,6 +1101,7 @@ If neither file exists, it initializes with default values.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutomateSettings.permissions"><code class="docutils literal notranslate"><span class="pre">AutomateSettings.permissions</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.AutoprocSettings"><code class="docutils literal notranslate"><span class="pre">AutoprocSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings.collect_logs"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings.collect_logs</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLIAutoprocSettings.logs_dir"><code class="docutils literal notranslate"><span class="pre">CLIAutoprocSettings.logs_dir</span></code></a></li>
@@ -879,11 +1118,23 @@ If neither file exists, it initializes with default values.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.CLISettings.max_fps"><code class="docutils literal notranslate"><span class="pre">CLISettings.max_fps</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.__init__"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.creatable"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.creatable</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.exists"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.exists</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.name"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.ConfigFileInfo.path"><code class="docutils literal notranslate"><span class="pre">ConfigFileInfo.path</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.atsas"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.atsas</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.autoproc"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.autoproc</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.easybragg"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.easybragg</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.get"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.get()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.items"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.items()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.names"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.names()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolution"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolution</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependenciesSettings.resolve"><code class="docutils literal notranslate"><span class="pre">DependenciesSettings.resolve()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings"><code class="docutils literal notranslate"><span class="pre">DependencySettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
@@ -892,6 +1143,7 @@ If neither file exists, it initializes with default values.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.DependencySettings.provides"><code class="docutils literal notranslate"><span class="pre">DependencySettings.provides</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.EasyBraggSettings"><code class="docutils literal notranslate"><span class="pre">EasyBraggSettings</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings"><code class="docutils literal notranslate"><span class="pre">JobsSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.compute_site"><code class="docutils literal notranslate"><span class="pre">JobsSettings.compute_site</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.JobsSettings.job_digits"><code class="docutils literal notranslate"><span class="pre">JobsSettings.job_digits</span></code></a></li>
@@ -914,13 +1166,17 @@ If neither file exists, it initializes with default values.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings"><code class="docutils literal notranslate"><span class="pre">XTLSettings</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.active"><code class="docutils literal notranslate"><span class="pre">XTLSettings.active()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.automate"><code class="docutils literal notranslate"><span class="pre">XTLSettings.automate</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.check"><code class="docutils literal notranslate"><span class="pre">XTLSettings.check()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.check_file"><code class="docutils literal notranslate"><span class="pre">XTLSettings.check_file()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.cli"><code class="docutils literal notranslate"><span class="pre">XTLSettings.cli</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.dependencies"><code class="docutils literal notranslate"><span class="pre">XTLSettings.dependencies</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.global_config"><code class="docutils literal notranslate"><span class="pre">XTLSettings.global_config</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.initialize"><code class="docutils literal notranslate"><span class="pre">XTLSettings.initialize()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.jobs"><code class="docutils literal notranslate"><span class="pre">XTLSettings.jobs</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.local_config"><code class="docutils literal notranslate"><span class="pre">XTLSettings.local_config</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.locations"><code class="docutils literal notranslate"><span class="pre">XTLSettings.locations()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.source"><code class="docutils literal notranslate"><span class="pre">XTLSettings.source</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.units"><code class="docutils literal notranslate"><span class="pre">XTLSettings.units</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.config.settings.XTLSettings.version"><code class="docutils literal notranslate"><span class="pre">XTLSettings.version</span></code></a></li>
 </ul>

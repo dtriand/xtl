@@ -34,6 +34,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -45,6 +46,7 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.config.version';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/js/version-selector.js?v=b659abb7"></script>
@@ -220,6 +222,11 @@
     <div class="bd-toc-item navbar-nav active">
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../common/options.html">Options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../common/tables.html">Tables</a></li>
@@ -227,12 +234,14 @@
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="modules.html">API documentation</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl.html">xtl</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3 has-children"><a class="reference internal" href="xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
@@ -484,7 +493,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L25-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L25-L208"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Dataclass to hold version information.</p>
 <dl class="py method">
@@ -515,7 +524,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_hex">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L172-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_hex" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L177-L193"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_hex" title="Link to this definition">#</a></dt>
 <dd><p>Create a VersionInfo object from a 32-bit hexadecimal string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -532,8 +541,9 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_str">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L129-L170"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_str" title="Link to this definition">#</a></dt>
-<dd><p>Create a VersionInfo object from a version string.</p>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L129-L175"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_str" title="Link to this definition">#</a></dt>
+<dd><p>Create a VersionInfo object from a version string. A string without a release
+level (e.g. ‘1.2.3’) is interpreted as a final release (‘1.2.3final0’).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -549,7 +559,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_value">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L190-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_value" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L195-L208"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_value" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>value</strong> (<em>str</em><em> | </em><em>dict</em><em> | </em><a class="reference internal" href="#xtl.config.version.VersionInfo" title="xtl.config.version.VersionInfo"><em>VersionInfo</em></a>)</p>

@@ -1,0 +1,652 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>xtl.toml &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'configuration/xtl.toml';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/js/version-selector.js?v=b659abb7"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Environment variables" href="environment.html" />
+    <link rel="prev" title="Configuration" href="index.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Configuration</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../common/options.html">Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/tables.html">Tables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/modules.html">API documentation</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl.html">xtl</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fconfiguration/xtl.toml.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>xtl.toml</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#config-file-locations">Config file locations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-structure">File structure</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#invalid-files">Invalid files</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="xtl-toml">
+<h1><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code><a class="headerlink" href="#xtl-toml" title="Link to this heading">#</a></h1>
+<p>XTL reads its settings from a TOML file named <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code>. Every setting has a default
+value, so the file only needs to contain the settings you want to change.</p>
+<section id="config-file-locations">
+<span id="config-locations"></span><h2>Config file locations<a class="headerlink" href="#config-file-locations" title="Link to this heading">#</a></h2>
+<p>XTL reads the first <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> that exists in the following locations:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 50.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Autogenerated</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">env</span></code></p></td>
+<td><p>the path in the <code class="docutils literal notranslate"><span class="pre">XTL_CONFIG</span></code> environment variable</p></td>
+<td><p>yes, if set</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">./xtl.toml</span></code> in the current directory</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">user</span></code></p></td>
+<td><p>the user config directory, by default <code class="docutils literal notranslate"><span class="pre">~/.config/xtl/xtl.toml</span></code> on Linux,
+<code class="docutils literal notranslate"><span class="pre">~/Library/Application</span> <span class="pre">Support/xtl/xtl.toml</span></code> on macOS and
+<code class="docutils literal notranslate"><span class="pre">%LOCALAPPDATA%\xtl\xtl.toml</span></code> on Windows</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">global</span></code></p></td>
+<td><p>the XTL installation directory, for managed installations (<em>e.g.</em> on clusters)</p></td>
+<td><p>yes, as a last resort</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The settings are loaded the first time they are used. If no config file exists, one is
+created with the default settings in the first location that can be written to. Run
+<code class="docutils literal notranslate"><span class="pre">xtl.config</span> <span class="pre">where</span></code> to see which file is in use.</p>
+<p><code class="docutils literal notranslate"><span class="pre">XTL_CONFIG</span></code> takes precedence over all other locations, which is useful for using a
+different configuration per project, job or test run:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="shell" data-sync-id="bash" for="sd-tab-item-0">
+Bash</label><div class="sd-tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">export</span><span class="w"> </span><span class="nv">XTL_CONFIG</span><span class="o">=</span>/path/to/my-config.toml
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="shell" data-sync-id="pwsh" for="sd-tab-item-1">
+PowerShell</label><div class="sd-tab-content docutils">
+<div class="highlight-ps1con notranslate"><div class="highlight"><pre><span></span><span class="gp">PS&gt; </span><span class="nv">$env:XTL_CONFIG</span> <span class="p">=</span> <span class="s2">"C:\path\to\my-config.toml"</span>
+</pre></div>
+</div>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="shell" data-sync-id="cmd" for="sd-tab-item-2">
+cmd</label><div class="sd-tab-content docutils">
+<div class="highlight-doscon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;</span> <span class="k">set</span> <span class="nv">XTL_CONFIG</span><span class="p">=</span>C:\path\to\my-config.toml
+</pre></div>
+</div>
+</div>
+</div>
+<p>The file can have any name, as long as it is a TOML file (see
+<a class="reference internal" href="environment.html#env-xtl-config"><span class="std std-ref">XTL_CONFIG</span></a>).</p>
+</section>
+<section id="file-structure">
+<h2>File structure<a class="headerlink" href="#file-structure" title="Link to this heading">#</a></h2>
+<p>The file is organised in tables, one per area of XTL, <em>e.g.</em>:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></span><a class="headerlink" href="#id1" title="Link to this code">#</a></div>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"0.2.0"</span>
+
+<span class="k">[units]</span>
+<span class="n">temperature</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"K"</span>
+
+<span class="k">[jobs.resources]</span>
+<span class="n">max_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="k">[dependencies.atsas]</span>
+<span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/opt/atsas/bin"</span>
+<span class="n">modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"atsas/4.1.3"</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>The main tables are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">[units]</span></code>: physical units</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[jobs]</span></code>: jobs run by <a class="reference internal" href="../api/xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a>, <em>e.g.</em> compute site, permissions and
+resources</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[dependencies]</span></code>: external programs used by XTL (<em>e.g.</em> ATSAS, autoPROC), with the
+directory of their executables (<code class="docutils literal notranslate"><span class="pre">path</span></code>) or the modules that provide them
+(<code class="docutils literal notranslate"><span class="pre">modules</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[cli]</span></code>: options for the command line utilities</p></li>
+</ul>
+<p>All settings, with their descriptions and default values, are listed in
+<a class="reference internal" href="../api/xtl.config.settings.html#xtl.config.settings.XTLSettings" title="xtl.config.settings.XTLSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">XTLSettings</span></code></a>, or can be printed with:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.config<span class="w"> </span>show
+</pre></div>
+</div>
+</section>
+<section id="invalid-files">
+<h2>Invalid files<a class="headerlink" href="#invalid-files" title="Link to this heading">#</a></h2>
+<p>A config file that cannot be read (invalid TOML or invalid values) is reported, and XTL
+runs with the default settings instead; the file is left unchanged. Unknown keys and a
+version mismatch are only reported as warnings. <code class="docutils literal notranslate"><span class="pre">xtl.config</span> <span class="pre">validate</span></code> checks a file
+and lists all of its problems.</p>
+<p>To start over from the default settings, overwrite the file with a clean one, <em>e.g.</em> for
+the <code class="docutils literal notranslate"><span class="pre">user</span></code> location (see <a class="reference internal" href="../cli/xtl.config.html"><span class="doc">xtl.config</span></a>):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.config<span class="w"> </span>create<span class="w"> </span>--user<span class="w"> </span>--clean<span class="w"> </span>--force
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Configuration</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="environment.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Environment variables</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#config-file-locations">Config file locations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-structure">File structure</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#invalid-files">Invalid files</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

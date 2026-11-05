@@ -34,6 +34,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -45,13 +46,14 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.common.options';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/js/version-selector.js?v=b659abb7"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="xtl.common.validators module" href="xtl.common.validators.html" />
-    <link rel="prev" title="xtl.common.compatibility module" href="xtl.common.compatibility.html" />
+    <link rel="prev" title="xtl.common.environment module" href="xtl.common.environment.html" />
     
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -220,6 +222,11 @@
     <div class="bd-toc-item navbar-nav active">
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../common/options.html">Options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../common/tables.html">Tables</a></li>
@@ -227,12 +234,14 @@
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="modules.html">API documentation</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl.html">xtl</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l3 current active has-children"><a class="reference internal" href="xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
 <li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
@@ -427,11 +436,11 @@
 <span id="xtl-common-options-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module<a class="headerlink" href="#module-xtl.common.options" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.options.LegacyOptions">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">LegacyOptions</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L969-L979"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.LegacyOptions" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">LegacyOptions</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L974-L984"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.LegacyOptions" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.LegacyOptions.upgrade">
-<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">upgrade</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L977-L979"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.LegacyOptions.upgrade" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">upgrade</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L982-L984"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.LegacyOptions.upgrade" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#xtl.common.options.VersionedOptions" title="xtl.common.options.VersionedOptions"><em>VersionedOptions</em></a></p>
@@ -511,7 +520,7 @@ custom validation and metadata handling.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.options.Options">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">Options</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L368-L966"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">Options</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L368-L971"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://pydantic.dev/docs/validation/latest/api/pydantic/base_model/#pydantic.BaseModel" title="(in Pydantic v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></a></p>
 <p>Base class for storing various configuration options. This class provides
 validation and serialization through <cite>Pydantic</cite>. Custom validators and serializers
@@ -586,7 +595,7 @@ used to create nested <a class="reference internal" href="#xtl.common.options.Op
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.Options.from_toml">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L936-L966"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options.from_toml" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L941-L971"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options.from_toml" title="Link to this definition">#</a></dt>
 <dd><p>Create a new <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> object from a TOML string or file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -696,7 +705,7 @@ will be compact.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.Options.to_toml">
-<span class="sig-name descname"><span class="pre">to_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_file_ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L900-L934"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options.to_toml" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_file_ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L905-L939"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.Options.to_toml" title="Link to this definition">#</a></dt>
 <dd><p>Write the <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> to a TOML file. If <code class="docutils literal notranslate"><span class="pre">filename</span></code> is not provided, then the
 TOML will be returned as a string. Fields that are None are left out, since TOML
 has no null; they load as the default of the field.</p>
@@ -725,11 +734,11 @@ has no null; they load as the default of the field.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.common.options.VersionedOptions">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">VersionedOptions</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L982-L1102"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.options.</span></span><span class="sig-name descname"><span class="pre">VersionedOptions</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L987-L1107"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.VersionedOptions.from_dict">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upgrade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1045-L1065"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.from_dict" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upgrade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1050-L1070"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.from_dict" title="Link to this definition">#</a></dt>
 <dd><p>Create a new <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> object from a dictionary. Nested dictionaries can be
 used to create nested <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> objects.</p>
 <dl class="field-list simple">
@@ -750,7 +759,7 @@ used to create nested <a class="reference internal" href="#xtl.common.options.Op
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.VersionedOptions.from_json">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upgrade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1067-L1102"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.from_json" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upgrade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1072-L1107"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.from_json" title="Link to this definition">#</a></dt>
 <dd><p>Create a new <a class="reference internal" href="#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a> object from a JSON string or file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -776,7 +785,7 @@ used to create nested <a class="reference internal" href="#xtl.common.options.Op
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.VersionedOptions.legacy_versions">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">legacy_versions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1008-L1010"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.legacy_versions" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">legacy_versions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L1013-L1015"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.legacy_versions" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict[<a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo.tuple" title="xtl.config.version.VersionInfo.tuple">tuple</a>[int, int, int], type[<a class="reference internal" href="#xtl.common.options.LegacyOptions" title="xtl.common.options.LegacyOptions"><em>LegacyOptions</em></a>]]</p>
@@ -786,7 +795,7 @@ used to create nested <a class="reference internal" href="#xtl.common.options.Op
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.common.options.VersionedOptions.register_legacy">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">register_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">up_to</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L993-L1006"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.register_legacy" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">register_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">up_to</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/options.py#L998-L1011"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.options.VersionedOptions.register_legacy" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>up_to</strong> (<a class="reference internal" href="xtl.config.version.html#xtl.config.version.VersionInfo" title="xtl.config.version.VersionInfo"><em>VersionInfo</em></a><em> | </em><em>str</em>)</p>
@@ -810,12 +819,12 @@ used to create nested <a class="reference internal" href="#xtl.common.options.Op
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="xtl.common.compatibility.html"
+       href="xtl.common.environment.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</p>
       </div>
     </a>
     <a class="right-next"
