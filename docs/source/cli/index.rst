@@ -8,3 +8,4 @@ A few handy CLIs for frequent tasks.
    :caption: Contents:
 
    xtl.autoproc.rst
+   xtl.config.rst

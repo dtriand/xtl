@@ -53,13 +53,21 @@ def _normalize_path(value: str) -> Path:
 # Environment variables #
 #########################
 XTL_CONFIG: EnvVar[Path] = EnvVar('XTL_CONFIG', parser=_normalize_path)
-"""Environment variable 'XTL_CONFIG'"""
-# Used to override the default settings file path
+"""
+Path to the config file, which takes precedence over all other config file locations
+(see :meth:`XTLSettings.locations() <xtl.config.settings.XTLSettings.locations>`).
+"""
 
 XTL_COMPUTE_SITE: EnvVar[str] = EnvVar('XTL_COMPUTE_SITE')
-"""Environment variable 'XTL_COMPUTE_SITE'"""
-# Used to trigger specialized compute site configurations
+"""
+Enables compute sites (see :class:`xtl.jobs.sites.ComputeSite`) for specific facilities. 
+Read when :mod:`xtl.jobs.sites` is imported. Currently supported values are:
+
+- ``BIOTIX_HPC`` enables ``biotix``
+"""
 
 XTL_FONTS_DIR: EnvVar[Path] = EnvVar('XTL_FONTS_DIR', parser=_normalize_path)
-"""Environment variable 'XTL_FONTS_DIR'"""
-# Used to load fonts from custom directories
+"""
+Directory with additional fonts for plots. Reserved for the plotting backends, which
+are still in development; it has no effect yet.
+"""

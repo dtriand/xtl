@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Future features that are not yet released will be documented here
+- `xtl.config` command for managing config files
 
 ## [0.1.0-rc1] - 2025-06-01
 

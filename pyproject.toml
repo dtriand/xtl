@@ -84,6 +84,7 @@ docs = [
     "autodoc_pydantic>=2.2.0",
     "sphinx>=8.1.3",
     "sphinx-book-theme>=1.1.3",
+    "sphinx-design>=0.6.1",
     "sphinx-favicon>=1.0.1"
 ]
 dev = [
