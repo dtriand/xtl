@@ -616,7 +616,7 @@
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-xtl.jobs" title="Link to this heading">#</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.AsyncPool">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">AsyncPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L696-L712"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.AsyncPool" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">AsyncPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L729-L745"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.AsyncPool" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></p>
 <p>A pool for running jobs asynchronously. The jobs are executed within the same process and same thread (and event
 loop). This is well suited for running I/O-bound task, e.g. fetching data over network, executing batch jobs. It is
@@ -625,14 +625,14 @@ the most responsive pool type, since it does not add any IPC overhead.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.BashShell">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BashShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L362-L376"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BashShell" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BashShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L360-L375"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BashShell" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseShell</span></code></a></p>
 <p>Configuration for the <a class="reference external" href="https://en.wikipedia.org/wiki/Bash_(Unix_shell)">Bash</a>
 shell.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.BashShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.BashShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -652,7 +652,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.BashShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'command</span> <span class="pre">-v</span> <span class="pre">{dependency}</span> <span class="pre">&gt;</span> <span class="pre">/dev/null</span> <span class="pre">2&gt;&amp;1;</span> <span class="pre">echo</span> <span class="pre">\\$?'</span></span><a class="headerlink" href="#xtl.jobs.BashShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -690,7 +690,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.BashShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'#!/bin/bash'</span></span><a class="headerlink" href="#xtl.jobs.BashShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -698,11 +698,11 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchFile</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L75-L379"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchFile</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L76-L372"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependencies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L77-L130"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.__init__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_site</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependencies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L77-L128"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.__init__" title="Link to this definition">#</a></dt>
 <dd><p>A class for programmatically creating batch/script files. The behavior of the
 batch file can be customized by specifying the compute site and shell to use.</p>
 <dl class="field-list simple">
@@ -729,7 +729,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.add_comment">
-<span class="sig-name descname"><span class="pre">add_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L207-L216"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_comment" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comment</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L205-L214"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_comment" title="Link to this definition">#</a></dt>
 <dd><p>Add a comment line to the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -743,7 +743,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.add_line">
-<span class="sig-name descname"><span class="pre">add_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L186-L192"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_line" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L184-L190"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_line" title="Link to this definition">#</a></dt>
 <dd><p>Add a single line to the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -757,7 +757,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.add_lines">
-<span class="sig-name descname"><span class="pre">add_lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L194-L205"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_lines" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">add_lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L192-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.add_lines" title="Link to this definition">#</a></dt>
 <dd><p>Add one or more lines to the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -771,7 +771,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.cancel">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cancel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L291-L295"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.cancel" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cancel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L285-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.cancel" title="Link to this definition">#</a></dt>
 <dd><p>Cancel the execution or scheduling of the batch file on the compute site.</p>
 </dd></dl>
 
@@ -789,7 +789,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.execute">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L275-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.execute" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L270-L283"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.execute" title="Link to this definition">#</a></dt>
 <dd><p>Execute or schedule the batch file on the compute site.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -810,7 +810,7 @@ file.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.from_config">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L336-L376"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.from_config" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L330-L369"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.from_config" title="Link to this definition">#</a></dt>
 <dd><p>Create a pre-configured BatchFile instance from a BatchJobConfig. If the config
 includes an appropriate template, the batch file contents will be populated and
 any placeholder variables will be replaced using the provided context.</p>
@@ -852,7 +852,7 @@ any placeholder variables will be replaced using the provided context.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.get_content">
-<span class="sig-name descname"><span class="pre">get_content</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L225-L231"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_content" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_content</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L222-L228"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_content" title="Link to this definition">#</a></dt>
 <dd><p>Returns the main content of the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -863,7 +863,7 @@ any placeholder variables will be replaced using the provided context.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.get_postamble">
-<span class="sig-name descname"><span class="pre">get_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L233-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_postamble" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L230-L234"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_postamble" title="Link to this definition">#</a></dt>
 <dd><p>Returns the postamble for the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -874,7 +874,7 @@ any placeholder variables will be replaced using the provided context.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.get_preamble">
-<span class="sig-name descname"><span class="pre">get_preamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L218-L223"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_preamble" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_preamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L216-L220"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.get_preamble" title="Link to this definition">#</a></dt>
 <dd><p>Returns the preamble for the batch file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -898,7 +898,7 @@ executed, otherwise None.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchFile.save">
-<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L239-L270"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.save" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/batchfiles.py#L236-L265"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchFile.save" title="Link to this definition">#</a></dt>
 <dd><p>Save the batch file to disk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -929,13 +929,13 @@ executed, otherwise None.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJob">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchJob</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L709-L824"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchJob</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L705-L817"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.Job" title="xtl.jobs.jobs.Job"><code class="xref py py-class docutils literal notranslate"><span class="pre">Job</span></code></a>[<a class="reference internal" href="#xtl.jobs.BatchJobConfig" title="xtl.jobs.config.BatchJobConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchJobConfig</span></code></a>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">BatchJobConfigType</span></code>]</p>
 <p>This is a concrete implementation of Job for executing batch files. Batch files can be customized based on the
 underlying operating system and get dynamically rendered using the provided BatchJobConfig and context.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJob.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L715-L721"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob.__init__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L711-L717"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob.__init__" title="Link to this definition">#</a></dt>
 <dd><p>Abstract base class for asynchronous jobs execution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -965,7 +965,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJob.with_config">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">with_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L803-L812"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob.with_config" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">with_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L797-L805"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJob.with_config" title="Link to this definition">#</a></dt>
 <dd><p>Get a preconfigured job instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -990,7 +990,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchJobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L104-L297"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">BatchJobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L96-L256"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.JobConfig" title="xtl.jobs.config.JobConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobConfig</span></code></a></p>
 <dl class="py property">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig.compatible_shells">
@@ -1032,7 +1032,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig.get_batch">
-<span class="sig-name descname"><span class="pre">get_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L261-L271"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_batch" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L220-L230"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_batch" title="Link to this definition">#</a></dt>
 <dd><p>Returns a preconfigure BatchFile instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1047,7 +1047,7 @@ template.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig.get_context">
-<span class="sig-name descname"><span class="pre">get_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L279-L283"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_context" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L238-L242"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_context" title="Link to this definition">#</a></dt>
 <dd><p>Get the context variables for rendering the batch file template.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1058,7 +1058,7 @@ template.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig.get_template">
-<span class="sig-name descname"><span class="pre">get_template</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L273-L277"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_template" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_template</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L232-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.get_template" title="Link to this definition">#</a></dt>
 <dd><p>Get the template for the content of the batch file for the selected shell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1141,7 +1141,7 @@ context: The context.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.BatchJobConfig.to_slurm">
-<span class="sig-name descname"><span class="pre">to_slurm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L285-L297"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.to_slurm" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_slurm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L244-L256"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.BatchJobConfig.to_slurm" title="Link to this definition">#</a></dt>
 <dd><p>Convert the batch job configuration to a list of SLURM command-line arguments.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1154,13 +1154,13 @@ context: The context.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.CmdShell">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">CmdShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L379-L393"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.CmdShell" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">CmdShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L378-L393"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.CmdShell" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseShell</span></code></a></p>
 <p>Configuration for the <a class="reference external" href="https://en.wikipedia.org/wiki/Cmd.exe">Windows Command Prompt</a> shell.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.CmdShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">/Q</span> <span class="pre">/C</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.CmdShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -1180,7 +1180,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.CmdShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'where</span> <span class="pre">{dependency}</span> <span class="pre">&gt;</span> <span class="pre">nul</span> <span class="pre">2&gt;&amp;1</span> <span class="pre">&amp;&amp;</span> <span class="pre">echo</span> <span class="pre">0</span> <span class="pre">||</span> <span class="pre">echo</span> <span class="pre">1'</span></span><a class="headerlink" href="#xtl.jobs.CmdShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -1218,7 +1218,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.CmdShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#xtl.jobs.CmdShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -1238,7 +1238,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.CommandPolicy.NICE">
 <span class="sig-name descname"><span class="pre">NICE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'nice'</span></span><a class="headerlink" href="#xtl.jobs.CommandPolicy.NICE" title="Link to this definition">#</a></dt>
-<dd><p>A command policy that uses the <code class="docutils literal notranslate"><span class="pre">nice</span></code> command to set process priority 
+<dd><p>A command policy that uses the <code class="docutils literal notranslate"><span class="pre">nice</span></code> command to set process priority
 on Unix-like systems.</p>
 </dd></dl>
 
@@ -1303,11 +1303,11 @@ on Unix-like systems.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.Job">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">Job</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L113-L706"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">Job</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L113-L702"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">JobConfigType</span></code>]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L134-L171"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.__init__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L134-L169"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.__init__" title="Link to this definition">#</a></dt>
 <dd><p>Abstract base class for asynchronous jobs execution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1325,7 +1325,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.clear">
-<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L383-L388"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.clear" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L376-L381"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.clear" title="Link to this definition">#</a></dt>
 <dd><p>Explicitly remove this job from the registry.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1342,7 +1342,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.configure">
-<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L204-L215"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.configure" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L204-L214"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.configure" title="Link to this definition">#</a></dt>
 <dd><p>Configure a job instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1359,7 +1359,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.deserialize">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L623-L653"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.deserialize" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L619-L646"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.deserialize" title="Link to this definition">#</a></dt>
 <dd><p>Deserialize a job from a JobData instance or raw dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1376,7 +1376,7 @@ register the job unconditionally.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.get_logger">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L560-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.get_logger" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L558-L590"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.get_logger" title="Link to this definition">#</a></dt>
 <dd><p>Get or create a logger for the job with the given ID. If <cite>config</cite> is not
 specified, the default configuration is chosen. If a logger already exists,
 but a new <code class="docutils literal notranslate"><span class="pre">config</span></code> is provided, the handlers will get reconfigured.</p>
@@ -1422,7 +1422,7 @@ with the provided config.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.get_resources">
-<span class="sig-name descname"><span class="pre">get_resources</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L393-L408"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.get_resources" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_resources</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L386-L401"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.get_resources" title="Link to this definition">#</a></dt>
 <dd><p>Get the resources associated with this job, if any. The resolution order is as follows (first
 non-<code class="docutils literal notranslate"><span class="pre">None</span></code> wins):</p>
 <ol class="arabic simple">
@@ -1460,7 +1460,7 @@ non-<code class="docutils literal notranslate"><span class="pre">None</span></co
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.lock">
-<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L540-L551"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.lock" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L538-L549"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.lock" title="Link to this definition">#</a></dt>
 <dd><p>Context manager to acquire a lock during job execution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1486,7 +1486,7 @@ non-<code class="docutils literal notranslate"><span class="pre">None</span></co
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.run">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L419-L485"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.run" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L412-L475"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.run" title="Link to this definition">#</a></dt>
 <dd><p>Run the job payload asynchronously. Any exceptions raised during job execution are logged and not raised.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -1504,7 +1504,7 @@ already running, has completed running or got cancelled by the user.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.serialize">
-<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L605-L621"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.serialize" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L601-L617"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.serialize" title="Link to this definition">#</a></dt>
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">as_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dt class="sig sig-object py">
@@ -1525,7 +1525,7 @@ already running, has completed running or got cancelled by the user.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.Job.with_config">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">with_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L224-L250"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.with_config" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">with_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L223-L247"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.Job.with_config" title="Link to this definition">#</a></dt>
 <dd><p>Get a preconfigured job instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1550,7 +1550,7 @@ already running, has completed running or got cancelled by the user.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.JobConfig">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">JobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L28-L43"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobConfig" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">JobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L28-L37"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobConfig" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a></p>
 <p>Base class for job configuration, containing fields common to all jobs.</p>
 <dl class="py attribute">
@@ -1596,7 +1596,7 @@ context: The context.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.JobPool">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">JobPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L49-L71"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobPool" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">JobPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L67-L89"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobPool" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></p>
 <p>Enum for available job pools.</p>
 <dl class="py attribute">
@@ -1626,7 +1626,7 @@ context: The context.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.JobPool.get">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L59-L71"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobPool.get" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L77-L89"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.JobPool.get" title="Link to this definition">#</a></dt>
 <dd><p>Get the class of the requested job pool.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -1639,13 +1639,13 @@ context: The context.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">LocalSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L180-L349"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">LocalSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L177-L332"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComputeSite</span></code></p>
 <p>A compute site that represents the local machine. It assumes that all required
 executables are available on PATH.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.cancel_batch">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cancel_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L302-L309"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.cancel_batch" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cancel_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L289-L295"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.cancel_batch" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>batch</strong> (<a class="reference internal" href="xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><em>BatchFile</em></a>)</p>
@@ -1655,7 +1655,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.check_dependencies">
-<span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L202-L232"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.check_dependencies" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L198-L228"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.check_dependencies" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1671,7 +1671,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.execute_batch">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L234-L300"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.execute_batch" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L230-L287"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.execute_batch" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1685,7 +1685,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.prepare_command">
-<span class="sig-name descname"><span class="pre">prepare_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L193-L194"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_command" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L189-L190"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_command" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>command</strong> (<em>str</em>)</p>
@@ -1698,7 +1698,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.prepare_content">
-<span class="sig-name descname"><span class="pre">prepare_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L196-L197"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_content" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L192-L193"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_content" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>content</strong> (<em>str</em>)</p>
@@ -1711,7 +1711,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.prepare_postamble">
-<span class="sig-name descname"><span class="pre">prepare_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L199-L200"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_postamble" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L195-L196"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_postamble" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -1721,7 +1721,7 @@ executables are available on PATH.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.LocalSite.prepare_preamble">
-<span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L186-L191"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_preamble" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L183-L187"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.LocalSite.prepare_preamble" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1739,14 +1739,14 @@ executables are available on PATH.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.ModulesSite">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">ModulesSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L352-L487"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">ModulesSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L335-L467"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.LocalSite" title="xtl.jobs.sites.LocalSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocalSite</span></code></a></p>
 <p>A compute site that uses
 <a class="reference external" href="https://modules.readthedocs.io/en/latest/">Environment Modules</a> to manage
 software dependencies.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.ModulesSite.check_dependencies">
-<span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L427-L466"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite.check_dependencies" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L407-L446"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite.check_dependencies" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1762,7 +1762,7 @@ software dependencies.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.ModulesSite.prepare_preamble">
-<span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L405-L425"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite.prepare_preamble" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L387-L405"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ModulesSite.prepare_preamble" title="Link to this definition">#</a></dt>
 <dd><p>Prepare the preamble for loading required modules based on dependencies. The
 preamble has the following structure:</p>
 <dl class="field-list simple">
@@ -1786,7 +1786,7 @@ instances, or None.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.MultiprocessPool">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">MultiprocessPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L855-L1102"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.MultiprocessPool" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">MultiprocessPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L888-L1133"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.MultiprocessPool" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></p>
 <p>A pool for running jobs in separate processes. This pool is well suited for running CPU-bound tasks, e.g. heavy
 numerical calculations. It can also be used to impose stronger isolation between worker processes. It has the
@@ -1794,7 +1794,7 @@ highest overhead among the pool types upon initialization. Internally, the spawn
 a ProcessPoolExecutor.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.MultiprocessPool.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L868-L873"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.MultiprocessPool.__init__" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L900-L905"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.MultiprocessPool.__init__" title="Link to this definition">#</a></dt>
 <dd><p>Abstract base class for job pools.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1830,7 +1830,7 @@ global ResourceManager will be used.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.PowerShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">-File</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.PowerShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -1850,7 +1850,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.PowerShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Get-Command</span> <span class="pre">{dependency}</span> <span class="pre">-ErrorAction</span> <span class="pre">SilentlyContinue</span> <span class="pre">|</span> <span class="pre">Out-Null;</span> <span class="pre">[int](-not</span> <span class="pre">$?)'</span></span><a class="headerlink" href="#xtl.jobs.PowerShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -1888,7 +1888,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.PowerShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#xtl.jobs.PowerShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -1902,28 +1902,28 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.Shell.BASH">
 <span class="sig-name descname"><span class="pre">BASH</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'bash'</span></span><a class="headerlink" href="#xtl.jobs.Shell.BASH" title="Link to this definition">#</a></dt>
-<dd><p>The Bash shell 
+<dd><p>The Bash shell
 (see: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BashShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.Shell.CMD">
 <span class="sig-name descname"><span class="pre">CMD</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cmd'</span></span><a class="headerlink" href="#xtl.jobs.Shell.CMD" title="Link to this definition">#</a></dt>
-<dd><p>The Windows Command Prompt shell 
+<dd><p>The Windows Command Prompt shell
 (see: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">CmdShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.Shell.DEFAULT">
 <span class="sig-name descname"><span class="pre">DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'default'</span></span><a class="headerlink" href="#xtl.jobs.Shell.DEFAULT" title="Link to this definition">#</a></dt>
-<dd><p>The default shell for the current operating system 
+<dd><p>The default shell for the current operating system
 (see: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.DefaultShell" title="xtl.jobs.shells.DefaultShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">DefaultShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.Shell.POWERSHELL">
 <span class="sig-name descname"><span class="pre">POWERSHELL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'powershell'</span></span><a class="headerlink" href="#xtl.jobs.Shell.POWERSHELL" title="Link to this definition">#</a></dt>
-<dd><p>The Windows PowerShell shell 
+<dd><p>The Windows PowerShell shell
 (see: <a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.PowerShell" title="xtl.jobs.shells.PowerShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">PowerShell</span></code></a>)</p>
 </dd></dl>
 
@@ -1947,7 +1947,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.SimplePool">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SimplePool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L715-L777"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SimplePool" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SimplePool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L748-L810"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SimplePool" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.AsyncPool" title="xtl.jobs.pools.AsyncPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></p>
 <p>A pool for running jobs synchronously. This is a thin wrapper around AsyncPool, that enforces a sequential job
 execution (<cite>max_jobs=1</cite>). Suitable for running a single job, or when concurrency is risky. It can also be used for
@@ -1956,7 +1956,7 @@ debugging, since it enforces a deterministic operations order.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.StepSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">StepSpec</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/steps.py#L14-L72"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.StepSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">StepSpec</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/steps.py#L14-L58"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.StepSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="xtl.common.options.html#xtl.common.options.Options" title="xtl.common.options.Options"><code class="xref py py-class docutils literal notranslate"><span class="pre">Options</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.StepSpec.condition">
@@ -2031,14 +2031,14 @@ context: The context.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.SteppedJob">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SteppedJob</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L827-L949"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJob" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SteppedJob</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L820-L944"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJob" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.Job" title="xtl.jobs.jobs.Job"><code class="xref py py-class docutils literal notranslate"><span class="pre">Job</span></code></a>[<a class="reference internal" href="#xtl.jobs.SteppedJobConfig" title="xtl.jobs.config.SteppedJobConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SteppedJobConfig</span></code></a>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">JobConfigType</span></code>]</p>
 <p>This is a concrete implementation of a Job with multiple sequential steps. Any subclasses need to define their own
 <code class="docutils literal notranslate"><span class="pre">_steps</span></code> class variable with a set of <a href="#id3"><span class="problematic" id="id4">``</span></a>StepSpec``s that specify the list of steps. Any other Job can be used as
 a step, including BatchJob and SteppedJob.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.SteppedJob.run">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L922-L949"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJob.run" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/jobs.py#L919-L944"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJob.run" title="Link to this definition">#</a></dt>
 <dd><p>Run the job payload asynchronously. Any exceptions raised during job execution are logged and not raised.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -2058,7 +2058,7 @@ already running, has completed running or got cancelled by the user.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.SteppedJobConfig">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SteppedJobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L300-L309"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJobConfig" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">SteppedJobConfig</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/config.py#L259-L264"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.SteppedJobConfig" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.JobConfig" title="xtl.jobs.config.JobConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobConfig</span></code></a></p>
 <p>Class for passing configuration to a job.</p>
 <dl class="py attribute">
@@ -2099,7 +2099,7 @@ context: The context.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.ThreadedPool">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">ThreadedPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L780-L852"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ThreadedPool" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.</span></span><span class="sig-name descname"><span class="pre">ThreadedPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L813-L885"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.ThreadedPool" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></p>
 <p>A pool for running jobs in separate threads. The jobs are executed within the same process but in separate threads.
 This pool is well suited for running I/O-blocking tasks, e.g. non-async APIs, filesystem I/O. Not ideal for

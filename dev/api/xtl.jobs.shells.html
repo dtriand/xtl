@@ -536,28 +536,28 @@ the default class variables to match the desired shell’s properties.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.Shell.BASH">
 <span class="sig-name descname"><span class="pre">BASH</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'bash'</span></span><a class="headerlink" href="#xtl.jobs.shells.Shell.BASH" title="Link to this definition">#</a></dt>
-<dd><p>The Bash shell 
+<dd><p>The Bash shell
 (see: <a class="reference internal" href="#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BashShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.Shell.CMD">
 <span class="sig-name descname"><span class="pre">CMD</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cmd'</span></span><a class="headerlink" href="#xtl.jobs.shells.Shell.CMD" title="Link to this definition">#</a></dt>
-<dd><p>The Windows Command Prompt shell 
+<dd><p>The Windows Command Prompt shell
 (see: <a class="reference internal" href="#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">CmdShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.Shell.DEFAULT">
 <span class="sig-name descname"><span class="pre">DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'default'</span></span><a class="headerlink" href="#xtl.jobs.shells.Shell.DEFAULT" title="Link to this definition">#</a></dt>
-<dd><p>The default shell for the current operating system 
+<dd><p>The default shell for the current operating system
 (see: <a class="reference internal" href="#xtl.jobs.shells.DefaultShell" title="xtl.jobs.shells.DefaultShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">DefaultShell</span></code></a>)</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.Shell.POWERSHELL">
 <span class="sig-name descname"><span class="pre">POWERSHELL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'powershell'</span></span><a class="headerlink" href="#xtl.jobs.shells.Shell.POWERSHELL" title="Link to this definition">#</a></dt>
-<dd><p>The Windows PowerShell shell 
+<dd><p>The Windows PowerShell shell
 (see: <a class="reference internal" href="#xtl.jobs.shells.PowerShell" title="xtl.jobs.shells.PowerShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">PowerShell</span></code></a>)</p>
 </dd></dl>
 
@@ -576,7 +576,7 @@ the default class variables to match the desired shell’s properties.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">BaseShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L126-L359"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">BaseShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L126-L357"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Data container for different shell configurations. This dataclass is mainly used
 for configuring the generation of <a class="reference internal" href="xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchFile</span></code></a> and their execution.</p>
@@ -592,7 +592,7 @@ for configuring the generation of <a class="reference internal" href="xtl.jobs.b
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#xtl.jobs.shells.BaseShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -612,7 +612,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#xtl.jobs.shells.BaseShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -672,7 +672,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell.get_execute_command">
-<span class="sig-name descname"><span class="pre">get_execute_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L322-L339"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell.get_execute_command" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_execute_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L322-L337"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell.get_execute_command" title="Link to this definition">#</a></dt>
 <dd><p>Get the command required to execute a command directly in this shell.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -710,13 +710,13 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell.sanitize_value">
-<span class="sig-name descname"><span class="pre">sanitize_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L341-L359"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell.sanitize_value" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">sanitize_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L339-L357"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BaseShell.sanitize_value" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BaseShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#xtl.jobs.shells.BaseShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -724,14 +724,14 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BashShell">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">BashShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L362-L376"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BashShell" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">BashShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L360-L375"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.BashShell" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseShell</span></code></a></p>
 <p>Configuration for the <a class="reference external" href="https://en.wikipedia.org/wiki/Bash_(Unix_shell)">Bash</a>
 shell.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BashShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.shells.BashShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -751,7 +751,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.shells.BashShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'command</span> <span class="pre">-v</span> <span class="pre">{dependency}</span> <span class="pre">&gt;</span> <span class="pre">/dev/null</span> <span class="pre">2&gt;&amp;1;</span> <span class="pre">echo</span> <span class="pre">\\$?'</span></span><a class="headerlink" href="#xtl.jobs.shells.BashShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -789,7 +789,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.BashShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'#!/bin/bash'</span></span><a class="headerlink" href="#xtl.jobs.shells.BashShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -797,13 +797,13 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.jobs.shells.CmdShell">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">CmdShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L379-L393"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.CmdShell" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">CmdShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L378-L393"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.CmdShell" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseShell</span></code></a></p>
 <p>Configuration for the <a class="reference external" href="https://en.wikipedia.org/wiki/Cmd.exe">Windows Command Prompt</a> shell.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.CmdShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">/Q</span> <span class="pre">/C</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.shells.CmdShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -823,7 +823,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.shells.CmdShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'where</span> <span class="pre">{dependency}</span> <span class="pre">&gt;</span> <span class="pre">nul</span> <span class="pre">2&gt;&amp;1</span> <span class="pre">&amp;&amp;</span> <span class="pre">echo</span> <span class="pre">0</span> <span class="pre">||</span> <span class="pre">echo</span> <span class="pre">1'</span></span><a class="headerlink" href="#xtl.jobs.shells.CmdShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -861,7 +861,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.CmdShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#xtl.jobs.shells.CmdShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -875,7 +875,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.PowerShell.batch_command">
 <span class="sig-name descname"><span class="pre">batch_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{executable}</span> <span class="pre">-File</span> <span class="pre">{batch_file}</span> <span class="pre">{batch_arguments}'</span></span><a class="headerlink" href="#xtl.jobs.shells.PowerShell.batch_command" title="Link to this definition">#</a></dt>
-<dd><p>The command used to execute the batch file. This is an f-string that should 
+<dd><p>The command used to execute the batch file. This is an f-string that should
 contain the keys <code class="docutils literal notranslate"><span class="pre">executable</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_file</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_arguments</span></code>.</p>
 </dd></dl>
 
@@ -895,7 +895,7 @@ contain the keys <code class="docutils literal notranslate"><span class="pre">ex
 <dt class="sig sig-object py" id="xtl.jobs.shells.PowerShell.dependency_command">
 <span class="sig-name descname"><span class="pre">dependency_command</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Get-Command</span> <span class="pre">{dependency}</span> <span class="pre">-ErrorAction</span> <span class="pre">SilentlyContinue</span> <span class="pre">|</span> <span class="pre">Out-Null;</span> <span class="pre">[int](-not</span> <span class="pre">$?)'</span></span><a class="headerlink" href="#xtl.jobs.shells.PowerShell.dependency_command" title="Link to this definition">#</a></dt>
 <dd><p>The command used to resolve dependencies in the shell. This is an f-string that
-should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should 
+should contain the key <code class="docutils literal notranslate"><span class="pre">dependency</span></code>. This command should
 return an exit code of 0 if the executable is found, and non-zero otherwise.</p>
 </dd></dl>
 
@@ -933,7 +933,7 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.PowerShell.shebang">
 <span class="sig-name descname"><span class="pre">shebang</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#xtl.jobs.shells.PowerShell.shebang" title="Link to this definition">#</a></dt>
-<dd><p>The shebang line for the shell 
+<dd><p>The shebang line for the shell
 (see <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">here</a>)</p>
 </dd></dl>
 
@@ -941,9 +941,9 @@ that should contain the keys <code class="docutils literal notranslate"><span cl
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xtl.jobs.shells.DefaultShell">
-<span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">DefaultShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L362-L376"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.DefaultShell" title="Link to this definition">#</a></dt>
-<dd><p>The default shell for the current operating system. 
-<a class="reference internal" href="#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">CmdShell</span></code></a> for Windows, 
+<span class="sig-prename descclassname"><span class="pre">xtl.jobs.shells.</span></span><span class="sig-name descname"><span class="pre">DefaultShell</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/shells.py#L360-L375"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.shells.DefaultShell" title="Link to this definition">#</a></dt>
+<dd><p>The default shell for the current operating system.
+<a class="reference internal" href="#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">CmdShell</span></code></a> for Windows,
 <a class="reference internal" href="#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BashShell</span></code></a> for POSIX systems.</p>
 </dd></dl>
 

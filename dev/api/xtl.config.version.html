@@ -445,7 +445,7 @@
 <span id="xtl-config-version-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module<a class="headerlink" href="#module-xtl.config.version" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.version.ReleaseLevel">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">ReleaseLevel</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L7-L22"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.ReleaseLevel" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">ReleaseLevel</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L7-L23"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.ReleaseLevel" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
 <p>Enum to represent the version release level.</p>
 <dl class="py attribute">
@@ -493,7 +493,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L25-L208"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.config.version.</span></span><span class="sig-name descname"><span class="pre">VersionInfo</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L26-L207"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Dataclass to hold version information.</p>
 <dl class="py method">
@@ -524,7 +524,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_hex">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L177-L193"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_hex" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hex_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L177-L192"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_hex" title="Link to this definition">#</a></dt>
 <dd><p>Create a VersionInfo object from a 32-bit hexadecimal string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -541,7 +541,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_str">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L129-L175"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_str" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L128-L175"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_str" title="Link to this definition">#</a></dt>
 <dd><p>Create a VersionInfo object from a version string. A string without a release
 level (e.g. ‘1.2.3’) is interpreted as a final release (‘1.2.3final0’).</p>
 <dl class="field-list simple">
@@ -559,7 +559,7 @@ level (e.g. ‘1.2.3’) is interpreted as a final release (‘1.2.3final0’).<
 
 <dl class="py method">
 <dt class="sig sig-object py" id="xtl.config.version.VersionInfo.from_value">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L195-L208"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_value" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/config/version.py#L194-L207"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.config.version.VersionInfo.from_value" title="Link to this definition">#</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>value</strong> (<em>str</em><em> | </em><em>dict</em><em> | </em><a class="reference internal" href="#xtl.config.version.VersionInfo" title="xtl.config.version.VersionInfo"><em>VersionInfo</em></a>)</p>

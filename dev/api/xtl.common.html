@@ -398,7 +398,16 @@
             </div>
             <nav aria-label="Page">
                 <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-xtl.common">Module contents</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-xtl.common">Module contents</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.AnnotatedDataclass"><code class="docutils literal notranslate"><span class="pre">AnnotatedDataclass</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.AnnotatedDataclass.__init__"><code class="docutils literal notranslate"><span class="pre">AnnotatedDataclass.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.afield"><code class="docutils literal notranslate"><span class="pre">afield()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.cfield"><code class="docutils literal notranslate"><span class="pre">cfield()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.pfield"><code class="docutils literal notranslate"><span class="pre">pfield()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 </ul>
             </nav>
@@ -415,6 +424,59 @@
 <h1><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package<a class="headerlink" href="#xtl-common-package" title="Link to this heading">#</a></h1>
 <section id="module-xtl.common">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-xtl.common" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.common.AnnotatedDataclass">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.common.</span></span><span class="sig-name descname"><span class="pre">AnnotatedDataclass</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/annotated_dataclass.py#L6-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.AnnotatedDataclass" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>AnnotatedDataclass()</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.common.AnnotatedDataclass.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xtl.common.AnnotatedDataclass.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xtl.common.afield">
+<span class="sig-prename descclassname"><span class="pre">xtl.common.</span></span><span class="sig-name descname"><span class="pre">afield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/annotated_dataclass.py#L164-L174"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.afield" title="Link to this definition">#</a></dt>
+<dd><p>Annotated dataclass field with additional metadata. Validation options can be passed as a <cite>validator</cite> dict, while
+special formatting options as a <cite>formatter</cite> function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Field</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xtl.common.cfield">
+<span class="sig-prename descclassname"><span class="pre">xtl.common.</span></span><span class="sig-name descname"><span class="pre">cfield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/annotated_dataclass.py#L177-L183"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.cfield" title="Link to this definition">#</a></dt>
+<dd><p>Compound annotated dataclass field with links to multiple members. The members of this field can be passes as a
+<cite>members</cite> list. An extra <cite>in_sync</cite> flag can be toggled if all members should accept the parent’s value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Field</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xtl.common.pfield">
+<span class="sig-prename descclassname"><span class="pre">xtl.common.</span></span><span class="sig-name descname"><span class="pre">pfield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/common/annotated_dataclass.py#L186-L192"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.common.pfield" title="Link to this definition">#</a></dt>
+<dd><p>Private annotated dataclass field for hidden internal attributes. This field will undergo type checking, type
+casting and validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Field</em></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
@@ -582,7 +644,16 @@
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-xtl.common">Module contents</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-xtl.common">Module contents</a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.AnnotatedDataclass"><code class="docutils literal notranslate"><span class="pre">AnnotatedDataclass</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.AnnotatedDataclass.__init__"><code class="docutils literal notranslate"><span class="pre">AnnotatedDataclass.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.afield"><code class="docutils literal notranslate"><span class="pre">afield()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.cfield"><code class="docutils literal notranslate"><span class="pre">cfield()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.common.pfield"><code class="docutils literal notranslate"><span class="pre">pfield()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 </ul>
   </nav></div>
