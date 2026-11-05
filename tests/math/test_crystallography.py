@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 import pytest
 from pytest import approx
 

@@ -1,3 +1,4 @@
+# ruff: noqa: E741 (`l` is a Miller index)
 from math import sqrt
 
 from typing_extensions import Literal

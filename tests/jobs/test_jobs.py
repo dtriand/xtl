@@ -50,7 +50,7 @@ class TestJob:
             job = SimpleJob(job_id='test_001')
             job.configure(SimpleJobConfig(should_fail=True))
             assert job.config is not None
-            assert job.config.should_fail == True
+            assert job.config.should_fail is True
 
         def test_job_with_config(self):
             """Test job creation with configuration."""

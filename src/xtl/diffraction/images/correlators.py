@@ -166,7 +166,7 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         # Array of indices for calculating I(chi+delta) from I(chi)
         di = self._calculate_delta_indices_array(points_azimuthal=points_azimuthal)  # dim = (azimuthal, azimuthal)
         # Complete intensity array
-        I = ai2.intensity  # dim = (azimuthal, radial)
+        I = ai2.intensity  # dim = (azimuthal, radial)  # noqa: E741 (`I` for intensity)
 
         if method == 0:
             # Faster method: Calculate the CCF for all radial segments all at once, at the expense of using more memory.
@@ -503,7 +503,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         if shell_range is None:
             shell_range = (0, -1)
         # Iterate over radial segments
-        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):
+        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):  # noqa: E741
             print(i, end='')
             points_azimuthal = len(chi)
             di = self._calculate_delta_indices_array(points_azimuthal=points_azimuthal)
@@ -574,7 +574,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         # Calculate CCF
         ccfs = []
         radials = []
-        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):
+        for i, (chi, radial, I) in enumerate(self.pixels_per_shell[shell_range[0] : shell_range[1]]):  # noqa: E741
             result = self.calculate_dacf(x_bins=x, x0=chi, y0=I, calculate_errors=False)
             ccfs.append(result.dcf / (np.nanmean(I) ** 2))
             radials.append(np.nanmean(radial))
@@ -641,7 +641,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
 
     def plot_shells(self):
         fig, ax = plt.subplots(1, 1)
-        ax = plt.imshow(self.shells_img, cmap='prism')
+        ax.imshow(self.shells_img, cmap='prism')
 
     def plot_pixel_projection(
         self, shell_range: tuple[int, int] = (0, 10), zscale: str = 'linear', ignore_radial_axis: bool = False

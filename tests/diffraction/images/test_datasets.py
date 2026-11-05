@@ -64,8 +64,8 @@ class TestDiffractionDataset:
         def test_from_first_image_fail(self, temp_files):
             image, raw_data_dir = temp_files
             with pytest.raises(ValueError) as e:
-                d = DiffractionDataset.from_image(image=image, raw_dataset_dir=raw_data_dir)
-                assert "Invalid 'raw_dataset_dir' provided:" in str(e.value)
+                DiffractionDataset.from_image(image=image, raw_dataset_dir=raw_data_dir)
+            assert "Invalid 'raw_dataset_dir' provided:" in str(e.value)
 
         @pytest.mark.parametrize(
             'temp_files,                                                                    dataset_name,  dataset_dir, file_ext',
@@ -174,8 +174,8 @@ class TestDiffractionDataset:
         def test_from_image_invalid_raw_dir(self, temp_files):
             image, raw_data_dir = temp_files
             with pytest.raises(ValueError) as e:
-                d = DiffractionDataset.from_image(image=image, raw_dataset_dir=raw_data_dir)
-                assert "Invalid 'raw_dataset_dir' provided:" in str(e.value)
+                DiffractionDataset.from_image(image=image, raw_dataset_dir=raw_data_dir)
+            assert "Invalid 'raw_dataset_dir' provided:" in str(e.value)
 
         @pytest.mark.parametrize(
             'temp_files,                                                            dataset_name,  fmt',
@@ -383,11 +383,11 @@ class TestDiffractionDataset:
         @pytest.mark.make_temp_files(*_images)
         def test_register_fstring_extra_key(self, temp_files):
             d = DiffractionDataset.from_image(image=temp_files)
-            with pytest.raises(ValueError, match='Missing key') as e:
+            with pytest.raises(ValueError, match='Missing key'):
                 d.register_dir_fstring(dir_type='a_custom_dir', fstring='{dataset_name}', keys=['extra_key'])
 
         @pytest.mark.make_temp_files(*_images)
         def test_register_fstring_missing_key(self, temp_files):
             d = DiffractionDataset.from_image(image=temp_files)
-            with pytest.raises(ValueError, match='Unexpected key') as e:
+            with pytest.raises(ValueError, match='Unexpected key'):
                 d.register_dir_fstring(dir_type='a_custom_dir', fstring='{dataset_name}', keys=[])

@@ -17,18 +17,18 @@ class TestReagent:
     @pytest.mark.parametrize('concentration, solubility', [(1.0, '2.0'), ('2', 3)])
     def test_init_fail_type_error(self, concentration, solubility):
         with pytest.raises(TypeError):
-            r = Reagent(name='test', concentration=concentration, solubility=solubility)
+            Reagent(name='test', concentration=concentration, solubility=solubility)
 
     @pytest.mark.xfail(raises=ValueError)
     @pytest.mark.parametrize('concentration, solubility', [(-1.0, 2.0), (2, 0)])
     def test_init_fail_value_error(self, concentration, solubility):
         with pytest.raises(ValueError):
-            r = Reagent(name='test', concentration=concentration, solubility=solubility)
+            Reagent(name='test', concentration=concentration, solubility=solubility)
 
     @pytest.mark.xfail(raises=ValueError)
     def test_init_fail_concentration_greater_than_solubility(self):
         with pytest.raises(ValueError):
-            r = Reagent(name='test', concentration=2.0, solubility=1.0)
+            Reagent(name='test', concentration=2.0, solubility=1.0)
 
 
 class TestReagentWV:

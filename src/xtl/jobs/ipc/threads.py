@@ -136,8 +136,8 @@ class ThreadedIPCBackend(IPCBackend):
         # Iterate over lists to ensure atomic operations
         for name, lock in handle.locks.items():
             backend._locks[name] = lock
-        for name, queue in handle.queues.items():
-            backend._queues[name] = queue
+        for name, q in handle.queues.items():
+            backend._queues[name] = q
         for name, state in handle.state.items():
             backend._states[name] = state
         return backend

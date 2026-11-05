@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 from xtl.pdbapi.search.nodes import SearchQueryField
 from xtl.pdbapi.search.operators import *
 from xtl.pdbapi.search.options import SearchService

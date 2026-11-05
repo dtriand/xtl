@@ -51,7 +51,6 @@ def info(ctx: click.core.Context, file: str, phase: int):
         ctx.invoke(info_phase, file=file, phase=phase)
         return
 
-    debug = ctx.obj['debug']
     verbose = ctx.obj['verbose']
 
     q = OutputQueue()

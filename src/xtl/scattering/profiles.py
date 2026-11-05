@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 from copy import deepcopy
 
 from typing import TYPE_CHECKING
@@ -286,8 +287,6 @@ class ScatteringProfile(_ScatteringBase):
 
         if ax is None:
             fig, ax = plt.subplots()
-        else:
-            fig = ax.get_figure()
 
         x = self.get_radial_array(units=units)
         line = ax.plot(x, self.intensity, label=label, color=color)

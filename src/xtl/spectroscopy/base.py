@@ -175,7 +175,7 @@ class Spectrum:
         :param export_kwargs: additional arguments for numpy.savetxt()
         :return:
         """
-        f = Path(filename)
+        filename = Path(filename)
 
         if file_fmt not in self.SUPPORTED_EXPORT_FMTS:
             raise InvalidArgument(

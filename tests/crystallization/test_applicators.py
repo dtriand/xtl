@@ -19,13 +19,13 @@ class TestConstantApplicator:
     @pytest.mark.parametrize('value', ['1.0', [], {}])
     def test_init_fail_type_error(self, value):
         with pytest.raises(TypeError):
-            ca = ConstantApplicator(value=value)
+            ConstantApplicator(value=value)
 
     @pytest.mark.xfail(raises=ValueError)
     @pytest.mark.parametrize('value', [-1.0, 0])
     def test_init_fail_value_error(self, value):
         with pytest.raises(ValueError):
-            ca = ConstantApplicator(value=value)
+            ConstantApplicator(value=value)
 
     @pytest.mark.parametrize('shape', [(8, 12), (5, 1), (1, 7)])
     def test_apply(self, shape):
@@ -49,13 +49,13 @@ class TestGradientApplicator:
     @pytest.mark.parametrize('min_value, max_value', [(1.0, '2.0'), ('2', 3), (3.0, [])])
     def test_init_fail_type_error(self, min_value, max_value):
         with pytest.raises(TypeError):
-            ga = GradientApplicator(min_value=min_value, max_value=max_value)
+            GradientApplicator(min_value=min_value, max_value=max_value)
 
     @pytest.mark.xfail(raises=ValueError)
     @pytest.mark.parametrize('min_value, max_value', [(-1.0, 2.0), (2, -1), (3.0, -4)])
     def test_init_fail_value_error(self, min_value, max_value):
         with pytest.raises(ValueError):
-            ga = GradientApplicator(min_value=min_value, max_value=max_value)
+            GradientApplicator(min_value=min_value, max_value=max_value)
 
     @pytest.mark.parametrize(
         'method,       scale,         reverse',
@@ -102,13 +102,13 @@ class TestStepFixedApplicator:
     @pytest.mark.parametrize('start_value, step', [(1.0, '2.0'), ('2', 3), (3.0, [])])
     def test_init_fail_type_error(self, start_value, step):
         with pytest.raises(TypeError):
-            sfa = StepFixedApplicator(start_value=start_value, step=step)
+            StepFixedApplicator(start_value=start_value, step=step)
 
     @pytest.mark.xfail(raises=ValueError)
     @pytest.mark.parametrize('start_value, step', [(-1.0, 2.0), (2, 0)])
     def test_init_fail_value_error(self, start_value, step):
         with pytest.raises(ValueError):
-            sfa = StepFixedApplicator(start_value=start_value, step=step)
+            StepFixedApplicator(start_value=start_value, step=step)
 
     def test_init_negative_step(self):
         sfa = StepFixedApplicator(start_value=1.0, step=-2.0)

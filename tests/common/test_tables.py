@@ -513,7 +513,7 @@ class TestTable:
             def cast_as_str(val):
                 return f'STR:{val}'
 
-            custom_rich_table = sample_table.to_rich(cast_as=cast_as_str)
+            sample_table.to_rich(cast_as=cast_as_str)
 
         def test_table_without_headers(self):
             """Test conversions with a table that has no headers."""
@@ -1105,7 +1105,7 @@ class TestTable:
 
             # Attempt to add tables with different headers
             with pytest.raises(ValueError):
-                combined = table1 + table2
+                table1 + table2
 
         def test_or_with_different_row_counts(self):
             """Test that column-wise combining tables with different row counts raises an error."""
@@ -1115,7 +1115,7 @@ class TestTable:
 
             # Attempt to combine tables with different row counts
             with pytest.raises(ValueError):
-                combined = table1 | table2
+                table1 | table2
 
     class TestDeletion:
         """Tests for deleting rows and columns from a Table."""

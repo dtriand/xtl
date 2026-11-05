@@ -75,7 +75,7 @@ async def cli_saxs_subtract(
 
     # Spawn one batch job per available core
     async with console.get_pool('async', max_jobs=settings.jobs.resources.max_processes) as pool:
-        jobs = pool.submit(SAXSSubtractJob, configs=configs)
+        pool.submit(SAXSSubtractJob, configs=configs)
         results = await pool.launch('all')
 
     for i, result in enumerate(results):

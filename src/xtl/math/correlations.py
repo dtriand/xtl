@@ -228,7 +228,7 @@ def dcf4(
     # Initialize arrays
     dcf = np.zeros_like(x)
     dcf_errors = np.zeros_like(x)
-    m = np.zeros_like(x)
+    m = np.zeros_like(x)  # noqa: F841 (for the loop below)
 
     # Calculate UDCF
     y1_mean = np.mean(y1)

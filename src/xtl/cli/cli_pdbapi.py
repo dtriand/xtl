@@ -46,7 +46,6 @@ def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: boo
     :return:
     """
     debug: bool = ctx.obj['debug']
-    verbose: bool = ctx.obj['verbose']
 
     q = OutputQueue(debug)
     api = Client()
@@ -79,8 +78,8 @@ def search(ctx: click.core.Context, text: str, all_: bool, csm: bool, title: boo
     else:
         entries_per_line = terminal_size // (4 + 1)
         lines = -(len(pdbs) // -entries_per_line)  # equivalent to math.ceil()
-        for l in range(lines):
-            click.secho(' '.join(pdbs[l * entries_per_line : (l + 1) * entries_per_line]))
+        for line in range(lines):
+            click.secho(' '.join(pdbs[line * entries_per_line : (line + 1) * entries_per_line]))
 
     click.secho(f'Total number of entries: {len(pdbs)}', nl=False)
     if all_:
@@ -105,11 +104,9 @@ def schema(ctx: click.core.Context, test: bool, search_only: bool, data_only: bo
     :param data_only:
     :return:
     """
-    debug: bool = ctx.obj['debug']
-    verbose: bool = ctx.obj['verbose']
     ctx.obj['test'] = test
 
-    schemas = {
+    schemas = {  # noqa: F841 (not used yet)
         'search': [SearchSchema, []],
         'data.entry': [DataSchema, [DataService.ENTRY]],
         'data.polymer_entity': [DataSchema, [DataService.POLYMER_ENTITY]],

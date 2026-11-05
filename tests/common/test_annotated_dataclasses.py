@@ -15,7 +15,7 @@ class TestFields:
         # Default factory
         field = afield(param1='value1', default_factory=list)
         assert field.metadata == {'param1': 'value1', 'param_type': 'standard'}
-        assert field.default_factory == list
+        assert field.default_factory is list
 
         # Multiple metadata values
         field = afield(param1='value1', param2='value2')

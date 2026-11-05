@@ -73,7 +73,7 @@ class TestWslShell:
         assert wsl.name == f'wsl-{distro.lower().replace("-", "").replace(".", "")}-bash'
         assert wsl.shebang == BashShell.shebang
         assert wsl.file_ext == BashShell.file_ext
-        assert wsl.is_posix == False
+        assert wsl.is_posix is False
         assert wsl.comment_char == BashShell.comment_char
         assert wsl.new_line_char == BashShell.new_line_char
         assert wsl.executable == r'C:\Windows\System32\wsl.exe'

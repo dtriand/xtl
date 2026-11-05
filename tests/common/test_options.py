@@ -12,8 +12,8 @@ from xtl.exceptions.pydantic import OptionsValidationError
 
 class TestOption:
     def test_no_defaults(self):
-        o = Option()
-        o = Option(...)
+        Option()
+        Option(...)
 
     def test_validators(self):
         o = Option(default=1)
@@ -35,7 +35,7 @@ class TestOption:
         o = Option(default=1, formatter=str)
         assert o.json_schema_extra
         assert o.json_schema_extra['serializer']
-        assert o.json_schema_extra['serializer'] == str
+        assert o.json_schema_extra['serializer'] is str
 
 
 class TestOptions:
@@ -114,17 +114,17 @@ class TestOptions:
 
         os.environ['XTLUSER'] = 'user1'
         e = EnvModel(user='${XTLUSER}', _parse_env=True)
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.model_dump() == {'user': 'User1'}
 
         os.environ['XTLUSER'] = 'user2'
         assert e.user == 'user1'  # value is not updated
         e.user = '${XTLUSER}'
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.model_dump() == {'user': 'User2'}
 
         e = EnvModel(user='${XTLUSER}', _parse_env=False)
-        assert e._parse_env == False
+        assert e._parse_env is False
         assert e.model_dump() == {'user': '${Xtluser}'}
 
         os.environ.pop('XTLUSER')
@@ -137,15 +137,15 @@ class TestOptions:
         os.environ['XTLUSER'] = 'user1'
 
         e = EnvModel.from_dict({'user': '${XTLUSER}', '_parse_env': True})
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         e = EnvModel.from_json('{"user": "${XTLUSER}", "_parse_env": true}')
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         e = EnvModel.from_toml('user = "${XTLUSER}"\n_parse_env = true')
-        assert e._parse_env == True
+        assert e._parse_env is True
         assert e.user == 'user1'
 
         # Test with nested models
@@ -153,15 +153,15 @@ class TestOptions:
             child: EnvModel = Option(default=EnvModel(user='${XTLUSER}'))
 
         p = ParentModel.from_dict({'child': {'user': '${XTLUSER}', '_parse_env': True}})
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         p = ParentModel.from_json('{"child": {"user": "${XTLUSER}", "_parse_env": true}}')
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         p = ParentModel.from_toml('[child]\nuser = "${XTLUSER}"\n_parse_env = true')
-        assert p.child._parse_env == True
+        assert p.child._parse_env is True
         assert p.child.user == 'user1'
 
         os.environ.pop('XTLUSER')

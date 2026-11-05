@@ -22,7 +22,7 @@ class TestLimitedConcurrency:
 
         f = limited_concurrency(10)(f)
 
-        assert f._is_semaphore_limited == True
+        assert f._is_semaphore_limited is True
 
 
 class TestJob:
@@ -257,10 +257,10 @@ class TestJob:
     def test_update_concurrency_limit(self):
         j = Job('test_job')
         assert j._no_parallel_jobs == 10
-        assert j._is_semaphore_modified == False
+        assert j._is_semaphore_modified is False
 
         SubJob = Job.update_concurrency_limit(5)
         j = SubJob('test_subjob')
         assert j._no_parallel_jobs == 5
-        assert j._is_semaphore_modified == True
+        assert j._is_semaphore_modified is True
         assert SubJob.__name__ == 'ModifiedJob'

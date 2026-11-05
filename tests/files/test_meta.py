@@ -79,7 +79,7 @@ class JsonFileReader(TextFileReader, metaclass=TextReaderMeta):
             with open(file, 'r', encoding='utf-8') as f:
                 first_char = f.read(1).strip()
                 return first_char in ['{', '[']
-        except:
+        except (OSError, UnicodeDecodeError):
             return False
 
     def read(self) -> TextData:

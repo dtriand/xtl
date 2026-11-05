@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 """
 .. |Option| replace:: :class:`Option <xtl.common.options.Option>`
 .. |Options| replace:: :class:`Options <xtl.common.options.Options>`

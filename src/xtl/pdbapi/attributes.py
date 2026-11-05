@@ -1,3 +1,4 @@
+# ruff: noqa: F403, F405 (star imports)
 from dataclasses import dataclass, field
 from typing import overload
 

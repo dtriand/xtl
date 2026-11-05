@@ -105,9 +105,9 @@ async def cli_nanobragg_simulate(
     )
 
     async with console.get_pool() as pool:
-        jobs = pool.submit(NanoBraggJob, configs=[config])
+        jobs = pool.submit(NanoBraggJob, configs=[config])  # noqa: F841 (for the check below)
         # TODO: Progress tracking for nanoBragg job
-        results = await pool.launch()
+        results = await pool.launch()  # noqa: F841 (for the check below)
     # TODO: Something is wrong here, it raises an exception: dict object has no attribute 'stdout'
     #  Probably something changed while refactoring the code...
     # if not results[0].success:

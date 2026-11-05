@@ -18,7 +18,7 @@ class SearchQueryResponse:
         """
         try:
             self.json = response.json()
-        except:
+        except ValueError:  # not JSON
             self.json = {}
         self.query_id = self.json.get('query_id', '')
         self.result_type = self.json.get('result_type', '')
@@ -49,7 +49,7 @@ class DataQueryResponse:
         """
         try:
             self.json = response.json()
-        except:
+        except ValueError:  # not JSON
             self.json = {}
         self.query_tree = query_tree
         self._errors = self.json.get('errors', {})

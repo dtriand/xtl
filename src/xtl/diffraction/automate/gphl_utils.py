@@ -69,7 +69,6 @@ class GPhLConfig(AnnotatedDataclass):
         results = {}
         for param in self.__dataclass_fields__.values():
             if param.metadata.get('group', None) == name:
-                value = self.get_param_value(param.name)
                 results.update(self.get_param_value(param.name))
         return results
 

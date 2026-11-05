@@ -241,7 +241,7 @@ class CrystallizationExperiment:
                         continue
                     i = (row - 1) * self.no_columns + col  # cell index, 1-based
                     indices[i - 1] = True
-            return np.where(indices == True)[0]
+            return np.where(indices)[0]
 
     def _location_to_map(self, location: str | list) -> tuple[np.array, np.array]:
         # Parse location and get the indices of the valid positions
@@ -282,7 +282,7 @@ class CrystallizationExperiment:
             raise ValueError("'location_map' must have the same shape as the experiment")
 
         # Calculate the bounding box of the mask
-        mask_indices = np.where(location_map == True)
+        mask_indices = np.where(location_map)
         r_min, c_min = np.min(mask_indices, axis=1)  # [r_min, c_min]
         r_max, c_max = np.max(mask_indices, axis=1)  # [r_max, c_max]
 

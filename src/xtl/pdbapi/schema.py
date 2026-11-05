@@ -158,7 +158,7 @@ class _RCSBSchema:
         try:
             # Search schema: "Schema version: X.X.X" / Data schema: "schema_version: X.X.X"
             self.schema_version = json.get('$comment', 'Schema version: ').split(': ')[-1]
-        except:
+        except (AttributeError, TypeError):
             self.schema_version = 'UNK'
         self._turn_object_to_attribute('', json)
         self._post_parsing_cleanup()
