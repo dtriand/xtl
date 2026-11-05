@@ -14,6 +14,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  # pre-commit hooks on all files (hygiene, ruff check, ruff format, ...)
+  lint:
+    name: lint
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Lint with tox
+        run: uvx --with tox-uv tox -e lint
+
   # Locked dependencies (uv.lock) through tox-uv, as when testing locally
   uv:
     name: uv / ${{ matrix.os }} / py${{ matrix.python-version }}
