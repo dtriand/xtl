@@ -5,7 +5,8 @@ from pathlib import Path
 
 from pydantic import Field
 
-from xtl.common.options import Option, Options
+from xtl.common.options import Option, Options, VersionedOptions
+from xtl.config.version import VersionInfo
 from xtl.common.validators import cast_as, validate_length
 from xtl.exceptions.pydantic import OptionsValidationError
 
@@ -318,3 +319,36 @@ class TestOptions:
             ParentModel(kid=NoneModel(values=[None])).to_toml()
         with pytest.raises(ValueError, match=r'Cannot serialize None at `children\[1\]\.mapping\.a`'):
             ParentModel(children=[NoneModel(), NoneModel(mapping={'a': None})]).to_toml()
+
+
+class TestVersionedOptions:
+    class Model(VersionedOptions):
+        _version_path = 'version'
+        version: str = Option(default='1.2.0')
+
+    class TaggedModel(Model):
+        _current_version = VersionInfo.from_str('1.2.0')
+
+    newer = {'version': '1.3.0'}
+    message = "newer than the model's current version"
+
+    def test_no_current_version_by_default(self, caplog):
+        assert VersionedOptions._current_version is None
+        assert self.Model.from_dict(self.newer).version == '1.3.0'
+        assert self.message not in caplog.text
+
+    @pytest.mark.parametrize('version', ['1.1.0', '1.2.0'])
+    def test_not_newer(self, caplog, version):
+        assert self.TaggedModel.from_dict({'version': version}).version == version
+        assert self.message not in caplog.text
+
+    def test_newer_from_dict(self, caplog):
+        assert self.TaggedModel.from_dict(self.newer).version == '1.3.0'
+        assert (
+            "TaggedModel data is from version 1.3.0, which is newer than the model's current version 1.2.0"
+            in caplog.text
+        )
+
+    def test_newer_from_json(self, caplog):
+        assert self.TaggedModel.from_json('{"version": "1.3.0"}').version == '1.3.0'
+        assert self.message in caplog.text

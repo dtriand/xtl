@@ -40,7 +40,7 @@ import toml
 from toml.decoder import CommentValue
 
 from xtl.common.validators import *
-from xtl.config.version import VersionInfo, version as xtl_version
+from xtl.config.version import VersionInfo
 from xtl.logging import Logger
 from xtl.files.toml import ExtendedTomlEncoder
 from xtl.common.typed_vars import TypedIterable
@@ -1052,6 +1052,10 @@ class LegacyOptions(Options, abc.ABC):
 class VersionedOptions(Options):
     _version_path: ClassVar[str] = None
     _legacy_versions: ClassVar[dict[tuple[int, int, int], type[LegacyOptions]]] = None
+    _current_version: ClassVar[VersionInfo | None] = None
+    """The current version of this model's data layout, a tag of its own (not the version
+    of xtl). Data from a newer version triggers a warning when loaded. ``None`` (the
+    default) skips the check."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -1114,13 +1118,19 @@ class VersionedOptions(Options):
         raise KeyError(f'Could not find version information in the data. Checked paths: {", ".join(candidate_paths)}')
 
     @classmethod
+    def _check_version(cls, version: VersionInfo) -> None:
+        current = cls._current_version
+        if current is not None and version.tuple_safe > current.tuple_safe:
+            logger.warning(
+                "%(model_cls)s data is from version %(version)s, which is newer than the model's current version "
+                '%(current)s.',
+                {'model_cls': cls.__name__, 'version': version.pep440, 'current': current.pep440},
+            )
+
+    @classmethod
     def from_dict(cls, data: dict[str, Any], upgrade: bool = False) -> Self | LegacyOptions:
         version = cls._resolve_version(data)
-        if version.tuple_safe > xtl_version.tuple_safe:
-            logger.warning(
-                '%(model_cls) version is %(version)s, which is newer than the current XTL version %(xtl_version)s.',
-                {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version},
-            )
+        cls._check_version(version)
 
         legacy_cls = cls._get_legacy_model(version)
         if legacy_cls is None:
@@ -1156,11 +1166,7 @@ class VersionedOptions(Options):
             data = json.loads(path.read_text())
 
         version = cls._resolve_version(data)
-        if version.tuple_safe > xtl_version.tuple_safe:
-            logger.warning(
-                '%(model_cls) version is %(version)s, which is newer than the current XTL version %(xtl_version)s.',
-                {'model_cls': cls.__name__, 'version': version, 'xtl_version': xtl_version},
-            )
+        cls._check_version(version)
 
         legacy_cls = cls._get_legacy_model(version)
         if legacy_cls is None:
