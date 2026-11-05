@@ -1,7 +1,6 @@
 """
 Central location for various compatibility checks.
 """
-import platform
 import sys
 
 
@@ -41,13 +40,13 @@ PY314_OR_LESS: bool = (PY_VERS < (3, 15))
 #############
 # OS checks #
 #############
-OS_WINDOWS: bool = platform.system() == 'Windows'
+OS_WINDOWS: bool = sys.platform == 'win32'
 """Operating system is Windows"""
 
-OS_LINUX: bool = platform.system() == 'Linux'
+OS_LINUX: bool = sys.platform == 'linux'
 """Operating system is Linux"""
 
-OS_MACOS: bool = platform.system() == 'Darwin'
+OS_MACOS: bool = sys.platform == 'darwin'
 """Operating system is macOS"""
 
 OS_POSIX: bool = OS_LINUX or OS_MACOS

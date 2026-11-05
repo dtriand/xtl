@@ -39,10 +39,9 @@ class ConsoleIO(rich.console.Console):
         # Inject modules to settings
         if options.has_modules:
             for dep_name, modules in options.modules.items():
-                if dep_name in settings.dependencies.to_dict().keys():
+                if dep_name in settings.dependencies:
                     REQUIRED_DEPENDENCIES[dep_name] = modules
-                    dep = getattr(settings.dependencies, dep_name)
-                    dep.modules = modules
+                    settings.dependencies.get(dep_name).modules = modules
                 else:
                     REQUIRED_DEPENDENCIES['extra'].extend(modules)
 

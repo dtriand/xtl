@@ -152,10 +152,10 @@ def jobs_depend_on(*dependencies: str):
         raise ValueError('Job dependencies cannot be empty')
     if dependencies:
         for dep in dependencies:
-            if dep in settings.dependencies.to_dict().keys():
+            if dep in settings.dependencies:
                 if dep not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES:
                     xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep] = []
-                modules = getattr(settings.dependencies, dep).modules
+                modules = settings.dependencies.get(dep).modules
                 for module in modules:
                     if module not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep]:
                         xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep].append(module)

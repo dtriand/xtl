@@ -151,9 +151,9 @@ class BatchFile:
         return self._compute_site
 
     @property
-    def dependencies(self) -> set[DependencySettings]:
+    def dependencies(self) -> list[DependencySettings]:
         """
-        Returns a set of `DependencySettings` for the batch file.
+        Returns the `DependencySettings` for the batch file.
         """
         return self._dependencies
 

@@ -1,5 +1,5 @@
 from enum import Enum
-import platform
+import socket
 
 from xtl.common.compatibility import PY310_OR_LESS
 from .sites import LocalSite, ModulesSite, BiotixHPC
@@ -12,7 +12,7 @@ else:
 
 
 # Get the current hostname
-_hostname = platform.node()
+_hostname = socket.gethostname()
 
 
 class ComputeSite(StrEnum):

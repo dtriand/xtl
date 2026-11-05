@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 3
 
    xtl.common.compatibility
+   xtl.common.environment
    xtl.common.options
    xtl.common.validators
    xtl.common.serializers

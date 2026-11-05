@@ -2,14 +2,25 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+import atexit
 import importlib
 import inspect
 import os
 from pathlib import Path
+import shutil
 import sys
+import tempfile
 
-sys.path.insert(0, os.path.abspath('.'))  # for custom lexers
+sys.path.insert(0, os.path.abspath('.'))  # for custom lexers and extensions
 sys.path.insert(0, os.path.abspath('../../src'))  # for xtl
+
+# Autodoc imports modules that load `xtl.settings`, which would read or create a config
+#  file. Point XTL_CONFIG to an empty temporary file instead, so that no config is
+#  created and the docs always show the default settings.
+_config_dir = tempfile.mkdtemp(prefix='xtl-docs-')
+atexit.register(shutil.rmtree, _config_dir, ignore_errors=True)
+(Path(_config_dir) / 'xtl.toml').touch()
+os.environ['XTL_CONFIG'] = str(Path(_config_dir) / 'xtl.toml')
 
 import xtl
 
@@ -36,6 +47,8 @@ extensions = [
     'sphinx.ext.linkcode',             # Source code links
     'sphinx_favicon',                  # HTML favicon
     'sphinxcontrib.autodoc_pydantic',  # Pydantic models autodoc
+    'sphinx_design',                   # Tabs, cards, ...
+    'shell_tabs',                      # Shell-specific commands as tabs (local)
 ]
 
 templates_path = ['_templates']

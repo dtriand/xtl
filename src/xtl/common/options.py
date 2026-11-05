@@ -838,10 +838,10 @@ class Options(BaseModel):
                        keep_comments: bool = False, path: str = '') -> Any:
         """
         Convert a value to TOML data: nested |Options| and dictionaries to tables, iterables to lists (element-wise),
-        and anything else to a ``toml.CommentValue``, with the field's description as comment. Since TOML has no
-        null, ``None`` fields are returned as ``_TOML_SKIP``, so that they are left out (they then load as the
-        default of the field), while ``None`` inside dictionaries and iterables raises an error, since leaving it
-        out would change the data.
+        and anything else to a ``toml.CommentValue`` with the field's description as comment (or the plain value, if
+        there is no comment). Fields with ``exclude=True`` are left out. Since TOML has no null, ``None`` fields are
+        returned as ``_TOML_SKIP``, so that they are left out (they then load as the default of the field), while
+        ``None`` inside dictionaries and iterables raises an error, since leaving it out would change the data.
 
         :param value: The value to convert.
         :param field: The field of the value, for its serializer and description, or None for values inside
@@ -865,6 +865,9 @@ class Options(BaseModel):
         if isinstance(value, Options):
             table = {}
             for name, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items():
+                # Fields excluded from serialization are left out, as in `to_dict()`
+                if getattr(vfield, 'exclude', False):
+                    continue
                 key = cls._toml_key(name, vfield)
                 item = cls._value_to_toml(getattr(value, name), field=vfield, keep_comments=keep_comments,
                                           path=f'{path}.{key}' if path else key)
@@ -882,8 +885,10 @@ class Options(BaseModel):
             return [cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]')
                     for i, v in enumerate(value)]
 
-        comment = f'# {field.description}' if field is not None and field.description and keep_comments else ''
-        return CommentValue(val=value, comment=comment, beginline=False, _dict=dict)
+        # Plain values without a comment, since an empty CommentValue leaves a trailing space
+        if field is None or not field.description or not keep_comments:
+            return value
+        return CommentValue(val=value, comment=f'# {field.description}', beginline=False, _dict=dict)
 
     def _field_to_comment_value(self, name: str, field: FieldInfo | ComputedFieldInfo,
                                 keep_comments: bool = False) -> Any:

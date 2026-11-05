@@ -4,8 +4,9 @@ models that are used to configure various aspects of XTL. The main class that ho
 settings is :class:`XTLSettings`.
 """
 from __future__ import annotations
+from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar, Iterable, Optional, Literal
 
 from pydantic import PrivateAttr
 
@@ -16,17 +17,19 @@ from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import VersionInfo
+from xtl.common.environment import XTL_CONFIG
 from xtl.common.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
+from xtl.exceptions.pydantic import OptionsValidationError
 
 
 def _get_extra_keys(options: Options) -> dict:
     """
     Helper function to recursively collect __pydantic_extra__ keys from nested Options.
     """
-    extra = options.__pydantic_extra__ or dict()
+    extra = dict(options.__pydantic_extra__ or {})
     for name in options.__pydantic_fields__:
         value = getattr(options, name)
         if isinstance(value, Options):
@@ -36,6 +39,21 @@ def _get_extra_keys(options: Options) -> dict:
                 extra.update({name: sub_extra})
     extra.pop('_parse_env', None)
     return extra
+
+
+def _flatten_keys(data: dict, prefix: str = '') -> list[str]:
+    """
+    Helper function to flatten nested dictionary keys to dotted paths, *e.g.*
+    ``{'units': {'colour': 'blue'}} -> ['units.colour']``.
+    """
+    keys = []
+    for key, value in data.items():
+        path = f'{prefix}.{key}' if prefix else str(key)
+        if isinstance(value, dict) and value:
+            keys.extend(_flatten_keys(value, path))
+        else:
+            keys.append(path)
+    return keys
 
 
 class Settings(Options):
@@ -51,8 +69,6 @@ class Settings(Options):
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
 
-    # Make Settings hashable so that it can be used in sets or as dict keys
-    __hash__ = object.__hash__
 
 
 class UnitsSettings(Settings):
@@ -200,17 +216,14 @@ class JobsSettings(Settings):
 
 class DependencySettings(Settings):
     """
-    Generic external dependency settings
+    Generic external dependency settings. Each known dependency is a subclass that
+    defines the executables it provides.
     """
 
-    # Model attributes
-    provides: set[str] = \
-        Option(
-            default_factory=set,
-            desc='List of executables provided by this dependency',
-            exclude=True
-        )
+    # Executables provided by the dependency; defined by XTL, not configurable
+    _provides: ClassVar[frozenset[str]] = frozenset()
 
+    # Model attributes
     path: Optional[Path] = \
         Option(
             default=None,
@@ -223,6 +236,35 @@ class DependencySettings(Settings):
             default_factory=set,
             desc='Modules that provide the dependency'
         )
+
+    @property
+    def provides(self) -> frozenset[str]:
+        """
+        Executables provided by this dependency. These are defined by XTL for each
+        dependency and cannot be changed in the config file.
+        """
+        return self._provides
+
+
+class AtsasSettings(DependencySettings):
+    """
+    Settings for `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_
+    """
+    _provides = frozenset({'datcmp'})
+
+
+class AutoprocSettings(DependencySettings):
+    """
+    Settings for `autoPROC <https://www.globalphasing.com/autoproc/>`_
+    """
+    _provides = frozenset({'process', 'process_wf'})
+
+
+class EasyBraggSettings(DependencySettings):
+    """
+    Settings for easyBragg
+    """
+    _provides = frozenset({'easyBragg.python'})
 
 
 class DependenciesSettings(Settings):
@@ -240,26 +282,69 @@ class DependenciesSettings(Settings):
                  'If "loose", missing dependencies will be ignored.'
         )
 
-    atsas: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'datcmp'}
-            )
-        )
+    atsas: AtsasSettings = Option(default=AtsasSettings())
+    autoproc: AutoprocSettings = Option(default=AutoprocSettings())
+    easybragg: EasyBraggSettings = Option(default=EasyBraggSettings())
 
-    autoproc: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'process', 'process_wf'}
-            )
-        )
+    @classmethod
+    def names(cls) -> list[str]:
+        """
+        Names of the known dependencies, in definition order.
+        """
+        return [name for name, field in cls.model_fields.items()
+                if isinstance(field.annotation, type)
+                and issubclass(field.annotation, DependencySettings)]
 
-    easybragg: DependencySettings = \
-        Option(
-            default=DependencySettings(
-                provides={'easyBragg.python'}
-            )
-        )
+    def __contains__(self, name: object) -> bool:
+        return name in self.names()
+
+    def get(self, name: str) -> Optional[DependencySettings]:
+        """
+        Get the settings of a known dependency by name.
+
+        :param name: Name of the dependency, *e.g.* ``'atsas'``
+        :return: The dependency settings, or ``None`` if there is no such dependency
+        """
+        return getattr(self, name) if name in self else None
+
+    def items(self) -> list[tuple[str, DependencySettings]]:
+        """
+        The known dependencies as ``(name, settings)`` pairs, in definition order.
+        """
+        return [(name, getattr(self, name)) for name in self.names()]
+
+    def resolve(self, dependencies: Iterable[DependencySettings | str]
+                                    | DependencySettings | str | None) \
+            -> list[DependencySettings]:
+        """
+        Resolve dependency names to their settings. Instances of
+        :class:`DependencySettings` are passed through. Unknown names are skipped with a
+        warning, or raise an error if :attr:`resolution` is ``'strict'``.
+
+        :param dependencies: Dependency names or settings, or ``None``
+        :return: The resolved dependency settings, in the given order and without
+            duplicates
+        :raises ValueError: If a name is unknown and the resolution is ``'strict'``
+        """
+        resolved: list[DependencySettings] = []
+        if dependencies is None:
+            return resolved
+        if isinstance(dependencies, (str, DependencySettings)):
+            dependencies = [dependencies]
+
+        for dependency in dependencies:
+            dep = self.get(dependency) if isinstance(dependency, str) else dependency
+            if dep is None:
+                logger.warning('Dependency `%s` not found in settings', dependency)
+                if self.resolution == 'strict':
+                    logger.error('Strict dependency resolution enabled; missing '
+                                 'dependency `%s`', dependency)
+                    raise ValueError(f'Missing dependency `{dependency}`')
+                continue
+            # Skip duplicates (by identity: equal values may be different dependencies)
+            if not any(d is dep for d in resolved):
+                resolved.append(dep)
+        return resolved
 
 
 class CLIAutoprocSettings(Settings):
@@ -303,6 +388,20 @@ class CLISettings(Settings):
         )
 
 
+@dataclass(frozen=True)
+class ConfigFileInfo:
+    """
+    A candidate location for the ``xtl.toml`` configuration file.
+    """
+    name: Literal['env', 'local', 'user', 'global']
+    path: Path
+    creatable: bool
+
+    @property
+    def exists(self) -> bool:
+        return self.path.is_file()
+
+
 class XTLSettings(Settings):
     """
     Settings for XTL
@@ -318,16 +417,9 @@ class XTLSettings(Settings):
     :meta hide-value:
     """
 
-    local_config: ClassVar[Path] = (Path.cwd() / _toml).absolute()
-    """
-    Path to the local configuration file, located in the current working directory.
-    
-    :meta hide-value:
-    """
-
     # Private attributes are also ignored by Pydantic
     _parse_env: bool = PrivateAttr(default=False)
-    _file: Optional[Path] = PrivateAttr(default=None)  # Path to the input file, if any
+    _source: Optional[ConfigFileInfo] = PrivateAttr(default=None)  # source of settings
 
     # Model attributes
     version: str = Option(default=current_version.string)
@@ -348,48 +440,221 @@ class XTLSettings(Settings):
     cli: CLISettings = Option(default=CLISettings())
     """Settings for CLI tools provided by XTL"""
 
+    @property
+    def source(self) -> Optional[ConfigFileInfo]:
+        """
+        The source of the settings. This is either a :class:`ConfigFileInfo` object
+        representing the configuration file that was loaded, or ``None`` for in-memory
+        defaults.
+        """
+        return self._source
 
     @classmethod
-    def initialize(cls) -> 'XTLSettings':
+    def _load(cls, location: ConfigFileInfo) -> XTLSettings:
         """
-        Initialize by reading an ``xtl.toml`` file. Determines whether to load a
-        local or global configuration file, and initializes the settings accordingly.
-        If neither file exists, it initializes with default values.
+        Load settings from a given configuration file location. If the file cannot be
+        read (missing, invalid TOML or invalid values), it logs an error and returns
+        default settings.
 
-        Once the settings are loaded, a version compatibility check is performed.
-
+        :param location: A :class:`ConfigFileInfo` object representing the configuration
+                         file location to load.
         :return: An instance of :class:`XTLSettings`
         """
-        if cls.local_config.exists():
-            logger.info('Reading local config: %(local_config)s',
-                        {'local_config': cls.local_config})
-            _settings = cls.from_toml(cls.local_config)
-            _settings._file = cls.local_config
-        elif cls.global_config.exists():
-            logger.info('Reading global config: %(global_config)s',
-                        {'global_config': cls.global_config})
-            _settings = cls.from_toml(cls.global_config)
-            _settings._file = cls.global_config
-        else:
-            logger.info('Initializing with default settings (no %(toml)s was found)',
-                        {'toml': cls._toml})
-            _settings = cls()
+        logger.info('Reading %(name)s config: %(path)s',
+                    {'name': location.name, 'path': location.path})
+
+        _settings, errors, warnings = cls._read(location.path)
+        if _settings is None:
+            # Log the error, but don't fall back to the next available location
+            logger.error('Failed to read %(name)s config %(path)s, using default '
+                         'settings instead: %(error)s',
+                         {'name': location.name, 'path': location.path,
+                          'error': '; '.join(errors)})
+            return cls()  # Return default settings if reading fails
+
+        # Set provenance
+        _settings._source = location
+
+        # Warn about any issues in the loaded settings
+        for problem in warnings:
+            logger.warning(problem)
+        return _settings
+
+    @classmethod
+    def _read(cls, path: Path) -> tuple[Optional['XTLSettings'], list[str], list[str]]:
+        """
+        Read a configuration file without logging.
+
+        :param path: Path to the configuration file to read.
+        :return: A tuple of the loaded settings (``None`` if the file cannot be read),
+                 a list of errors and a list of warnings.
+        """
+        try:
+            _settings = cls.from_toml(path)
+        except OptionsValidationError as e:
+            # One error per invalid value, located without the model name
+            #  (e.g. 'units.temperature' instead of 'XTLSettings.units.temperature')
+            errors = [f'{error["loc"].partition(".")[2] or error["loc"]}: '
+                      f'{error["msg"]}' for error in e.errors]
+            return None, errors, []
+        except (OSError, ValueError) as e:
+            return None, [str(e)], []
+        return _settings, [], _settings.check()
+
+    def check(self) -> list[str]:
+        """
+        Check the settings for potential issues, such as version mismatches or unknown
+        keys. Returns a list of warning messages for any issues found.
+
+        :return: A list of warning messages for any issues found in the settings.
+        """
+        problems = []
 
         # Check settings version
-        _v = VersionInfo.from_str(_settings.version)
-        if _v.tuple_safe < current_version.tuple_safe:
-            logger.warning('Using settings from an older version of XTL %(version)s.',
-                           {'version': _v.string})
-        elif _v.tuple_safe > current_version.tuple_safe:
-            logger.warning('Using settings from a newer version of XTL %(version)s. '
-                           'XTL might not behave as intended. Use at your own risk!',
-                           {'version': _v.string})
+        try:
+            _v = VersionInfo.from_str(self.version)
+        except ValueError:
+            problems.append(f'Invalid settings version: {self.version!r}')
+        else:
+            if _v.tuple_safe < current_version.tuple_safe:
+                problems.append(f'Using settings from an older version of XTL '
+                                f'({_v.string}, current {current_version.string}).')
+            elif _v.tuple_safe > current_version.tuple_safe:
+                problems.append(f'Using settings from a newer version of XTL '
+                                f'({_v.string}, current {current_version.string}). '
+                                'XTL might not behave as intended. '
+                                'Use at your own risk!')
 
         # Check for extra keys in the nested Options
-        extra = _settings.__pydantic_extra__ or dict()
-        extra.update(_get_extra_keys(_settings))
+        extra = _flatten_keys(_get_extra_keys(self))
         if extra:
-            logger.warning('Found and ignored unknown keys in the config file',
-                           extra=extra)
+            problems.append('Found and ignored unknown keys in the config file: '
+                            f'{", ".join(extra)}')
 
+        return problems
+
+    @classmethod
+    def check_file(cls, path: Path) -> tuple[list[str], list[str]]:
+        """
+        Check a given configuration file for potential issues, such as version
+        mismatches, unknown keys, or file read errors. Returns a tuple containing a list
+        of errors and warnings for any issues found.
+
+        :param path: Path to the configuration file to check.
+        :return: A tuple containing a list of errors and a list of warnings for any
+                 issues found in the configuration file.
+        """
+        _, errors, warnings = cls._read(path)
+        return errors, warnings
+
+    @classmethod
+    def initialize(cls, create: bool = True) -> 'XTLSettings':
+        """
+        Initialize from the first existing ``xtl.toml`` in :meth:`locations`, in
+        lookup order: ``XTL_CONFIG``, local, user and global. Once loaded, the
+        problems found by :meth:`check` are logged as warnings.
+
+        If no file exists and ``create`` is True, the default settings are written
+        to the first creatable location that succeeds (``XTL_CONFIG``, user, global;
+        never local), logging a warning for each one that fails. If all of them fail,
+        or ``create`` is False, the default settings are used in-memory.
+
+        This method never raises: a file that cannot be read is logged as an error
+        and the default settings are used instead.
+
+        :param create: Whether to create a config file if none is found
+        :return: An instance of :class:`XTLSettings`
+        """
+        locs = cls.locations()
+        # Check for the first existing config file in the lookup order
+        active = cls.active(locs)
+        if active is not None:
+            return cls._load(active)
+
+        # If no config file exists, initialize with defaults
+        _settings = cls()
+        if not create:
+            logger.info('No %(toml)s found, initializing with default settings',
+                        {'toml': cls._toml})
+            return _settings
+
+        # Save config to the first creatable location
+        for loc in locs:
+            if not loc.creatable:
+                continue
+            try:
+                _settings.to_toml(loc.path, comments=True, keep_file_ext=True)
+            except OSError as e:
+                # Another process might have created the file in the meantime
+                if isinstance(e, FileExistsError) and loc.exists:
+                    return cls._load(loc)
+                logger.warning('Failed to create %(name)s config at %(path)s: '
+                               '%(error)s', {'name': loc.name, 'path': loc.path,
+                                             'error': e})
+                continue
+            logger.info('Created %(name)s config at %(path)s',
+                        {'name': loc.name, 'path': loc.path})
+            _settings._source = loc
+            return _settings
+
+        logger.warning('Failed to create a config file in any of the candidate '
+                       'locations, using default settings in-memory')
         return _settings
+
+    @classmethod
+    def active(cls, locations: Optional[list[ConfigFileInfo]] = None) \
+            -> Optional[ConfigFileInfo]:
+        """
+        The active config file: the first existing one in :meth:`locations`, which is
+        the file that :meth:`initialize` loads. Whether the file can be read is not
+        checked (see :meth:`check_file`).
+
+        :param locations: Candidate locations to search, as returned
+            by :meth:`locations` (default: computed now)
+        :return: A :class:`ConfigFileInfo`, or ``None`` if no config file exists
+        """
+        if locations is None:
+            locations = cls.locations()
+        return next((loc for loc in locations if loc.exists), None)
+
+    @classmethod
+    def locations(cls) -> list[ConfigFileInfo]:
+        """
+        Candidate config file locations in lookup order: ``XTL_CONFIG``, local, user
+        and global. Computed on every call, so that changes to the environment or the
+        working directory are picked up.
+
+        :return: A list of :class:`ConfigFileInfo`, whether the files exist or not
+        """
+        from platformdirs import user_config_dir
+
+        locations = []
+
+        # Environment variable (if set)
+        env_path = XTL_CONFIG.value
+        if env_path is not None:
+            if env_path.is_dir():
+                logger.warning('Ignoring XTL_CONFIG, it points to a directory: '
+                               '%(path)s', {'path': env_path})
+            else:
+                locations.append(
+                    ConfigFileInfo(name='env', path=env_path, creatable=True))
+
+        # Local config (never create automatically)
+        locations.append(ConfigFileInfo(name='local', path=Path.cwd() / cls._toml,
+                                        creatable=False))
+
+        # User config (platform-dependent)
+        locations.append(
+            ConfigFileInfo(
+                name='user',
+                path=Path(user_config_dir('xtl', appauthor=False)) / cls._toml,
+                creatable=True
+            )
+        )
+
+        # Global config (installation directory)
+        locations.append(ConfigFileInfo(name='global', path=cls.global_config,
+                                        creatable=True))
+
+        return locations

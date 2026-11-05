@@ -112,13 +112,13 @@ class BatchFile:
         from xtl import settings
         deps = list()
 
-        for dname, dep in settings.dependencies:
+        for dname, dep in settings.dependencies.items():
             if dname in self._dependencies:
                 deps.append(dep)
 
         # Report missing dependencies
         for dname in self._dependencies:
-            if dname not in settings.dependencies.to_dict():
+            if dname not in settings.dependencies:
                 if self._strict_resolution:
                     logger.warning('Dependency %(name)s not found in xtl.settings, '
                                    'skipping', {'name': dname})

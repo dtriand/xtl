@@ -234,20 +234,20 @@ class TestOptions:
 
     def test_toml(self):
         c0 = self.ComplexModel(name='Alice', age=2)
-        assert c0.to_toml() == ('first_name = "Alice" \n'
-                                'age = 2 \n'
-                                'env = "${XTLMAGIC}" \n'
-                                'formatted_env = "${XTLMAGIC}" \n')
+        assert c0.to_toml() == ('first_name = "Alice"\n'
+                                'age = 2\n'
+                                'env = "${XTLMAGIC}"\n'
+                                'formatted_env = "${XTLMAGIC}"\n')
 
         c1 = self.ComplexModel.from_toml(c0.to_toml())
         assert c0.to_dict() == c1.to_dict()
 
         os.environ['XTLMAGIC'] = 'magic'
         c0 = self.ComplexModel(name='Alice', age=2, _parse_env=True)
-        assert c0.to_toml() == ('first_name = "Alice" \n'
-                                'age = 2 \n'
-                                'env = "magic" \n'
-                                'formatted_env = "MAGIC" \n')
+        assert c0.to_toml() == ('first_name = "Alice"\n'
+                                'age = 2\n'
+                                'env = "magic"\n'
+                                'formatted_env = "MAGIC"\n')
 
         c1 = self.ComplexModel.from_toml(c0.to_toml())
         assert c0.to_dict() == c1.to_dict()
@@ -303,13 +303,23 @@ class TestOptions:
 
         m = FormatModel()
         # Formatters apply to iterables too, and their output is converted recursively
-        assert m.to_toml() == ('joined = "a b" \n'
-                               'spec = [ "1" , "2" ,]\n'
-                               'none_ok = "auto" \n')
+        assert m.to_toml() == ('joined = "a b"\n'
+                               'spec = [ "1", "2",]\n'
+                               'none_ok = "auto"\n')
 
         # Fields formatted as None are left out
         assert 'dropped' not in FormatModel(dropped=0).to_toml()
         assert 'dropped = 3' in FormatModel(dropped=3).to_toml()
+
+    def test_toml_exclude(self):
+        class ExcludeModel(Options):
+            kept: int = Option(default=1)
+            hidden: int = Option(default=2, exclude=True)
+
+        # Excluded fields are left out of TOML, as they are from dicts
+        s = ExcludeModel(hidden=3).to_toml()
+        assert s == 'kept = 1\n'
+        assert ExcludeModel.from_toml(s).hidden == 2
 
     def test_toml_none(self):
         class NoneModel(Options):
