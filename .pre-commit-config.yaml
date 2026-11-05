@@ -19,6 +19,8 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.3  # keep in step with ruff in uv.lock
     hooks:
+      - id: ruff-check
+        args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject

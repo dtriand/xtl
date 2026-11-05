@@ -110,9 +110,28 @@ include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.ruff]
 line-length = 120
+extend-exclude = [
+    # Legacy code
+    "src/xtl/GSAS2",
+    "tests/GSAS2",
+]
+force-exclude = true  # also exclude these when pre-commit passes the file names
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+    "E4",      # imports: one per line, at the top of the file
+    "E7",      # statements: `== None/True`, `not x in`, bare `except`, `type(x) ==`, lambdas, names `l`/`O`/`I`
+    "E9",      # unreadable files (syntax errors are always reported)
+    "F",       # pyflakes: undefined names, unused imports/variables, star imports, ...
+    "W605",    # invalid escape sequences like '\d'
+    "RUF100",  # unused or unknown `# noqa` comments
+]
+ignore = [
+    "E731",  # lambda assignments
+]
 
 [tool.tox]
 requires = ["tox>=4.22", "tox-uv>=1.11"]
