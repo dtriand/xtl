@@ -52,7 +52,7 @@ def cli_diffraction_sum(
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
-        cli.print(f'Error: Failed to read all images', style='red')
+        cli.print('Error: Failed to read all images', style='red')
         raise typer.Abort()
 
     shape = images[0].data.shape
@@ -80,9 +80,9 @@ def cli_diffraction_sum(
 
     # Save summed image
     if average:
-        output_image = (output_dir / f'averaged.npy').resolve()
+        output_image = (output_dir / 'averaged.npy').resolve()
     else:
-        output_image = (output_dir / f'summed.npy').resolve()
+        output_image = (output_dir / 'summed.npy').resolve()
     if output_image.exists() and not overwrite:
         cli.print(f'Error: File {output_image} already exists, use --force to overwrite', style='red')
         raise typer.Abort()

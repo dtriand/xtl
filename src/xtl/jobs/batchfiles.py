@@ -9,7 +9,7 @@ from typing import Callable, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings
-    from xtl.jobs.sites import ComputeSiteType, LocalSite, SchedulerSite
+    from xtl.jobs.sites import ComputeSiteType, SchedulerSite
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
 from xtl.common.compatibility import PY310_OR_LESS
@@ -100,7 +100,6 @@ class BatchFile:
         # Imports to prevent circular dependencies
         from xtl import settings
         from xtl.jobs.sites import ComputeSiteType, LocalSite
-        from xtl.jobs.config import BatchJobConfig
 
         # Check compute_site
         if compute_site and not isinstance(compute_site, ComputeSiteType):

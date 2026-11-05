@@ -75,7 +75,7 @@ def cli_diffraction_plot_2d(
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
-        cli.print(f'Error: Failed to read all images', style='red')
+        cli.print('Error: Failed to read all images', style='red')
         raise typer.Abort()
 
     # Imports
@@ -112,11 +112,11 @@ def cli_diffraction_plot_2d(
             mean = np.nanmean(image.data_masked)
             std = np.nanstd(image.data_masked)
             if zmin is not None and verbose:
-                cli.print(f'Skipping zmin normalization: already set', style='yellow')
+                cli.print('Skipping zmin normalization: already set', style='yellow')
             else:
                 vmin = mean - nstd * std
             if zmax is not None and verbose:
-                cli.print(f'Skipping zmax normalization: already set', style='yellow')
+                cli.print('Skipping zmax normalization: already set', style='yellow')
             else:
                 vmax = mean + nstd * std
             if verbose:

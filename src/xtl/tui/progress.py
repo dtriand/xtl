@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import rich.progress
 
@@ -141,7 +141,7 @@ class ProgressBar:
         **kwargs,
     ) -> None:
         if no_tasks is not None and len(names) != 0 and no_tasks != len(names):
-            raise ValueError(f'`no_tasks` is different from the number of `names` provided')
+            raise ValueError('`no_tasks` is different from the number of `names` provided')
         elif len(names) == 0 and no_tasks is not None:
             names = (f'Task {i}' for i in range(no_tasks))
 

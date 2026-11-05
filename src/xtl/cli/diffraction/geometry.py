@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import typer
 
 if TYPE_CHECKING:
-    from pyFAI.detectors import ALL_DETECTORS, Detector
+    from pyFAI.detectors import Detector
     from pyFAI.geometry import Geometry
 
 from xtl.cli.cliio import Console
@@ -24,12 +24,12 @@ def get_detector_info(detector: 'Detector') -> dict:
         pixel_size = f'{detector.pixel1 * 1e6:.2f}\u00d7{detector.pixel2 * 1e6:.2f}'
     else:
         pixel_size = 'N/A'
-    detector_info['Pixel size (h\u00d7v) \[\u03bcm]'] = pixel_size
+    detector_info['Pixel size (h\u00d7v) \\[\u03bcm]'] = pixel_size
     if detector.shape is not None:
         dimensions = f'{detector.shape[1]}\u00d7{detector.shape[0]}'
     else:
         dimensions = 'N/A'
-    detector_info['Dimensions (h\u00d7v) \[px]'] = dimensions
+    detector_info['Dimensions (h\u00d7v) \\[px]'] = dimensions
     return detector_info
 
 

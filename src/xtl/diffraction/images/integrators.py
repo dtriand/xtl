@@ -138,7 +138,7 @@ class AzimuthalIntegrator1D(_Integrator):
 
         self.masked_pixels_value = float(masked_pixels_value)
         if error_model not in [None, 'poisson', 'azimuthal']:
-            raise ValueError(f"Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
+            raise ValueError("Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
@@ -357,11 +357,11 @@ class AzimuthalIntegrator1D(_Integrator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
 
         intensities, radial = self.results.intensity, self.results.radial
         ax.plot(radial, intensities, color=line_color, label=label)
@@ -436,7 +436,7 @@ class AzimuthalIntegrator2D(_Integrator):
 
         self.masked_pixels_value = float(masked_pixels_value)
         if error_model not in [None, 'poisson', 'azimuthal']:
-            raise ValueError(f"Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
+            raise ValueError("Unknown error model. Must be one of: None, 'poisson', 'azimuthal'")
         self.error_model = error_model
 
         self._integrator = _AzimuthalIntegrator()
@@ -637,17 +637,17 @@ class AzimuthalIntegrator2D(_Integrator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
         if zscale in [None, 'linear']:
             norm = partial(Normalize, clip=False)
         elif zscale in ['log', 'log10']:
             norm = partial(LogNorm, clip=False)
         else:
-            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log")
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log")
 
         if cmap is None:
             cmap = plt.get_cmap(self.image.cmap)

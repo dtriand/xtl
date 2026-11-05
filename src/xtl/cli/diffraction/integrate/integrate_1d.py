@@ -88,7 +88,7 @@ def cli_diffraction_integrate_1d(
         images = get_image_frames(input_images)
     except ValueError as e:
         cli.print_traceback(e)
-        cli.print(f'Error: Failed to read all images', style='red')
+        cli.print('Error: Failed to read all images', style='red')
         raise typer.Abort()
 
     try:
@@ -147,7 +147,7 @@ def cli_diffraction_integrate_1d(
         raise typer.Abort()
     except FileExistsError as e:
         cli.print_traceback(e)
-        cli.print(f'Error: Output file already exists', style='red')
+        cli.print('Error: Output file already exists', style='red')
         raise typer.Abort()
 
     cli.print(f'Integration complete. Results saved to: {output_dir}', style='green')

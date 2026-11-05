@@ -66,7 +66,7 @@ class XdsLpParser:
             raise ValueError(f'Invalid value type: {value_type}')
 
         # Escape special characters on the key
-        key = key.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
+        key = key.replace('(', r'\(').replace(')', r'\)').replace('[', r'\[').replace(']', r'\]')
 
         if value_type == 'int':
             # optional space, one or more digits
@@ -102,7 +102,7 @@ class XdsLpParser:
             raise ValueError(f'Invalid value type: {values_type}')
 
         # Escape special characters on the key
-        key = key.replace('(', '\(').replace(')', '\)').replace('[', '\[').replace(']', '\]')
+        key = key.replace('(', r'\(').replace(')', r'\)').replace('[', r'\[').replace(']', r'\]')
 
         if values_type == 'int':
             # space-separated list of [one or more digits]
@@ -137,7 +137,7 @@ class XdsLpParser:
         self, line: str, keys: list[str], value_types: list[str], sep: str = '', block: str = None
     ):
         if len(keys) != len(value_types):
-            raise ValueError(f'keys and value_types lists must have the same length')
+            raise ValueError('keys and value_types lists must have the same length')
 
         values = []
         for key, value_type in zip(keys, value_types):

@@ -99,7 +99,7 @@ def cli_diffraction_correlate_qq(
 
         images = get_image_frames(input_images)
     if catcher.raised:
-        cli.print(f'Error: Failed to read all images', style='red')
+        cli.print('Error: Failed to read all images', style='red')
         raise typer.Abort()
 
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:

@@ -117,7 +117,7 @@ class Spectrum:
         y = np.array(y)
         for i in (x, y):
             if len(i.shape) != 1:
-                raise InvalidArgument(raiser=i, message=f'Must be a 1D array')
+                raise InvalidArgument(raiser=i, message='Must be a 1D array')
         obj = cls()
         obj.data.x, obj.data.y = x, y
         obj.data.check_data()

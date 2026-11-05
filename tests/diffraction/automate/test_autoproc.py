@@ -95,9 +95,9 @@ class TestAutoPROCJob:
         print(content)
         for line in content.splitlines():
             if line.startswith('# autoproc_id'):
-                assert line == f'# autoproc_id = xtl0409'
+                assert line == '# autoproc_id = xtl0409'
             if line.startswith('# no_sweeps'):
-                assert line == f'# no_sweeps = 2'
+                assert line == '# no_sweeps = 2'
             if line.startswith('__args'):
                 assert '-B -M PetraIIIP14 -M HighResCutOnCChalf' in line
                 line = line.replace('-B -M PetraIIIP14 -M HighResCutOnCChalf', '')
@@ -115,17 +115,17 @@ class TestAutoPROCJob:
                         assert img_no_first == '1'
                         assert img_no_last == '100'
             if line.startswith('cell'):
-                assert line == f'cell="78.0 78.0 37.0 90.0 90.0 90.0"'
+                assert line == 'cell="78.0 78.0 37.0 90.0 90.0 90.0"'
             if line.startswith('symm'):
-                assert line == f'symm=P43212'
+                assert line == 'symm=P43212'
             if line.startswith('autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS'):
-                assert line == f'autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS=16'
+                assert line == 'autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_JOBS=16'
             if line.startswith('autoPROC_XdsIntegPostrefNumCycle'):
-                assert line == f'autoPROC_XdsIntegPostrefNumCycle=5'
+                assert line == 'autoPROC_XdsIntegPostrefNumCycle=5'
             if line.startswith('# job_type'):
-                assert line == f'# job_type = xtl.autoproc.process'
+                assert line == '# job_type = xtl.autoproc.process'
             if line.startswith('# run_number'):
-                assert line == f'# run_number = 1'
+                assert line == '# run_number = 1'
             if line.startswith('# job_dir'):
                 assert Path(line.replace('# job_dir', '')).parts[-5:] == ('a', 'b', 'processed', 'c', 'autoproc_run01')
             if line.startswith('# autoproc_output_dir'):
@@ -138,8 +138,8 @@ class TestAutoPROCJob:
                     'autoproc',
                 )
             if line.startswith('# single_sweep'):
-                assert line == f'# single_sweep = False'
+                assert line == '# single_sweep = False'
             if line.startswith('# is_h5'):
                 assert line == f'# is_h5 = {is_h5}'
             if line.startswith('# modules'):
-                assert line == f'# modules = []'
+                assert line == '# modules = []'

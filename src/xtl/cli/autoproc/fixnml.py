@@ -140,7 +140,7 @@ def cli_autoproc_fixnml(
         try:
             output_nml = output_nml.resolve()
             nml.write(output_nml, force=overwrite)
-        except OSError as e:
+        except OSError:
             cli.print(f'[red]File {output_nml} already exists[/]')
             raise typer.Abort()
 

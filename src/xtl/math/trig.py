@@ -1,6 +1,6 @@
-from math import sin as _sin, sinh as _sinh, asin as _asin
-from math import cos as _cos, cosh as _cosh, acos as _acos
-from math import tan as _tan, tanh as _tanh, atan as _atan
+from math import sin as _sin, asin as _asin
+from math import cos as _cos, acos as _acos
+from math import tan as _tan, atan as _atan
 from math import radians, degrees
 
 from typing_extensions import Literal

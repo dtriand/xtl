@@ -1,8 +1,4 @@
-from pathlib import Path
-
 from pyFAI.detectors import ALL_DETECTORS, Detector
-from pyFAI.geometry import Geometry
-from tabulate import tabulate
 import typer
 
 from xtl.cli.cliio import CliIO

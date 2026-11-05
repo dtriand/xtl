@@ -330,7 +330,7 @@ class LivePool(PoolProtocol):
 
         self._console.print('\n[dim]--- Job logs ---[/]', justify='center')
         self._log_panel.replay()
-        self._console.print(f'[dim]--- End of job logs ---[/]', justify='center')
+        self._console.print('[dim]--- End of job logs ---[/]', justify='center')
 
     def submit(
         self,
@@ -364,7 +364,7 @@ class LivePool(PoolProtocol):
         :param mode: Whether to return all results together (`'all'`) or yield them as each job completes (`'stream'`).
         """
         if mode not in ['all', 'stream']:
-            raise BadParameter(f"`mode` must be one of: 'all', 'stream'")
+            raise BadParameter("`mode` must be one of: 'all', 'stream'")
 
         # Start progress bar
         if self._progress:

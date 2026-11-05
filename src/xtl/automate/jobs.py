@@ -92,7 +92,7 @@ class Job:
 
         # Raise warnings for incompatible shells but continue
         if self._supported_shells:
-            if not shell in self._supported_shells:
+            if shell not in self._supported_shells:
                 warnings.warn(
                     f"Shell '{shell.name}' is not compatible with job '{self.__class__.__name__}'",
                     category=IncompatibleShellWarning,

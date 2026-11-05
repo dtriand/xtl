@@ -1,8 +1,6 @@
 import io
 import logging
-import os
 import pytest
-import sys
 import tempfile
 from pathlib import Path
 

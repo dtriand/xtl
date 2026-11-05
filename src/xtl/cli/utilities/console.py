@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import rich.console
 import rich.theme
@@ -8,7 +8,7 @@ from xtl import settings
 from xtl.logging.config import LoggerConfig
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import JobPool, BasePool
+    from xtl.jobs.pools import JobPool
     from xtl.cli.utilities.common import JobOptions
     from xtl.tui.live_pool import LivePool
 

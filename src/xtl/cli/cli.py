@@ -30,9 +30,9 @@ def cli_main(ctx: click.core.Context, debug: bool, verbose: bool):
     :returns:
     """
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
-        click.secho(f'Verbose mode is on.', fg='magenta')
+        click.secho('Verbose mode is on.', fg='magenta')
 
     # Note: Passing parameters in ctx.obj might not be necessary after all, since each cli and its subcommands accept
     #  the same options (i.e. debug, verbose).

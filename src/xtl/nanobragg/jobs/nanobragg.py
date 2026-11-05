@@ -1,15 +1,12 @@
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from xtl.common.options import Option
 from xtl.common.validators import cast_as_temp_dir_if_none
-from xtl.exceptions.base import StderrError
-from xtl.jobs.jobs import Job, BatchJob, SteppedJob
+from xtl.jobs.jobs import BatchJob, SteppedJob
 from xtl.jobs.steps import StepSpec
-from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
+from xtl.jobs.config import BatchJobConfig, SteppedJobConfig
 from xtl.jobs.shells import Shell
-
-from xtl.nanobragg.config import NanoBraggOptions
 
 
 class NanoBraggBatchJobConfig(BatchJobConfig):

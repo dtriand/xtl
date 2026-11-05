@@ -8,12 +8,12 @@ to label columns such as intensities, uncertainties (sigmas) and angles.
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import numpy as np
 from pandas.api.extensions import ExtensionDtype, ExtensionArray, register_extension_dtype, take as ext_take
 
-from xtl.units.base import Units, UnitsDescription
+from xtl.units.base import Units
 from xtl.units.scattering.radial import RadialUnits
 from xtl.units.scattering.intensity import IntensityUnits
 

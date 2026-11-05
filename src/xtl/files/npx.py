@@ -93,7 +93,7 @@ class NpxFile:
             header = self._make_header().encode(encoding='latin1')
             info = self._make_info().encode(encoding='latin1')
         except UnicodeEncodeError as e:
-            print(f'Encoding error while preparing NPX header')
+            print('Encoding error while preparing NPX header')
             print(
                 f"Cannot encode characters '{e.object[e.start : e.end]}' in position {e.start}:{e.end} to encoding "
                 f"'{e.encoding}'"

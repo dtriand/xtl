@@ -1,5 +1,3 @@
-from wsgiref.validate import validator
-
 import pytest
 
 from dataclasses import dataclass

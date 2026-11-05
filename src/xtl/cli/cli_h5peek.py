@@ -77,7 +77,7 @@ def cli_h5peek(
                 raise typer.Abort()
 
             dtype = get_formatted_dtype(a)
-            cli.echo(f'ATTRIBUTE')
+            cli.echo('ATTRIBUTE')
             cli.echo(f'  dtype: {dtype}')
             cli.echo(f'  shape: {a.shape}')
             cli.echo(f'  bytes: {a.nbytes}')
@@ -85,7 +85,7 @@ def cli_h5peek(
 
         elif isinstance(f[path], h5py._hl.dataset.Dataset):  # Reading of datasets
             obj = f[path]
-            cli.echo(f'DATASET')
+            cli.echo('DATASET')
             cli.echo(f'  dtype: {obj.dtype}')
             cli.echo(f'  shape: {obj.shape}')
             cli.echo(f'  bytes: {obj.nbytes}')

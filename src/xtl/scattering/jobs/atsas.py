@@ -1,16 +1,14 @@
 import abc
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
-if TYPE_CHECKING:
-    import logging
 
 from xtl.common.options import Option
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.jobs.jobs import BatchJob
 from xtl.jobs.config import BatchJobConfig
 from xtl.jobs.shells import Shell
-from xtl.scattering.jobs.atsas_utils import ATSASOptions, DatcmpOptions, DatopOptions
+from xtl.scattering.jobs.atsas_utils import DatcmpOptions, DatopOptions
 
 
 class ATSASBatchJobConfig(BatchJobConfig, abc.ABC):

@@ -5,8 +5,6 @@ from xtl.pdbapi.attributes import (
     SearchAttributeGroup,
     DataAttribute,
     DataAttributeGroup,
-    _Attribute,
-    _AttributeGroup,
 )
 from xtl.pdbapi.data.options import DataService
 from xtl.exceptions import InvalidArgument

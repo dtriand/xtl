@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 from xtl.datasets.scattering.data import ScatteringData
 from xtl.datasets.scattering.dtypes import ScatteringAngleDtype, IntensityDtype, IntensitySigmaDtype
 from xtl.scattering.metadata import *
-from xtl.units.scattering.radial import RadialUnits, RadialUnitsDescription
+from xtl.units.scattering.radial import RadialUnits
 
 
 class _ScatteringBase:
@@ -180,11 +180,11 @@ class ScatteringProfile(_ScatteringBase):
 
         # Check for required columns
         if self._cols['x'] is None:
-            raise ValueError(f'`data` must contain a radial column')
+            raise ValueError('`data` must contain a radial column')
         if self._cols['y'] is None:
-            raise ValueError(f'`data` must contain an intensity column')
+            raise ValueError('`data` must contain an intensity column')
         if self._cols['e'] is None and ncols == 3:
-            raise ValueError(f'`data` must contain a sigma column')
+            raise ValueError('`data` must contain a sigma column')
 
     @property
     def data(self) -> ScatteringData:

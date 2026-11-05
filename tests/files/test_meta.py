@@ -1,11 +1,9 @@
 import abc
-import os
 import pytest
-from enum import auto
 from pathlib import Path
 from typing import List, Dict, Type
 
-from xtl.files.meta import FileContainer, FileReaderMeta, StrEnum, FileTypeEnum, DataType, FileContainerType
+from xtl.files.meta import FileContainer, FileReaderMeta, StrEnum
 
 
 # Test data setup

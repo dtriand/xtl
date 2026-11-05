@@ -17,7 +17,7 @@ GI.G2sc.SetPrintLevel('error')
 @click.pass_context
 def info_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 
@@ -174,7 +174,7 @@ def info_phase(ctx: click.core.Context, file, phase):
 @click.option('-v', '--verbose', count=True, type=click.IntRange(0, 3, clamp=True), help='Display additional info.')
 def params_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 
@@ -449,13 +449,13 @@ def params_create(
         # Create a file with the GSAS default parameters, using the user-provided wavelength/source
         if wavelength:
             ip = InstrumentalParameters.defaults_synchrotron(wavelength=wavelength)
-            click.secho(f'Initiating default synchrotron instrumental parameters.')
+            click.secho('Initiating default synchrotron instrumental parameters.')
         elif source:
             ip = InstrumentalParameters.defaults_lab(tube=source)
-            click.secho(f'Initiating default laboratory instrumental parameters.')
+            click.secho('Initiating default laboratory instrumental parameters.')
         else:
             click.secho(
-                f'Instrumental parameters file cannot be created without a wavelength or a radiation source.', fg='red'
+                'Instrumental parameters file cannot be created without a wavelength or a radiation source.', fg='red'
             )
             return
 
@@ -528,7 +528,7 @@ def params_edit_template_dir():
 
             if not entry:
                 entry = click.prompt(
-                    f'Which directory do you want to add?', type=click.Path(exists=True, file_okay=False, dir_okay=True)
+                    'Which directory do you want to add?', type=click.Path(exists=True, file_okay=False, dir_okay=True)
                 )
 
             # Check if directory is already registered
@@ -549,7 +549,7 @@ def params_edit_template_dir():
                 entry = ''  # reset entry
 
             if not entry:
-                entry = click.prompt(f'Which entry do you want to delete?', type=int)
+                entry = click.prompt('Which entry do you want to delete?', type=int)
 
             # Check if entry is valid
             try:
@@ -575,11 +575,11 @@ def params_edit_template_dir():
             continue
 
         else:
-            click.secho(f'Unknown command. Type ? to get a list of available commands.', fg='red')
+            click.secho('Unknown command. Type ? to get a list of available commands.', fg='red')
             continue
 
         # Prompt for another operation
-        if click.confirm(f'Do you want to perform another operation?'):
+        if click.confirm('Do you want to perform another operation?'):
             continue
         else:
             break

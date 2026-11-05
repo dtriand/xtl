@@ -268,7 +268,7 @@ def cli_diffplot_blemishes(
         fp.write(f'# Frame: {frame}\n')
         fp.write(f'# Blemish criteria: {mask=}, {hot_pixel=}, {cold_pixel=}, {include_detector=}\n')
         fp.write(f'# No. of blemishes: {no_blemishes}\n')
-        fp.write(f'# Pixel (x, y) coordinates list\n')
+        fp.write('# Pixel (x, y) coordinates list\n')
         fp.write('\n'.join([f'{x},{y}' for x, y in blemishes]))
     cli.echo(f'{no_blemishes} blemishes found!')
     cli.echo(f'Blemish list written to: {bfile}')

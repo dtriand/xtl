@@ -7,12 +7,9 @@ import asyncio
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import AsyncMock
 
-from tests.conftest import skipif_not_windows, skipif_not_linux
 from xtl.jobs.jobs import Job
 from xtl.jobs.config import JobConfig
-from xtl.automate.shells import BashShell, CmdShell, PowerShell
 from xtl.common.options import Option
 
 

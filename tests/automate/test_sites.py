@@ -2,7 +2,7 @@ import pytest
 
 from xtl.automate.priority_system import DefaultPrioritySystem, NicePrioritySystem
 from xtl.automate.shells import BashShell, DefaultShell
-from xtl.automate.sites import ComputeSite, LocalSite, BiotixHPC
+from xtl.automate.sites import LocalSite, BiotixHPC
 
 
 class TestLocalSite:

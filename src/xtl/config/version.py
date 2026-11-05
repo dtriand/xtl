@@ -1,7 +1,7 @@
 from enum import IntEnum
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple
 
 
 class ReleaseLevel(IntEnum):

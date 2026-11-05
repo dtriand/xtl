@@ -345,7 +345,7 @@ class Image:
         elif zscale in ['log', 'log10']:
             norm = partial(LogNorm, clip=False)
         else:
-            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log")
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log")
 
         if cmap is None:
             cmap = plt.get_cmap(self.cmap)

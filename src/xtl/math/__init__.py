@@ -49,10 +49,10 @@ def si_units(value, suffix='', base=1000, digits=None):
         scaled = round(scaled, digits)
     if magnitude >= 0:
         if magnitude > 8:  # greater than yotta prefix
-            raise NotImplemented
+            raise NotImplementedError
         prefix = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'][magnitude]
     else:
         if magnitude < -8:  # less than yocto prefix
-            raise NotImplemented
+            raise NotImplementedError
         prefix = ['', 'm', '\u03bc', 'n', 'p', 'f', 'a', 'z', 'y'][abs(magnitude)]
     return f'{scaled} {prefix}{suffix}'

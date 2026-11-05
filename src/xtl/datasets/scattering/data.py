@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Mapping
-from typing import Any, Optional
+from typing import Optional
 
 import pandas as pd
 from pandas._typing import Dtype, ArrayLike

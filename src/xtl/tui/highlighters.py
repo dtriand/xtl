@@ -1,4 +1,4 @@
-from rich.highlighter import RegexHighlighter, Highlighter
+from rich.highlighter import RegexHighlighter
 from rich.text import Text
 
 

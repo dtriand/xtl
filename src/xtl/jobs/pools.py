@@ -446,7 +446,7 @@ class BasePool(PoolProtocol, abc.ABC):
         :return: A list of the configured submitted jobs.
         """
         if not self._in_ctx:
-            raise RuntimeError(f'Jobs submitted outside the pool context')
+            raise RuntimeError('Jobs submitted outside the pool context')
 
         if not issubclass(job_cls, Job):
             raise TypeError(f'Expected a subclass of {Job.__name__} for `job_cls`, got {job_cls}')
@@ -530,7 +530,7 @@ class BasePool(PoolProtocol, abc.ABC):
         :return: The result of the job execution.
         """
         if self._semaphore is None:
-            raise RuntimeError(f'Pool semaphore is not initialized')
+            raise RuntimeError('Pool semaphore is not initialized')
 
         async with self._semaphore:
             job_id = submission.data.job_id

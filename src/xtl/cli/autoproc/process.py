@@ -281,7 +281,7 @@ async def cli_autoproc_process(
 
     cs = compute_site.get_site()
     sanitized_input['Computation site'] = f'{compute_site.value}' + (
-        f' \[{cs.priority_system.system_type}]' if cs.priority_system.system_type else ''
+        rf' \[{cs.priority_system.system_type}]' if cs.priority_system.system_type else ''
     )
     if modules:
         sanitized_input['Modules'] = '\n'.join(modules)
@@ -450,7 +450,7 @@ async def cli_autoproc_process(
             )
             for key, value in error['data'].items():
                 cli.print(f'    - {key}: {value}', style='red dim')
-            cli.print(f'\n    The following exception was raised:', style='red')
+            cli.print('\n    The following exception was raised:', style='red')
             cli.print_traceback(exc=error['exception'], indent='    ')
             cli.print()
         raise typer.Abort()
@@ -521,9 +521,9 @@ async def cli_autoproc_process(
         cli.print(log_only=log_only)
         if missing_dirs:
             cli.print(
-                f'Any [u red]red and underlined paths[/] in table above indicate missing directories that will '
-                f'be generated.\n[yellow]Please ensure that these paths are correct [b]before launching the '
-                f'jobs![/][/]',
+                'Any [u red]red and underlined paths[/] in table above indicate missing directories that will '
+                'be generated.\n[yellow]Please ensure that these paths are correct [b]before launching the '
+                'jobs![/][/]',
                 log_only=log_only,
             )
         cli.confirm('Do the above output directories look correct?', default=False)
@@ -615,7 +615,7 @@ async def cli_autoproc_process(
                 f':police_car_light: Job {error["index"]} was instantiated with the following data:', style='red bold'
             )
             cli.print(error['data'], style='red dim')
-            cli.print(f'\n    The following exception was raised:', style='red')
+            cli.print('\n    The following exception was raised:', style='red')
             cli.print_traceback(exc=error['exception'], indent='    ')
             cli.print('')
         cli.print('All data passed to the jobs is saved in [u]jobs_input.txt[/]', style='magenta')

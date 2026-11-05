@@ -1104,7 +1104,7 @@ def cli_autoproc_summarize(
         # ToDo: Write custom dictionary flattener / remove pandas
         df = pd.json_normalize(data)
         df = apu.df_stringify(df)
-        csv_file = out_dir / f'xtl_autoPROC_summary.csv'
+        csv_file = out_dir / 'xtl_autoPROC_summary.csv'
         # ToDo: Split output to two CSV files, similar to XLSX
         df.to_csv(csv_file, index=False)
         cli.print(f'Wrote summary to {csv_file}')

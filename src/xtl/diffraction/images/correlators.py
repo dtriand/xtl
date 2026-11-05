@@ -226,7 +226,7 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         :return:
         """
         header = (
-            f'Azimuthal intensity cross-correlation function using '
+            'Azimuthal intensity cross-correlation function using '
             + f'{self.__class__.__module__}.{self.__class__.__name__}\n'
         )
         header += f'Calculation performed on: {datetime.now()}\n'
@@ -337,11 +337,11 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         if xscale is None:
             xscale = 'linear'
         if xscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'xscale'. Must be one of: " + ', '.join(axis_scales))
         if yscale is None:
             yscale = 'linear'
         if yscale not in axis_scales:
-            raise ValueError(f"Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
+            raise ValueError("Invalid value for 'yscale'. Must be one of: " + ', '.join(axis_scales))
         if zscale in [None, 'linear']:
             norm = partial(Normalize, clip=False)
         elif zscale in ['log', 'log10']:
@@ -349,7 +349,7 @@ class AzimuthalCrossCorrelatorQQ_1(_Correlator):
         elif zscale in ['symlog']:
             norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
         else:
-            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log, symlog")
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log, symlog")
 
         if cmap is None:
             cmap = plt.get_cmap(self.cmap)
@@ -497,7 +497,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         t2 = datetime.now()
         print(f'Completed in {(t2 - t1).total_seconds():.3f} sec')
 
-        print(f'Calculating CCF... ', end='')
+        print('Calculating CCF... ', end='')
         t3 = datetime.now()
         ccf = []
         if shell_range is None:
@@ -693,7 +693,7 @@ class AzimuthalCrossCorrelatorQQ_2(_Correlator):
         elif zscale in ['symlog']:
             norm = partial(SymLogNorm, linthresh=self.symlog_linthresh, clip=False)
         else:
-            raise ValueError(f"Invalid value for 'zscale'. Must be one of: linear, log, symlog")
+            raise ValueError("Invalid value for 'zscale'. Must be one of: linear, log, symlog")
 
         radial, azimuthal, ccf = self.results
         ccf[int(ccf.shape[0] / 2)] = np.nan

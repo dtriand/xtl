@@ -148,7 +148,7 @@ def cli_diffraction_correlate_fft(
 
     # Calculate the FFT of the CCF
     if verbose:
-        cli.print(f'Calculating FFT... ')
+        cli.print('Calculating FFT... ')
     with Timer(silent=verbose < 1, echo_func=cli.print):
         ccf = acc.data['ccf']
         ccf_delta = ccf[:, ccf_i]
@@ -176,7 +176,7 @@ def cli_diffraction_correlate_fft(
 
     # Prepare plots
     import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+    from matplotlib.colors import Normalize, SymLogNorm
 
     fig = plt.figure('XCCA overview', figsize=(16 / 1.2, 9 / 1.2))
     fig.suptitle(f'{ccf_file.name}\n{subtitle}')
@@ -206,11 +206,11 @@ def cli_diffraction_correlate_fft(
         mean = np.nanmean(ccf)
         std = np.nanstd(ccf)
         if zmin is not None and verbose:
-            cli.print(f'Skipping zmin normalization: already set', style='yellow')
+            cli.print('Skipping zmin normalization: already set', style='yellow')
         else:
             vmin = np.max([mean - nstd * std, vmin])
         if zmax is not None and verbose:
-            cli.print(f'Skipping zmax normalization: already set', style='yellow')
+            cli.print('Skipping zmax normalization: already set', style='yellow')
         else:
             vmax = np.min([mean + nstd * std, vmax])
         if verbose:
@@ -239,7 +239,7 @@ def cli_diffraction_correlate_fft(
     )
     ax0.vlines(selection.value, delta.min(), delta.max(), 'r', '--')
     ax0.set_title('2D Cross-correlation function')
-    ax0.set_ylabel(f'\u0394 (\u00b0)')
+    ax0.set_ylabel('\u0394 (\u00b0)')
     ax0.set_xlabel(selection.kind.latex)
 
     ax2.plot(delta, ccf[:, ccf_i], color='xkcd:light brown')
@@ -257,11 +257,11 @@ def cli_diffraction_correlate_fft(
             mean = np.nanmean(intensities)
             std = np.nanstd(intensities)
             if zmin is not None and verbose:
-                cli.print(f'Skipping zmin normalization: already set', style='yellow')
+                cli.print('Skipping zmin normalization: already set', style='yellow')
             else:
                 vmin = np.max([mean - nstd * std, vmin])
             if zmax is not None and verbose:
-                cli.print(f'Skipping zmax normalization: already set', style='yellow')
+                cli.print('Skipping zmax normalization: already set', style='yellow')
             else:
                 vmax = np.min([mean + nstd * std, vmax])
             if verbose:
@@ -301,7 +301,7 @@ def cli_diffraction_correlate_fft(
         ax3.set_xlabel('\u03c7 (\u00b0)')
 
     ax4.bar(range(1, no_coeffs + 1), fc[1 : no_coeffs + 1])
-    ax4.set_title('$\u2131\{\mathrm{CCF}(\u0394)\}$')
+    ax4.set_title('$\u2131\\{\\mathrm{CCF}(\u0394)\\}$')
     ax4.set_ylabel('Distribution')
     ax4.set_xlabel('Fourier coefficient')
 

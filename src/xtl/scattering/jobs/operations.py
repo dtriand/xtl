@@ -4,7 +4,7 @@ from xtl.common.options import Option
 from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.files.jobs.directories import CreateDirectoryJob, CreateDirectoryJobConfig
 from xtl.scattering.jobs.atsas import DatopBatchJob, DatopBatchJobConfig
-from xtl.scattering.jobs.atsas_utils import DatopOptions, DatopOperator
+from xtl.scattering.jobs.atsas_utils import DatopOperator
 
 
 class SAXSSubtractJobConfig(SteppedJobConfig):

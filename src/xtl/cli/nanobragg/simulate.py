@@ -1,9 +1,6 @@
-import asyncio
 import shutil
 from pathlib import Path
-from typing import Annotated
 
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import typer
 
 from xtl.cli.utilities import epilog

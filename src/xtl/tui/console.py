@@ -4,7 +4,7 @@ import rich.console
 
 if TYPE_CHECKING:
     from xtl.jobs import JobPool
-    from xtl.cli.utilities.common import JobOptions, REQUIRED_DEPENDENCIES
+    from xtl.cli.utilities.common import JobOptions
     from xtl.tui.live_pool import LivePool
 
 
@@ -57,7 +57,7 @@ class ConsoleIO(rich.console.Console):
                     highlight=False,
                 )
             if options.compute_site == 'modules' and any(REQUIRED_DEPENDENCIES.values()):
-                self.print(f'Using modules: ', highlight=False)
+                self.print('Using modules: ', highlight=False)
                 for dep, modules in sorted(REQUIRED_DEPENDENCIES.items()):
                     if modules:
                         self.print(f'- {dep}: [dim]{", ".join(modules)}[/dim]', highlight=False)

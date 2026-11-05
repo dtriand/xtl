@@ -1,8 +1,7 @@
-import json
 import requests
 import warnings
 
-from xtl.pdbapi.attributes import DataAttribute, DataAttributeGroup
+from xtl.pdbapi.attributes import DataAttribute
 from xtl.pdbapi.search.options import ReturnType, RequestOptions
 from xtl.pdbapi.search.nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
 from xtl.pdbapi.data.options import GQLField

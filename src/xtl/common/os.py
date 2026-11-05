@@ -152,9 +152,9 @@ class FilePermissionsBit:
         value = self.value
         if isinstance(value, int):
             if value < 0o0:
-                raise ValueError(f"'value' must be a non-negative integer")
+                raise ValueError("'value' must be a non-negative integer")
             if value > 0o7:
-                raise ValueError(f"'value' must be a less than 8")
+                raise ValueError("'value' must be a less than 8")
         elif isinstance(value, str) or value is None:
             if value in _valid_permission_strings:
                 self.value = _valid_permission_strings[value]

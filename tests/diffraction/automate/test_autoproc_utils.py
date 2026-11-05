@@ -1,5 +1,3 @@
-import pytest
-
 from pathlib import Path
 
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig

@@ -16,7 +16,7 @@ import logging
 from pathlib import Path
 import sys
 import time
-from typing import Any, Callable, Generic, Mapping, MutableMapping, TypeVar, Union
+from typing import Any, Generic, Mapping, TypeVar, Union
 
 try:
     import cctbx
@@ -428,7 +428,7 @@ class Simulator:
         }
 
         logger.info(
-            f'Simulating %(n)d frames with %(orientation)s crystal orientation', {'n': n, 'orientation': orientation}
+            'Simulating %(n)d frames with %(orientation)s crystal orientation', {'n': n, 'orientation': orientation}
         )
         t0 = time.time()
 

@@ -104,7 +104,7 @@ class TestInitialize:
         # A file in a location beats the files in all later locations
         locs.set_env()
         for n in NAMES[NAMES.index(name) :]:
-            locs.write(_path(locs, n), f'[units]\ntemperature = "K"\n' if n == name else '[units]\ntemperature = "F"\n')
+            locs.write(_path(locs, n), '[units]\ntemperature = "K"\n' if n == name else '[units]\ntemperature = "F"\n')
         before = locs.files()
 
         s = XTLSettings.initialize()
@@ -247,7 +247,7 @@ class TestCheckFile:
         assert XTLSettings.check_file(path) == ([], [])
 
     def test_warnings(self, locs):
-        path = locs.write(locs.local, f'version = "0.0.1"\n[units]\ncolour = "blue"\n')
+        path = locs.write(locs.local, 'version = "0.0.1"\n[units]\ncolour = "blue"\n')
         errors, warnings = XTLSettings.check_file(path)
         assert errors == []
         assert len(warnings) == 2

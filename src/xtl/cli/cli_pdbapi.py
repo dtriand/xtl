@@ -1,6 +1,5 @@
 from os import get_terminal_size
 from datetime import datetime
-import warnings
 
 import click
 
@@ -8,7 +7,7 @@ from xtl import __version__
 from xtl.cli.utils import GroupWithCommandOptions, OutputQueue, update_docstring
 
 from xtl.pdbapi import Client
-from xtl.pdbapi.queries import free_text, has_uniprot_id
+from xtl.pdbapi.queries import free_text
 from xtl.pdbapi.search.options import ResultsContentType
 from xtl.pdbapi.data.options import DataService
 from xtl.pdbapi.schema import SearchSchema, DataSchema
@@ -20,7 +19,7 @@ from xtl.pdbapi.schema import SearchSchema, DataSchema
 @click.pass_context
 def rest_search_group(ctx: click.core.Context, debug: bool, verbose: bool):
     if debug:
-        click.secho(f'Debug mode is on.', fg='magenta')
+        click.secho('Debug mode is on.', fg='magenta')
     if debug and verbose:
         click.secho(f'Verbosity set to {verbose}.', fg='magenta')
 

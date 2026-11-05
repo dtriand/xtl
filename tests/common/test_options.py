@@ -3,7 +3,7 @@ import pytest
 import os
 from pathlib import Path
 
-from pydantic import Field, ValidationError
+from pydantic import Field
 
 from xtl.common.options import Option, Options
 from xtl.common.validators import cast_as, validate_length

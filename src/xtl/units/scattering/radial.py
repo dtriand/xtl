@@ -63,7 +63,7 @@ class RadialPhysicalUnits(Units):
             desc='Angstroms',
             repr='A',
             pretty='\u212b',
-            latex='\mathrm{\AA}',
+            latex=r'\mathrm{\AA}',
             aliases=('A', 'angstrom', 'angstroms', 'angstroem', 'angstroems'),
         ),
     )
@@ -111,7 +111,7 @@ class RadialPhysicalUnits(Units):
             desc='Reciprocal Angstroms squared',
             repr='1/A^2',
             pretty='A\u207b\u00b2',
-            latex='\mathrm{\AA}^{-2}',
+            latex=r'\mathrm{\AA}^{-2}',
             aliases=('1/A2', 'reciprocal angstroms squared'),
         ),
     )
@@ -135,7 +135,7 @@ class RadialPhysicalUnits(Units):
             desc='Reciprocal Angstroms to the fourth power',
             repr='1/A^4',
             pretty='A\u207b\u2074',
-            latex='\mathrm{\AA}^{-4}',
+            latex=r'\mathrm{\AA}^{-4}',
             aliases=('1/A4',),
         ),
     )

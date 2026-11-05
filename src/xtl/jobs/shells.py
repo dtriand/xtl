@@ -371,7 +371,7 @@ class BashShell(BaseShell):
     new_line_char = '\n'
     batch_extension = '.sh'
     batch_command = '{executable} {batch_file} {batch_arguments}'
-    dependency_command = 'command -v {dependency} > /dev/null 2>&1; echo \$?'
+    dependency_command = r'command -v {dependency} > /dev/null 2>&1; echo \$?'
     execute_command = '{executable} --noprofile --norc -c "{command}"'
 
 
