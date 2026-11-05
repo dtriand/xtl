@@ -109,7 +109,7 @@ expression = "version.pep440"
 packages = ["src/xtl"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+include = ["/src", "/tests", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 120
@@ -167,7 +167,7 @@ pass_env = ["PRE_COMMIT_HOME"]
 commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure", { replace = "posargs", extend = true }]]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/xtl-core/tests"]
+testpaths = ["tests"]  # packages/xtl-core/tests too, once xtl depends on xtl-core
 timeout = 300
 markers = [
     "requires_network: Tests requiring a network connection",
