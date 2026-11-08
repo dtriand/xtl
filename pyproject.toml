@@ -54,7 +54,8 @@ dependencies = [
     "tabulate>=0.10.0",
     "toml>=0.10.2",
     "typer>=0.26.7",
-    "xlsxwriter>=3.2.9"
+    "xlsxwriter>=3.2.9",
+    "xtl-core>=0.1.0.dev0,<0.2",
 ]
 
 [project.urls]
@@ -99,6 +100,9 @@ dev = [
 
 [tool.uv.workspace]
 members = ["packages/*"]
+
+[tool.uv.sources]
+xtl-core = { workspace = true }
 
 [tool.hatch.version]
 source = "code"
@@ -151,6 +155,7 @@ description = "Run tests with the lowest supported versions of the direct depend
 runner = "uv-venv-runner"
 base_python = ["3.10"]
 uv_resolution = "lowest-direct"
+deps = ["{tox_root}/packages/xtl-core"]  # not released yet, so not from PyPI
 
 [tool.tox.env.docs]
 description = "Build the documentation"
@@ -167,7 +172,7 @@ pass_env = ["PRE_COMMIT_HOME"]
 commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure", { replace = "posargs", extend = true }]]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]  # packages/xtl-core/tests too, once xtl depends on xtl-core
+testpaths = ["tests", "packages/xtl-core/tests"]
 timeout = 300
 markers = [
     "requires_network: Tests requiring a network connection",
