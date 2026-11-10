@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
 from xtl_core.compatibility import PY310_OR_LESS
-from xtl.common.environment import XTL_COMPUTE_SITE
+from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType

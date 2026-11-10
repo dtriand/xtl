@@ -22,7 +22,7 @@ def _target_path(name: str) -> Path:
     Path of the config file for a given location name.
     """
     from xtl.config.settings import XTLSettings
-    from xtl.common.environment import XTL_CONFIG
+    from xtl.shared.environment import XTL_CONFIG
 
     if name == 'env':
         # locations() drops XTL_CONFIG if it is unset or a directory

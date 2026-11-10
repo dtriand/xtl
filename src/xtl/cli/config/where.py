@@ -53,7 +53,7 @@ def cli_config_where(as_json: bool = typer.Option(False, '--json', help='Output 
     from rich.console import Console
 
     from xtl.config.settings import XTLSettings
-    from xtl.common.environment import XTL_CONFIG
+    from xtl.shared.environment import XTL_CONFIG
 
     console = Console()
     locations = XTLSettings.locations()

@@ -16,7 +16,7 @@ from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import VersionInfo
-from xtl.common.environment import XTL_CONFIG
+from xtl.shared.environment import XTL_CONFIG
 from xtl_core.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl_core.serializers import PermissionOctal

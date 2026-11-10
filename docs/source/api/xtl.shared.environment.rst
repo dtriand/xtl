@@ -1,7 +1,7 @@
-``xtl.common.environment`` module
+``xtl.shared.environment`` module
 =================================
 
-.. automodule:: xtl.common.environment
+.. automodule:: xtl.shared.environment
    :members:
    :undoc-members:
    :show-inheritance:

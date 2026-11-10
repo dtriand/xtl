@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from xtl.common.environment import EnvVar, XTL_CONFIG
+from xtl_core.environment import EnvVar, expand_path
 
 
 NAME = 'XTL_TEST_ENVVAR'
@@ -55,9 +55,10 @@ class TestEnvVar:
         env.delenv(NAME)
         assert var.value is None
 
-    def test_path_parser(self, monkeypatch, tmp_path):
-        monkeypatch.setenv('XTL_TEST_DIR', str(tmp_path))
-        monkeypatch.setenv('XTL_CONFIG', '$XTL_TEST_DIR/xtl.toml')
-        assert XTL_CONFIG.value == tmp_path / 'xtl.toml'
-        monkeypatch.setenv('XTL_CONFIG', '~/xtl.toml')
-        assert XTL_CONFIG.value == Path.home() / 'xtl.toml'
+    def test_path_parser(self, env, tmp_path):
+        env.setenv('XTL_TEST_DIR', str(tmp_path))
+        var = EnvVar(NAME, parser=expand_path)
+        env.setenv(NAME, '$XTL_TEST_DIR/xtl.toml')
+        assert var.value == tmp_path / 'xtl.toml'
+        env.setenv(NAME, '~/xtl.toml')
+        assert var.value == Path.home() / 'xtl.toml'
