@@ -5,7 +5,7 @@ from numbers import Number
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Dict, Any, Optional, Union, Iterator, Iterable, Tuple, Callable, Set
 
-from xtl.common import XTLUndefined
+from xtl_core.undefined import XTLUndefined
 
 if TYPE_CHECKING:
     import numpy as np
