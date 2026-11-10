@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from xtl.common.lazy_exports import lazy_getattr, lazy_dir
+from xtl_core.lazy_exports import lazy_getattr, lazy_dir
 
 __all__ = [
     'BatchFile',
