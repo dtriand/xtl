@@ -1,5 +1,5 @@
 import xtl.files
-from xtl_core.lazy_exports import validate_exports
+from xtl_core.utils.lazy_exports import validate_exports
 
 
 def test_exports():
