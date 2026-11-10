@@ -18,6 +18,5 @@ Submodules
    xtl_core.compatibility
    xtl_core.environment
    xtl_core.options
-   xtl_core.validators
    xtl_core.tables
    xtl_core.version

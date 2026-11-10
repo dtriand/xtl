@@ -262,7 +262,7 @@ is passed, otherwise it raises a :class:`ValueError`. Once all :class:`pydantic.
 A few more important notes about crafting custom validators:
 
 * **Value immutability**: |Options| allows for validators to mutate the value. This is, for example, the case for the
-  :func:`CastAsValidator <xtl_core.validators.CastAsValidator>` which performs type casting. This ensure that the
+  :func:`CastAsValidator <xtl_core.options.validators.CastAsValidator>` which performs type casting. This ensure that the
   right value is propagated to the next validator. The model value is, however, only mutated from the input value if
   all validators succeed.
 

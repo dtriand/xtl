@@ -12,3 +12,4 @@ Submodules
 
    xtl_core.options.base
    xtl_core.options.serializers
+   xtl_core.options.validators
