@@ -356,8 +356,9 @@ class TestVersionedOptions:
 
 def test_package_exports():
     import xtl_core.options
-    from xtl_core.options import base, exceptions
+    from xtl_core.options import base, exceptions, versioned
 
+    sources = {'OptionsValidationError': exceptions, 'VersionedOptions': versioned}
     for name in xtl_core.options.__all__:
-        source = exceptions if name == 'OptionsValidationError' else base
+        source = sources.get(name, base)
         assert getattr(xtl_core.options, name) is getattr(source, name)
