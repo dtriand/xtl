@@ -19,5 +19,5 @@ Submodules
    xtl.common.environment
    xtl.common.options
    xtl.common.validators
-   xtl.common.serializers
+   xtl_core.serializers
    xtl.common.tables

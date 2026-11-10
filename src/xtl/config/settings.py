@@ -19,7 +19,7 @@ from xtl.config.version import VersionInfo
 from xtl.common.environment import XTL_CONFIG
 from xtl_core.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
-from xtl.common.serializers import PermissionOctal
+from xtl_core.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.exceptions import OptionsValidationError
 
