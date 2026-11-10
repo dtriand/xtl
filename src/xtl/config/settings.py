@@ -1,5 +1,5 @@
 """
-This module defines a set of :class:`Options <xtl_core.options.Options>` `Pydantic`
+This module defines a set of :class:`Options <xtl_core.options.base.Options>` `Pydantic`
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """

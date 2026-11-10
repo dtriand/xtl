@@ -352,3 +352,11 @@ class TestVersionedOptions:
     def test_newer_from_json(self, caplog):
         assert self.TaggedModel.from_json('{"version": "1.3.0"}').version == '1.3.0'
         assert self.message in caplog.text
+
+
+def test_package_exports():
+    import xtl_core.options
+    from xtl_core.options import base
+
+    for name in xtl_core.options.__all__:
+        assert getattr(xtl_core.options, name) is getattr(base, name)

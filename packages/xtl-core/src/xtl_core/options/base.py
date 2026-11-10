@@ -1,7 +1,7 @@
 # ruff: noqa: F403, F405 (star imports)
 """
-.. |Option| replace:: :class:`Option <xtl_core.options.Option>`
-.. |Options| replace:: :class:`Options <xtl_core.options.Options>`
+.. |Option| replace:: :class:`Option <xtl_core.options.base.Option>`
+.. |Options| replace:: :class:`Options <xtl_core.options.base.Options>`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
 """

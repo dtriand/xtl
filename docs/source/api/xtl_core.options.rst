@@ -1,8 +1,13 @@
-``xtl_core.options`` module
-===========================
+``xtl_core.options`` package
+============================
 
 .. automodule:: xtl_core.options
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :exclude-members: model_config, model_post_init
+   :no-members:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 3
+
+   xtl_core.options.base

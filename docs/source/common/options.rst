@@ -1,5 +1,5 @@
-.. |Option| replace:: :func:`Option() <xtl_core.options.Option>`
-.. |Options| replace:: :class:`Options <xtl_core.options.Options>`
+.. |Option| replace:: :func:`Option() <xtl_core.options.base.Option>`
+.. |Options| replace:: :class:`Options <xtl_core.options.base.Options>`
 .. |pydantic| replace:: :mod:`pydantic`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
@@ -52,7 +52,7 @@ respectively. Below is a simple example that showcases what is possible with thi
         contract_file='/path/to/contract.txt'
     )
 
-Now if we call :meth:`employee.to_dict() <xtl_core.options.Options.to_dict>` (which is equivalent to
+Now if we call :meth:`employee.to_dict() <xtl_core.options.base.Options.to_dict>` (which is equivalent to
 :func:`employee.model_dump() <pydantic.BaseModel.model_dump>` if you prefer the `Pydantic` API),
 we get the following back:
 
