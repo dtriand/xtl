@@ -1,18 +1,9 @@
+"""
+Helpers for checking whether objects can be pickled, e.g. before sending them to
+another process.
+"""
+
 from typing import Any
-
-
-def deepmerge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """
-    Recursively merge two dictionaries, with values from the `override` dictionary taking precedence over those in the
-    `base`.
-    """
-    out = dict(base)
-    for k, v in override.items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
-            out[k] = deepmerge(out[k], v)
-        else:
-            out[k] = v
-    return out
 
 
 def find_unpicklable(obj: Any, path: str | None = None) -> Any:
@@ -56,21 +47,3 @@ def is_picklable(obj: Any, path: str | None = None) -> tuple[bool, tuple[str, ty
     if bad is not None:
         return False, bad
     return True, None
-
-
-def slice_to_str(s: slice) -> str:
-    if s.start is None and s.stop is None and s.step is None:
-        return ':'
-
-    if s.stop == s.start + 1 and s.step is None:
-        return str(s.start)
-
-    parts = [
-        '' if s.start is None else str(s.start),
-        '' if s.stop is None else str(s.stop),
-    ]
-
-    if s.step is not None:
-        parts.append(str(s.step))
-
-    return ':'.join(parts)

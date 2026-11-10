@@ -14,7 +14,7 @@ from typing import AsyncIterator, Literal, overload, Type, Iterable, Protocol, r
 
 from xtl import settings
 from xtl_core.compatibility import PY310_OR_LESS
-from xtl.common.misc import is_picklable
+from xtl_core.utils.pickling import is_picklable
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
