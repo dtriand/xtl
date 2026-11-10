@@ -135,7 +135,7 @@ def cli_config_show(
     from toml.decoder import CommentValue
 
     from xtl.config.settings import XTLSettings
-    from xtl_core.toml import ExtendedTomlEncoder
+    from xtl_core.options.toml import ExtendedTomlEncoder
 
     stderr = Console(stderr=True, highlight=False)
 
