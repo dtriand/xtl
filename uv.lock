@@ -4691,7 +4691,7 @@ requires-dist = [
     { name = "toml", specifier = ">=0.10.2" },
     { name = "typer", specifier = ">=0.26.7" },
     { name = "xlsxwriter", specifier = ">=3.2.9" },
-    { name = "xtl-core", editable = "packages/xtl-core" },
+    { name = "xtl-core", extras = ["tables"], editable = "packages/xtl-core" },
 ]
 
 [package.metadata.requires-dev]
@@ -4729,6 +4729,23 @@ test = [
 [[package]]
 name = "xtl-core"
 source = { editable = "packages/xtl-core" }
+dependencies = [
+    { name = "annotated-types" },
+    { name = "distro" },
+    { name = "pydantic" },
+    { name = "toml" },
+    { name = "typing-extensions" },
+]
+
+[package.optional-dependencies]
+extra = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "rich" },
+]
 
 [package.dev-dependencies]
 lint = [
@@ -4740,6 +4757,17 @@ test = [
 ]
 
 [package.metadata]
+requires-dist = [
+    { name = "annotated-types", specifier = ">=0.6.0" },
+    { name = "distro", specifier = ">=1.9.0" },
+    { name = "numpy", marker = "extra == 'extra'", specifier = ">=2.2.6" },
+    { name = "pandas", marker = "extra == 'extra'", specifier = ">=2.3.3" },
+    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "rich", marker = "extra == 'extra'", specifier = ">=15.0.0" },
+    { name = "toml", specifier = ">=0.10.2" },
+    { name = "typing-extensions", specifier = ">=4.12.2" },
+]
+provides-extras = ["extra"]
 
 [package.metadata.requires-dev]
 lint = [{ name = "import-linter", specifier = ">=2.1" }]

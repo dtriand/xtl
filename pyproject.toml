@@ -55,7 +55,7 @@ dependencies = [
     "toml>=0.10.2",
     "typer>=0.26.7",
     "xlsxwriter>=3.2.9",
-    "xtl-core>=0.1.0.dev0,<0.2",
+    "xtl-core[tables]>=0.1.0.dev0,<0.2",
 ]
 
 [project.urls]

@@ -24,7 +24,20 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "annotated-types>=0.6.0",
+    "distro>=1.9.0",
+    "pydantic>=2.13.4",
+    "toml>=0.10.2",
+    "typing-extensions>=4.12.2",
+]
+
+[project.optional-dependencies]
+extra = [
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "rich>=15.0.0",
+]
 
 [project.urls]
 homepage = "https://github.com/dtriand/xtl"
