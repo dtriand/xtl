@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import abc
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import json
@@ -1037,85 +1036,21 @@ class Options(BaseModel):
         return cls.from_dict(data)
 
 
-class LegacyOptions(Options, abc.ABC):
-    _version_path: ClassVar[str] = None
-
-    def __init_subclass__(cls, **kwargs):
-        if cls._version_path is None:
-            raise ValueError(f'{cls.__name__} must define a `_version_path`')
-
-    @abc.abstractmethod
-    def upgrade(self) -> VersionedOptions:
-        raise NotImplementedError
-
-
 class VersionedOptions(Options):
     _version_path: ClassVar[str] = None
-    _legacy_versions: ClassVar[dict[tuple[int, int, int], type[LegacyOptions]]] = None
     _current_version: ClassVar[VersionInfo | None] = None
     """The current version of this model's data layout, a tag of its own (not the version
     of xtl). Data from a newer version triggers a warning when loaded. ``None`` (the
     default) skips the check."""
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        super().__init_subclass__(**kwargs)
-        cls._legacy_versions = {}
-        # if cls._version_path is None:
-        #     raise ValueError(f'{cls.__name__} must define a `_version_path`')
-
-    @classmethod
-    def register_legacy(cls, up_to: VersionInfo | str):
-        version = VersionInfo.from_value(up_to)
-
-        def decorator(legacy_cls: type[LegacyOptions]) -> type[LegacyOptions]:
-            if not (isinstance(legacy_cls, type) and issubclass(legacy_cls, LegacyOptions)):
-                raise TypeError(
-                    f'{legacy_cls.__name__} must be a subclass of {LegacyOptions.__name__} '
-                    f'to be registered as a legacy model of {cls.__name__}'
-                )
-
-            if version.tuple_safe in cls._legacy_versions:
-                raise ValueError(f'{cls.__name__} already has a legacy model for version `{version}`')
-
-            cls._legacy_versions[version.tuple_safe] = legacy_cls
-            return legacy_cls
-
-    @classmethod
-    def legacy_versions(cls) -> dict[tuple[int, int, int], type[LegacyOptions]]:
-        return dict(sorted(cls._legacy_versions.items()))
-
-    @classmethod
-    def _get_legacy_model(cls, version: VersionInfo) -> type[LegacyOptions] | None:
-        version_tuple = version.tuple_safe
-        for v, legacy_cls in cls.legacy_versions().items():
-            if v <= version_tuple:
-                return legacy_cls
-        return None
-
     @classmethod
     def _resolve_version(cls, data: dict) -> VersionInfo:
-
-        def get_nested_value(data_: dict, path_: str) -> Any:
-            node = data_
-            for part in path_.split('.'):
-                if not isinstance(node, dict) or part not in node:
-                    raise KeyError(f'Could not find key `{part}` in the data at path `{path_}`')
-                node = node[part]
-            return node
-
-        candidate_paths: list[str] = [cls._version_path]
-        for _, legacy_cls in cls.legacy_versions().items():
-            path = legacy_cls._version_path
-            if path not in candidate_paths:
-                candidate_paths.append(path)
-
-        for path in candidate_paths:
-            try:
-                version_str = get_nested_value(data, path)
-                return VersionInfo.from_value(version_str)
-            except KeyError:
-                continue
-        raise KeyError(f'Could not find version information in the data. Checked paths: {", ".join(candidate_paths)}')
+        node = data
+        for part in cls._version_path.split('.'):
+            if not isinstance(node, dict) or part not in node:
+                raise KeyError(f'Could not find key `{part}` in the data at path `{cls._version_path}`')
+            node = node[part]
+        return VersionInfo.from_value(node)
 
     @classmethod
     def _check_version(cls, version: VersionInfo) -> None:
@@ -1128,28 +1063,12 @@ class VersionedOptions(Options):
             )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], upgrade: bool = False) -> Self | LegacyOptions:
-        version = cls._resolve_version(data)
-        cls._check_version(version)
-
-        legacy_cls = cls._get_legacy_model(version)
-        if legacy_cls is None:
-            return super().from_dict(data)
-
-        legacy = legacy_cls.from_dict(data)
-        if not upgrade:
-            return legacy
-
-        upgraded = legacy.upgrade()
-        if not isinstance(upgraded, cls):
-            raise TypeError(
-                f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
-                f'got {type(upgraded).__name__}'
-            )
-        return upgraded
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        cls._check_version(cls._resolve_version(data))
+        return super().from_dict(data)
 
     @classmethod
-    def from_json(cls, s: str | Path, upgrade: bool = False) -> Self | LegacyOptions:
+    def from_json(cls, s: str | Path) -> Self:
         if isinstance(s, str):
             try:
                 data = json.loads(s)
@@ -1165,21 +1084,5 @@ class VersionedOptions(Options):
                 raise FileNotFoundError(f'File not found: {path}')
             data = json.loads(path.read_text())
 
-        version = cls._resolve_version(data)
-        cls._check_version(version)
-
-        legacy_cls = cls._get_legacy_model(version)
-        if legacy_cls is None:
-            return super().from_json(s)
-
-        legacy = legacy_cls.from_json(s)
-        if not upgrade:
-            return legacy
-
-        upgraded = legacy.upgrade()
-        if not isinstance(upgraded, cls):
-            raise TypeError(
-                f'{legacy_cls.__name__}.upgrade() must return an instance of {cls.__name__}, '
-                f'got {type(upgraded).__name__}'
-            )
-        return upgraded
+        cls._check_version(cls._resolve_version(data))
+        return super().from_json(s)
