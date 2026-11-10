@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 from xtl import settings, Logger
 from xtl.math.uuid import UUIDFactory
-from xtl.common.compatibility import OS_POSIX
+from xtl_core.compatibility import OS_POSIX
 from xtl.common.misc import deepmerge
 from xtl.common.options import Option, Options
 from xtl.common.os import chmod_recursively

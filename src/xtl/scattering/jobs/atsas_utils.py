@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic import PrivateAttr, model_validator
 
 from xtl.common.options import Option, Options
-from xtl.common.compatibility import PY310_OR_LESS
+from xtl_core.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
 

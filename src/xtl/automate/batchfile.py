@@ -7,7 +7,7 @@ from xtl import Logger
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.shells import Shell, DefaultShell, WslShell
 from xtl.common.os import FilePermissions
-from xtl.common.compatibility import OS_POSIX
+from xtl_core.compatibility import OS_POSIX
 
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings

@@ -46,7 +46,7 @@ class ConsoleIO(rich.console.Console):
 
         # Report job settings
         if self.verbose >= 1:
-            from xtl.common.compatibility import OS_POSIX
+            from xtl_core.compatibility import OS_POSIX
 
             self.print(f'Using compute site: [dim]{options.compute_site}[/]', highlight=False)
             if options.permissions.update and OS_POSIX:

@@ -5,7 +5,7 @@ import re
 from typing import TYPE_CHECKING
 
 from xtl import Logger
-from xtl.common.compatibility import PY310_OR_LESS
+from xtl_core.compatibility import PY310_OR_LESS
 from xtl.datasets.scattering import AngleQInverseNanometerDtype, IntensityArbitraryDtype, IntensitySigmaArbitraryDtype
 from xtl.files.meta import FileContainer, FileReaderMeta
 

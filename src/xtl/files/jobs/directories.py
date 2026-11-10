@@ -2,7 +2,7 @@ from os import chmod
 from pathlib import Path
 from typing import Any
 
-from xtl.common.compatibility import OS_POSIX
+from xtl_core.compatibility import OS_POSIX
 from xtl.common.options import Option
 from xtl.common.os import FilePermissions
 from xtl.jobs import Job, JobConfig

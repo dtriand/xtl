@@ -15,7 +15,7 @@ Submodules
 .. toctree::
    :maxdepth: 3
 
-   xtl.common.compatibility
+   xtl_core.compatibility
    xtl.common.environment
    xtl.common.options
    xtl.common.validators

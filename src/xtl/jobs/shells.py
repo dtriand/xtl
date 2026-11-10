@@ -72,7 +72,7 @@ import re
 import shlex
 from typing import Iterable, Optional
 
-from xtl.common.compatibility import OS_WINDOWS, PY310_OR_LESS
+from xtl_core.compatibility import OS_WINDOWS, PY310_OR_LESS
 
 if PY310_OR_LESS:
 

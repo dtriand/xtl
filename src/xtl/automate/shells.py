@@ -7,7 +7,7 @@ from pathlib import Path
 import shlex
 from typing import Any, Sequence
 
-from xtl.common.compatibility import OS_WINDOWS
+from xtl_core.compatibility import OS_WINDOWS
 
 
 @dataclass

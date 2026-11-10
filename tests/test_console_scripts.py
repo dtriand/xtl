@@ -6,7 +6,7 @@ from importlib.metadata import distribution
 
 import pytest
 
-from xtl.common.compatibility import OS_WINDOWS
+from xtl_core.compatibility import OS_WINDOWS
 
 
 CONSOLE_SCRIPTS = sorted(ep.name for ep in distribution('xtl').entry_points if ep.group == 'console_scripts')

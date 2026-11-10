@@ -7,7 +7,7 @@ import tempfile
 from types import NoneType
 from typing import Optional
 
-from .compatibility import PY311_OR_LESS
+from xtl_core.compatibility import PY311_OR_LESS
 
 if PY311_OR_LESS:
 
