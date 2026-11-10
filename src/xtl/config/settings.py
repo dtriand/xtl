@@ -17,7 +17,7 @@ from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.config.version import VersionInfo
 from xtl.common.environment import XTL_CONFIG
-from xtl.common.os import FilePermissions, CPU_CORES
+from xtl_core.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone

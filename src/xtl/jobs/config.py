@@ -8,7 +8,7 @@ from pydantic import computed_field, PrivateAttr, model_validator, field_seriali
 
 from xtl import settings, Logger
 from xtl.common.options import Option, Options
-from xtl.common.os import FilePermissions
+from xtl_core.os import FilePermissions
 from xtl.common.serializers import PermissionOctal
 from xtl.common.validators import cast_as_temp_dir_if_none
 from xtl.jobs.shells import Shell

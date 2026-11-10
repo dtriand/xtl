@@ -1,6 +1,6 @@
 import pytest
 
-from xtl.common.os import get_permissions_in_decimal, FilePermissionsBit, FilePermissions
+from xtl_core.os import get_permissions_in_decimal, FilePermissionsBit, FilePermissions
 
 
 class TestPermissions:
