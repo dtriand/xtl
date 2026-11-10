@@ -12,8 +12,8 @@ import warnings
 
 from defusedxml import ElementTree as DET
 
-from xtl.common import afield, pfield, cfield
-from xtl.common.annotated_dataclass import _ifield
+from xtl.shared.annotated_dataclass import afield, pfield, cfield
+from xtl.shared.annotated_dataclass import _ifield
 from xtl_core.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.diffraction.automate.xds_utils import CorrectLp

@@ -2,7 +2,7 @@ import pytest
 
 from dataclasses import dataclass
 
-from xtl.common.annotated_dataclass import AnnotatedDataclass, afield, cfield, pfield, _ifield
+from xtl.shared.annotated_dataclass import AnnotatedDataclass, afield, cfield, pfield, _ifield
 
 
 class TestFields:
