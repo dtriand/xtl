@@ -1,6 +1,6 @@
-.. |Table| replace:: :class:`Table <xtl_core.tables.Table>`
-.. |MissingValue| replace:: :class:`MissingValue <xtl_core.tables.MissingValue>`
-.. |MissingValueConfig| replace:: :class:`MissingValueConfig <xtl_core.tables.MissingValueConfig>`
+.. |Table| replace:: :class:`Table <xtl_core.containers.tables.Table>`
+.. |MissingValue| replace:: :class:`MissingValue <xtl_core.containers.tables.MissingValue>`
+.. |MissingValueConfig| replace:: :class:`MissingValueConfig <xtl_core.containers.tables.MissingValueConfig>`
 .. |numpy| replace:: :mod:`numpy`
 .. |array| replace:: :func:`numpy.ndarray`
 .. |pandas| replace:: :mod:`pandas`
@@ -11,7 +11,7 @@
 Tables
 ======
 
-The :mod:`xtl_core.tables` module provides the |Table| class for handling 2D tabular data. |Table| provides slicing
+The :mod:`xtl_core.containers.tables` module provides the |Table| class for handling 2D tabular data. |Table| provides slicing
 capabilities similar to |DataFrame|, handles serialization of missing values and supports various import/export options.
 
 Quickstart
@@ -22,7 +22,7 @@ Below is a simple example:
 
 .. code-block:: python
 
-   from xtl_core.tables import Table
+   from xtl_core.containers.tables import Table
 
    # Create a table with data and headers
    table = Table(
@@ -349,10 +349,10 @@ containing a replacement field (e.g. ``'{:.1f} keV'``), which is applied with :m
 
 A few things to note:
 
-- Formats only affect the rendering of the table, *i.e.* printing, :func:`to_rich() <xtl_core.tables.Table.to_rich>`
-  and :func:`to_csv() <xtl_core.tables.Table.to_csv>`. The stored data remain unchanged, so
-  :attr:`data <xtl_core.tables.Table.data>`, :func:`get_col() <xtl_core.tables.Table.get_col>`,
-  :func:`to_numpy() <xtl_core.tables.Table.to_numpy>`, *etc.* return the original values.
+- Formats only affect the rendering of the table, *i.e.* printing, :func:`to_rich() <xtl_core.containers.tables.Table.to_rich>`
+  and :func:`to_csv() <xtl_core.containers.tables.Table.to_csv>`. The stored data remain unchanged, so
+  :attr:`data <xtl_core.containers.tables.Table.data>`, :func:`get_col() <xtl_core.containers.tables.Table.get_col>`,
+  :func:`to_numpy() <xtl_core.containers.tables.Table.to_numpy>`, *etc.* return the original values.
 - Missing values are never formatted and are always rendered with their representation.
 - If a format cannot be applied to a value (*e.g.* ``'.2f'`` on a string), the value is rendered with :class:`str`
   instead.
@@ -592,7 +592,7 @@ Console
    # 3      | C      | True   | 30
    # 4      | D      | False  | 40
 
-For more advanced terminal display, you can use the :func:`to_rich() <xtl_core.tables.Table.to_rich>` method:
+For more advanced terminal display, you can use the :func:`to_rich() <xtl_core.containers.tables.Table.to_rich>` method:
 
 .. code-block:: python
 

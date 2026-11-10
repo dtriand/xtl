@@ -18,5 +18,5 @@ Submodules
    xtl_core.compatibility
    xtl_core.environment
    xtl_core.options
-   xtl_core.tables
+   xtl_core.containers
    xtl_core.version

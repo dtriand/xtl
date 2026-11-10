@@ -1,7 +1,7 @@
 import sys
 
 import pytest
-from xtl_core.tables import MissingValue, MissingValueConfig, Table, XTLUndefined
+from xtl_core.containers.tables import MissingValue, MissingValueConfig, Table, XTLUndefined
 
 
 class TestMissingValueConfig:
@@ -1535,3 +1535,11 @@ class TestOptionalDependencies:
         monkeypatch.setitem(sys.modules, f'{lib}.table', None)
         with pytest.raises(ImportError, match=r'pip install xtl-core\['):
             call(Table(data=[[1, 2]], headers=['a', 'b']))
+
+
+def test_package_exports():
+    import xtl_core.containers
+    from xtl_core.containers import tables
+
+    for name in xtl_core.containers.__all__:
+        assert getattr(xtl_core.containers, name) is getattr(tables, name)
