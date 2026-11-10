@@ -4619,7 +4619,7 @@ dependencies = [
     { name = "toml" },
     { name = "typer" },
     { name = "xlsxwriter" },
-    { name = "xtl-core" },
+    { name = "xtl-core", extra = ["extra"] },
 ]
 
 [package.dev-dependencies]
@@ -4691,7 +4691,7 @@ requires-dist = [
     { name = "toml", specifier = ">=0.10.2" },
     { name = "typer", specifier = ">=0.26.7" },
     { name = "xlsxwriter", specifier = ">=3.2.9" },
-    { name = "xtl-core", extras = ["tables"], editable = "packages/xtl-core" },
+    { name = "xtl-core", extras = ["extra"], editable = "packages/xtl-core" },
 ]
 
 [package.metadata.requires-dev]
