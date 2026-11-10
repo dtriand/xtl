@@ -9,7 +9,7 @@ from xtl.automate.sites import LocalSite, BiotixHPC
 from xtl.automate.shells import Shell, DefaultShell, BashShell, PowerShell, CmdShell, WslShell
 from xtl.automate.batchfile import BatchFile
 from xtl.automate.jobs import Job, limited_concurrency
-from xtl_core.compatibility import OS_WINDOWS
+from xtl_core.system.compatibility import OS_WINDOWS
 from xtl.exceptions.warnings import IncompatibleShellWarning
 
 

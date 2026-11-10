@@ -10,7 +10,7 @@ import tempfile
 
 import pytest
 
-from xtl_core.compatibility import OS_POSIX, OS_WINDOWS
+from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS
 
 CACHE_DIR = Path(__file__).parent / 'cache'
 

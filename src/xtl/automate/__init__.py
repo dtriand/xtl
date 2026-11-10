@@ -1,7 +1,7 @@
 from enum import Enum
 import socket
 
-from xtl_core.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import PY310_OR_LESS
 from .sites import LocalSite, ModulesSite, BiotixHPC
 from .sites import ComputeSite as _ComputeSite
 

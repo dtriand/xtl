@@ -13,7 +13,7 @@ from typer import BadParameter
 
 from xtl.logging.config import LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
-from xtl_core.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
 from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
 from xtl.tui.renderers import LogRenderer

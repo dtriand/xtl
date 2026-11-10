@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TypeVar, Generic, Dict, List, Set, Type
 
-from xtl_core.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import PY310_OR_LESS
 
 if PY310_OR_LESS:
 

@@ -6,7 +6,7 @@ import numpy as np
 from pydantic import computed_field, PrivateAttr, model_validator
 
 from xtl import Logger
-from xtl_core.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl_core.options import Option, Options
 from xtl_core.options.typed_vars import TypedList
 

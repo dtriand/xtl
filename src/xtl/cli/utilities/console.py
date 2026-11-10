@@ -51,7 +51,7 @@ class ConsoleIO(rich.console.Console):
 
     def report_job_options(self, options: 'JobOptions') -> None:
         if self.verbose:
-            from xtl_core.compatibility import OS_POSIX
+            from xtl_core.system.compatibility import OS_POSIX
 
             self.print(f'Using compute site: [dim]{options.compute_site}[/]')
             if options.permissions.update and OS_POSIX:

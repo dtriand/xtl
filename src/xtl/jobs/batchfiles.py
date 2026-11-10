@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from xtl.jobs.sites import ComputeSiteType, SchedulerSite
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
-from xtl_core.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl_core.os import FilePermissions
 from xtl.jobs.shells import Shell, ShellType, DefaultShell
 
