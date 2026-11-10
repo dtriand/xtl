@@ -16,7 +16,6 @@ Submodules
    :maxdepth: 3
 
    xtl_core.system
-   xtl_core.environment
    xtl_core.options
    xtl_core.containers
    xtl_core.version

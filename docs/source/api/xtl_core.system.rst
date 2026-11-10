@@ -11,3 +11,4 @@ Submodules
    :maxdepth: 3
 
    xtl_core.system.compatibility
+   xtl_core.system.environment

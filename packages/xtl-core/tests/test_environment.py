@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from xtl_core.environment import EnvVar, expand_path
+from xtl_core.system.environment import EnvVar, expand_path
 
 
 NAME = 'XTL_TEST_ENVVAR'

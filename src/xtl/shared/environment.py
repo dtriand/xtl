@@ -1,10 +1,10 @@
 """
-xtl's environment variables (see :class:`~xtl_core.environment.EnvVar`).
+xtl's environment variables (see :class:`~xtl_core.system.environment.EnvVar`).
 """
 
 from pathlib import Path
 
-from xtl_core.environment import EnvVar, expand_path
+from xtl_core.system.environment import EnvVar, expand_path
 
 #########################
 # Environment variables #

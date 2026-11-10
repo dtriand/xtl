@@ -27,4 +27,4 @@ starting Python, since it is read when the compute sites are first imported.
 .. set-env:: XTL_COMPUTE_SITE BIOTIX_HPC
 
 .. seealso::
-   :mod:`xtl.shared.environment` for the variables, :mod:`xtl_core.environment` for :class:`~xtl_core.environment.EnvVar`.
+   :mod:`xtl.shared.environment` for the variables, :mod:`xtl_core.system.environment` for :class:`~xtl_core.system.environment.EnvVar`.
