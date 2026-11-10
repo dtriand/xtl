@@ -19,6 +19,5 @@ Submodules
    xtl_core.environment
    xtl_core.options
    xtl_core.validators
-   xtl_core.serializers
    xtl_core.tables
    xtl_core.version

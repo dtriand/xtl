@@ -11,3 +11,4 @@ Submodules
    :maxdepth: 3
 
    xtl_core.options.base
+   xtl_core.options.serializers
