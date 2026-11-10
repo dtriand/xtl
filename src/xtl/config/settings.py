@@ -21,7 +21,7 @@ from xtl_core.os import FilePermissions, CPU_CORES
 from xtl_core.options import Option, Options
 from xtl_core.serializers import PermissionOctal
 from xtl_core.validators import CastAsNoneIfEmpty, CastAsPathOrNone
-from xtl_core.exceptions import OptionsValidationError
+from xtl_core.options.exceptions import OptionsValidationError
 
 logger = Logger(__name__)
 

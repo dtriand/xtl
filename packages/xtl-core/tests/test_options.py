@@ -8,7 +8,7 @@ from pydantic import Field
 from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.version import VersionInfo
 from xtl_core.validators import cast_as, validate_length
-from xtl_core.exceptions import OptionsValidationError
+from xtl_core.options.exceptions import OptionsValidationError
 
 
 class TestOption:
@@ -356,7 +356,8 @@ class TestVersionedOptions:
 
 def test_package_exports():
     import xtl_core.options
-    from xtl_core.options import base
+    from xtl_core.options import base, exceptions
 
     for name in xtl_core.options.__all__:
-        assert getattr(xtl_core.options, name) is getattr(base, name)
+        source = exceptions if name == 'OptionsValidationError' else base
+        assert getattr(xtl_core.options, name) is getattr(source, name)

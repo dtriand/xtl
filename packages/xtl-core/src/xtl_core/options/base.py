@@ -44,7 +44,7 @@ from xtl_core.validators import *
 from xtl_core.version import VersionInfo
 from xtl_core.toml import ExtendedTomlEncoder
 from xtl_core.typed_vars import TypedIterable
-from xtl_core.exceptions import OptionsValidationError
+from xtl_core.options.exceptions import OptionsValidationError
 
 
 logger = logging.getLogger(__name__)
