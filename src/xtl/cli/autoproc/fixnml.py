@@ -8,7 +8,7 @@ import typer
 from xtl import settings
 from xtl.cli.cliio import Console, epilog
 from xtl.cli.utils import parser_permissions
-from xtl_core.os import get_permissions_in_decimal, FilePermissions
+from xtl_core.system.os import get_permissions_in_decimal, FilePermissions
 
 
 app = typer.Typer()

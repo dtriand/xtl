@@ -14,7 +14,7 @@ from defusedxml import ElementTree as DET
 
 from xtl.shared.annotated_dataclass import afield, pfield, cfield
 from xtl.shared.annotated_dataclass import _ifield
-from xtl_core.os import get_permissions_in_decimal
+from xtl_core.system.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.diffraction.automate.xds_utils import CorrectLp
 from xtl.diffraction.images.datasets import DiffractionDataset

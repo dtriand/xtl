@@ -33,7 +33,7 @@ from xtl.math.uuid import UUIDFactory
 from xtl_core.system.compatibility import OS_POSIX
 from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
-from xtl_core.os import chmod_recursively
+from xtl_core.system.os import chmod_recursively
 from xtl.logging.config import LoggerConfig
 from xtl.exceptions.base import SubprocessError, StderrError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig

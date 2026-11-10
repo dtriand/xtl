@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import click
 import tabulate
 
-from xtl_core.os import FilePermissions
+from xtl_core.system.os import FilePermissions
 from xtl.math import si_units
 
 

@@ -1,13 +1,13 @@
 """
 This module defines custom serializers for use with `Pydantic` models.
 
-.. |FilePermissions| replace:: :class:`FilePermissions <xtl_core.os.FilePermissions>`
+.. |FilePermissions| replace:: :class:`FilePermissions <xtl_core.system.os.FilePermissions>`
 """
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from xtl_core.os import FilePermissions
+    from xtl_core.system.os import FilePermissions
 
 
 def PermissionOctal(x: 'FilePermissions') -> str:

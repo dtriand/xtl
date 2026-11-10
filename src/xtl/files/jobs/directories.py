@@ -4,7 +4,7 @@ from typing import Any
 
 from xtl_core.system.compatibility import OS_POSIX
 from xtl_core.options import Option
-from xtl_core.os import FilePermissions
+from xtl_core.system.os import FilePermissions
 from xtl.jobs import Job, JobConfig
 
 

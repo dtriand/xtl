@@ -12,7 +12,7 @@ import rich.prompt
 import rich.table
 import rich.text
 
-from xtl_core.os import get_permissions_in_decimal
+from xtl_core.system.os import get_permissions_in_decimal
 from xtl import settings
 
 
