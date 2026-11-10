@@ -30,10 +30,11 @@ def test_from_import():
 
 
 def test_import_is_lazy():
-    # In a new interpreter, so that other tests' imports don't count
+    # In a new interpreter, so that other tests' imports don't count; `import xtl` alone
+    #  already loads some of xtl_core, so only what `import xtl.core` adds counts
     code = (
-        'import sys, xtl.core; '
-        "print(sorted(m for m in sys.modules if m == 'xtl_core' or m.startswith(('xtl_core.', 'xtl.core'))))"
+        'import sys, xtl; before = set(sys.modules); import xtl.core; '
+        "print(sorted(m for m in set(sys.modules) - before if m.startswith('xtl')))"
     )
     result = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, check=True)
-    assert result.stdout.strip() == "['xtl.core', 'xtl_core', 'xtl_core._alias', 'xtl_core._version']"
+    assert result.stdout.strip() == "['xtl.core', 'xtl_core._alias']"

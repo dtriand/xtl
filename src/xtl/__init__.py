@@ -8,7 +8,7 @@ from .config.version import version
 
 if TYPE_CHECKING:
     from .config.settings import XTLSettings
-    from .config.version import VersionInfo
+    from xtl_core.version import VersionInfo
 
 logger = Logger(__name__)
 logger.info(f'XTL version: {version} [{version.release_date}]')

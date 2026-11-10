@@ -17,3 +17,4 @@ Submodules
 
    xtl.config.settings
    xtl.config.version
+   xtl_core.version

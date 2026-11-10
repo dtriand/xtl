@@ -105,9 +105,9 @@ members = ["packages/*"]
 xtl-core = { workspace = true }
 
 [tool.hatch.version]
-source = "code"
+source = "regex"
 path = "src/xtl/config/version.py"
-expression = "version.pep440"
+pattern = '''VersionInfo\.from_str\('(?P<version>[^']+)'''
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xtl"]

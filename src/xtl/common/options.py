@@ -40,7 +40,7 @@ import toml
 from toml.decoder import CommentValue
 
 from xtl_core.validators import *
-from xtl.config.version import VersionInfo
+from xtl_core.version import VersionInfo
 from xtl.logging import Logger
 from xtl_core.toml import ExtendedTomlEncoder
 from xtl_core.typed_vars import TypedIterable
