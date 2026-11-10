@@ -12,14 +12,12 @@ __all__ = [
     'FileReaderMeta',
     'mmCIF',
     'NpxFile',
-    'ExtendedTomlEncoder',
 ]
 
 if TYPE_CHECKING:
     from .meta import FileContainer, FileContainerType, FileTypeEnum, DataType, FileReaderMeta
     from .mmcif import mmCIF
     from .npx import NpxFile
-    from .toml import ExtendedTomlEncoder
 
 
 # symbol -> (module, attr)
@@ -31,7 +29,6 @@ _EXPORTS = {
     'FileReaderMeta': ('.meta', 'FileReaderMeta'),
     'mmCIF': ('.mmcif', 'mmCIF'),
     'NpxFile': ('.npx', 'NpxFile'),
-    'ExtendedTomlEncoder': ('.toml', 'ExtendedTomlEncoder'),
 }
 
 
