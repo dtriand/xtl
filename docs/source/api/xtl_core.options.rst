@@ -1,7 +1,7 @@
-``xtl.common.options`` module
-=============================
+``xtl_core.options`` module
+===========================
 
-.. automodule:: xtl.common.options
+.. automodule:: xtl_core.options
    :members:
    :undoc-members:
    :show-inheritance:

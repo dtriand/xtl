@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from xtl.common.options import Option
+from xtl_core.options import Option
 from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.files.jobs.directories import CreateDirectoryJob, CreateDirectoryJobConfig
 from xtl.scattering.jobs.atsas import DatopBatchJob, DatopBatchJobConfig

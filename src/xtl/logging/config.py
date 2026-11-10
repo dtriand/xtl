@@ -3,7 +3,7 @@ import logging
 import sys
 from typing import Any
 
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 
 
 class LoggingFormat(Options):

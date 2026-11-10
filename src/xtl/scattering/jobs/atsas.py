@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 
-from xtl.common.options import Option
+from xtl_core.options import Option
 from xtl_core.validators import cast_as_temp_dir_if_none
 from xtl.jobs.jobs import BatchJob
 from xtl.jobs.config import BatchJobConfig

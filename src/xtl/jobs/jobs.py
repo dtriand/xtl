@@ -32,7 +32,7 @@ from xtl import settings, Logger
 from xtl.math.uuid import UUIDFactory
 from xtl_core.compatibility import OS_POSIX
 from xtl_core.utils.mappings import deepmerge
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 from xtl_core.os import chmod_recursively
 from xtl.logging.config import LoggerConfig
 from xtl.exceptions.base import SubprocessError, StderrError

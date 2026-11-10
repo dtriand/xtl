@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Callable
 
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 from xtl.jobs.jobs import Job, BatchJob
 from xtl.jobs.config import JobConfig, BatchJobConfig
 from xtl.jobs.results import JobResults

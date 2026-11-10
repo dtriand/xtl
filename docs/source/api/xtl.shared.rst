@@ -1,10 +1,10 @@
-``xtl.common`` package
+``xtl.shared`` package
 ======================
 
 Module contents
 ---------------
 
-.. automodule:: xtl.common
+.. automodule:: xtl.shared
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,10 +15,4 @@ Submodules
 .. toctree::
    :maxdepth: 3
 
-   xtl_core.compatibility
-   xtl_core.environment
    xtl.shared.environment
-   xtl.common.options
-   xtl_core.validators
-   xtl_core.serializers
-   xtl_core.tables

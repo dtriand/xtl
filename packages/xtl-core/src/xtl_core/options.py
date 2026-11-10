@@ -1,7 +1,7 @@
 # ruff: noqa: F403, F405 (star imports)
 """
-.. |Option| replace:: :class:`Option <xtl.common.options.Option>`
-.. |Options| replace:: :class:`Options <xtl.common.options.Options>`
+.. |Option| replace:: :class:`Option <xtl_core.options.Option>`
+.. |Options| replace:: :class:`Options <xtl_core.options.Options>`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
 """
@@ -12,6 +12,7 @@ import abc
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
 from functools import partial
 import json
+import logging
 import inspect
 import os
 from pathlib import Path
@@ -41,13 +42,12 @@ from toml.decoder import CommentValue
 
 from xtl_core.validators import *
 from xtl_core.version import VersionInfo
-from xtl.logging import Logger
 from xtl_core.toml import ExtendedTomlEncoder
 from xtl_core.typed_vars import TypedIterable
 from xtl_core.exceptions import OptionsValidationError
 
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 _Validator = Union[BeforeValidator, AfterValidator]
 _T = TypeVar('_T')

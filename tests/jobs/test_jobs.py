@@ -10,7 +10,7 @@ from pathlib import Path
 
 from xtl.jobs.jobs import Job
 from xtl.jobs.config import JobConfig
-from xtl.common.options import Option
+from xtl_core.options import Option
 
 
 class SimpleJobConfig(JobConfig):

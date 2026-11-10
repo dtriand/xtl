@@ -1,5 +1,5 @@
-.. |Option| replace:: :func:`Option() <xtl.common.options.Option>`
-.. |Options| replace:: :class:`Options <xtl.common.options.Options>`
+.. |Option| replace:: :func:`Option() <xtl_core.options.Option>`
+.. |Options| replace:: :class:`Options <xtl_core.options.Options>`
 .. |pydantic| replace:: :mod:`pydantic`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
@@ -7,7 +7,7 @@
 Options
 =======
 
-The :mod:`xtl.common.options` module provides an API around |BaseModel| that extends the existing validation and
+The :mod:`xtl_core.options` module provides an API around |BaseModel| that extends the existing validation and
 serialization capabilities in a user-friendly format. |Options| is a powerful data container that, in combination with
 |Option|, can facilitate arbitrary validators and serializers in a slim syntax. This module is used internally to parse
 configuration from the ``xtl.toml`` file and to validate any modifications on the :attr:`xtl.settings` object.
@@ -22,7 +22,7 @@ respectively. Below is a simple example that showcases what is possible with thi
 
     from pathlib import Path
     from pydantic import Field
-    from xtl.common.options import Option, Options
+    from xtl_core.options import Option, Options
 
     class Employee(Options):
         name: str = Option(
@@ -52,7 +52,7 @@ respectively. Below is a simple example that showcases what is possible with thi
         contract_file='/path/to/contract.txt'
     )
 
-Now if we call :meth:`employee.to_dict() <xtl.common.options.Options.to_dict>` (which is equivalent to
+Now if we call :meth:`employee.to_dict() <xtl_core.options.Options.to_dict>` (which is equivalent to
 :func:`employee.model_dump() <pydantic.BaseModel.model_dump>` if you prefer the `Pydantic` API),
 we get the following back:
 
@@ -186,7 +186,7 @@ type, and only attempts to type cast if not. An exemplary use case would be when
 .. code-block:: python
    :emphasize-lines: 6
 
-    from xtl.common.options import Option, Options
+    from xtl_core.options import Option, Options
 
     class CoercionModel(Options):
         x: list[str] = Option(default=None, cast_as=list)
@@ -205,7 +205,7 @@ Type casting is also useful when using custom types in models:
 
 .. code-block:: python
 
-   from xtl.common.options import Option, Options
+   from xtl_core.options import Option, Options
 
    class Animal:
        def __init__(self, species: str):
@@ -237,7 +237,7 @@ validated data.
 
    from typing import Any
    from pydantic import AfterValidator
-   from xtl.common.options import Option, Options
+   from xtl_core.options import Option, Options
 
    def is_odd(value: Any) -> Any:
        if value % 2 == 0:
@@ -299,7 +299,7 @@ controlled by the ``formatter`` and ``alias`` arguments in |Option|.
 .. code-block:: python
 
    from pathlib import Path
-   from xtl.common.options import Option, Options
+   from xtl_core.options import Option, Options
 
    def PathUri(value: Path) -> str:
        return value.as_uri()
@@ -325,7 +325,7 @@ There are aptly named methods (``from_*``/``to_*``) for each purpose.
 
 .. code-block:: python
 
-   from xtl.common.options import Option, Options
+   from xtl_core.options import Option, Options
 
    class NestedModel(Options):
        a: int = Option(default=None, formatter=lambda x: 10 * x,
@@ -361,7 +361,7 @@ respective environment variable.
 .. code-block:: python
 
    import os
-   from xtl.common.options import Option, Options
+   from xtl_core.options import Option, Options
 
    class Settings(Options):
        a: str = Option(default=None)

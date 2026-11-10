@@ -1,5 +1,5 @@
 """
-This module defines a set of :class:`Options <xtl.common.options.Options>` `Pydantic`
+This module defines a set of :class:`Options <xtl_core.options.Options>` `Pydantic`
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """
@@ -18,7 +18,7 @@ from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl_core.version import VersionInfo
 from xtl.shared.environment import XTL_CONFIG
 from xtl_core.os import FilePermissions, CPU_CORES
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 from xtl_core.serializers import PermissionOctal
 from xtl_core.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.exceptions import OptionsValidationError

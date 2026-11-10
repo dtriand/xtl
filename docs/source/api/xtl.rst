@@ -15,6 +15,7 @@ Subpackages
 .. toctree::
    :maxdepth: 3
 
-   xtl.common
+   xtl.shared
+   xtl_core
    xtl.config
    xtl.jobs

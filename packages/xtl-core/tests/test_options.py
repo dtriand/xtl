@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from xtl.common.options import Option, Options, VersionedOptions
+from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.version import VersionInfo
 from xtl_core.validators import cast_as, validate_length
 from xtl_core.exceptions import OptionsValidationError

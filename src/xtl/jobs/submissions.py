@@ -1,5 +1,5 @@
 from xtl import settings
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 from xtl.math.uuid import UUIDFactory
 from xtl.jobs.jobs import Job, JobData
 from xtl.jobs.ipc import IPCHandle

@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Any
 
-from xtl.common.options import Option, Options
+from xtl_core.options import Option, Options
 from xtl.scattering.files import Scattering1DFileType
 
 

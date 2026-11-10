@@ -79,7 +79,7 @@ def _resolve(settings, parts: tuple[str, ...]) -> Any:
     Value of a dotted path in the settings (using TOML key names), or ``_MISSING`` if
     there is no such key. Unlike the TOML data, this includes values that are None.
     """
-    from xtl.common.options import Options
+    from xtl_core.options import Options
 
     value = settings
     for part in parts:
