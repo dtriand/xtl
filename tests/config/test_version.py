@@ -31,11 +31,11 @@ class TestPackageVersion:
         assert dist_version('xtl') == version.pep440
 
     def test_hatch_pattern(self):
-        # hatch reads the version with this regex; it must find exactly the string that
-        #  `version` is built from
+        # hatch reads the version with this regex and writes it into the metadata as is, so
+        #  it must find exactly one string, already in its PEP 440 form
         tomllib = pytest.importorskip('tomllib')  # Python 3.11+
         pyproject = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
         config = pyproject['tool']['hatch']['version']
         source = (ROOT / config['path']).read_text(encoding='utf-8')
         matches = re.findall(config['pattern'], source)
-        assert matches == [version.string]
+        assert matches == [version.pep440]

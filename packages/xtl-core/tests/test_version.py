@@ -113,6 +113,8 @@ class TestFromStr:
             ('1.2.3rc3', (1, 2, 3, ReleaseLevel.RC, 3)),
             ('1.2.3dev4', (1, 2, 3, ReleaseLevel.DEV, 4)),
             ('1.2.13a1', (1, 2, 13, ReleaseLevel.ALPHA, 1)),
+            ('1.2.3.dev4', (1, 2, 3, ReleaseLevel.DEV, 4)),  # PEP 440
+            ('1.2.3.post2', (1, 2, 3, ReleaseLevel.FINAL, 2)),  # PEP 440
         ],
     )
     def test_valid(self, string, expected):
@@ -120,7 +122,7 @@ class TestFromStr:
         assert (v.major, v.minor, v.micro, v.level, v.serial) == expected
         assert v.date is None
 
-    @pytest.mark.parametrize('string', ['0.1', '1.2.3.4', '1.2.a1', '1.2.3x1', '', 'a.b.c'])
+    @pytest.mark.parametrize('string', ['0.1', '1.2.3.4', '1.2.a1', '1.2.3x1', '', 'a.b.c', '1.2.3.rc1', '1.2.3.dev'])
     def test_invalid(self, string):
         with pytest.raises(ValueError):
             VersionInfo.from_str(string)
@@ -129,6 +131,11 @@ class TestFromStr:
     def test_round_trip(self, level):
         v = _v(level=level, serial=4)
         assert VersionInfo.from_str(v.string) == v
+
+    @pytest.mark.parametrize('level', [level for level in ReleaseLevel if level != ReleaseLevel.GAMMA])
+    def test_round_trip_pep440(self, level):
+        v = _v(level=level, serial=4)
+        assert VersionInfo.from_str(v.pep440) == v
 
     def test_date(self):
         v = VersionInfo.from_str('1.2.3', '01/06/2025')

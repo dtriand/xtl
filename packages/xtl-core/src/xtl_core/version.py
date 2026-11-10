@@ -3,6 +3,7 @@ Version numbers with a release level and an optional release date.
 """
 
 from enum import IntEnum
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Tuple
@@ -133,8 +134,16 @@ class VersionInfo:
     def from_str(cls, version_str: str, date_str: str | None = None) -> 'VersionInfo':
         """
         Create a VersionInfo object from a version string. A string without a release
-        level (e.g. '1.2.3') is interpreted as a final release ('1.2.3final0').
+        level (e.g. '1.2.3') is interpreted as a final release ('1.2.3final0'). The PEP 440
+        forms of :attr:`pep440` are accepted too ('1.2.3.dev4', '1.2.3.post4').
         """
+        # PEP 440 separates dev and post releases with a dot: '1.2.3.dev4' is '1.2.3dev4',
+        #  '1.2.3.post4' is '1.2.3final4'
+        pep440 = re.fullmatch(r'(\d+\.\d+\.\d+)\.(dev|post)(\d+)', version_str)
+        if pep440:
+            base, kind, serial = pep440.groups()
+            version_str = f'{base}{"dev" if kind == "dev" else "final"}{serial}'
+
         parts = version_str.split('.')
         if len(parts) != 3:
             raise ValueError(
