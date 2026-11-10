@@ -43,7 +43,7 @@ from toml.decoder import CommentValue
 from xtl_core.validators import *
 from xtl_core.version import VersionInfo
 from xtl_core.options.toml import ExtendedTomlEncoder
-from xtl_core.typed_vars import TypedIterable
+from xtl_core.options.typed_vars import TypedIterable
 from xtl_core.options.exceptions import OptionsValidationError
 
 
