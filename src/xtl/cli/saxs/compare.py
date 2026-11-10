@@ -66,7 +66,7 @@ async def cli_saxs_compare(
 
     cliques = results.data['cliques']
     if csv_output:
-        from xtl.common.tables import Table
+        from xtl_core.tables import Table
 
         no_columns = len(cliques[0]) + 1
         table = Table(headers=['Clique', 'Files'] + [''] * (no_columns - 1))

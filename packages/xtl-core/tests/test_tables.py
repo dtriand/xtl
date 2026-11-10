@@ -1,5 +1,7 @@
+import sys
+
 import pytest
-from xtl.common.tables import MissingValue, MissingValueConfig, Table, XTLUndefined
+from xtl_core.tables import MissingValue, MissingValueConfig, Table, XTLUndefined
 
 
 class TestMissingValueConfig:
@@ -1516,3 +1518,20 @@ class TestTable:
             """Test passing formats to alternative constructors."""
             table = Table.from_dict({'A': [1.234]}, formats={'A': '.1f'})
             assert str(table) == '  A\n---\n1.2'
+
+
+class TestOptionalDependencies:
+    @pytest.mark.parametrize(
+        'lib, call',
+        [
+            ('numpy', lambda t: t.to_numpy()),
+            ('pandas', lambda t: t.to_pandas()),
+            ('rich', lambda t: t.to_rich()),
+        ],
+    )
+    def test_missing_names_the_extra(self, monkeypatch, lib, call):
+        # A `None` entry in `sys.modules` makes the import fail
+        monkeypatch.setitem(sys.modules, lib, None)
+        monkeypatch.setitem(sys.modules, f'{lib}.table', None)
+        with pytest.raises(ImportError, match=r'pip install xtl-core\['):
+            call(Table(data=[[1, 2]], headers=['a', 'b']))

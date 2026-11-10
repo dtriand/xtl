@@ -21,4 +21,4 @@ Submodules
    xtl.common.options
    xtl_core.validators
    xtl_core.serializers
-   xtl.common.tables
+   xtl_core.tables

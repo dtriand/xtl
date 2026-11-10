@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     import pandas as pd
     import rich.table
 
+# numpy, pandas and rich are optional dependencies, in an extra of xtl-core (name not final)
+_EXTRA_HINT = 'install them with `pip install xtl-core[extra]`'
+
 
 @dataclass
 class MissingValue:
@@ -607,7 +610,7 @@ class Table:
         try:
             import numpy as np
         except ModuleNotFoundError:
-            raise ImportError('numpy is not installed')
+            raise ImportError(f'numpy is not installed; {_EXTRA_HINT}')
 
         return np.array(self.data)
 
@@ -619,7 +622,7 @@ class Table:
         try:
             import pandas as pd
         except ModuleNotFoundError:
-            raise ImportError('pandas is not installed')
+            raise ImportError(f'pandas is not installed; {_EXTRA_HINT}')
 
         return pd.DataFrame(self.data, columns=self._headers if self._headers else None)
 
@@ -633,7 +636,7 @@ class Table:
         try:
             from rich.table import Table as RichTable
         except ModuleNotFoundError:
-            raise ImportError('rich is not installed')
+            raise ImportError(f'rich is not installed; {_EXTRA_HINT}')
 
         justify = {'<': 'left', '>': 'right', '^': 'center'}
         table = RichTable()
@@ -774,7 +777,7 @@ class Table:
         try:
             import numpy as np
         except ModuleNotFoundError:
-            raise ImportError('numpy is not installed')
+            raise ImportError(f'numpy is not installed; {_EXTRA_HINT}')
 
         if len(array.shape) != 2:
             raise ValueError('Array must be 2D')
@@ -811,7 +814,7 @@ class Table:
         try:
             import pandas as pd
         except ModuleNotFoundError:
-            raise ImportError('pandas is not installed')
+            raise ImportError(f'pandas is not installed; {_EXTRA_HINT}')
 
         headers = df.columns.tolist()
         data = df.values.tolist()
