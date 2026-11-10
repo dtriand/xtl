@@ -1,9 +1,10 @@
 import pytest
 
+import logging
 import os
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.version import VersionInfo
@@ -352,6 +353,333 @@ class TestVersionedOptions:
     def test_newer_from_json(self, caplog):
         assert self.TaggedModel.from_json('{"version": "1.3.0"}').version == '1.3.0'
         assert self.message in caplog.text
+
+
+def versioned_model(current: str | None = '3.0.0', path: str = 'version') -> type[VersionedOptions]:
+    """A fresh model per call, so steps registered in one test don't leak into another."""
+
+    class Model(VersionedOptions):
+        _version_path = path
+        _current_version = current
+        version: str = Option(default=current)
+
+    return Model
+
+
+def noop(data: dict) -> dict:
+    return data
+
+
+def never(data: dict) -> dict:
+    raise AssertionError('this upgrade step should not run')
+
+
+class TestVersionedOptionsClass:
+    def test_current_version_from_str(self):
+        assert versioned_model('3.0.0')._current_version == VersionInfo.from_str('3.0.0')
+
+    @pytest.mark.parametrize('attr', ['_current_version', '_upgrades'])
+    def test_needs_version_path(self, attr):
+        with pytest.raises(TypeError, match='must define a `_version_path`'):
+            type('Model', (VersionedOptions,), {attr: '1.0.0'})
+
+    def test_default_holds_current_version(self):
+        assert versioned_model('3.0.0')().to_dict()['version'] == '3.0.0'
+
+
+class TestUpgradeStep:
+    def test_registers_and_returns_func(self):
+        Model = versioned_model()
+        assert Model.upgrade_step(to='2.0.0')(noop) is noop
+        (step,) = Model.upgrade_steps()
+        assert step.to == VersionInfo.from_str('2.0.0')
+        assert step.func is noop
+        assert step.model is None
+
+    def test_sorted_by_version(self):
+        Model = versioned_model()
+
+        @Model.upgrade_step(to='3.0.0')
+        def b(data: dict) -> dict:
+            return data
+
+        @Model.upgrade_step(to='1.5.0')
+        def a(data: dict) -> dict:
+            return data
+
+        assert [step.func for step in Model.upgrade_steps()] == [a, b]
+
+    def test_registries_per_class(self):
+        A, B = versioned_model(), versioned_model()
+        A.upgrade_step(to='2.0.0')(noop)
+
+        class C(A):
+            pass
+
+        assert len(A.upgrade_steps()) == 1
+        assert B.upgrade_steps() == []
+        assert C.upgrade_steps() == []
+
+    def test_on_base_class(self):
+        with pytest.raises(TypeError, match='only be registered on subclasses'):
+            VersionedOptions.upgrade_step(to='1.0.0')
+
+    def test_without_current_version(self):
+        with pytest.raises(TypeError, match='does not define a `_current_version`'):
+            versioned_model(current=None).upgrade_step(to='1.0.0')
+
+    def test_newer_than_current(self):
+        with pytest.raises(ValueError, match="4.0.0 is newer than the model's current version 3.0.0"):
+            versioned_model('3.0.0').upgrade_step(to='4.0.0')
+
+    def test_duplicate(self):
+        Model = versioned_model()
+        Model.upgrade_step(to='2.0.0')(noop)
+        with pytest.raises(ValueError, match='already has an upgrade step to version 2.0.0: noop'):
+            Model.upgrade_step(to='2.0.0')(never)
+
+    @pytest.mark.parametrize('model', [42, dict])
+    def test_model_not_options(self, model):
+        with pytest.raises(TypeError, match='must be a subclass of Options'):
+            versioned_model().upgrade_step(to='2.0.0', model=model)
+
+    def test_model_versioned(self):
+        with pytest.raises(TypeError, match='cannot be a subclass of VersionedOptions'):
+            versioned_model().upgrade_step(to='2.0.0', model=versioned_model())
+
+    @pytest.mark.parametrize('func', [lambda: {}, lambda data, extra: data], ids=['no args', 'two args'])
+    def test_wrong_arity(self, func):
+        with pytest.raises(TypeError, match='must accept a single positional argument'):
+            versioned_model().upgrade_step(to='2.0.0')(func)
+
+
+class TestUpgrade:
+    @pytest.fixture
+    def Sample(self):
+        class Sample(VersionedOptions):
+            """The current (2.0.0) layout for the rename/add/split/remove tests."""
+
+            model_config = ConfigDict(extra='forbid')
+            _version_path = 'version'
+            _current_version = '2.0.0'
+            version: str = Option(default='2.0.0')
+            units: str = Option(default='nm')
+            start: float = Option(default=0.0)
+            stop: float = Option(default=1.0)
+            label: str = Option(default='')
+
+        return Sample
+
+    old = {'version': '1.0.0', 'unit': 'A', 'range': [2.0, 5.0], 'comment': 'old'}
+
+    def upgrade(self, Sample, step) -> dict:
+        Sample.upgrade_step(to='2.0.0')(step)
+        return Sample.upgrade(self.old)
+
+    def test_rename(self, Sample):
+        def rename(data: dict) -> dict:
+            data['units'] = data.pop('unit')
+            return data
+
+        data = self.upgrade(Sample, rename)
+        assert data['units'] == 'A'
+        assert 'unit' not in data
+
+    def test_add(self, Sample):
+        def add(data: dict) -> dict:
+            data['label'] = f'{data["unit"]} sample'
+            return data
+
+        assert self.upgrade(Sample, add)['label'] == 'A sample'
+
+    def test_split(self, Sample):
+        def split(data: dict) -> dict:
+            data['start'], data['stop'] = data.pop('range')
+            return data
+
+        data = self.upgrade(Sample, split)
+        assert (data['start'], data['stop']) == (2.0, 5.0)
+        assert 'range' not in data
+
+    def test_remove(self, Sample):
+        def remove(data: dict) -> dict:
+            del data['comment']
+            return data
+
+        assert 'comment' not in self.upgrade(Sample, remove)
+
+    def test_result_validates(self, Sample):
+        @Sample.upgrade_step(to='2.0.0')
+        def all_changes(data: dict) -> dict:
+            data['units'] = data.pop('unit')
+            data['start'], data['stop'] = data.pop('range')
+            data['label'] = 'added'
+            del data['comment']
+            return data
+
+        with pytest.raises(OptionsValidationError):
+            Sample.from_dict(self.old)
+        sample = Sample.from_dict(Sample.upgrade(self.old))
+        assert sample.to_dict() == {
+            'version': '2.0.0',
+            'units': 'A',
+            'start': 2.0,
+            'stop': 5.0,
+            'label': 'added',
+        }
+
+    @pytest.fixture
+    def chain(self):
+        """A 3.0.0 model with steps to 1.5.0 and 3.0.0 that record when they run and the
+        version they see."""
+        Model = versioned_model('3.0.0')
+        calls = []
+
+        @Model.upgrade_step(to='1.5.0')
+        def a(data: dict) -> dict:
+            calls.append(('a', data['version']))
+            return data
+
+        @Model.upgrade_step(to='3.0.0')
+        def b(data: dict) -> dict:
+            calls.append(('b', data['version']))
+            return data
+
+        return Model, calls
+
+    @pytest.mark.parametrize(
+        'version, expected',
+        [
+            ('1.0.0', [('a', '1.0.0'), ('b', '1.5.0')]),
+            ('1.2.0', [('a', '1.2.0'), ('b', '1.5.0')]),
+            ('1.5.0', [('b', '1.5.0')]),
+            ('1.5.0.dev0', [('b', '1.5.0.dev0')]),
+            ('2.0.0', [('b', '2.0.0')]),
+        ],
+    )
+    def test_chain(self, chain, version, expected):
+        Model, calls = chain
+        assert Model.upgrade({'version': version}) == {'version': '3.0.0'}
+        assert calls == expected
+
+    @pytest.mark.parametrize('version', ['3.0.0', '4.0.0'])
+    def test_current_or_newer(self, version):
+        Model = versioned_model('3.0.0')
+        Model.upgrade_step(to='2.0.0')(never)
+        Model.upgrade_step(to='3.0.0')(never)
+        assert Model.upgrade({'version': version, 'x': 1}) == {'version': version, 'x': 1}
+
+    def test_newer_warns(self, caplog):
+        versioned_model('3.0.0').upgrade({'version': '4.0.0'})
+        assert "data is from version 4.0.0, which is newer than the model's current version 3.0.0" in caplog.text
+
+    def test_missing_version(self):
+        Model = versioned_model('3.0.0')
+        Model.upgrade_step(to='2.0.0')(never)
+        assert Model.upgrade({'x': 1}) == {'x': 1}
+
+    def test_no_current_version(self):
+        assert versioned_model(current=None).upgrade({'version': '1.0.0'}) == {'version': '1.0.0'}
+
+    def test_no_steps_left(self):
+        """Data newer than the last step but older than current is only stamped."""
+        Model = versioned_model('3.0.0')
+        Model.upgrade_step(to='1.5.0')(never)
+        assert Model.upgrade({'version': '2.0.0'}) == {'version': '3.0.0'}
+
+    def test_nested_version_path(self):
+        Model = versioned_model('3.0.0', path='metadata.version')
+        seen = []
+
+        @Model.upgrade_step(to='2.0.0')
+        def record(data: dict) -> dict:
+            seen.append(data['metadata']['version'])
+            return data
+
+        data = Model.upgrade({'metadata': {'version': '1.0.0', 'name': 'x'}})
+        assert data == {'metadata': {'version': '3.0.0', 'name': 'x'}}
+        assert seen == ['1.0.0']
+
+    def test_does_not_mutate(self):
+        Model = versioned_model('2.0.0')
+
+        @Model.upgrade_step(to='2.0.0')
+        def mutate(data: dict) -> dict:
+            data['nested']['items'].append(3)
+            return data
+
+        old = {'version': '1.0.0', 'nested': {'items': [1, 2]}}
+        assert Model.upgrade(old)['nested']['items'] == [1, 2, 3]
+        assert old == {'version': '1.0.0', 'nested': {'items': [1, 2]}}
+
+    def test_non_dict_result(self):
+        Model = versioned_model('2.0.0')
+
+        @Model.upgrade_step(to='2.0.0')
+        def forgot_return(data: dict) -> dict:
+            data['x'] = 1
+
+        with pytest.raises(TypeError, match=r'forgot_return \(to 2\.0\.0\) returned NoneType, expected a dict'):
+            Model.upgrade({'version': '1.0.0'})
+
+    def test_step_errors_propagate(self):
+        Model = versioned_model('2.0.0')
+
+        @Model.upgrade_step(to='2.0.0')
+        def broken(data: dict) -> dict:
+            return {'units': data['unit']}
+
+        with pytest.raises(KeyError, match='unit'):
+            Model.upgrade({'version': '1.0.0'})
+
+    def test_logs(self, caplog):
+        Model = versioned_model('3.0.0')
+        Model.upgrade_step(to='2.0.0')(noop)
+        with caplog.at_level(logging.DEBUG, logger='xtl_core.options.versioned'):
+            Model.upgrade({'version': '1.0.0'})
+        assert 'Running upgrade step from version 1.0.0 to 2.0.0: noop' in caplog.text
+        assert 'Upgraded Model data from version 1.0.0 to 3.0.0.' in caplog.text
+
+
+class SampleV1(Options):
+    """A frozen copy of an old (1.0.0) layout, for typed upgrade steps."""
+
+    version: str = Option(default='1.0.0')
+    unit: str = Option(default='A')
+    range: list[float] = Option(default_factory=lambda: [0.0, 1.0])
+
+
+class TestTypedUpgradeStep:
+    @pytest.fixture
+    def model_and_seen(self):
+        Model = versioned_model('2.0.0')
+        seen = []
+
+        @Model.upgrade_step(to='2.0.0', model=SampleV1)
+        def typed(old: SampleV1) -> dict:
+            seen.append(old)
+            return {'version': old.version, 'span': old.range[1] - old.range[0]}
+
+        return Model, seen
+
+    def test_registered_with_model(self, model_and_seen):
+        Model, _ = model_and_seen
+        (step,) = Model.upgrade_steps()
+        assert step.model is SampleV1
+
+    def test_gets_model_instance(self, model_and_seen):
+        Model, seen = model_and_seen
+        data = Model.upgrade({'version': '1.0.0', 'range': ['2', 5]})
+        (old,) = seen
+        assert isinstance(old, SampleV1)
+        assert old.range == [2.0, 5.0]
+        assert data == {'version': '2.0.0', 'span': 3.0}
+
+    def test_invalid_old_data(self, model_and_seen):
+        Model, seen = model_and_seen
+        with pytest.raises(OptionsValidationError):
+            Model.upgrade({'version': '1.0.0', 'range': 'not a list'})
+        assert seen == []
 
 
 def test_package_exports():
