@@ -18,6 +18,6 @@ Submodules
    xtl_core.compatibility
    xtl.common.environment
    xtl.common.options
-   xtl.common.validators
+   xtl_core.validators
    xtl_core.serializers
    xtl.common.tables

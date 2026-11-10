@@ -39,7 +39,7 @@ from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
 import toml
 from toml.decoder import CommentValue
 
-from xtl.common.validators import *
+from xtl_core.validators import *
 from xtl.config.version import VersionInfo
 from xtl.logging import Logger
 from xtl_core.toml import ExtendedTomlEncoder

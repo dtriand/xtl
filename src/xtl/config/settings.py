@@ -20,7 +20,7 @@ from xtl.common.environment import XTL_CONFIG
 from xtl_core.os import FilePermissions, CPU_CORES
 from xtl.common.options import Option, Options
 from xtl_core.serializers import PermissionOctal
-from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
+from xtl_core.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.exceptions import OptionsValidationError
 
 logger = Logger(__name__)

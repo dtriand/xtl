@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from xtl.common.options import Option
-from xtl.common.validators import cast_as_temp_dir_if_none
+from xtl_core.validators import cast_as_temp_dir_if_none
 from xtl.jobs.jobs import BatchJob, SteppedJob
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.config import BatchJobConfig, SteppedJobConfig
