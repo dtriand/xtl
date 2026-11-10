@@ -43,7 +43,7 @@ from xtl.common.validators import *
 from xtl.config.version import VersionInfo
 from xtl.logging import Logger
 from xtl_core.toml import ExtendedTomlEncoder
-from xtl.common.typed_vars import TypedIterable
+from xtl_core.typed_vars import TypedIterable
 from xtl_core.exceptions import OptionsValidationError
 
 
