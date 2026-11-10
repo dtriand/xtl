@@ -8,7 +8,7 @@ from pydantic import Field
 from xtl.common.options import Option, Options, VersionedOptions
 from xtl.config.version import VersionInfo
 from xtl.common.validators import cast_as, validate_length
-from xtl.exceptions.pydantic import OptionsValidationError
+from xtl_core.exceptions import OptionsValidationError
 
 
 class TestOption:

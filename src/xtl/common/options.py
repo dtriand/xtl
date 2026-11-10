@@ -44,7 +44,7 @@ from xtl.config.version import VersionInfo
 from xtl.logging import Logger
 from xtl.files.toml import ExtendedTomlEncoder
 from xtl.common.typed_vars import TypedIterable
-from xtl.exceptions.pydantic import OptionsValidationError
+from xtl_core.exceptions import OptionsValidationError
 
 
 logger = Logger(__name__)

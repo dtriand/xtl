@@ -7,7 +7,7 @@ from typing import Any, Generic, TypeVar, Protocol, get_args, overload, runtime_
 from pydantic import ValidationError, TypeAdapter
 from pydantic_core import InitErrorDetails, PydanticCustomError, core_schema
 
-from xtl.exceptions.pydantic import OptionsValidationError
+from xtl_core.exceptions import OptionsValidationError
 
 
 T = TypeVar('T')
@@ -122,7 +122,7 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
         try:
             return self._key_adapter.validate_python(value)
         except (ValidationError, TypeError):
-            from xtl.exceptions.pydantic import OptionsValidationError
+            from xtl_core.exceptions import OptionsValidationError
 
             exc = ValidationError.from_exception_data(
                 title=f'{self.__class__.__name__}<{_type_name(self._key_type)}, {_type_name(self._value_type)}>',
@@ -146,7 +146,7 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
         try:
             return self._value_adapter.validate_python(value)
         except (ValidationError, TypeError):
-            from xtl.exceptions.pydantic import OptionsValidationError
+            from xtl_core.exceptions import OptionsValidationError
 
             exc = ValidationError.from_exception_data(
                 title=f'{self.__class__.__name__}<{_type_name(self._key_type)}, {_type_name(self._value_type)}>',
