@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import copy
+import importlib
 import inspect
 from dataclasses import dataclass
 import logging
@@ -44,6 +45,20 @@ class UpgradeStep:
     model: type[Options] | None = None
 
 
+def _field_keys(model: type[Options]) -> set[str]:
+    """
+    The top-level keys a model reads: its field names and their string aliases (``Option(alias=...)`` sets the
+    serialization alias, which is the key in saved data).
+    """
+    keys = set()
+    for name, field in model.model_fields.items():
+        keys.add(name)
+        for alias in (field.alias, field.validation_alias, field.serialization_alias):
+            if isinstance(alias, str):
+                keys.add(alias)
+    return keys
+
+
 _UPGRADE_NOTE = (
     'Data from an older version is upgraded to the current one first (see :meth:`upgrade`); '
     'newer data logs a warning, and data without a version loads as current.'
@@ -63,13 +78,14 @@ class VersionedOptions(Options):
     """``_current_version`` as a :class:`VersionInfo`, set when the subclass is created; the methods use this one."""
 
     _upgrades: ClassVar[str | None] = None
-    """Dotted path to the module containing the upgrade steps for this model."""
+    """Dotted path to the module with this class's own upgrade steps, imported the first time they're needed.
+    Subclasses also run the steps of their parents."""
 
     _upgrade_steps: ClassVar[dict[tuple[int, int, int], UpgradeStep]] = {}
-    """A registry of upgrade steps, keyed by the version they upgrade to."""
+    """This class's own upgrade steps, keyed by the version they upgrade to (its parents' are in their own)."""
 
     _upgrades_loaded: ClassVar[bool] = False
-    """Whether the module containing the upgrade steps has been imported."""
+    """Whether this class's own ``_upgrades`` module has been imported."""
 
     @classmethod
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
@@ -82,6 +98,21 @@ class VersionedOptions(Options):
                 f'{cls.__name__} must define a `_version_path` class variable if it defines a '
                 '`_current_version` or `_upgrades`.'
             )
+
+        # A subclass extends its parents' version history: it runs their steps, so it can't go back to an
+        #  older version or move the version tag
+        for base in cls.__bases__:
+            if not (issubclass(base, VersionedOptions) and base._current is not None):
+                continue
+            if cls._current is None or cls._current.tuple_safe < base._current.tuple_safe:
+                raise TypeError(
+                    f'{cls.__name__} cannot lower `_current_version` below that of {base.__name__} '
+                    f'({base._current.pep440}).'
+                )
+            if cls._version_path != base._version_path:
+                raise TypeError(
+                    f'{cls.__name__} cannot change `_version_path` of {base.__name__} ({base._version_path!r}).'
+                )
 
     @classmethod
     def _get_version(cls, data: Any) -> VersionInfo | None:
@@ -119,13 +150,48 @@ class VersionedOptions(Options):
             )
 
     @classmethod
+    def _load_upgrades(cls) -> None:
+        """
+        Import this class's own ``_upgrades`` module once, which registers its steps. An
+        inherited ``_upgrades`` belongs to the parent, which loads it.
+
+        :raises ImportError: If the module can't be imported; the next call tries again.
+        """
+        module = cls.__dict__.get('_upgrades')
+        if module is None or cls._upgrades_loaded:
+            return
+        importlib.import_module(module)
+        cls._upgrades_loaded = True
+        if not cls._upgrade_steps:
+            logger.warning(
+                '%(model)s: importing %(module)s registered no upgrade steps for it.',
+                {'model': cls.__name__, 'module': module},
+            )
+
+    @classmethod
+    def _versioned_bases(cls) -> list[type[VersionedOptions]]:
+        """This class and its versioned parents, from the furthest parent to this class."""
+        return [
+            klass
+            for klass in reversed(cls.__mro__)
+            if isinstance(klass, type) and issubclass(klass, VersionedOptions) and klass is not VersionedOptions
+        ]
+
+    @classmethod
     def upgrade_steps(cls) -> list[UpgradeStep]:
         """
-        Returns a list of all registered upgrade steps for this model, sorted by version.
+        All upgrade steps that apply to this model, its parents' included, in the order they
+        run: by the version they upgrade to and, for the same version, a parent's before its
+        subclass's. The ``_upgrades`` modules are imported first.
 
-        :return: A list of :class:`UpgradeStep` instances, sorted by the version.
+        :return: A list of :class:`UpgradeStep` instances, in the order they run.
         """
-        return [cls._upgrade_steps[step] for step in sorted(cls._upgrade_steps)]
+        steps = []
+        for klass in cls._versioned_bases():
+            klass._load_upgrades()
+            steps.extend(klass._upgrade_steps[key] for key in sorted(klass._upgrade_steps))
+        # sorted() is stable, so parents' steps stay before their subclasses' for the same version
+        return sorted(steps, key=lambda step: step.to.tuple_safe)
 
     @overload
     @classmethod
@@ -223,8 +289,9 @@ class VersionedOptions(Options):
         # Run upgrade steps in order
         at = version
         for step in cls.upgrade_steps():
-            # Only run the step if the data's version is older than the step's target version
-            if step.to.tuple_safe <= at.tuple_safe:
+            # Only run the steps newer than the data's original version; comparing with the version
+            #  after the previous step would skip a subclass's step to the same version as its parent's
+            if step.to.tuple_safe <= version.tuple_safe:
                 continue
 
             logger.debug(
@@ -232,8 +299,14 @@ class VersionedOptions(Options):
                 {'from': at.pep440, 'to': step.to.pep440, 'func': step.func.__qualname__},
             )
 
-            # Validate the data against the model
-            arg = step.model.from_dict(data) if step.model is not None else data
+            # Typed steps get the data validated as their frozen model, which only sees the keys it
+            #  knows; the rest (e.g. fields of a subclass) are carried over into the result
+            if step.model is not None:
+                known = _field_keys(step.model)
+                arg = step.model.from_dict({k: v for k, v in data.items() if k in known})
+                unknown = {k: v for k, v in data.items() if k not in known}
+            else:
+                arg, unknown = data, {}
 
             # Run the upgrade step
             result = step.func(arg)
@@ -242,6 +315,7 @@ class VersionedOptions(Options):
                     f'Upgrade step {step.func.__qualname__} (to {step.to.pep440}) returned {type(result).__name__}, '
                     f'expected a dict.'
                 )
+            result = {**unknown, **result}
 
             # Update the data's version
             data = result

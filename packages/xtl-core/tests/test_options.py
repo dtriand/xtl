@@ -1,10 +1,14 @@
 import pytest
 
+import importlib
 import inspect
 import json
 import logging
 import os
 from pathlib import Path
+import sys
+import textwrap
+import uuid
 
 from pydantic import ConfigDict, Field
 import toml
@@ -555,7 +559,9 @@ class TestUpgradeStep:
 
         assert len(A.upgrade_steps()) == 1
         assert B.upgrade_steps() == []
-        assert C.upgrade_steps() == []
+        # A subclass runs its parent's steps (D-065), but registers none of its own
+        assert [step.func for step in C.upgrade_steps()] == [noop]
+        assert C._upgrade_steps == {}
 
     def test_on_base_class(self):
         with pytest.raises(TypeError, match='only be registered on subclasses'):
@@ -915,6 +921,260 @@ class TestLoad:
         assert doc.index(':param upgrade:') < doc.index(':return:')
         for line in parent.splitlines():
             assert line in doc
+
+
+class TestInheritedSteps:
+    """Subclasses run their parents' steps as well as their own (D-065, D-066)."""
+
+    @staticmethod
+    def make_parent(calls: list | None = None) -> type[VersionedOptions]:
+        """A 2.0.0 model that renamed ``directory`` to ``job_dir``."""
+
+        class Parent(VersionedOptions):
+            model_config = ConfigDict(extra='forbid')
+            _version_path = 'version'
+            _current_version = '2.0.0'
+            version: str = Option(default='2.0.0')
+            job_dir: str = Option(default='.')
+
+        @Parent.upgrade_step(to='2.0.0')
+        def rename(data: dict) -> dict:
+            if calls is not None:
+                calls.append(('parent', data['version']))
+            data['job_dir'] = data.pop('directory')
+            return data
+
+        return Parent
+
+    old = {'version': '1.0.0', 'directory': '/data/run1', 'nproc': 8}
+
+    def test_child_runs_parent_steps(self):
+        class Child(self.make_parent()):
+            nproc: int = Option(default=4)
+
+        child = Child.from_dict(self.old)
+        assert (child.version, child.job_dir, child.nproc) == ('2.0.0', '/data/run1', 8)
+        assert Child._upgrade_steps == {}
+
+    def test_parent_first_for_same_version(self):
+        calls = []
+
+        class Child(self.make_parent(calls)):
+            nproc: int = Option(default=4)
+
+        @Child.upgrade_step(to='2.0.0')
+        def double(data: dict) -> dict:
+            calls.append(('child', data['version']))
+            data['nproc'] *= 2
+            return data
+
+        assert [step.func.__name__ for step in Child.upgrade_steps()] == ['rename', 'double']
+        assert Child.from_dict(self.old).nproc == 16
+        assert calls == [('parent', '1.0.0'), ('child', '2.0.0')]
+
+    @pytest.mark.parametrize(
+        'version, expected',
+        [('1.0.0', [('parent', '1.0.0'), ('child', '2.0.0')]), ('2.0.0', [('child', '2.0.0')])],
+    )
+    def test_child_raises_version(self, version, expected):
+        calls = []
+        Parent = self.make_parent(calls)
+
+        class Child(Parent):
+            _current_version = '2.1.0'
+            nproc: int = Option(default=4)
+
+        @Child.upgrade_step(to='2.1.0')
+        def bump(data: dict) -> dict:
+            calls.append(('child', data['version']))
+            return data
+
+        data = {'version': version, 'nproc': 8}
+        data.update({'directory': '/x'} if version == '1.0.0' else {'job_dir': '/x'})
+        child = Child.from_dict(data)
+        assert (child.version, child.job_dir) == ('2.1.0', '/x')
+        assert calls == expected
+        assert [step.func for step in Parent.upgrade_steps()] != [step.func for step in Child.upgrade_steps()]
+        assert len(Parent.upgrade_steps()) == 1
+
+    def test_grandchild(self):
+        calls = []
+
+        class Child(self.make_parent(calls)):
+            _current_version = '2.1.0'
+
+        class Grandchild(Child):
+            _current_version = '2.2.0'
+
+        for model, to in [(Child, '2.1.0'), (Grandchild, '2.2.0')]:
+            model.upgrade_step(to=to)(lambda data, name=model.__name__: calls.append((name, data['version'])) or data)
+
+        assert Grandchild.upgrade({'version': '1.0.0', 'directory': '/x'})['version'] == '2.2.0'
+        assert calls == [('parent', '1.0.0'), ('Child', '2.0.0'), ('Grandchild', '2.1.0')]
+
+    @pytest.mark.parametrize('current', ['1.5.0', None])
+    def test_cannot_lower_version(self, current):
+        Parent = self.make_parent()
+        with pytest.raises(TypeError, match=r'cannot lower `_current_version` below that of Parent \(2\.0\.0\)'):
+            type('Child', (Parent,), {'_current_version': current})
+
+    def test_cannot_change_version_path(self):
+        Parent = self.make_parent()
+        with pytest.raises(TypeError, match='cannot change `_version_path` of Parent'):
+            type('Child', (Parent,), {'_version_path': 'metadata.version'})
+
+    def test_sibling_steps_not_shared(self):
+        Parent = self.make_parent()
+
+        class A(Parent):
+            pass
+
+        class B(Parent):
+            pass
+
+        A.upgrade_step(to='2.0.0')(noop)
+        assert len(A.upgrade_steps()) == 2
+        assert len(B.upgrade_steps()) == 1
+
+
+class JobConfigV1(Options):
+    """The frozen 1.0.0 layout of the parent in ``TestTypedParentStep``."""
+
+    model_config = ConfigDict(extra='forbid')
+    version: str = Option(default='1.0.0')
+    directory: str = Option(default='.', alias='dir')
+
+
+class TestTypedParentStep:
+    """A parent's typed step gets only the keys its frozen model knows; the rest are carried over (D-066)."""
+
+    @pytest.fixture
+    def Child(self):
+        class Parent(VersionedOptions):
+            model_config = ConfigDict(extra='forbid')
+            _version_path = 'version'
+            _current_version = '2.0.0'
+            version: str = Option(default='2.0.0')
+            job_dir: str = Option(default='.')
+
+        @Parent.upgrade_step(to='2.0.0', model=JobConfigV1)
+        def rename(old: JobConfigV1) -> dict:
+            return {'version': old.version, 'job_dir': old.directory, 'nproc': 1}
+
+        class Child(Parent):
+            nproc: int = Option(default=4)
+            label: str = Option(default='')
+
+        return Child
+
+    def test_child_fields_pass_through(self, Child):
+        """``label`` isn't known to the frozen model and comes through; ``dir`` is its alias."""
+        child = Child.from_dict({'version': '1.0.0', 'dir': '/x', 'label': 'run1'})
+        assert (child.job_dir, child.label) == ('/x', 'run1')
+
+    def test_step_wins_over_carried_keys(self, Child):
+        """The step sets ``nproc`` itself, so the carried-over value is replaced."""
+        assert Child.from_dict({'version': '1.0.0', 'dir': '/x', 'nproc': 8}).nproc == 1
+
+
+class TestLazyUpgrades:
+    """The ``_upgrades`` module is imported the first time its steps are needed."""
+
+    @pytest.fixture
+    def modules(self, tmp_path, monkeypatch):
+        """Write a models module and an upgrades module with unique names; return their names."""
+        monkeypatch.syspath_prepend(str(tmp_path))
+        uid = uuid.uuid4().hex[:8]
+        models, upgrades = f'xtl_test_models_{uid}', f'xtl_test_upgrades_{uid}'
+
+        def write(upgrades_source: str | None = None) -> tuple[str, str]:
+            (tmp_path / f'{models}.py').write_text(
+                textwrap.dedent(f"""
+                    from xtl_core.options import Option, VersionedOptions
+
+                    loaded = []
+
+                    class Parent(VersionedOptions):
+                        _version_path = 'version'
+                        _current_version = '2.0.0'
+                        _upgrades = '{upgrades}'
+                        version: str = Option(default='2.0.0')
+                        job_dir: str = Option(default='.')
+
+                    class Child(Parent):
+                        nproc: int = Option(default=4)
+                """)
+            )
+            default = f"""
+                from {models} import Parent, loaded
+
+                loaded.append('{upgrades}')
+
+                @Parent.upgrade_step(to='2.0.0')
+                def rename(data):
+                    data['job_dir'] = data.pop('directory')
+                    return data
+            """
+            (tmp_path / f'{upgrades}.py').write_text(textwrap.dedent(upgrades_source or default))
+            importlib.invalidate_caches()
+            return models, upgrades
+
+        yield write
+        for name in (models, upgrades):
+            sys.modules.pop(name, None)
+
+    old = {'version': '1.0.0', 'directory': '/x'}
+
+    def test_imported_on_first_upgrade(self, modules):
+        models, upgrades = modules()
+        m = importlib.import_module(models)
+        assert upgrades not in sys.modules
+        assert m.Parent.from_dict({'version': '2.0.0'}).version == '2.0.0'  # current data
+        assert upgrades not in sys.modules
+        assert m.Parent.from_dict(self.old).job_dir == '/x'
+        assert upgrades in sys.modules
+        assert m.loaded == [upgrades]
+
+    def test_imported_once(self, modules):
+        models, upgrades = modules()
+        m = importlib.import_module(models)
+        m.Parent.from_dict(self.old)
+        m.Parent.from_dict(self.old)
+        m.Parent.upgrade_steps()
+        assert m.loaded == [upgrades]
+
+    def test_child_does_not_load_parents_module_as_own(self, modules):
+        models, upgrades = modules()
+        m = importlib.import_module(models)
+        child = m.Child.from_dict({**self.old, 'nproc': 8})
+        assert (child.job_dir, child.nproc) == ('/x', 8)
+        assert m.loaded == [upgrades]
+        assert (m.Parent._upgrades_loaded, m.Child._upgrades_loaded) == (True, False)
+        assert m.Child._upgrade_steps == {}
+
+    def test_imported_by_user_first(self, modules):
+        models, upgrades = modules()
+        m = importlib.import_module(models)
+        importlib.import_module(upgrades)
+        assert m.Parent.from_dict(self.old).job_dir == '/x'
+        assert len(m.Parent.upgrade_steps()) == 1
+
+    def test_no_steps_registered(self, modules, caplog):
+        models, upgrades = modules('x = 1\n')
+        m = importlib.import_module(models)
+        m.Parent.upgrade({'version': '1.0.0'})
+        assert f'Parent: importing {upgrades} registered no upgrade steps for it.' in caplog.text
+
+    def test_bad_module(self):
+        class Model(VersionedOptions):
+            _version_path = 'version'
+            _current_version = '2.0.0'
+            _upgrades = 'xtl_test_no_such_module'
+
+        for _ in range(2):
+            with pytest.raises(ModuleNotFoundError):
+                Model.upgrade({'version': '1.0.0'})
+        assert Model._upgrades_loaded is False
 
 
 def test_package_exports():
