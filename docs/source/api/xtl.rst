@@ -19,3 +19,11 @@ Subpackages
    xtl_core
    xtl.config
    xtl.jobs
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 3
+
+   xtl.exceptions
