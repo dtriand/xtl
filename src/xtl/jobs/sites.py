@@ -19,7 +19,7 @@ from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType
 from xtl.logging import Logger
-from xtl.exceptions.base import SubprocessError
+from xtl.jobs.exceptions import SubprocessError
 
 
 __all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite', 'ModulesSite']
@@ -269,7 +269,7 @@ class LocalSite(BaseComputeSite):
             # Log any other exceptions during execution
             logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
             batch._status = BatchFileStatus.FAILED
-            raise SubprocessError(f'Error executing file {batch.file}', raiser=batch, command=cmd) from e
+            raise SubprocessError(f'Error executing file {batch.file}', command=cmd) from e
         finally:
             # Terminate batch if still running
             if batch.process and batch.process.returncode is None:

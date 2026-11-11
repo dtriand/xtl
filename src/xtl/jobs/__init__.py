@@ -29,6 +29,7 @@ __all__ = [
     'LocalSite',
     'ModulesSite',
     'StepSpec',
+    'SubprocessError',
 ]
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
     from .shells import Shell, ShellType, BashShell, CmdShell, PowerShell
     from .sites import ComputeSite, ComputeSiteType, LocalSite, ModulesSite
     from .steps import StepSpec
+    from .exceptions import SubprocessError
 
 
 # symbol -> (module, attr)
@@ -68,6 +70,7 @@ _EXPORTS = {
     'LocalSite': ('.sites', 'LocalSite'),
     'ModulesSite': ('.sites', 'ModulesSite'),
     'StepSpec': ('.steps', 'StepSpec'),
+    'SubprocessError': ('.exceptions', 'SubprocessError'),
 }
 
 

@@ -35,7 +35,7 @@ from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
 from xtl.logging.config import LoggerConfig
-from xtl.exceptions.base import SubprocessError, StderrError
+from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
 from xtl.jobs.logging import get_logger_config
 from xtl.jobs.resources import Resources, get_rc_manager
@@ -448,10 +448,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
                     repr(e.command),
                     exc_info=settings.jobs.tracebacks,
                 )
-            elif isinstance(e, StderrError):
-                self._logger.error(
-                    'Job failed with stderr error: %s', repr(e.stderr), exc_info=settings.jobs.tracebacks
-                )
             else:
                 self._logger.error('Job failed due to an exception: %s', str(e), exc_info=settings.jobs.tracebacks)
         finally:
@@ -785,9 +781,8 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         # Check for errors
         if results.return_code != 0:
             raise SubprocessError(
-                message=f'Batch execution failed with return code {results.return_code}',
+                f'Batch execution of {batch.file} failed with return code {results.return_code}',
                 command=(batch.file,) + tuple(self._batch_args),
-                raiser=batch.file,
             )
 
         self.logger.debug('Batch execution completed successfully')

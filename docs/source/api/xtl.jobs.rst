@@ -18,3 +18,4 @@ Submodules
    xtl.jobs.shells
    xtl.jobs.policies
    xtl.jobs.batchfiles
+   xtl.jobs.exceptions
