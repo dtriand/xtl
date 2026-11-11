@@ -1,5 +1,6 @@
 import pytest
 
+import inspect
 import json
 import logging
 import os
@@ -437,6 +438,15 @@ class TestOptionsIO:
         with pytest.raises(ValueError, match="Invalid read mode: 'yaml'"):
             Options._read_contents('a: 1', mode='yaml')
 
+    @pytest.mark.parametrize('writer', ['to_json', 'to_toml'])
+    def test_writer_signatures(self, tmp_path, writer):
+        """``filename`` is positional-only and the flags are keyword-only."""
+        write = getattr(self.Model(), writer)
+        with pytest.raises(TypeError, match='positional-only'):
+            write(filename=tmp_path / 'out')
+        with pytest.raises(TypeError, match='positional argument'):
+            write(tmp_path / 'out', True)
+
 
 class TestVersionedOptions:
     class Model(VersionedOptions):
@@ -456,7 +466,7 @@ class TestVersionedOptions:
 
     @pytest.mark.parametrize('version', ['1.1.0', '1.2.0'])
     def test_not_newer(self, caplog, version):
-        assert self.TaggedModel.from_dict({'version': version}).version == version
+        assert self.TaggedModel.from_dict({'version': version}, upgrade=False).version == version
         assert self.message not in caplog.text
 
     def test_newer_from_dict(self, caplog):
@@ -492,7 +502,18 @@ def never(data: dict) -> dict:
 
 class TestVersionedOptionsClass:
     def test_current_version_from_str(self):
-        assert versioned_model('3.0.0')._current_version == VersionInfo.from_str('3.0.0')
+        Model = versioned_model('3.0.0')
+        assert Model._current == VersionInfo.from_str('3.0.0')
+        assert Model._current_version == '3.0.0'  # left as the model set it
+
+    def test_current_version_inherited(self):
+        class Child(versioned_model('3.0.0')):
+            pass
+
+        assert Child._current == VersionInfo.from_str('3.0.0')
+
+    def test_no_current_version(self):
+        assert versioned_model(current=None)._current is None
 
     @pytest.mark.parametrize('attr', ['_current_version', '_upgrades'])
     def test_needs_version_path(self, attr):
@@ -634,7 +655,7 @@ class TestUpgrade:
             return data
 
         with pytest.raises(OptionsValidationError):
-            Sample.from_dict(self.old)
+            Sample.from_dict(self.old, upgrade=False)
         sample = Sample.from_dict(Sample.upgrade(self.old))
         assert sample.to_dict() == {
             'version': '2.0.0',
@@ -796,6 +817,104 @@ class TestTypedUpgradeStep:
         with pytest.raises(OptionsValidationError):
             Model.upgrade({'version': '1.0.0', 'range': 'not a list'})
         assert seen == []
+
+
+class TestLoad:
+    """Upgrades on load: ``from_dict()``, ``from_json()`` and ``from_toml()``."""
+
+    HOW = ['dict', 'json-string', 'json-file', 'toml-string', 'toml-file']
+    old = {'version': '1.0.0', 'unit': 'A'}
+    newer = {'version': '3.0.0', 'units': 'A'}
+    newer_message = "Model data is from version 3.0.0, which is newer than the model's current version 2.0.0"
+
+    @pytest.fixture
+    def Model(self):
+        """A 2.0.0 model that renamed ``unit`` to ``units``; the step fails on data without ``unit``."""
+
+        class Model(VersionedOptions):
+            model_config = ConfigDict(extra='forbid')
+            _version_path = 'version'
+            _current_version = '2.0.0'
+            version: str = Option(default='2.0.0')
+            units: str = Option(default='nm')
+
+        @Model.upgrade_step(to='2.0.0')
+        def rename(data: dict) -> dict:
+            data['units'] = data.pop('unit')
+            return data
+
+        return Model
+
+    @staticmethod
+    def load(Model, data, how, tmp_path, **kwargs):
+        if how == 'dict':
+            return Model.from_dict(data, **kwargs)
+        fmt, source = how.split('-')
+        text = json.dumps(data) if fmt == 'json' else toml.dumps(data)
+        loader = Model.from_json if fmt == 'json' else Model.from_toml
+        if source == 'file':
+            path = tmp_path / f'data.{fmt}'
+            path.write_text(text)
+            return loader(path, **kwargs)
+        return loader(text, **kwargs)
+
+    @pytest.mark.parametrize('how', HOW)
+    def test_upgrades(self, Model, tmp_path, how):
+        m = self.load(Model, self.old, how, tmp_path)
+        assert (m.version, m.units) == ('2.0.0', 'A')
+
+    def test_input_not_mutated(self, Model):
+        old = dict(self.old)
+        Model.from_dict(old)
+        assert old == self.old
+
+    @pytest.mark.parametrize('how', HOW)
+    def test_upgrade_false(self, Model, tmp_path, how):
+        """Old data is validated as it is, and fails on the old layout."""
+        with pytest.raises(OptionsValidationError, match='unit'):
+            self.load(Model, self.old, how, tmp_path, upgrade=False)
+
+    def test_upgrade_false_runs_no_steps(self):
+        Model = versioned_model('2.0.0')
+        Model.upgrade_step(to='2.0.0')(never)
+        assert Model.from_dict({'version': '1.0.0'}, upgrade=False).version == '1.0.0'
+
+    @pytest.mark.parametrize('upgrade', [True, False])
+    @pytest.mark.parametrize('how', HOW)
+    def test_newer_warns_once(self, Model, tmp_path, caplog, how, upgrade):
+        """Regression: ``from_json()`` checked the version, then called ``from_dict()``,
+        which checked it again."""
+        m = self.load(Model, self.newer, how, tmp_path, upgrade=upgrade)
+        assert m.version == '3.0.0'
+        assert caplog.text.count(self.newer_message) == 1
+
+    @pytest.mark.parametrize('how', HOW)
+    def test_missing_version(self, Model, tmp_path, how):
+        """Data without a version loads as current: no steps run (``rename`` would fail),
+        and the field default fills in the version."""
+        m = self.load(Model, {'units': 'B'}, how, tmp_path)
+        assert (m.version, m.units) == ('2.0.0', 'B')
+
+    def test_upgrade_is_keyword_only(self, Model):
+        with pytest.raises(TypeError, match='positional argument'):
+            Model.from_dict(self.old, False)
+
+    @pytest.mark.parametrize('loader', ['from_dict', 'from_json', 'from_toml'])
+    def test_source_is_positional_only(self, Model, loader):
+        name = 'data' if loader == 'from_dict' else 's'
+        with pytest.raises(TypeError, match='positional-only'):
+            getattr(Model, loader)(**{name: {} if loader == 'from_dict' else ''})
+
+    @pytest.mark.parametrize('loader', ['from_dict', 'from_json', 'from_toml'])
+    def test_docstrings(self, loader):
+        """The loaders keep the docstrings of Options, plus the upgrade note and parameter."""
+        doc = getattr(VersionedOptions, loader).__doc__
+        parent = inspect.getdoc(getattr(Options, loader))
+        assert doc.startswith(parent.split('\n\n')[0])
+        assert 'Data from an older version is upgraded' in doc
+        assert doc.index(':param upgrade:') < doc.index(':return:')
+        for line in parent.splitlines():
+            assert line in doc
 
 
 def test_package_exports():

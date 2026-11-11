@@ -9,7 +9,6 @@ from __future__ import annotations
 import copy
 import inspect
 from dataclasses import dataclass
-import json
 import logging
 from pathlib import Path
 from typing import Any, ClassVar, Callable, TypeVar, overload
@@ -18,6 +17,8 @@ from typing_extensions import Self
 
 from xtl_core.options.base import Options
 from xtl_core.version import VersionInfo
+from xtl_core.utils.docs import extend_docstring
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +44,23 @@ class UpgradeStep:
     model: type[Options] | None = None
 
 
+_UPGRADE_NOTE = (
+    'Data from an older version is upgraded to the current one first (see :meth:`upgrade`); '
+    'newer data logs a warning, and data without a version loads as current.'
+)
+_UPGRADE_PARAM = {'upgrade': 'Upgrade older data first. If ``False``, the data are validated as they are.'}
+
+
 class VersionedOptions(Options):
     _version_path: ClassVar[str | None] = None
     """The path to the version tag in the data, as a dot-separated string."""
 
-    _current_version: ClassVar[VersionInfo | None] = None
-    """The model's layout current version. If ``None``, no check is performed on the model's data."""
+    _current_version: ClassVar[VersionInfo | str | None] = None
+    """The model's current layout version, as set by the model (a ``str`` or :class:`VersionInfo`). If ``None``,
+    the data's version is neither checked nor upgraded."""
+
+    _current: ClassVar[VersionInfo | None] = None
+    """``_current_version`` as a :class:`VersionInfo`, set when the subclass is created; the methods use this one."""
 
     _upgrades: ClassVar[str | None] = None
     """Dotted path to the module containing the upgrade steps for this model."""
@@ -64,16 +76,15 @@ class VersionedOptions(Options):
         super().__pydantic_init_subclass__(**kwargs)
         cls._upgrade_steps = {}
         cls._upgrades_loaded = False
-        if cls._current_version is not None:
-            cls._current_version = VersionInfo.from_value(cls._current_version)
-        if (cls._current_version is not None or cls._upgrades) and not cls._version_path:
+        cls._current = None if cls._current_version is None else VersionInfo.from_value(cls._current_version)
+        if (cls._current is not None or cls._upgrades) and not cls._version_path:
             raise TypeError(
                 f'{cls.__name__} must define a `_version_path` class variable if it defines a '
                 '`_current_version` or `_upgrades`.'
             )
 
     @classmethod
-    def _get_version(cls, data: dict) -> VersionInfo | None:
+    def _get_version(cls, data: Any) -> VersionInfo | None:
         if cls._version_path is None:
             return None
         node = data
@@ -84,7 +95,7 @@ class VersionedOptions(Options):
         return VersionInfo.from_value(node)
 
     @classmethod
-    def _set_version(cls, data: dict, version: VersionInfo) -> None:
+    def _set_version(cls, data: _Data, version: VersionInfo) -> None:
         if cls._version_path is None:
             return
         node = data
@@ -97,7 +108,7 @@ class VersionedOptions(Options):
 
     @classmethod
     def _check_version(cls, version: VersionInfo | None) -> None:
-        current = cls._current_version
+        current = cls._current
         if version is None or current is None:
             return
         if version.tuple_safe > current.tuple_safe:
@@ -123,11 +134,13 @@ class VersionedOptions(Options):
     @overload
     @classmethod
     def upgrade_step(
-        cls, *, to: VersionInfo | str, model: type[_Options]
+        cls, *, to: VersionInfo | str, model: type[Options]
     ) -> Callable[[Callable[[_Options], _Data]], Callable[[_Options], _Data]]: ...
 
     @classmethod
-    def upgrade_step(cls, *, to: VersionInfo | str, model: type[Options] | None = None) -> Callable:
+    def upgrade_step(
+        cls, *, to: VersionInfo | str, model: type[Options] | None = None
+    ) -> Callable[[Callable[[Any], _Data]], Callable[[Any], _Data]]:
         """
         Decorator to register an upgrade step for a versioned model's data layout.
 
@@ -139,16 +152,15 @@ class VersionedOptions(Options):
 
         if cls is VersionedOptions:
             raise TypeError(f'Upgrade steps can only be registered on subclasses of {VersionedOptions.__name__}.')
-        if cls._current_version is None:
+        if cls._current is None:
             raise TypeError(
                 f'{cls.__name__} does not define a `_current_version`, so upgrade steps cannot be registered.'
             )
 
         to = VersionInfo.from_value(to)
-        if to.tuple_safe > cls._current_version.tuple_safe:
+        if to.tuple_safe > cls._current.tuple_safe:
             raise ValueError(
-                f"Upgrade step to version {to.pep440} is newer than the model's "
-                f'current version {cls._current_version.pep440}.'
+                f"Upgrade step to version {to.pep440} is newer than the model's current version {cls._current.pep440}."
             )
         if model is not None:
             if not (isinstance(model, type) and issubclass(model, Options)):
@@ -181,7 +193,7 @@ class VersionedOptions(Options):
         return decorator
 
     @classmethod
-    def upgrade(cls, data: dict[str, Any]) -> dict[str, Any]:
+    def upgrade(cls, data: _Data) -> _Data:
         """
         Upgrade data from an older version of this model to the current version. The resulting data dictionary is not
         validated against the model.
@@ -194,7 +206,7 @@ class VersionedOptions(Options):
         data = copy.deepcopy(data)
 
         # The model contains no versioning information
-        if cls._current_version is None:
+        if cls._current is None:
             return data
 
         # The data contain no versioning information
@@ -204,7 +216,7 @@ class VersionedOptions(Options):
 
         # Check if the data come from a newer version than the model's current version
         cls._check_version(version)
-        current = cls._current_version
+        current = cls._current
         if version.tuple_safe >= current.tuple_safe:
             return data
 
@@ -244,26 +256,20 @@ class VersionedOptions(Options):
         return data
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
-        cls._check_version(cls._get_version(data))
+    @extend_docstring(Options.from_dict, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_dict(cls, data: _Data, /, *, upgrade: bool = True) -> Self:
+        if upgrade:
+            data = cls.upgrade(data)
+        else:
+            cls._check_version(cls._get_version(data))
         return super().from_dict(data)
 
     @classmethod
-    def from_json(cls, s: str | Path) -> Self:
-        if isinstance(s, str):
-            try:
-                data = json.loads(s)
-            except json.JSONDecodeError:
-                # Not a valid JSON string, treat as a file path
-                path = Path(s)
-                if not path.exists():
-                    raise FileNotFoundError(f'File not found: {path}')
-                data = json.loads(path.read_text())
-        else:
-            path = Path(s)
-            if not path.exists():
-                raise FileNotFoundError(f'File not found: {path}')
-            data = json.loads(path.read_text())
+    @extend_docstring(Options.from_json, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_json(cls, s: str | Path, /, *, upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='json'), upgrade=upgrade)
 
-        cls._check_version(cls._get_version(data))
-        return super().from_json(s)
+    @classmethod
+    @extend_docstring(Options.from_toml, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_toml(cls, s: str | Path, /, *, upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='toml'), upgrade=upgrade)

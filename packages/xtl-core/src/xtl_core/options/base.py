@@ -795,7 +795,7 @@ class Options(BaseModel):
         return self.model_dump(by_alias=by_alias)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Self:
+    def from_dict(cls, data: dict[str, Any], /) -> Self:
         """
         Create a new |Options| object from a dictionary. Nested dictionaries can be
         used to create nested |Options| objects.
@@ -874,6 +874,8 @@ class Options(BaseModel):
     def to_json(
         self,
         filename: None = None,
+        /,
+        *,
         overwrite: bool = ...,
         keep_file_ext: bool = ...,
         indent: Optional[int] = ...,
@@ -884,6 +886,8 @@ class Options(BaseModel):
     def to_json(
         self,
         filename: str | Path,
+        /,
+        *,
         overwrite: bool = ...,
         keep_file_ext: bool = ...,
         indent: Optional[int] = ...,
@@ -893,6 +897,8 @@ class Options(BaseModel):
     def to_json(
         self,
         filename: Optional[str | Path] = None,
+        /,
+        *,
         overwrite: bool = False,
         keep_file_ext: bool = False,
         indent: Optional[int] = 4,
@@ -923,7 +929,7 @@ class Options(BaseModel):
         )
 
     @classmethod
-    def from_json(cls, s: str | Path) -> Self:
+    def from_json(cls, s: str | Path, /) -> Self:
         """
         Create a new |Options| object from a JSON string or file.
 
@@ -1030,17 +1036,19 @@ class Options(BaseModel):
 
     @overload
     def to_toml(
-        self, filename: None = None, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
+        self, filename: None = None, /, *, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
     ) -> str: ...
 
     @overload
     def to_toml(
-        self, filename: str | Path, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
+        self, filename: str | Path, /, *, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
     ) -> Path: ...
 
     def to_toml(
         self,
         filename: Optional[str | Path] = None,
+        /,
+        *,
         comments: bool = False,
         overwrite: bool = False,
         keep_file_ext: bool = False,
@@ -1076,7 +1084,7 @@ class Options(BaseModel):
         )
 
     @classmethod
-    def from_toml(cls, s: str | Path) -> Self:
+    def from_toml(cls, s: str | Path, /) -> Self:
         """
         Create a new |Options| object from a TOML string or file.
 
