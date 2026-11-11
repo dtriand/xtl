@@ -67,6 +67,16 @@ _UPGRADE_PARAM = {'upgrade': 'Upgrade older data first. If ``False``, the data a
 
 
 class VersionedOptions(Options):
+    """
+    An |Options| model whose data carries a version tag of its own, so that data saved with an older layout is
+    upgraded to the current one when loaded, one version at a time.
+
+    A model sets ``_version_path`` (where the tag lives in the data), ``_current_version`` (its current layout) and
+    ``_upgrades`` (the module with its upgrade steps, registered with :meth:`upgrade_step`). Older data is upgraded
+    in :meth:`from_dict`, :meth:`from_json` and :meth:`from_toml`; subclasses run their parents' steps too. See
+    :ref:`the Options guide <versioned-data>` for a full example.
+    """
+
     _version_path: ClassVar[str | None] = None
     """The path to the version tag in the data, as a dot-separated string."""
 
@@ -208,12 +218,19 @@ class VersionedOptions(Options):
         cls, *, to: VersionInfo | str, model: type[Options] | None = None
     ) -> Callable[[Callable[[Any], _Data]], Callable[[Any], _Data]]:
         """
-        Decorator to register an upgrade step for a versioned model's data layout.
+        Decorator to register an upgrade step on this model. The step takes the data in the layout before ``to`` and
+        returns it in the layout of ``to``; the function itself is returned unchanged.
 
         :param to: The version that this step upgrades to. It can be a :class:`VersionInfo` instance or a string that can be
             parsed into a :class:`VersionInfo`.
-        :param model: Optional frozen `Options` model class to validate against.
-        :return: The decorated function
+        :param model: Optional frozen |Options| model of the old layout. If given, the data is validated as this model
+            first and the step gets the model instance; keys the model doesn't know are carried over into the result.
+        :return: The decorator.
+        :raises TypeError: If registered on :class:`VersionedOptions` itself or on a model without a
+            ``_current_version``, if ``model`` isn't a plain |Options| subclass, or if the function doesn't take
+            exactly one positional argument.
+        :raises ValueError: If ``to`` is newer than the model's current version, or the model already has a step to
+            ``to``.
         """
 
         if cls is VersionedOptions:
@@ -261,11 +278,14 @@ class VersionedOptions(Options):
     @classmethod
     def upgrade(cls, data: _Data) -> _Data:
         """
-        Upgrade data from an older version of this model to the current version. The resulting data dictionary is not
-        validated against the model.
+        Upgrade data from an older version of this model to the current version, running the steps of this model and
+        its parents in order. The result is not validated against the model, and ``data`` is left unchanged. Data
+        without a version, from the current version or from a newer one (which logs a warning) is returned as a copy,
+        without running any steps.
 
         :param data: The data to upgrade.
-        :return: The upgraded data dictionary, with the version tag updated to the model's current version.
+        :return: The upgraded data, with the version tag set to the model's current version.
+        :raises TypeError: If a step doesn't return a dict.
         """
 
         # Deep-copying allows the steps to modify the data in place

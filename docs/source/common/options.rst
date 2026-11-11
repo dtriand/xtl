@@ -3,6 +3,7 @@
 .. |pydantic| replace:: :mod:`pydantic`
 .. |Field| replace:: :func:`pydantic.Field`
 .. |BaseModel| replace:: :class:`pydantic.BaseModel`
+.. |VersionedOptions| replace:: :class:`VersionedOptions <xtl_core.options.versioned.VersionedOptions>`
 
 Options
 =======
@@ -384,3 +385,177 @@ the same expression is reassigned to the field, and the model undergoes validati
 
    The ``_parse_env`` argument is only local in scope, meaning that it only applies to the current model. In case of
    nested |Options| models, environment variable parsing will **not** be propagated from the parent model to its childs.
+
+.. _versioned-data:
+
+Versioned data
+--------------
+
+Models that are saved to files, such as configuration or records, tend to change over time: a field gets renamed, a
+new one is added, or one is split into two. |VersionedOptions| is an |Options| model whose data carries a version tag,
+so that files saved with an older layout are upgraded to the current one when they are loaded, one version at a time.
+The version tag belongs to the model's data layout, not to `xtl`: it only changes when the layout does.
+
+Declaring a model
+^^^^^^^^^^^^^^^^^
+
+A versioned model sets three class variables: where the version tag lives in the data (``_version_path``, a
+dot-separated path such as ``'version'`` or ``'metadata.version'``), the current version of the layout
+(``_current_version``), and the module that holds the upgrade steps (``_upgrades``). The version field itself is an
+ordinary field whose default is the current version, so that saved data always carries it.
+
+.. code-block:: python
+   :caption: ``hr/models.py``
+
+   from xtl_core.options import Option, VersionedOptions
+
+   class Employee(VersionedOptions):
+       _version_path = 'version'
+       _current_version = '3.0.0'
+       _upgrades = 'hr._upgrades'
+
+       version: str = Option(default='3.0.0', desc='Layout version of the record')
+       first_name: str = Option(default=None)
+       last_name: str = Option(default=None)
+       level: str = Option(default='junior', choices=['junior', 'senior'], alias='job_level')
+
+Versions are written as ``'X.Y.Z'`` strings (or :class:`VersionInfo <xtl_core.version.VersionInfo>` objects) and are
+compared on their major, minor and micro parts only, so ``'2.0.0.dev0'`` counts as ``'2.0.0'``.
+
+Writing upgrade steps
+^^^^^^^^^^^^^^^^^^^^^
+
+Each change to the layout gets an upgrade step: a function that takes the data in the old layout as a plain
+dictionary, and returns it in the new one. Steps are registered on the model with
+:meth:`upgrade_step() <xtl_core.options.versioned.VersionedOptions.upgrade_step>`, keyed by the version they upgrade
+*to*. Versions don't need to be consecutive.
+
+Suppose that version ``1.0.0`` of the employee records stored ``name`` and ``position``, version ``2.0.0`` renamed
+``position`` to ``job_level``, and version ``3.0.0`` split ``name`` into ``first_name`` and ``last_name``:
+
+.. code-block:: python
+   :caption: ``hr/_upgrades.py``
+
+   from xtl_core.options import Option, Options
+   from hr.models import Employee
+
+   @Employee.upgrade_step(to='2.0.0')
+   def _rename_position(data: dict) -> dict:
+       data['job_level'] = data.pop('position')
+       return data
+
+   class EmployeeV2(Options):
+       """The 2.0.0 layout of Employee, frozen."""
+       version: str = Option(default='2.0.0')
+       name: str = Option(default=None)
+       level: str = Option(default='junior', alias='job_level')
+
+   @Employee.upgrade_step(to='3.0.0', model=EmployeeV2)
+   def _split_name(old: EmployeeV2) -> dict:
+       first_name, _, last_name = old.name.partition(' ')
+       return {'version': old.version, 'first_name': first_name, 'last_name': last_name,
+               'job_level': old.level}
+
+The first step works on the raw dictionary, which is enough for most changes. The second is a *typed* step: with
+``model=EmployeeV2``, the data is first validated as a frozen copy of the old layout, and the step gets an
+``EmployeeV2`` instance instead of a dictionary. This is worth it for bigger changes, where attribute access and
+validation of the old data help. The frozen model is a plain |Options|, not a |VersionedOptions|.
+
+Keeping the steps in a module of their own has two benefits: the module is only imported the first time old data is
+upgraded, so loading up-to-date data costs nothing extra, and it can import the model (and its frozen copies) without
+circular imports.
+
+.. note::
+
+   The steps don't need to set the version tag: it is updated after each step, so that each step sees the version it
+   upgrades from, and it is set to the current version at the end.
+
+Loading data
+^^^^^^^^^^^^
+
+Upgrades happen automatically in :meth:`from_dict() <xtl_core.options.versioned.VersionedOptions.from_dict>`,
+:meth:`from_json() <xtl_core.options.versioned.VersionedOptions.from_json>` and
+:meth:`from_toml() <xtl_core.options.versioned.VersionedOptions.from_toml>`. Given a ``john.json`` file saved with
+version ``1.0.0``:
+
+.. code-block:: json
+   :caption: ``john.json``
+
+   {"version": "1.0.0", "name": "John Doe", "position": "senior"}
+
+both steps run, in order, and the result is validated as the current model:
+
+.. code-block:: python
+
+   >>> Employee.from_json('john.json')
+   Employee(version='3.0.0', first_name='John', last_name='Doe', level='senior')
+
+The file itself is not changed. To save it in the new layout, write it back:
+
+.. code-block:: python
+
+   >>> Employee.from_json('john.json').to_json('john.json', overwrite=True)
+
+If you only need the upgraded data, :meth:`upgrade() <xtl_core.options.versioned.VersionedOptions.upgrade>` returns
+it as a dictionary, without validating it (the input is left unchanged):
+
+.. code-block:: python
+
+   >>> Employee.upgrade({'version': '1.0.0', 'name': 'John Doe', 'position': 'senior'})
+   {'version': '3.0.0', 'first_name': 'John', 'last_name': 'Doe', 'job_level': 'senior'}
+
+Passing ``upgrade=False`` to any of the loaders skips the steps and validates the data as it is, which for an old file
+usually fails:
+
+.. code-block:: python
+
+   >>> Employee.from_json('john.json', upgrade=False)
+   xtl_core.options.exceptions.OptionsValidationError: 2 validation errors for Employee
+     Employee.first_name
+       Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+     ...
+
+Two more cases load without any upgrade:
+
+* **Data from a newer version** than the model's (e.g. a file written by a newer `xtl`) is validated as it is, with a
+  warning in the log:
+
+  .. code-block:: text
+
+     WARNING:xtl_core.options.versioned:Employee data is from version 4.0.0, which is newer than the model's current version 3.0.0.
+
+* **Data without a version** (e.g. a file written by hand) is treated as current: no steps run, and the version field
+  takes its default.
+
+Subclasses
+^^^^^^^^^^
+
+A subclass of a versioned model shares its version tag and runs its parent's upgrade steps, since its data contains
+the parent's fields:
+
+.. code-block:: python
+
+   class Manager(Employee):
+       reports: list[str] = Option(default_factory=list)
+
+.. code-block:: python
+
+   >>> Manager.from_dict({'version': '1.0.0', 'name': 'Ann Lee', 'position': 'senior',
+   ...                    'reports': ['John Doe']})
+   Manager(version='3.0.0', first_name='Ann', last_name='Lee', level='senior', reports=['John Doe'])
+
+``reports`` survives the typed step ``_split_name``, even though ``EmployeeV2`` doesn't know about it: a typed step's
+frozen model only gets the keys it knows, and the other top-level keys are carried over into the step's result (unless
+the step sets them itself).
+
+A subclass can register upgrade steps of its own, with ``@Manager.upgrade_step(...)`` in an ``_upgrades`` module of
+its own. To change its own layout, it raises ``_current_version`` (e.g. to ``'3.1.0'``) and adds a step to that
+version. For steps to the same version, the parent's run first. A subclass can't lower ``_current_version`` below its
+parent's, nor move the version tag to another ``_version_path``: both raise a :class:`TypeError` when the class is
+defined.
+
+.. important::
+
+   Fields that a subclass adds *inside* a nested section of its parent are not carried over by the parent's typed
+   steps; only top-level keys are. If a parent's typed step rewrites a section that a subclass extends, the subclass
+   needs a step of its own for that section.
