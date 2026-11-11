@@ -1,8 +1,7 @@
-from xtl.exceptions import DimensionalityError
 from xtl.math import si_units
 
 from pint import UnitRegistry
-from pint.errors import UndefinedUnitError
+from pint.errors import DimensionalityError, UndefinedUnitError
 
 ureg = UnitRegistry()
 """
@@ -24,7 +23,8 @@ def smart_units(value, new_units, pretty=False):
     :param bool pretty: Whether to reduce value to SI prefixes or not
     :return: Value in the new units
     :rtype: pint.Quantity
-    :raise DimensionalityError: If the dimensions of `value` and `new_units` are different.
+    :raise pint.errors.DimensionalityError: If the dimensions of ``value`` and ``new_units`` are different (a
+        :class:`TypeError`).
     :raise TypeError: If the type of any argument is incorrect.
     :raise ValueError: If ``new_units`` aren't known units.
     """
@@ -48,7 +48,7 @@ def smart_units(value, new_units, pretty=False):
 
     # Check dimensionality
     if value.dimensionality != new_units.dimensionality:
-        raise DimensionalityError(src_units=value.units, dst_units=new_units.units)
+        raise DimensionalityError(value.units, new_units.units, value.dimensionality, new_units.dimensionality)
 
     # Convert to new units
     value.ito(new_units)

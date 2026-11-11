@@ -1,7 +1,7 @@
 import pytest
+from pint.errors import DimensionalityError
 
 from xtl.units import Q_, smart_units
-from xtl.exceptions import DimensionalityError
 
 
 class TestSmartUnits:
@@ -20,5 +20,5 @@ class TestSmartUnits:
             smart_units([1, 'm'], 'cm')
 
     def test_invalid_dimensions(self):
-        with pytest.raises(DimensionalityError):
+        with pytest.raises(DimensionalityError, match=r"Cannot convert from 'meter' \(\[length\]\) to 'liter'"):
             smart_units('1 m', 'L')
