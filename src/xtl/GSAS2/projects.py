@@ -4,7 +4,6 @@ import gemmi
 import numpy as np
 
 from xtl import cfg
-from xtl.exceptions import FileError
 from xtl import math as xm
 from .components import PhaseMixture
 from .parameters import InstrumentalParameters
@@ -114,17 +113,17 @@ class Project(GI.G2sc.G2Project):
                     space_group_string = line[55:65]
                     break
             if not space_group_string:
-                raise FileError(file=file, message='No CRYST1 record found.')
+                raise ValueError(f'No CRYST1 record found in {file}')
 
         # Space group validation
         valid, error = self.validate_space_group(space_group_string)
         if not valid:
-            raise FileError(file=file, message=error)
+            raise ValueError(f'{error} in {file}')
 
         # PDB file validation (check for atoms)
         valid, error = self.validate_pdb_file(file)
         if not valid:
-            raise FileError(file=file, message=error)
+            raise ValueError(f'{error} in {file}')
 
         # Add phase to project
         super().add_phase(phasefile=file, phasename=name, fmthint='PDB')

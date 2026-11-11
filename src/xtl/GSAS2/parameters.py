@@ -4,7 +4,6 @@ from pathlib import Path
 import pyxray
 
 from ..GSAS2 import GSAS2Interface as GI
-from xtl.exceptions import FileError
 
 # Template dictionaries, without wavelength
 default_parameters = {
@@ -101,7 +100,7 @@ class InstrumentalParameters:
         required_keys = ['Type', 'Bank', 'Zero', 'Polariz.', 'Azimuth', 'U', 'V', 'W', 'X', 'Y', 'Z', 'SH/L']
         for key in required_keys:
             if key not in self._initial_dict:
-                raise FileError(file=file, message=f"Could not find key '{key}'")
+                raise ValueError(f"Could not find key '{key}' in {file}")
 
         # Check that either a 'Lam' or all three 'Lam1', 'Lam2' and 'I(L2)/I(L1)' entries are present
         if 'Lam' not in self._initial_dict and (
@@ -109,10 +108,9 @@ class InstrumentalParameters:
             or 'Lam2' not in self._initial_dict
             or 'I(L2)/I(L1)' not in self._initial_dict
         ):  # False if no wavelength
-            raise FileError(
-                file=file,
-                message='Could not find wavelength',
-                details="Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)' need to be specified.",
+            raise ValueError(
+                f'Could not find wavelength in {file}\n'
+                "Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)' need to be specified."
             )
 
         # Save initial values as private attributes

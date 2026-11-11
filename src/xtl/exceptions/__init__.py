@@ -8,15 +8,13 @@ of both xtl and xtl-core; ``except XTLError`` catches xtl's own.
 __all__ = [
     'ConfigWarning',
     'DimensionalityError',
-    'FileError',
-    'MissingArgument',
     'XTLError',
     'XTLWarning',
 ]
 
 from xtl_core.errors import XTLCoreError
 
-from .base import FileError, DimensionalityError, MissingArgument
+from .base import DimensionalityError
 from .warnings import ConfigWarning
 
 

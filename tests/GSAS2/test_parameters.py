@@ -6,7 +6,6 @@ from pyxray import NotFound
 
 # NOTE: Deprecated, GSAS2 is no longer supported.
 # from xtl.GSAS2.parameters import InstrumentalParameters
-from xtl.exceptions import FileError
 # from ..conftest import CACHE_DIR
 
 
@@ -20,7 +19,7 @@ class TestInstrumentalParameters:
             assert ips._initial_dict
 
         def test_load_fail(self, gsas2_iparam_invalid):
-            with pytest.raises(FileError, match='Could not find'):
+            with pytest.raises(ValueError, match='Could not find'):
                 # Randomized files created by conftest.py
                 assert InstrumentalParameters(file=gsas2_iparam_invalid)
 
