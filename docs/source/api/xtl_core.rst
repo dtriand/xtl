@@ -15,6 +15,7 @@ Submodules
 .. toctree::
    :maxdepth: 3
 
+   xtl_core.errors
    xtl_core.system
    xtl_core.options
    xtl_core.containers

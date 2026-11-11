@@ -2,10 +2,13 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from xtl_core.errors import XTLCoreError
 
-class OptionsValidationError(ValueError):
+
+class OptionsValidationError(XTLCoreError, ValueError):
     """
-    Custom validation error for Pydantic models with structured errors and cleaner formatting.
+    Custom validation error for Pydantic models with structured errors and cleaner formatting. Also a
+    :class:`ValueError`.
     """
 
     def __init__(self, exc: ValidationError, model_name: str):
