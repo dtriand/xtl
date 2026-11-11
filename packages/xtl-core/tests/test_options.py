@@ -1,10 +1,12 @@
 import pytest
 
+import json
 import logging
 import os
 from pathlib import Path
 
 from pydantic import ConfigDict, Field
+import toml
 
 from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.version import VersionInfo
@@ -320,6 +322,120 @@ class TestOptions:
             ParentModel(kid=NoneModel(values=[None])).to_toml()
         with pytest.raises(ValueError, match=r'Cannot serialize None at `children\[1\]\.mapping\.a`'):
             ParentModel(children=[NoneModel(), NoneModel(mapping={'a': None})]).to_toml()
+
+
+class TestOptionsIO:
+    """Reading and writing JSON and TOML, from strings and files."""
+
+    class Model(Options):
+        name: str = Option(default='a')
+        count: int = Option(default=1)
+
+    @pytest.fixture(params=['json', 'toml'])
+    def fmt(self, request):
+        """The format under test, with its writer, reader and file extension."""
+        model = self.Model
+        if request.param == 'json':
+            return 'json', model.to_json, model.from_json, '.json'
+        return 'toml', model.to_toml, model.from_toml, '.toml'
+
+    def test_to_string(self, fmt):
+        _, to_, from_, _ = fmt
+        text = to_(self.Model(name='b', count=2))
+        assert isinstance(text, str)
+        assert from_(text) == self.Model(name='b', count=2)
+
+    @pytest.mark.parametrize('as_str', [False, True], ids=['Path', 'str'])
+    def test_file_round_trip(self, tmp_path, fmt, as_str):
+        _, to_, from_, suffix = fmt
+        m = self.Model(name='b', count=2)
+        path = to_(m, tmp_path / f'out{suffix}')
+        assert path == tmp_path / f'out{suffix}'
+        assert isinstance(path, Path)
+        assert from_(str(path) if as_str else path) == m
+
+    def test_suffix_added(self, tmp_path, fmt):
+        _, to_, _, suffix = fmt
+        assert to_(self.Model(), tmp_path / 'out') == tmp_path / f'out{suffix}'
+        assert to_(self.Model(), tmp_path / 'other.txt') == tmp_path / f'other{suffix}'
+
+    def test_keep_file_ext(self, tmp_path, fmt):
+        _, to_, from_, _ = fmt
+        path = to_(self.Model(count=3), tmp_path / 'out.txt', keep_file_ext=True)
+        assert path == tmp_path / 'out.txt'
+        assert from_(path).count == 3
+
+    def test_no_overwrite_after_suffix(self, tmp_path, fmt):
+        """Regression: the existence check ran before the suffix was added, so writing
+        to ``out`` overwrote an existing ``out.json``/``out.toml``."""
+        _, to_, _, suffix = fmt
+        existing = tmp_path / f'out{suffix}'
+        existing.write_text('KEEP ME')
+        with pytest.raises(FileExistsError, match='already exists'):
+            to_(self.Model(), tmp_path / 'out')
+        assert existing.read_text() == 'KEEP ME'
+
+    def test_overwrite(self, tmp_path, fmt):
+        _, to_, from_, suffix = fmt
+        existing = tmp_path / f'out{suffix}'
+        existing.write_text('OLD')
+        to_(self.Model(count=5), existing, overwrite=True)
+        assert from_(existing).count == 5
+
+    def test_creates_parents(self, tmp_path, fmt):
+        _, to_, _, suffix = fmt
+        path = to_(self.Model(), tmp_path / 'a' / 'b' / 'out')
+        assert path == tmp_path / 'a' / 'b' / f'out{suffix}'
+        assert path.exists()
+
+    @pytest.mark.parametrize('fmt_name, text', [('json', '{"count": "abc"}'), ('toml', 'count = "abc"')])
+    @pytest.mark.parametrize('source', ['string', 'file'])
+    def test_invalid_value(self, tmp_path, fmt_name, text, source):
+        """Regression: a bad value in a JSON string raised FileNotFoundError, and in a JSON
+        file pydantic's own ValidationError."""
+        from_ = self.Model.from_json if fmt_name == 'json' else self.Model.from_toml
+        if source == 'file':
+            path = tmp_path / f'bad.{fmt_name}'
+            path.write_text(text)
+            with pytest.raises(OptionsValidationError, match='count'):
+                from_(path)
+        else:
+            with pytest.raises(OptionsValidationError, match='count'):
+                from_(text)
+
+    @pytest.mark.parametrize(
+        'fmt_name, text, error',
+        [('json', '{"count": ', json.JSONDecodeError), ('toml', 'count = ', toml.TomlDecodeError)],
+    )
+    def test_invalid_string(self, fmt_name, text, error):
+        from_ = self.Model.from_json if fmt_name == 'json' else self.Model.from_toml
+        with pytest.raises(error):
+            from_(text)
+
+    @pytest.mark.parametrize('fmt_name, error', [('json', json.JSONDecodeError), ('toml', toml.TomlDecodeError)])
+    def test_invalid_file_contents(self, tmp_path, fmt_name, error):
+        path = tmp_path / f'bad.{fmt_name}'
+        path.write_text('{"count": ' if fmt_name == 'json' else 'count = ')
+        from_ = self.Model.from_json if fmt_name == 'json' else self.Model.from_toml
+        with pytest.raises(error):
+            from_(path)
+
+    def test_missing_file(self, tmp_path, fmt):
+        _, _, from_, suffix = fmt
+        with pytest.raises(FileNotFoundError, match='File not found'):
+            from_(tmp_path / f'missing{suffix}')
+
+    def test_json_not_an_object(self):
+        with pytest.raises(OptionsValidationError):
+            self.Model.from_json('[1, 2]')
+
+    @pytest.mark.parametrize('text', ['', '# only a comment\n'], ids=['empty', 'comment'])
+    def test_empty_toml_loads_defaults(self, text):
+        assert self.Model.from_toml(text) == self.Model()
+
+    def test_read_contents_mode(self):
+        with pytest.raises(ValueError, match="Invalid read mode: 'yaml'"):
+            Options._read_contents('a: 1', mode='yaml')
 
 
 class TestVersionedOptions:

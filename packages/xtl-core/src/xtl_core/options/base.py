@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import re
 from types import EllipsisType
-from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload
+from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload, Literal
 from typing_extensions import Self
 
 from pydantic import (
@@ -805,6 +805,91 @@ class Options(BaseModel):
         """
         return cls.model_validate(data)
 
+    @staticmethod
+    def _read_contents(s: str | Path, mode: Literal['json', 'toml']) -> Any:
+        """
+        Parse a JSON or TOML string, or the contents of a JSON or TOML file. A string is
+        parsed as such first, and read as a path only if that fails.
+
+        :param s: A string to parse, or the path to a file to read.
+        :param mode: The format to parse, either ``'json'`` or ``'toml'``.
+        :return: The parsed data: a dict for TOML, any JSON value for JSON.
+        :raises ValueError: If ``mode`` is neither ``'json'`` nor ``'toml'``.
+        :raises FileNotFoundError: If ``s`` is a :class:`~pathlib.Path` that doesn't exist.
+        :raises json.JSONDecodeError: If the JSON is invalid: a string that isn't valid
+            JSON nor an existing file, or a file with invalid contents.
+        :raises toml.TomlDecodeError: If the TOML is invalid, likewise.
+        """
+        loaders = {
+            'json': json.loads,
+            'toml': toml.loads,
+        }
+        if mode not in loaders:
+            raise ValueError(f'Invalid read mode: {mode!r}. Must be one of: {", ".join(loaders.keys())}')
+        loads = loaders[mode]
+
+        if isinstance(s, str):
+            # Try parsing as a string first
+            try:
+                return loads(s)
+            except (json.JSONDecodeError, toml.TomlDecodeError):
+                # Not a valid string — check if it is a file
+                if not Path(s).exists():
+                    # It was probably an invalid string
+                    raise
+
+        # Try parsing as a file path
+        path = Path(s)
+        if not path.exists():
+            raise FileNotFoundError(f'File not found: {path}')
+        return loads(path.read_text())
+
+    @staticmethod
+    def _write_text(
+        text: str, *, filename: str | Path, suffix: str, overwrite: bool = False, keep_file_ext: bool = False
+    ) -> Path:
+        """
+        Write serialized |Options| to a file, creating any missing parent directories.
+
+        :param text: The serialized text to write to the file.
+        :param filename: The path to the file to write to.
+        :param suffix: The extension the file gets, e.g. ``'.json'``.
+        :param overwrite: Whether to overwrite the file if it already exists.
+        :param keep_file_ext: Keep the extension of ``filename`` instead of replacing it
+            with ``suffix``.
+        :return: The path to the file that was written.
+        :raises FileExistsError: If the file (after fixing its extension) already exists
+            and ``overwrite`` is False.
+        """
+        path = Path(filename)
+        if not path.name.endswith(suffix) and not keep_file_ext:
+            path = path.with_suffix(suffix)
+        if path.exists() and not overwrite:
+            raise FileExistsError(f'File {path} already exists')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        return path
+
+    @overload
+    def to_json(
+        self,
+        filename: None = None,
+        overwrite: bool = ...,
+        keep_file_ext: bool = ...,
+        indent: Optional[int] = ...,
+        by_alias: bool = ...,
+    ) -> str: ...
+
+    @overload
+    def to_json(
+        self,
+        filename: str | Path,
+        overwrite: bool = ...,
+        keep_file_ext: bool = ...,
+        indent: Optional[int] = ...,
+        by_alias: bool = ...,
+    ) -> Path: ...
+
     def to_json(
         self,
         filename: Optional[str | Path] = None,
@@ -815,57 +900,42 @@ class Options(BaseModel):
     ) -> str | Path:
         """
         Write the |Options| to a JSON file. If ``filename`` is not provided, then the
-        JSON will be returned as a string.
+        JSON will be returned as a string. Missing parent directories are created.
 
         :param filename: Optional output path for the JSON file.
-        :param comments: Include comments in the JSON file.
         :param overwrite: Overwrite the file if it already exists.
-        :param keep_file_ext: Keep the file extension if ``filename`` is provided.
+        :param keep_file_ext: Keep the extension of ``filename`` instead of replacing it
+            with ``.json``.
         :param indent: Indentation level for the JSON string. If ``None``, then the JSON
             will be compact.
         :param by_alias: Whether to use field aliases in the output JSON.
-        :return: Either the JSON string or the output path.
+        :return: The JSON string if no ``filename`` is given, otherwise the path of the
+            file written.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
-        # If no filename is provided, then return a JSON string
-        if filename is None:
-            return self.model_dump_json(indent=indent, by_alias=by_alias)
-
-        # If a filename is provided, then write to a file
-        filename = Path(filename)
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True, exist_ok=True)
-        if filename.exists() and not overwrite:
-            raise FileExistsError(f'File {filename} already exists')
-        if filename.suffix != '.json' and not keep_file_ext:
-            filename = filename.with_suffix('.json')
-
-        filename.write_text(self.model_dump_json(indent=indent, by_alias=by_alias))
-        return filename
+        text = self.model_dump_json(indent=indent, by_alias=by_alias)
+        return (
+            text
+            if filename is None
+            else self._write_text(
+                text, filename=filename, suffix='.json', overwrite=overwrite, keep_file_ext=keep_file_ext
+            )
+        )
 
     @classmethod
     def from_json(cls, s: str | Path) -> Self:
         """
         Create a new |Options| object from a JSON string or file.
 
-        :param s: JSON string or path to a JSON file.
+        :param s: JSON string or path to a JSON file. A string is parsed as JSON first,
+            and read as a path only if that fails.
         :return: An |Options| object.
-        :raises json.JSONDecodeError: If the JSON is invalid.
-        :raises FileNotFoundError: If the file does not exist.
+        :raises json.JSONDecodeError: If the JSON is invalid, including a string that is
+            neither JSON nor an existing file.
+        :raises FileNotFoundError: If ``s`` is a :class:`~pathlib.Path` that doesn't exist.
+        :raises OptionsValidationError: If the data is invalid for the |Options| class.
         """
-        if isinstance(s, str):
-            # Try parsing as a JSON string first
-            try:
-                return cls.model_validate_json(s)
-            except (json.JSONDecodeError, ValueError):
-                # Not a valid JSON string — treat as a file path
-                s = Path(s)
-                if not s.exists():
-                    raise FileNotFoundError(f'File not found: {s}')
-        s = Path(s)
-        if not s.exists():
-            raise FileNotFoundError(f'File not found: {s}')
-        return cls.model_validate_json(s.read_text())
+        return cls.from_dict(cls._read_contents(s, mode='json'))
 
     @staticmethod
     def _toml_key(name: str, field: FieldInfo | ComputedFieldInfo) -> str:
@@ -958,6 +1028,16 @@ class Options(BaseModel):
         """
         return self._value_to_toml(getattr(self, name), field=field, keep_comments=keep_comments)
 
+    @overload
+    def to_toml(
+        self, filename: None = None, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
+    ) -> str: ...
+
+    @overload
+    def to_toml(
+        self, filename: str | Path, comments: bool = ..., overwrite: bool = ..., keep_file_ext: bool = ...
+    ) -> Path: ...
+
     def to_toml(
         self,
         filename: Optional[str | Path] = None,
@@ -967,14 +1047,17 @@ class Options(BaseModel):
     ) -> str | Path:
         """
         Write the |Options| to a TOML file. If ``filename`` is not provided, then the
-        TOML will be returned as a string. Fields that are None are left out, since TOML
-        has no null; they load as the default of the field.
+        TOML will be returned as a string. Missing parent directories are created. Fields
+        that are None are left out, since TOML has no null; they load as the default of
+        the field.
 
         :param filename: Optional output path for the TOML file.
         :param comments: Include comments in the TOML file.
         :param overwrite: Overwrite the file if it already exists.
-        :param keep_file_ext: Keep the file extension if ``filename`` is provided.
-        :return: Either the TOML string or the output path.
+        :param keep_file_ext: Keep the extension of ``filename`` instead of replacing it
+            with ``.toml``.
+        :return: The TOML string if no ``filename`` is given, otherwise the path of the
+            file written.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
         # Cast all fields to toml.CommentValue (nested Options and dicts to tables)
@@ -983,50 +1066,26 @@ class Options(BaseModel):
         # Encoder to handle all serialization
         encoder = ExtendedTomlEncoder()
 
-        # If no filename is provided, then return a TOML string
-        if filename is None:
-            return toml.dumps(data, encoder=encoder)
-
-        # If a filename is provided, then write to a file
-        filename = Path(filename)
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True, exist_ok=True)
-        if filename.exists() and not overwrite:
-            raise FileExistsError(f'File already exists: {filename}')
-        if filename.suffix != '.toml' and not keep_file_ext:
-            filename = filename.with_suffix('.toml')
-
-        filename.write_text(toml.dumps(data, encoder=encoder))
-        return filename
+        text = toml.dumps(data, encoder=encoder)
+        return (
+            text
+            if filename is None
+            else self._write_text(
+                text, filename=filename, suffix='.toml', overwrite=overwrite, keep_file_ext=keep_file_ext
+            )
+        )
 
     @classmethod
     def from_toml(cls, s: str | Path) -> Self:
         """
         Create a new |Options| object from a TOML string or file.
 
-        :param s: TOML string or path to a TOML file.
+        :param s: TOML string or path to a TOML file. A string is parsed as TOML first,
+            and read as a path only if that fails; an empty string loads the defaults.
         :return: An |Options| object.
-        :raises toml.TomlDecodeError: If the TOML is invalid.
-        :raises FileNotFoundError: If the file does not exist.
+        :raises toml.TomlDecodeError: If the TOML is invalid, including a string that is
+            neither TOML nor an existing file.
+        :raises FileNotFoundError: If ``s`` is a :class:`~pathlib.Path` that doesn't exist.
+        :raises OptionsValidationError: If the data is invalid for the |Options| class.
         """
-        decoder = toml.TomlDecoder()
-        data = {}
-        if isinstance(s, str):
-            # Check if the string is a valid TOML
-            try:
-                data = toml.loads(s, decoder=decoder)
-            except toml.TomlDecodeError as e:
-                # If not, check if it's an existing file path
-                s = Path(s)
-                if not s.exists():
-                    # It was probably an invalid TOML string
-                    raise e
-                else:
-                    pass
-        # If data is still empty, then try interpreting s as a file
-        if not data:
-            s = Path(s)
-            if not s.exists():
-                raise FileNotFoundError(f'File not found: {s}')
-            data = toml.loads(s.read_text(), decoder=decoder)
-        return cls.from_dict(data)
+        return cls.from_dict(cls._read_contents(s, mode='toml'))
