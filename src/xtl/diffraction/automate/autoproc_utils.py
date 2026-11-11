@@ -18,7 +18,7 @@ from xtl_core.system.os import get_permissions_in_decimal
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
 from xtl.diffraction.automate.xds_utils import CorrectLp
 from xtl.diffraction.images.datasets import DiffractionDataset
-from xtl.exceptions.warnings import FileNotFoundWarning, HTMLUpdateWarning
+from xtl.exceptions import XTLWarning
 
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
@@ -1095,7 +1095,7 @@ class AutoPROCJobResults:
                     f'Failed to replace the links in {summary_new.name}\n'
                     f'link_text_old: {link_text_old}\n'
                     f'link_text_new: {link_text_new}',
-                    category=HTMLUpdateWarning,
+                    category=XTLWarning,
                 )
 
             # Update link to GPhL logo
@@ -1108,7 +1108,7 @@ class AutoPROCJobResults:
                     f'Failed to replace the GPhL logo link in {summary_new.name}\n'
                     f'gphl_logo_old: {gphl_logo_old}\n'
                     f'gphl_logo_new: {gphl_logo_new}',
-                    category=HTMLUpdateWarning,
+                    category=XTLWarning,
                 )
 
             # Create new summary.html file with the updated content
@@ -1125,7 +1125,7 @@ class AutoPROCJobResults:
                 dest_file = dest_dir / src_file.name
             shutil.copy(src_file, dest_file)
         else:
-            warnings.warn(str(src_file), category=FileNotFoundWarning)
+            warnings.warn(f'File not found, not copied: {src_file}', category=XTLWarning)
 
     def parse_logs(self):
         self.parse_imginfo_xml()

@@ -6,14 +6,11 @@ of both xtl and xtl-core; ``except XTLError`` catches xtl's own.
 """
 
 __all__ = [
-    'ConfigWarning',
     'XTLError',
     'XTLWarning',
 ]
 
 from xtl_core.errors import XTLCoreError
-
-from .warnings import ConfigWarning
 
 
 class XTLError(XTLCoreError):
@@ -21,4 +18,7 @@ class XTLError(XTLCoreError):
 
 
 class XTLWarning(UserWarning):
-    """Base class for the warnings issued by xtl."""
+    """
+    The category of the warnings issued by xtl. To silence them:
+    ``warnings.filterwarnings('ignore', category=XTLWarning)``.
+    """

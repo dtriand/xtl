@@ -6,7 +6,7 @@ import warnings
 from xtl.automate.shells import Shell, DefaultShell, BashShell, WslShell
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.batchfile import BatchFile
-from xtl.exceptions.warnings import IncompatibleShellWarning
+from xtl.exceptions import XTLWarning
 
 
 def limited_concurrency(limit: int):
@@ -95,12 +95,12 @@ class Job:
             if shell not in self._supported_shells:
                 warnings.warn(
                     f"Shell '{shell.name}' is not compatible with job '{self.__class__.__name__}'",
-                    category=IncompatibleShellWarning,
+                    category=XTLWarning,
                 )
         if not compute_site.is_valid_shell(shell):
             warnings.warn(
                 f"Shell '{shell.name}' is not compatible with compute_site '{compute_site.__class__.__name__}'",
-                category=IncompatibleShellWarning,
+                category=XTLWarning,
             )
         return shell, compute_site
 

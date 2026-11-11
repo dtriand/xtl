@@ -208,3 +208,15 @@ class TestCrystallizationExperiment:
         data_reshaped, mask_reshaped = ce._reshape_data(array=data, location_map=location_map, mask=None)
         # assert np.array_equal(data_reshaped, data_reshaped_expected, equal_nan=True)
         assert np.array_equal(mask_reshaped, mask_reshaped_expected, equal_nan=True)
+
+
+def test_existing_reagent_warns():
+    from xtl.crystallization.applicators import ConstantApplicator
+    from xtl.crystallization.reagents import Reagent
+    from xtl.exceptions import XTLWarning
+
+    ce = CrystallizationExperiment(shape=(2, 3))
+    reagent = Reagent(name='NaCl', concentration=1.0)
+    ce.apply_reagent(reagent, ConstantApplicator(0.5))
+    with pytest.warns(XTLWarning, match='Reagent NaCl already in the list of reagents'):
+        ce.apply_reagent(reagent, ConstantApplicator(0.5))

@@ -4,7 +4,7 @@ from types import NoneType
 import numpy as np
 
 from xtl import __version__
-from xtl.exceptions.warnings import ExistingReagentWarning
+from xtl.exceptions import XTLWarning
 from .reagents import _Reagent, Reagent, ReagentWV, ReagentVV, Buffer
 from .applicators import _ReagentApplicator, ConstantApplicator, GradientApplicator, StepFixedApplicator
 
@@ -335,7 +335,7 @@ class CrystallizationExperiment:
 
         # Check if the reagent is already in the list
         if reagent in self._reagents:
-            warnings.warn(ExistingReagentWarning(raiser=reagent))
+            warnings.warn(f'Reagent {reagent.name} already in the list of reagents', category=XTLWarning)
             return
 
         # Map the locations to the experiment shape
