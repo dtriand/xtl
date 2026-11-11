@@ -4,7 +4,7 @@ import gemmi
 import numpy as np
 
 from xtl import cfg
-from xtl.exceptions import InvalidArgument, FileError
+from xtl.exceptions import FileError
 from xtl import math as xm
 from .components import PhaseMixture
 from .parameters import InstrumentalParameters
@@ -98,9 +98,7 @@ class Project(GI.G2sc.G2Project):
             name = Path(file).stem  # grab filename from a full path
         allowed_types = ['macromolecular', 'small_molecule']
         if type not in allowed_types:
-            raise InvalidArgument(
-                raiser='phase_type', message=f"Unknown phase type '{type}'\nChoose one from: {','.join(allowed_types)}"
-            )
+            raise ValueError(f"phase_type: Unknown phase type '{type}'\nChoose one from: {','.join(allowed_types)}")
         elif type == 'macromolecular':
             return self.add_phase_macromolecular(GI._path_wrap(file), name, histograms)
         elif type == 'small_molecule':
@@ -165,22 +163,22 @@ class Project(GI.G2sc.G2Project):
     @staticmethod
     def check_is_phase(phase):
         if not isinstance(phase, GI.G2sc.G2Phase):
-            raise InvalidArgument(message=f'{phase} is not a G2Phase object.')
+            raise TypeError(f'{phase} is not a G2Phase object.')
 
     @staticmethod
     def check_is_histogram(histogram):
         if not isinstance(histogram, GI.G2sc.G2PwdrData):
-            raise InvalidArgument(message=f'{histogram} is not a G2PwdrData object.')
+            raise TypeError(f'{histogram} is not a G2PwdrData object.')
 
     def check_is_phase_in_project(self, phase):
         self.check_is_phase(phase)
         if phase not in self.phases():
-            raise InvalidArgument(message=f'Phase {phase} is not in project {self._name}.')
+            raise ValueError(f'Phase {phase} is not in project {self._name}.')
 
     def check_is_histogram_in_project(self, histogram):
         self.check_is_histogram(histogram)
         if histogram not in self.histograms():
-            raise InvalidArgument(message=f'Histogram {histogram} is not in project {self._name}.')
+            raise ValueError(f'Histogram {histogram} is not in project {self._name}.')
 
     def get_spacegroup(self, phase):
         """
@@ -383,9 +381,8 @@ class Project(GI.G2sc.G2Project):
                 self._export_reflections_as_mtz(phases, histograms, as_intensities=as_intensities)
         else:
             supported_formats = ['cif', 'mtz']
-            raise InvalidArgument(
-                raiser='filetype',
-                message=f"Unknown file type '{filetype}'\nChoose one from: {', '.join(supported_formats)}",
+            raise ValueError(
+                f"filetype: Unknown file type '{filetype}'\nChoose one from: {', '.join(supported_formats)}"
             )
 
     def _export_reflections_as_cif(
@@ -725,11 +722,9 @@ class Project(GI.G2sc.G2Project):
 
         map = GO.get_map_type(map_type)
         if omit_map and map.gsas_map_type in ('Fc', 'Fo-Fc', 'Patterson'):
-            raise InvalidArgument(
-                raiser='map_type',
-                message=f'{map_type}. {map.gsas_map_type} maps cannot be generated'
-                f' with the OMIT procedure. Choose a different map_type '
-                f'or set omit_map=False.',
+            raise ValueError(
+                f'map_type: {map_type}. {map.gsas_map_type} maps cannot be generated with the OMIT procedure. Choose a '
+                'different map_type or set omit_map=False.'
             )
 
         # Set phase data
@@ -878,11 +873,9 @@ class MixtureSimulationProject(SimulationProject):
     ):
         # Validate input
         if not isinstance(mixture, PhaseMixture):
-            raise InvalidArgument(raiser=f'Simulated histogram {name}', message='Mixture is not type PhaseMixture')
+            raise TypeError(f'Simulated histogram {name}: Mixture is not type PhaseMixture')
         if not isinstance(iparams, InstrumentalParameters):
-            raise InvalidArgument(
-                raiser=f'Simulated histogram {name}', message='IParams is not type InstrumentalParameters'
-            )
+            raise TypeError(f'Simulated histogram {name}: IParams is not type InstrumentalParameters')
 
         wavelength = iparams.wavelength
         if isinstance(wavelength, tuple):

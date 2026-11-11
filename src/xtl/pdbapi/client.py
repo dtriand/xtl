@@ -6,7 +6,6 @@ from xtl.pdbapi.search.options import ReturnType, RequestOptions
 from xtl.pdbapi.search.nodes import SearchQueryNode, SearchQueryField, SearchQueryGroup
 from xtl.pdbapi.data.options import GQLField
 from xtl.pdbapi.data.nodes import DataQueryField, DataQueryGroup
-from xtl.exceptions import InvalidArgument
 
 
 class SearchQueryResponse:
@@ -113,7 +112,7 @@ class DataQueryResponse:
 
     def tabulate(self, attr: str = 'entries'):
         if attr not in self._valid_id_types:
-            raise InvalidArgument(raiser='attr', message=f'Must be one of: {", ".join(self._valid_id_types)}')
+            raise ValueError(f'attr: Must be one of: {", ".join(self._valid_id_types)}')
         titles = self._flatten_tree()
         flattened = [self._flatten_dict(i) for i in getattr(self, attr, [])]
         table = [[entry[prop] for prop in titles] for entry in flattened]
@@ -159,7 +158,7 @@ class Client:
         :return:
         """
         if not issubclass(query.__class__, SearchQueryNode):
-            raise InvalidArgument(raiser='query', message='Must be QueryField or QueryGroup')
+            raise TypeError('query: Must be QueryField or QueryGroup')
         self._query = query
         response = requests.post(url=Client.SEARCH_URL, json=self.request)
 

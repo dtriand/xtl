@@ -5,7 +5,6 @@ import numpy as np
 
 from xtl.spectroscopy.base import Spectrum
 from xtl.math.filtering import moving_average
-from xtl.exceptions import InvalidArgument
 
 
 class Baseline:
@@ -44,14 +43,14 @@ class AbsorptionSpectrum(Spectrum):
         :return:
         """
         if not isinstance(search_region, list) and not isinstance(search_region, tuple):
-            raise InvalidArgument(raiser='search_region', message='Must be an iterable')
+            raise TypeError('search_region: Must be an iterable')
         if len(search_region) != 2:
-            raise InvalidArgument(raiser='search_region', message='Must be an iterable of length 2')
+            raise ValueError('search_region: Must be an iterable of length 2')
 
         wv1, wv2 = search_region
         for i, _ in enumerate((wv1, wv2)):
             if not isinstance(_, int) and not isinstance(_, float):
-                raise InvalidArgument(raiser='search_region', message=f'Element {i} is not a number')
+                raise TypeError(f'search_region: Element {i} is not a number')
 
         # Check if wavelengths are passed in reverse
         if wv1 > wv2:
@@ -99,7 +98,7 @@ class AbsorptionSpectrum(Spectrum):
         :return: new AbsorptionSpectrum instance with smoothed data if inplace=True
         """
         if not callable(func):
-            raise InvalidArgument(raiser='func', message='Must be a function or callable')
+            raise TypeError('func: Must be a function or callable')
 
         if inplace:
             obj = self

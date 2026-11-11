@@ -7,7 +7,6 @@ from xtl.pdbapi.attributes import (
     DataAttributeGroup,
 )
 from xtl.pdbapi.data.options import DataService
-from xtl.exceptions import InvalidArgument
 
 
 class _RCSBSchema:
@@ -238,7 +237,7 @@ class DataSchema(_RCSBSchema):
 
         self._data_service: DataService = service
         if not isinstance(self._data_service, DataService):
-            raise InvalidArgument(raiser='service', message="Must be of type 'DataService'")
+            raise TypeError("service: Must be of type 'DataService'")
 
         self._schema_url = f'{self._base_url}/{self.data_service}'
 

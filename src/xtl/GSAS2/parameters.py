@@ -4,7 +4,7 @@ from pathlib import Path
 import pyxray
 
 from ..GSAS2 import GSAS2Interface as GI
-from xtl.exceptions import InvalidArgument, FileError
+from xtl.exceptions import FileError
 
 # Template dictionaries, without wavelength
 default_parameters = {
@@ -153,7 +153,7 @@ class InstrumentalParameters:
         if isinstance(new_type, str):  # additional checks might be needed
             self._type = new_type
         else:
-            raise InvalidArgument(raiser='type', message=f'{new_type}. Must be str')
+            raise TypeError(f'type: {new_type}. Must be str')
 
     @property
     def bank(self):
@@ -167,7 +167,7 @@ class InstrumentalParameters:
         if isinstance(new_bank, (float, int)):
             self._bank = float(new_bank)
         else:
-            raise InvalidArgument(raiser='bank', message=f'{new_bank}. Must be number.')
+            raise TypeError(f'bank: {new_bank}. Must be number.')
 
     @property
     def wavelength(self):
@@ -189,7 +189,7 @@ class InstrumentalParameters:
             if isinstance(new_wavelength, (float, int)) and new_wavelength > 0:
                 self._wavelength = float(new_wavelength)
             else:
-                raise InvalidArgument(raiser='wavelength', message=f'{new_wavelength}. Must be positive number.')
+                raise ValueError(f'wavelength: {new_wavelength}. Must be positive number.')
         elif hasattr(self, '_wavelength1') and hasattr(self, '_wavelength2') and hasattr(self, '_wavelength_ratio'):
             # For laboratory data
             if isinstance(new_wavelength, (list, tuple)) and len(new_wavelength) == 3:
@@ -204,10 +204,9 @@ class InstrumentalParameters:
                     self._wavelength_ratio = r
                     return
 
-            raise InvalidArgument(
-                raiser='wavelength',
-                message=f'{new_wavelength}. Must be iterable of three positive '
-                f'numbers: (Wavelength1, Wavelength2, IntensityRatio)',
+            raise ValueError(
+                f'wavelength: {new_wavelength}. Must be iterable of three positive numbers: (Wavelength1, Wavelength2, '
+                'IntensityRatio)'
             )
 
     @property
@@ -231,7 +230,7 @@ class InstrumentalParameters:
         if isinstance(new_zero, (float, int)):
             self._zero_shift = float(new_zero)
         else:
-            raise InvalidArgument(raiser='zero shift', message=f'{new_zero}. Must be float or int.')
+            raise TypeError(f'zero shift: {new_zero}. Must be float or int.')
 
     @property
     def polarization(self):
@@ -245,9 +244,7 @@ class InstrumentalParameters:
         if isinstance(new_polar, (float, int)) and 0.5 <= new_polar <= 1:
             self._polarization = new_polar
         else:
-            raise InvalidArgument(
-                raiser='polarization factor', message=f'{new_polar}. Must be a number between 0.5 and 1.0'
-            )
+            raise ValueError(f'polarization factor: {new_polar}. Must be a number between 0.5 and 1.0')
 
     @property
     def azimuth(self):
@@ -261,7 +258,7 @@ class InstrumentalParameters:
         if isinstance(new_azimuth, (float, int)):
             self._azimuth = new_azimuth
         else:
-            raise InvalidArgument(raiser='azimuth', message=f'{new_azimuth}. Must be float or int.')
+            raise TypeError(f'azimuth: {new_azimuth}. Must be float or int.')
 
     @property
     def gaussian_U(self):
@@ -275,7 +272,7 @@ class InstrumentalParameters:
         if isinstance(new_U, (float, int)):
             self._gaussian_U = float(new_U)
         else:
-            raise InvalidArgument(raiser='gaussian U', message=f'{new_U}. Must be float or int.')
+            raise TypeError(f'gaussian U: {new_U}. Must be float or int.')
 
     @property
     def gaussian_V(self):
@@ -289,7 +286,7 @@ class InstrumentalParameters:
         if isinstance(new_V, (float, int)):
             self._gaussian_V = float(new_V)
         else:
-            raise InvalidArgument(raiser='gaussian V', message=f'{new_V}. Must be float or int.')
+            raise TypeError(f'gaussian V: {new_V}. Must be float or int.')
 
     @property
     def gaussian_W(self):
@@ -303,7 +300,7 @@ class InstrumentalParameters:
         if isinstance(new_W, (float, int)):
             self._gaussian_W = float(new_W)
         else:
-            raise InvalidArgument(raiser='gaussian W', message=f'{new_W}. Must be float or int.')
+            raise TypeError(f'gaussian W: {new_W}. Must be float or int.')
 
     @property
     def lorentzian_X(self):
@@ -317,7 +314,7 @@ class InstrumentalParameters:
         if isinstance(new_X, (float, int)):
             self._lorentzian_X = float(new_X)
         else:
-            raise InvalidArgument(raiser='lorentzian X', message=f'{new_X}. Must be float or int.')
+            raise TypeError(f'lorentzian X: {new_X}. Must be float or int.')
 
     @property
     def lorentzian_Y(self):
@@ -331,7 +328,7 @@ class InstrumentalParameters:
         if isinstance(new_Y, (float, int)):
             self._lorentzian_Y = float(new_Y)
         else:
-            raise InvalidArgument(raiser='lorentzian Y', message=f'{new_Y}. Must be float or int.')
+            raise TypeError(f'lorentzian Y: {new_Y}. Must be float or int.')
 
     @property
     def lorentzian_Z(self):
@@ -345,7 +342,7 @@ class InstrumentalParameters:
         if isinstance(new_Z, (float, int)):
             self._lorentzian_Z = float(new_Z)
         else:
-            raise InvalidArgument(raiser='lorentzian Z', message=f'{new_Z}. Must be float or int.')
+            raise TypeError(f'lorentzian Z: {new_Z}. Must be float or int.')
 
     @property
     def axial_divergence(self):
@@ -359,7 +356,7 @@ class InstrumentalParameters:
         if isinstance(new_shl, (float, int)):
             self._axial_divergence = float(new_shl)
         else:
-            raise InvalidArgument(raiser='SH/L', message=f'{new_shl}, Must be float or int.')
+            raise TypeError(f'SH/L: {new_shl}, Must be float or int.')
 
     @property
     def dictionary(self):
@@ -402,20 +399,16 @@ class InstrumentalParameters:
         if 'Lam' not in new_dict.keys() and (
             'Lam1' not in new_dict.keys() or 'Lam2' not in new_dict.keys() or 'I(L2)/I(L1)' not in new_dict.keys()
         ):
-            raise InvalidArgument(
-                raiser='dictionary',
-                message='Could not find wavelength in the provided dictionary. '
-                "Either 'Lam' or all three 'Lam1', 'Lam2', 'I(L2)/I(L1)'"
-                ' need to be specified.',
+            raise ValueError(
+                "dictionary: Could not find wavelength in the provided dictionary. Either 'Lam' or all three 'Lam1', "
+                "'Lam2', 'I(L2)/I(L1)' need to be specified."
             )
 
         required_keys = ['Type', 'Bank', 'Zero', 'Polariz.', 'Azimuth', 'U', 'V', 'W', 'X', 'Y', 'Z', 'SH/L']
         for key in required_keys:
             # Check whether all required keys are present
             if key not in new_dict.keys():
-                raise InvalidArgument(
-                    raiser='dictionary', message=f"Could not find key '{key}' in the provided dictionary."
-                )
+                raise ValueError(f"dictionary: Could not find key '{key}' in the provided dictionary.")
 
         wavelength = {}  # for lab data wavelength assignment
         required_keys += ['Lam', 'Lam1', 'Lam2', 'I(L2)/I(L1)']
@@ -531,7 +524,7 @@ class InstrumentalParameters:
         :return cls:
         """
         if not isinstance(wavelength, (int, float)) or wavelength <= 0:
-            raise InvalidArgument(f'{wavelength}. Must be a positive number.', 'wavelength')
+            raise ValueError(f'wavelength: {wavelength}. Must be a positive number.')
         synchr_dict = default_parameters['synchrotron']
         synchr_dict['Lam'] = wavelength
         return cls.from_dictionary(synchr_dict)
@@ -550,7 +543,7 @@ class InstrumentalParameters:
         :return cls:
         """
         if not isinstance(tube, (str, int)):
-            raise InvalidArgument(raiser='tube', message=f'{tube}. Tube must be str or int.')
+            raise TypeError(f'tube: {tube}. Tube must be str or int.')
         try:
             if isinstance(tube, str):
                 # Correct possible typos e.g. 'ag' -> 'Ag'
@@ -561,9 +554,7 @@ class InstrumentalParameters:
             # Interpret element with pyxray
             elem = pyxray.element(tube)
         except pyxray.NotFound:
-            raise InvalidArgument(
-                raiser='tube', message=f"Unknown {'element' if isinstance(tube, str) else 'atomic number'} '{tube}'"
-            )
+            raise ValueError(f"tube: Unknown {'element' if isinstance(tube, str) else 'atomic number'} '{tube}'")
 
         l1, l2, r, s = 0, 0, 0, ''
         if str(elem.atomic_number) in default_radiations.keys():
@@ -593,6 +584,4 @@ class InstrumentalParameters:
             return cls.from_dictionary(lab_dict)
         else:
             # Usually for atomic numbers larger than 100
-            raise InvalidArgument(
-                raiser='tube', message=f"Characteristic radiation could not be computed for element '{s}'"
-            )
+            raise ValueError(f"tube: Characteristic radiation could not be computed for element '{s}'")

@@ -6,8 +6,6 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from xtl.exceptions import InvalidArgument
-
 
 class SpectrumData:
     def __init__(self):
@@ -89,9 +87,7 @@ class Spectrum:
             raise FileNotFoundError(self.file)
 
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(
-                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
-            )
+            raise ValueError(f'file_fmt: {file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
 
         if dataset_name:
             self.dataset = dataset_name
@@ -117,7 +113,7 @@ class Spectrum:
         y = np.array(y)
         for i in (x, y):
             if len(i.shape) != 1:
-                raise InvalidArgument(raiser=i, message='Must be a 1D array')
+                raise ValueError(f'{i}: Must be a 1D array')
         obj = cls()
         obj.data.x, obj.data.y = x, y
         obj.data.check_data()
@@ -141,9 +137,7 @@ class Spectrum:
         elif data.shape[1] == 2:  # (N, 2)
             data = data.T
         else:
-            raise InvalidArgument(
-                raiser='filename', message=f'Dataset must have dimensions (2, N) or (N, 2), not: {data.shape}'
-            )
+            raise ValueError(f'filename: Dataset must have dimensions (2, N) or (N, 2), not: {data.shape}')
 
         # Initialize SpectrumData object
         self.data.x = data[0]
@@ -178,9 +172,7 @@ class Spectrum:
         filename = Path(filename)
 
         if file_fmt not in self.SUPPORTED_EXPORT_FMTS:
-            raise InvalidArgument(
-                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_EXPORT_FMTS)}'
-            )
+            raise ValueError(f'file_fmt: {file_fmt}. Must be one of: {", ".join(self.SUPPORTED_EXPORT_FMTS)}')
 
         if file_fmt == 'csv':
             self._export_csv(filename, **export_kwargs)
@@ -335,7 +327,7 @@ class SpectrumCollection:
         self.spectra = {}
 
         if not issubclass(spectrum_type, Spectrum):
-            raise InvalidArgument(raiser='spectrum_type', message='Must be Spectrum or a subclass of Spectrum')
+            raise TypeError('spectrum_type: Must be Spectrum or a subclass of Spectrum')
         self._spectrum_class = spectrum_type
 
     def add_spectrum(self, spectrum: str or Path or Spectrum, label: str, **import_kwargs):
@@ -352,9 +344,7 @@ class SpectrumCollection:
         elif isinstance(spectrum, str) or isinstance(spectrum, Path):
             self.spectra[label] = self._spectrum_class(spectrum, **import_kwargs)
         else:
-            raise InvalidArgument(
-                raiser='spectrum', message='Must be of type str, pathlib.Path or xtl.spectroscopy.Spectrum'
-            )
+            raise TypeError('spectrum: Must be of type str, pathlib.Path or xtl.spectroscopy.Spectrum')
 
     def import_file(self, filename: str or Path, file_fmt: str, **import_kwargs):
         """
@@ -366,9 +356,7 @@ class SpectrumCollection:
         :return:
         """
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(
-                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
-            )
+            raise ValueError(f'file_fmt: {file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
 
         filename = Path(filename)
         if file_fmt == 'csv':
@@ -399,7 +387,7 @@ class SpectrumCollection:
         elif x_axis == 'horizontal':
             pass
         else:
-            raise InvalidArgument(raiser='x_axis', message='Must be vertical or horizontal')
+            raise ValueError('x_axis: Must be vertical or horizontal')
 
         csv_fmt = import_kwargs.get('csv_fmt', 'xyy')
         cols = data.shape[0]
@@ -422,7 +410,7 @@ class SpectrumCollection:
                 i += 2
                 j += 1
         else:
-            raise InvalidArgument(raiser='csv_fmt', message='Must be xyy or xyxy')
+            raise ValueError('csv_fmt: Must be xyy or xyxy')
 
     def _import_cary_50_csv(self, filename: Path, import_kwargs=dict()):
         """
@@ -467,17 +455,15 @@ class SpectrumCollection:
         if not dirname.exists():
             raise FileNotFoundError(dirname)
         if not dirname.is_dir():
-            raise InvalidArgument(raiser='dirname', message='Must be a directory')
+            raise ValueError('dirname: Must be a directory')
         if file_fmt not in self.SUPPORTED_IMPORT_FMTS:
-            raise InvalidArgument(
-                raiser='file_fmt', message=f'{file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}'
-            )
+            raise ValueError(f'file_fmt: {file_fmt}. Must be one of: {", ".join(self.SUPPORTED_IMPORT_FMTS)}')
 
         ext = ''
         if file_fmt in ['csv', 'cary_50_csv']:
             ext = 'csv'
         else:
-            raise InvalidArgument(raiser=file_fmt, message='Unsupported file format')
+            raise ValueError(f'{file_fmt}: Unsupported file format')
 
         # Find files
         old_dir = Path.cwd()
@@ -593,9 +579,7 @@ class SpectrumCollection:
         :return:
         """
         if len(labels) != len(self.spectra):
-            raise InvalidArgument(
-                raiser='labels', message=f'Must be an iterable of length {len(self.spectra)}, not {len(labels)}'
-            )
+            raise ValueError(f'labels: Must be an iterable of length {len(self.spectra)}, not {len(labels)}')
 
         reindex = kwargs.get('_reindex', [])  # the order in which to read the provided labels
         change_originals = kwargs.get('_change_originals', False)

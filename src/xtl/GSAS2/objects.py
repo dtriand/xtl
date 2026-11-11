@@ -1,7 +1,6 @@
 from typing import NamedTuple
 from dataclasses import dataclass, field
 
-from xtl.exceptions import InvalidArgument
 
 
 def _make_empty_list():
@@ -61,12 +60,7 @@ def get_map_type(map_name: str):
     elif mname in ('patt', 'patterson', 'fo^2', 'fo2', 'fosq', 'fobs^2', 'fobs2'):
         return Map(name=map_name, name_pretty='Fo2', gsas_map_type='Patterson')
     else:
-        raise InvalidArgument(
-            raiser='map_name',
-            message=f'{map_name}. Accepted values are: \n'
-            f' Fo: Fobs\n'
-            f' Fc: Fcalc\n'
-            f' Fo-Fc: Fobs - Fcalc\n'
-            f' 2Fo-Fc: 2 * Fobs - Fcalc\n'
-            f' Fo2: Patterson (Fobs^2)',
+        raise ValueError(
+            f'map_name: {map_name}. Accepted values are: \n Fo: Fobs\n Fc: Fcalc\n Fo-Fc: Fobs - Fcalc\n 2Fo-Fc: 2 * '
+            'Fobs - Fcalc\n Fo2: Patterson (Fobs^2)'
         )

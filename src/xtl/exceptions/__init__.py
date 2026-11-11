@@ -9,7 +9,6 @@ __all__ = [
     'ConfigWarning',
     'DimensionalityError',
     'FileError',
-    'InvalidArgument',
     'MissingArgument',
     'XTLError',
     'XTLWarning',
@@ -17,7 +16,7 @@ __all__ = [
 
 from xtl_core.errors import XTLCoreError
 
-from .base import InvalidArgument, FileError, DimensionalityError, MissingArgument
+from .base import FileError, DimensionalityError, MissingArgument
 from .warnings import ConfigWarning
 
 

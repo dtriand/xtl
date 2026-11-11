@@ -10,10 +10,6 @@ class Error(Exception):
         return f'{self.raiser}: {self.message}' if self.raiser else self.message
 
 
-class InvalidArgument(Error):
-    pass
-
-
 class DimensionalityError(Error):
     def __init__(self, raiser=None, src_units='', dst_units=''):
         self.raiser = raiser

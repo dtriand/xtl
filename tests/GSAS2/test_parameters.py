@@ -6,7 +6,7 @@ from pyxray import NotFound
 
 # NOTE: Deprecated, GSAS2 is no longer supported.
 # from xtl.GSAS2.parameters import InstrumentalParameters
-from xtl.exceptions import InvalidArgument, FileError
+from xtl.exceptions import FileError
 # from ..conftest import CACHE_DIR
 
 
@@ -34,9 +34,9 @@ class TestInstrumentalParameters:
             assert ips.wavelength == 1.3
 
         def test_fail(self):
-            with pytest.raises(InvalidArgument, match='Must be a positive number'):
+            with pytest.raises(ValueError, match='Must be a positive number'):
                 InstrumentalParameters.defaults_synchrotron('1')
-            with pytest.raises(InvalidArgument, match='Must be a positive number'):
+            with pytest.raises(ValueError, match='Must be a positive number'):
                 InstrumentalParameters.defaults_synchrotron(-0.3)
 
     class TestDefaultsLab:
@@ -50,16 +50,16 @@ class TestInstrumentalParameters:
                 assert ipl._initial_dict
 
         def test_fail(self):
-            with pytest.raises(InvalidArgument, match='Unknown element'):
+            with pytest.raises(ValueError, match='Unknown element'):
                 InstrumentalParameters.defaults_lab('uk')
 
-            with pytest.raises(InvalidArgument, match='Unknown element'):
+            with pytest.raises(ValueError, match='Unknown element'):
                 InstrumentalParameters.defaults_lab('coper')
 
-            with pytest.raises(InvalidArgument, match='Unknown atomic number'):
+            with pytest.raises(ValueError, match='Unknown atomic number'):
                 InstrumentalParameters.defaults_lab(200)
 
-            with pytest.raises(InvalidArgument, match='Characteristic radiation could not be computed for element'):
+            with pytest.raises(ValueError, match='Characteristic radiation could not be computed for element'):
                 InstrumentalParameters.defaults_lab(100)
 
     class TestSetters:
@@ -72,10 +72,10 @@ class TestInstrumentalParameters:
             assert ipl.type == new_type
             assert ips.type == new_type
 
-            with pytest.raises(InvalidArgument, match='str'):
+            with pytest.raises(TypeError, match='str'):
                 ipl.type = 1
 
-            with pytest.raises(InvalidArgument, match='str'):
+            with pytest.raises(TypeError, match='str'):
                 ips.type = 1
 
         def test_bank(self, gsas2_iparam_lab, gsas2_iparam_synchrotron):
@@ -87,10 +87,10 @@ class TestInstrumentalParameters:
             assert ipl.bank == new_bank
             assert ips.bank == new_bank
 
-            with pytest.raises(InvalidArgument, match='number'):
+            with pytest.raises(TypeError, match='number'):
                 ipl.bank = '1'
 
-            with pytest.raises(InvalidArgument, match='number'):
+            with pytest.raises(TypeError, match='number'):
                 ips.bank = '1'
 
         def test_wavelength_syn(self, gsas2_iparam_synchrotron):
@@ -100,10 +100,10 @@ class TestInstrumentalParameters:
             ips.wavelength = new_wavelength
             assert ips.wavelength == new_wavelength
 
-            with pytest.raises(InvalidArgument, match='positive number'):
+            with pytest.raises(ValueError, match='positive number'):
                 ips.wavelength = -1.2
 
-            with pytest.raises(InvalidArgument, match='positive number'):
+            with pytest.raises(ValueError, match='positive number'):
                 ips.wavelength = 0
 
         def test_wavelength_lab(self, gsas2_iparam_lab):
@@ -113,11 +113,11 @@ class TestInstrumentalParameters:
             ipl.wavelength = new_wavelength
             assert ipl.wavelength == tuple(new_wavelength)
 
-            with pytest.raises(InvalidArgument, match='iterable of three positive numbers'):
+            with pytest.raises(ValueError, match='iterable of three positive numbers'):
                 new_wavelength[random.randint(0, 2)] *= -1  # negative value
                 ipl.wavelength = new_wavelength
 
-            with pytest.raises(InvalidArgument, match='iterable of three positive numbers'):
+            with pytest.raises(ValueError, match='iterable of three positive numbers'):
                 new_wavelength = random.random()  # not iterable of length 3
                 ipl.wavelength = new_wavelength
 
@@ -130,10 +130,10 @@ class TestInstrumentalParameters:
             assert ipl.zero_shift == new_zero
             assert ips.zero_shift == new_zero
 
-            with pytest.raises(InvalidArgument, match='float or int'):
+            with pytest.raises(TypeError, match='float or int'):
                 ipl.zero_shift = '1'
 
-            with pytest.raises(InvalidArgument, match='float or int'):
+            with pytest.raises(TypeError, match='float or int'):
                 ips.zero_shift = '1'
 
         def test_polarization(self, gsas2_iparam_lab, gsas2_iparam_synchrotron):
@@ -145,8 +145,8 @@ class TestInstrumentalParameters:
             assert ipl.polarization == new_polar
             assert ips.polarization == new_polar
 
-            with pytest.raises(InvalidArgument, match='number between 0.5 and 1.0'):
+            with pytest.raises(ValueError, match='number between 0.5 and 1.0'):
                 ipl.polarization = '1'
 
-            with pytest.raises(InvalidArgument, match='number between 0.5 and 1.0'):
+            with pytest.raises(ValueError, match='number between 0.5 and 1.0'):
                 ips.polarization = 0.3

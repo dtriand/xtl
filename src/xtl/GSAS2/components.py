@@ -1,5 +1,4 @@
 import xtl.GSAS2.GSAS2Interface as GI
-from xtl.exceptions import InvalidArgument
 
 
 class PhaseMixture:
@@ -10,15 +9,15 @@ class PhaseMixture:
 
         # Validate input
         if len(phases) != len(weight_ratios):
-            raise InvalidArgument(message='Phases and weight_ratios must be equal in length.')
+            raise ValueError('Phases and weight_ratios must be equal in length.')
         for i, phase in enumerate(phases):
             if not isinstance(phase, GI.G2sc.G2Phase):
-                raise InvalidArgument(message=f'Item {i} in phase list is not type G2Phase.')
+                raise TypeError(f'Item {i} in phase list is not type G2Phase.')
         for i, ratio in enumerate(weight_ratios):
             if not isinstance(ratio, (float, int)):
-                raise InvalidArgument(message=f'Item {i} in weight list is not a number.')
+                raise TypeError(f'Item {i} in weight list is not a number.')
             if ratio < 0:
-                raise InvalidArgument(message=f'Item {i} in weight list must be positive number.')
+                raise ValueError(f'Item {i} in weight list must be positive number.')
 
         # Append entries
         for phase, ratio in zip(phases, weight_ratios):
