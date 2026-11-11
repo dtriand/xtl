@@ -14,7 +14,7 @@ from xlsxwriter.utility import xl_rowcol_to_cell as rc2a1
 from xtl import __version__
 import xtl.cli.autoproc.cli_utils as apu
 from xtl.cli.cliio import Console, epilog
-from xtl.exceptions.utils import Catcher
+from xtl.cli.utils import Catcher
 
 
 app = typer.Typer()

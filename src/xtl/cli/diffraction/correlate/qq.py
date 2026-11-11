@@ -92,7 +92,7 @@ def cli_diffraction_correlate_qq(
     cli = Console(verbose=verbose, debug=debug)
     input_images = images
 
-    from xtl.exceptions.utils import Catcher
+    from xtl.cli.utils import Catcher
 
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:
         from xtl.cli.diffraction.cli_utils import get_image_frames

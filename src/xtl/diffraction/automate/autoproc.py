@@ -18,7 +18,7 @@ from xtl.automate.jobs import Job, limited_concurrency
 from xtl_core.system.os import get_os_name_and_version, chmod_recursively, get_username
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, AutoPROCJobResults
-from xtl.exceptions.utils import Catcher
+from xtl.cli.utils import Catcher
 
 
 class AutoPROCJob(Job):
