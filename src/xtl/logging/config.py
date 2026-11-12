@@ -111,8 +111,9 @@ class LoggerConfig(Options):
 
         :param logger: The logger to configure
         """
-        # Remove previously installed handlers by this method
-        for handler in logger.handlers:
+        # Remove previously installed handlers by this method (iterate over a copy, since
+        #  removing from the list being iterated skips every other handler)
+        for handler in list(logger.handlers):
             if getattr(handler, '_xtl_owned', False):
                 logger.removeHandler(handler)
                 with contextlib.suppress(Exception):

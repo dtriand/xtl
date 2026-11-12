@@ -185,7 +185,6 @@ class TestStandaloneJob:
         assert foreign in logger.handlers
         assert len([h for h in logger.handlers if getattr(h, '_xtl_owned', False)]) == 1
 
-    @pytest.mark.xfail(strict=True, reason='configure() skips every other handler it removes')
     def test_reconfigure_twice_with_two_handlers(self):
         two = LoggerConfig(handlers=[HandlerConfig(handler=Capture), HandlerConfig(handler=Capture)])
         logger = Talker.get_logger('a4b', two)
