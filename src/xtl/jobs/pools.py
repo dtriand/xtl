@@ -17,6 +17,7 @@ from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
 from xtl.jobs.logging import (
+    HandlerConfig,
     JobNameFilter,
     LoggerConfig,
     RelayHandler,
@@ -179,6 +180,7 @@ class BasePool(PoolProtocol, abc.ABC):
         cls_name = self.__class__.__name__
         logger_id = f'{cls_name}|{name}' if name is not None else f'{cls_name}#{self._pool_id}'
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
+        self._job_handlers: dict[str, HandlerConfig] = {}  # Managed by add_job_handler()
         if parent_logger is None:
             self._logger = self.get_logger(logger_id=logger_id, config=self._logger_config, label=self.label)
         else:
@@ -295,7 +297,39 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         if not any(isinstance(f, JobNameFilter) for f in handler.filters):
             handler.addFilter(JobNameFilter(base=self._logger.name, label=self.label))
+        # A handler without a level gets the pool's, so that it doesn't show what only a job's own handlers want
+        if handler.level == logging.NOTSET:
+            handler.setLevel(self._logger_config.level)
+        if handler.level < self._logger.getEffectiveLevel():
+            self._logger.setLevel(handler.level)
         self._logger.addHandler(handler)
+
+    def add_job_handler(self, spec: HandlerConfig, name: str) -> None:
+        """
+        Give every job submitted from now on its own handler, built from `spec` where the job runs, attached to the
+        job's logger while it runs, and closed before its directory is cleaned up. String fields of the spec (except
+        its format) and string values of its options may hold placeholders that each job fills in:
+        ``{job_directory}``, ``{job_id}``, ``{job_class}`` and ``{pool}`` (this pool's label). A job's config can
+        replace the spec, or switch it off, by its name (``JobConfig.log_handlers``).
+
+        Example:
+
+            .. code-block:: python
+
+                pool.add_job_handler(JobFileHandlerConfig(), name='file')  # `<job_directory>/xtl.log`
+
+        :param spec: The handler's config. It travels with each job, so it must survive JSON.
+        :param name: The spec's name; a second spec with the same name replaces the first.
+        """
+        if not isinstance(spec, HandlerConfig):
+            raise TypeError(f'Expected a {HandlerConfig.__name__} instance, got {type(spec).__name__}')
+        self._job_handlers[name] = spec
+
+    def remove_job_handler(self, name: str) -> None:
+        """
+        Stop giving jobs submitted from now on the handler added with :meth:`add_job_handler` under `name`.
+        """
+        self._job_handlers.pop(name, None)
 
     def remove_handler(self, handler: logging.Handler) -> None:
         """
@@ -551,6 +585,8 @@ class BasePool(PoolProtocol, abc.ABC):
             if config is not None:
                 job.configure(config)
             job.pool = self
+            job._log_handlers = dict(self._job_handlers)
+            job._pool_label = self.label
 
             # Create submission
             submission = JobSubmission.from_job(job)
@@ -1094,7 +1130,7 @@ class MultiprocessPool(BasePool):
                 logger.handlers.clear()
                 logger.setLevel(logging.NOTSET)
                 logger.propagate = True
-        root = logging.getLogger()
+        root = logging.root
         root.handlers.clear()
         root.addHandler(RelayHandler(log_queue))
 
@@ -1117,9 +1153,13 @@ class MultiprocessPool(BasePool):
         # Initialize the worker process's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # The job's logger only filters by level; its records propagate to the sink on the root logger
+        # The job's logger only filters by level; its records propagate to the sink on the root logger, which
+        #  sends only what the pool's handlers want (the job may lower its logger for handlers of its own)
         logger = _get_job_logger(submission.job_logger_name)
         logger.setLevel(submission.log_level)
+        for handler in logging.root.handlers:
+            if isinstance(handler, RelayHandler):
+                handler.setLevel(submission.log_level)
 
         # Deserialize the job
         job = submission.to_job(logger=logger)

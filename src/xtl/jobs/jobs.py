@@ -35,7 +35,14 @@ from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
 from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
-from xtl.jobs.logging import LoggerConfig, get_logger_config, pass_through
+from xtl.jobs.logging import (
+    HandlerConfig,
+    JobNameFilter,
+    LoggerConfig,
+    MissingPlaceholderError,
+    get_logger_config,
+    pass_through,
+)
 from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
@@ -69,6 +76,12 @@ class JobData(Options):
     job_id: str = Option(..., desc='Unique identifier for this job instance')
 
     config: dict[str, Any] | None = Option(..., desc='Job configuration')
+
+    log_handlers: dict[str, dict[str, Any]] = Option(
+        default_factory=dict, desc="Specs of the job's handlers from its pool, by name, as JSON-ready dicts"
+    )
+
+    pool_label: str | None = Option(default=None, desc="Label of the job's pool, for the `{pool}` placeholder")
 
     @staticmethod
     def _import_symbol(path: str):
@@ -168,6 +181,10 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Pool integration
         self._pool: Optional['BasePool'] = None
+
+        # Specs of handlers from the pool, by name, and the pool's label (set by the pool on submission)
+        self._log_handlers: dict[str, HandlerConfig] = {}
+        self._pool_label: str | None = None
 
         # Initialize config
         self._config: JobConfigType | None = None
@@ -433,6 +450,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             return None
 
         result = None
+        handlers = self._open_log_handlers()
         try:
             self._is_running = True
             self._logger.debug('Launching job')
@@ -472,11 +490,86 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
             if self._error:
                 self._logger.debug('Job aborted successfully')
-            else:
+
+            # Close the job's own handlers before its directory is cleaned up (an open file can't be deleted on Windows)
+            self._close_log_handlers(handlers)
+
+            if not self._error:
                 # Clean files when no errors occurred
                 await self._tidy_up()
 
         return JobResults(job_id=self._job_id, data=result, error=self._error)
+
+    def _log_handler_specs(self) -> dict[str, HandlerConfig]:
+        """
+        The specs of this job's own handlers: its pool's, with the ones from its config added, replaced or (with
+        None) switched off by name.
+        """
+        specs = dict(self._log_handlers)
+        cfg = self.config
+        if cfg is not None:
+            for name, spec in cfg.log_handlers.items():
+                if spec is None:
+                    specs.pop(name, None)
+                else:
+                    specs[name] = spec
+        return specs
+
+    def _open_log_handlers(self) -> list[tuple[logging.Handler, int]]:
+        """
+        Build this job's own handlers from their specs, with the placeholders filled in, and attach them to its
+        logger. The logger is lowered to what the handlers want, if that's lower than its level.
+
+        :return: The handlers, with the logger's level before, for :meth:`_close_log_handlers`.
+        """
+        specs = self._log_handler_specs()
+        if not specs:
+            return []
+
+        cfg = self.config
+        job_dir = cfg.job_directory if cfg is not None else None
+        values = {
+            'job_directory': str(job_dir) if job_dir is not None else None,
+            'job_id': self.job_id.replace('|', '_'),
+            'job_class': self.__class__.__name__,
+            'pool': self._pool_label.replace('|', '_') if self._pool_label else None,
+        }
+
+        level = self._logger.getEffectiveLevel()
+        opened = []
+        for name, spec in specs.items():
+            try:
+                handler = spec.fill(values).get_handler()
+            except MissingPlaceholderError as e:
+                # E.g. a file in the job's directory, for a job that has none: nothing to warn about
+                self._logger.debug('Skipped log handler %r: %s', name, e)
+                continue
+            except Exception as e:
+                self._logger.warning('Skipped log handler %r: %s', name, e)
+                continue
+            # A handler without a level of its own gets the job's, so that a lower one doesn't widen it
+            if handler.level == logging.NOTSET:
+                handler.setLevel(level)
+            handler.addFilter(JobNameFilter.for_logger(self._logger))
+            self._logger.addHandler(handler)
+            opened.append(handler)
+
+        previous = self._logger.level
+        if opened:
+            lowest = min(h.level for h in opened)
+            if lowest < level:
+                self._logger.setLevel(lowest)
+        return [(handler, previous) for handler in opened]
+
+    def _close_log_handlers(self, handlers: list[tuple[logging.Handler, int]]) -> None:
+        """
+        Detach and close the handlers from :meth:`_open_log_handlers`, and put back the logger's level.
+        """
+        for handler, previous in handlers:
+            self._logger.removeHandler(handler)
+            with contextlib.suppress(Exception):
+                handler.close()
+            self._logger.setLevel(previous)
 
     async def _tidy_up(self) -> None:
         """
@@ -624,6 +717,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
             job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
             job_id=self.job_id,
             config=cfg.to_dict() if cfg else None,
+            log_handlers={name: spec.to_spec(mode='json') for name, spec in self._log_handlers.items()},
+            pool_label=self._pool_label,
         )
         if as_dict:
             return job_data.to_dict()
@@ -659,6 +754,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
             logger=logger or job_cls.get_logger(jdata.job_id),
             enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
+        job._log_handlers = {name: HandlerConfig.from_spec(spec) for name, spec in jdata.log_handlers.items()}
+        job._pool_label = jdata.pool_label
         return job
 
     def _create_child(

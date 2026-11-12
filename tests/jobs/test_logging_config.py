@@ -6,7 +6,15 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from xtl.jobs.logging import LoggingFormat, HandlerConfig, StreamHandlerConfig, FileHandlerConfig, LoggerConfig
+from xtl.jobs.logging import (
+    LoggingFormat,
+    HandlerConfig,
+    StreamHandlerConfig,
+    FileHandlerConfig,
+    JobFileHandlerConfig,
+    LoggerConfig,
+    MissingPlaceholderError,
+)
 from xtl_core.options import Option
 
 
@@ -218,6 +226,38 @@ class TestLoggerConfig:
     def test_stream_object_cannot_go_to_json(self):
         with pytest.raises(Exception, match="stream object can't be serialized"):
             LoggerConfig(handlers=[StreamHandlerConfig(stream=io.StringIO())]).to_json()
+
+    def test_handler_levels(self):
+        config = LoggerConfig(
+            level=logging.INFO,
+            handlers=[HandlerConfig(handler=logging.NullHandler), HandlerConfig(handler=logging.NullHandler, level=10)],
+        )
+        logger = logging.getLogger('test_handler_levels')
+        config.configure(logger)
+        assert [h.level for h in logger.handlers] == [logging.INFO, logging.DEBUG]
+        assert logger.level == logging.DEBUG
+        logger.handlers.clear()
+
+    def test_fill_placeholders(self):
+        spec = HandlerConfig(
+            handler=logging.NullHandler,
+            format=LoggingFormat(format='{job_id} %(message)s'),
+            options={'tag': '{pool}:{job_id}', 'other': '{unknown}', 'count': 3},
+        )
+        filled = spec.fill({'job_directory': None, 'job_id': 'T_1', 'job_class': 'T', 'pool': 'SimplePool'})
+        assert filled.options == {'tag': 'SimplePool:T_1', 'other': '{unknown}', 'count': 3}
+        assert filled.format.format == '{job_id} %(message)s'
+        assert spec.options['tag'] == '{pool}:{job_id}'
+
+    def test_fill_without_a_value(self):
+        with pytest.raises(MissingPlaceholderError, match='job_directory'):
+            JobFileHandlerConfig().fill({'job_directory': None})
+
+    def test_job_file_defaults(self):
+        spec = JobFileHandlerConfig()
+        assert (spec.filename, spec.mode, spec.level) == ('{job_directory}/xtl.log', 'w', logging.DEBUG)
+        restored = LoggerConfig.from_json(LoggerConfig(handlers=[spec]).to_json()).handlers[0]
+        assert isinstance(restored, JobFileHandlerConfig)
 
     def test_live_handlers(self):
         live = logging.NullHandler()

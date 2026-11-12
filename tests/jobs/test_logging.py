@@ -33,6 +33,7 @@ from xtl.jobs.submissions import JobSubmission
 from xtl.jobs.logging import (
     FileHandlerConfig,
     HandlerConfig,
+    JobFileHandlerConfig,
     JobNameFilter,
     LoggerConfig,
     RelayHandler,
@@ -103,6 +104,18 @@ class Nesting(Job[JobConfig]):
             pool.submit(Talker, configs=[JobConfig()])
             results = await pool.launch()
         return all(r.success for r in results)
+
+
+class KeptTalker(Talker):
+    _keep_files = True
+
+
+class KeptStepped(Stepped):
+    _keep_files = True
+
+
+class TaggedFileHandler(logging.FileHandler):
+    """A user-defined handler class, importable by worker processes."""
 
 
 class SteppedRaising(SteppedJob[SteppedJobConfig]):
@@ -446,6 +459,119 @@ class TestPools:
         assert any('capping to' in m for m in warnings), warnings
 
 
+class TestJobHandlers:
+    @pytest.mark.parametrize('pool_cls', POOLS)
+    @pytest.mark.asyncio
+    async def test_job_file_holds_job_and_step_records(self, pool_cls, tmp_path):
+        key = f'h1_{pool_cls.__name__}'
+        pool = pool_cls(max_jobs=2, logger_config=capture_config(key, level=logging.INFO))
+        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        jobs, results = await run_pool(pool, KeptStepped, [key], SteppedJobConfig(job_directory=tmp_path / key))
+        assert all(r.success for r in results), [r.error for r in results]
+
+        text = (tmp_path / key / 'xtl.log').read_text(encoding='utf-8')
+        # The file: DEBUG, with level names and full logger names, from the job and its steps
+        assert f'DEBUG {pool.logger.name}.{key}.1: debug from {key}.1' in text
+        assert f'INFO {pool.logger.name}.{key}.2: info from {key}.2' in text
+        # The pool's handler: only INFO and above
+        assert f'info from {key}.1' in messages(key)
+        assert not any(m.startswith('debug from') for m in messages(key))
+        # The job's logger is left as it was
+        assert jobs[0].logger.handlers == []
+        assert jobs[0].logger.level == logging.NOTSET
+
+    @pytest.mark.parametrize('pool_cls', POOLS)
+    @pytest.mark.asyncio
+    async def test_job_file_stays_on_failure_and_goes_on_success(self, pool_cls, tmp_path):
+        key = f'h2_{pool_cls.__name__}'
+        pool = pool_cls(max_jobs=2, logger_config=capture_config(key))
+        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        failed, succeeded = tmp_path / 'failed', tmp_path / 'succeeded'
+        async with pool:
+            pool.submit(Failing, configs=[JobConfig(job_directory=failed)], job_ids=[f'{key}_f'])
+            pool.submit(Talker, configs=[JobConfig(job_directory=succeeded)], job_ids=[f'{key}_s'])
+            results = await pool.launch()
+        assert [r.success for r in results] == [False, True]
+        assert 'Job failed due to an exception: boom' in (failed / 'xtl.log').read_text(encoding='utf-8')
+        # The file was closed before the directory was deleted (on Windows, an open file blocks it)
+        assert not succeeded.exists()
+
+    @pytest.mark.parametrize('pool_cls', [SimplePool, MultiprocessPool])
+    @pytest.mark.asyncio
+    async def test_user_defined_handler_class(self, pool_cls, tmp_path):
+        key = f'h3_{pool_cls.__name__}'
+        pool = pool_cls(name='h3', max_jobs=1, logger_config=capture_config(key))
+        spec = HandlerConfig(
+            handler=TaggedFileHandler, options={'filename': '{job_directory}/{job_class}.{job_id}.{pool}.log'}
+        )
+        pool.add_job_handler(spec, name='tagged')
+        _, results = await run_pool(pool, KeptTalker, [f'{key}|1'], JobConfig(job_directory=tmp_path))
+        assert all(r.success for r in results), [r.error for r in results]
+        log = tmp_path / f'KeptTalker.{key}_1.{pool_cls.__name__}_h3.log'
+        assert f'info from {key}|1' in log.read_text(encoding='utf-8')
+
+    @pytest.mark.asyncio
+    async def test_config_adds_replaces_and_switches_off(self, tmp_path):
+        pool = SimplePool(max_jobs=1, logger_config=capture_config('h4'))
+        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        configs = {
+            'off': {'file': None},
+            'replaced': {'file': JobFileHandlerConfig(filename='{job_directory}/other.log')},
+            'added': {'extra': FileHandlerConfig(filename='{job_directory}/extra.log')},
+        }
+        async with pool:
+            for job_id, log_handlers in configs.items():
+                config = JobConfig(job_directory=tmp_path / job_id, log_handlers=log_handlers)
+                pool.submit(KeptTalker, configs=[config], job_ids=[job_id])
+            results = await pool.launch()
+        assert all(r.success for r in results)
+        files = {job_id: sorted(f.name for f in (tmp_path / job_id).glob('*.log')) for job_id in configs}
+        assert files == {'off': [], 'replaced': ['other.log'], 'added': ['extra.log', 'xtl.log']}
+
+    @pytest.mark.asyncio
+    async def test_job_without_directory_skips_the_file(self):
+        pool = SimplePool(max_jobs=1, logger_config=capture_config('h5'))
+        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        _, results = await run_pool(pool, Talker, ['h5_job'], JobConfig())
+        assert all(r.success for r in results)
+        # A job without a directory has nowhere to put the file: that's no reason to warn
+        skipped = [r for r in RECORDS['h5'] if r.captured.startswith("Skipped log handler 'file'")]
+        assert [r.levelno for r in skipped] == [logging.DEBUG], messages('h5')
+
+    @pytest.mark.asyncio
+    async def test_broken_spec_is_skipped_with_a_warning(self, tmp_path):
+        pool = SimplePool(max_jobs=1, logger_config=capture_config('h5b'))
+        pool.add_job_handler(HandlerConfig(handler=TaggedFileHandler, options={'no_such_option': 1}), name='broken')
+        _, results = await run_pool(pool, Talker, ['h5b_job'], JobConfig(job_directory=tmp_path))
+        assert all(r.success for r in results)
+        skipped = [r for r in RECORDS['h5b'] if r.captured.startswith("Skipped log handler 'broken'")]
+        assert [r.levelno for r in skipped] == [logging.WARNING], messages('h5b')
+
+    def test_specs_travel_with_the_job(self):
+        job = Talker(job_id='h6')
+        job._log_handlers = {'file': JobFileHandlerConfig(level=logging.INFO)}
+        job._pool_label = 'SimplePool|h6'
+        restored = Job.deserialize(json.loads(json.dumps(job.serialize())))
+        spec = restored._log_handlers['file']
+        assert isinstance(spec, JobFileHandlerConfig)
+        assert spec.level == logging.INFO
+        assert restored._pool_label == 'SimplePool|h6'
+
+    def test_add_handler_levels(self):
+        pool = SimplePool(logger_config=LoggerConfig(level=logging.INFO, handlers=[]))
+        plain, verbose = Capture('h7'), Capture('h7', level=logging.DEBUG)
+        pool.add_handler(plain)
+        assert plain.level == logging.INFO
+        assert pool.logger.level == logging.INFO
+        pool.add_handler(verbose)
+        assert verbose.level == logging.DEBUG
+        assert pool.logger.level == logging.DEBUG
+
+    def test_live_pool_adds_the_job_file(self):
+        live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
+        assert isinstance(live._pool._job_handlers['file'], JobFileHandlerConfig)
+
+
 class TestSerialization:
     def test_submission_carries_the_level(self):
         job = Talker(job_id='d16', logger_config=capture_config('d16', level=logging.DEBUG))
@@ -568,8 +694,10 @@ def _run_python(code: str) -> subprocess.CompletedProcess:
 
 
 FORKED_WORKER = """
-import asyncio, logging, queue
+import asyncio, logging, queue, tempfile
+from pathlib import Path
 from xtl.jobs.config import JobConfig
+from xtl.jobs.logging import JobFileHandlerConfig
 from xtl.jobs.pools import MultiprocessPool, SimplePool
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 from xtl.jobs.submissions import JobSubmission
@@ -592,16 +720,20 @@ logging.getLogger = patched_get_logger
 lease = asyncio.run(ResourceManager(total=Resources(jobs=1, threads=1, processes=1)).acquire(Resources(jobs=1)))
 CURRENT_LEASE.set(lease)
 job = Nesting(job_id='w1', logger=pool.logger.getChild('w1'))
-job.configure(JobConfig())
+job.configure(JobConfig(job_directory=Path(tempfile.mkdtemp())))
+job._log_handlers = {'file': JobFileHandlerConfig()}  # wants DEBUG, which must not travel
 payload = JobSubmission.from_job(job).to_dict()
 
 sink = queue.Queue()
 MultiprocessPool._init_worker(sink)
 result = MultiprocessPool._run_in_process(payload)
 assert result.success, result.error
-names = set()
+names, levels = set(), set()
 while not sink.empty():
-    names.add(sink.get()['name'])
+    record = sink.get()
+    names.add(record['name'])
+    levels.add(record['levelno'])
+assert min(levels) >= logging.INFO, levels
 print(sorted(names))
 """
 

@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING
 
-from pydantic import computed_field, PrivateAttr, model_validator, field_serializer
+from pydantic import computed_field, PrivateAttr, model_validator, field_serializer, field_validator
 
 from xtl import settings
 from xtl_core.options import Option, Options
@@ -15,6 +15,7 @@ from xtl_core.options.validators import cast_as_temp_dir_if_none
 from xtl.jobs.shells import Shell
 from xtl.jobs.sites import ComputeSite
 from xtl.jobs.resources import Resources
+from xtl.jobs.logging import HandlerConfig
 
 if TYPE_CHECKING:
     from xtl.jobs.batchfiles import BatchFile
@@ -36,6 +37,24 @@ class JobConfig(Options):
     resources: Optional[Resources] = Option(
         default=None, desc='Resources to allocate for this job. Overrides job-defined resources'
     )
+
+    log_handlers: dict[str, Optional[HandlerConfig]] = Option(
+        default_factory=dict,
+        desc="Handlers of this job's own, by name: a spec adds a handler, or replaces the pool's of the same name; "
+        "None switches the pool's off",
+    )
+
+    @field_validator('log_handlers', mode='before')
+    @classmethod
+    def _restore_log_handlers(cls, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {k: HandlerConfig.from_spec(v) if isinstance(v, dict) else v for k, v in value.items()}
+        return value
+
+    @field_serializer('log_handlers')
+    def _dump_log_handlers(self, value: dict[str, Optional[HandlerConfig]], info) -> dict[str, Any]:
+        mode = 'json' if info.mode_is_json() else 'python'
+        return {k: v.to_spec(mode=mode) if v is not None else None for k, v in value.items()}
 
 
 class ResourcesConfig(Options):

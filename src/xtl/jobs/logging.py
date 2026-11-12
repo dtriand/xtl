@@ -7,8 +7,9 @@ import contextlib
 import importlib
 import logging
 from logging.handlers import QueueHandler
+from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import SerializationInfo, field_serializer, field_validator
 
@@ -34,6 +35,13 @@ class LoggingFormat(Options):
         return logging.Formatter(fmt=self.format, datefmt=self.datefmt)
 
 
+class MissingPlaceholderError(ValueError):
+    """
+    A handler spec uses a placeholder that has no value for this job, e.g. ``{job_directory}`` for a job without a
+    directory.
+    """
+
+
 _STREAMS = {'stdout': lambda: sys.stdout, 'stderr': lambda: sys.stderr}
 """Streams that a config can name, resolved when the handler is made."""
 
@@ -49,6 +57,9 @@ class HandlerConfig(Options):
     handler: type(logging.Handler) = Option(default=logging.Handler, desc='Handler class for logging')
     format: LoggingFormat = Option(default=LoggingFormat(), desc='Format configuration for the handler')
     options: dict = Option(default=dict(), desc='Additional keyword arguments to pass to the handler constructor')
+    level: int = Option(
+        default=logging.NOTSET, desc="Level of the handler (default: NOTSET, the logger config's level)", ge=0, le=50
+    )
 
     @staticmethod
     def _import_path(obj: type) -> str:
@@ -116,7 +127,43 @@ class HandlerConfig(Options):
         """
         handler = getattr(self, 'handler', logging.Handler)(**self.options)
         handler.setFormatter(self.format.get_formatter())
+        if self.level:
+            handler.setLevel(self.level)
         return handler
+
+    PLACEHOLDERS: ClassVar[tuple[str, ...]] = ('job_directory', 'job_id', 'job_class', 'pool')
+    """The placeholders that :meth:`fill` replaces, e.g. ``{job_directory}``."""
+
+    def fill(self, values: dict[str, str | None]) -> 'HandlerConfig':
+        """
+        A copy of this config with the placeholders filled in: in every string field, except ``format``, and in the
+        string values of ``options``. Only :attr:`PLACEHOLDERS` are replaced; other braces are left alone.
+
+        :param values: The value of each placeholder; None if it has none (e.g. a job without a directory).
+        :raises MissingPlaceholderError: If a placeholder that is used has no value.
+        """
+
+        def fill_text(text: str) -> str:
+            for key in self.PLACEHOLDERS:
+                token = '{' + key + '}'
+                if token not in text:
+                    continue
+                value = values.get(key)
+                if value is None:
+                    raise MissingPlaceholderError(f'No value for the placeholder {token} in {text!r}')
+                text = text.replace(token, str(value))
+            return text
+
+        update: dict[str, Any] = {}
+        for name in type(self).model_fields:
+            value = getattr(self, name)
+            if name == 'format':
+                continue
+            if isinstance(value, str):
+                update[name] = fill_text(value)
+            elif name == 'options':
+                update[name] = {k: fill_text(v) if isinstance(v, str) else v for k, v in value.items()}
+        return self.model_copy(update=update)
 
 
 class StreamHandlerConfig(HandlerConfig):
@@ -154,6 +201,8 @@ class StreamHandlerConfig(HandlerConfig):
             stream = _STREAMS[stream]()
         handler = getattr(self, 'handler', logging.StreamHandler)(stream=stream)
         handler.setFormatter(self.format.get_formatter())
+        if self.level:
+            handler.setLevel(self.level)
         return handler
 
 
@@ -178,7 +227,32 @@ class FileHandlerConfig(HandlerConfig):
             filename=self.filename, mode=self.mode, encoding=self.encoding
         )
         handler.setFormatter(self.format.get_formatter())
+        if self.level:
+            handler.setLevel(self.level)
         return handler
+
+
+class JobFileHandlerConfig(FileHandlerConfig):
+    """
+    A log file in each job's directory, with the job's and its steps' records down to DEBUG. Add it to a pool with
+    ``pool.add_job_handler(JobFileHandlerConfig(), name='file')``. The file goes with the directory when the job
+    succeeds (unless files are kept) and stays when it fails.
+    """
+
+    filename: str = Option(default='{job_directory}/xtl.log', desc='File to which log messages are written')
+    mode: str = Option(default='w', desc='File mode for the log file (e.g., "a" for append)')
+    level: int = Option(default=logging.DEBUG, desc='Level of the handler', ge=0, le=50)
+    format: LoggingFormat = Option(
+        default=LoggingFormat(format='[%(asctime)s] %(levelname)s %(name)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S'),
+        desc='Format configuration for the handler',
+    )
+
+    def get_handler(self) -> logging.Handler:
+        """
+        Create the file handler, and the file's directory if it doesn't exist yet.
+        """
+        Path(self.filename).parent.mkdir(parents=True, exist_ok=True)
+        return super().get_handler()
 
 
 def _remove_xtl_handlers(logger: logging.Logger) -> None:
@@ -244,10 +318,10 @@ class LoggerConfig(Options):
         """
         _remove_xtl_handlers(logger)
 
-        logger.setLevel(self.level)
         logger.propagate = self.propagate
 
         name_filter = JobNameFilter.for_logger(logger, label)
+        levels = [self.level]
         for item in self.handlers:
             if isinstance(item, logging.Handler):
                 handler = item
@@ -255,9 +329,16 @@ class LoggerConfig(Options):
             else:
                 handler = item.get_handler()
                 handler._xtl_owned = True
+            # A handler without a level of its own gets the config's, so that a lower one elsewhere doesn't widen it
+            if handler.level == logging.NOTSET:
+                handler.setLevel(self.level)
+            levels.append(handler.level)
             if not any(isinstance(f, JobNameFilter) for f in handler.filters):
                 handler.addFilter(name_filter)
             logger.addHandler(handler)
+
+        # The logger only pre-filters: it lets through what its most verbose handler wants
+        logger.setLevel(min(levels) if self.handlers else self.level)
 
         # Ensure at least a NullHandler is present
         if not logger.hasHandlers():

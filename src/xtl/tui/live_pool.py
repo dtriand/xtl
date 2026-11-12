@@ -11,7 +11,7 @@ import rich.text
 import rich.theme
 from typer import BadParameter
 
-from xtl.jobs.logging import LoggerConfig
+from xtl.jobs.logging import JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
@@ -224,7 +224,11 @@ class LivePool(PoolProtocol):
         if pool_type is None:
             pool_type = JobPool.SIMPLE
         pool_cls = JobPool(pool_type).get()
-        return pool_cls(max_jobs=max_jobs, logger_config=logger_config)
+        pool = pool_cls(max_jobs=max_jobs, logger_config=logger_config)
+
+        # Each job keeps a log file in its directory, which stays if the job fails
+        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        return pool
 
     async def __aenter__(self) -> Self:
         from xtl import settings
