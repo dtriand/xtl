@@ -38,6 +38,7 @@ class LoggerHandlerPatcher:
         self._handler = handler
 
         self._original_handlers: dict[logging.Logger, list[logging.Handler]] = {}
+        self._original_propagate: dict[logging.Logger, bool] = {}
         self._attached_loggers: list[logging.Logger] = []
 
     def patched_getLogger(self, name: str = None) -> logging.Logger:
@@ -51,8 +52,9 @@ class LoggerHandlerPatcher:
             if logger in self._original_handlers:
                 continue
 
-            # Save original handlers
+            # Save original handlers and propagation
             self._original_handlers[logger] = list(logger.handlers)
+            self._original_propagate[logger] = logger.propagate
 
             # Remove all handlers
             logger.handlers = []
@@ -67,11 +69,13 @@ class LoggerHandlerPatcher:
             logger.propagate = False
 
     def restore(self):
-        # Restore the original handlers to the loggers
+        # Restore the original handlers and propagation to the loggers
         for logger, handlers in self._original_handlers.items():
             with contextlib.suppress(Exception):
                 logger.handlers = handlers
+                logger.propagate = self._original_propagate[logger]
         self._original_handlers.clear()
+        self._original_propagate.clear()
 
         # Restore the original logging.getLogger signature
         if self._logging_getLogger:

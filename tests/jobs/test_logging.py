@@ -389,7 +389,6 @@ class TestTUI:
         assert logger.handlers == [handler]
         assert logging.getLogger is original_get_logger
 
-    @pytest.mark.xfail(strict=True, reason='restore() leaves propagate=False')
     def test_restore_puts_back_propagate(self):
         logger = logging.getLogger('e18b')
         assert logger.propagate is True
