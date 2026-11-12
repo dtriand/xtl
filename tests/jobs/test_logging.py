@@ -564,6 +564,47 @@ def _run_python(code: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=120)
 
 
+FORKED_WORKER = """
+import asyncio, logging, queue
+from xtl.jobs.config import JobConfig
+from xtl.jobs.pools import MultiprocessPool, SimplePool
+from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
+from xtl.jobs.submissions import JobSubmission
+from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
+from tests.jobs.test_logging import Nesting
+
+# What a worker started with fork inherits: a configured pool, a patched getLogger and the parent's lease
+pool = SimplePool(name='forked')
+patcher = LoggerHandlerPatcher(handler=BufferingHandler())
+patcher.patch(pool.logger)
+logging.getLogger = patcher.patched_getLogger
+lease = asyncio.run(ResourceManager(total=Resources(jobs=1, threads=1, processes=1)).acquire(Resources(jobs=1)))
+CURRENT_LEASE.set(lease)
+job = Nesting(job_id='w1', logger=pool.logger.getChild('w1'))
+job.configure(JobConfig())
+payload = JobSubmission.from_job(job).to_dict()
+
+sink = queue.Queue()
+MultiprocessPool._init_worker(sink)
+result = MultiprocessPool._run_in_process(payload)
+assert result.success, result.error
+names = set()
+while not sink.empty():
+    names.add(sink.get()['name'])
+print(sorted(names))
+"""
+
+
+class TestForkedWorker:
+    def test_inherited_state_is_reset(self):
+        # Workers started with fork (Linux before Python 3.14) inherit the parent's logging and context; the
+        #  subprocess recreates that state, so that the test also runs where fork isn't available
+        result = _run_python(FORKED_WORKER)
+        assert result.returncode == 0, result.stderr
+        assert 'SimplePool|forked.w1' in result.stdout
+        assert 'Talker|1' in result.stdout
+
+
 class TestModuleLoggers:
     def test_import_keeps_the_logger_class(self):
         result = _run_python('import logging, xtl; assert logging.getLoggerClass() is logging.Logger')

@@ -35,7 +35,7 @@ from xtl.jobs.ipc import (
     ThreadedIPCBackend,
     ProcessIPCBackend,
 )
-from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
+from xtl.jobs.resources import CURRENT_LEASE, Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.math.uuid import UUIDFactory
 
@@ -105,6 +105,16 @@ class PoolProtocol(Protocol):
 
     @property
     def pool_id(self) -> str: ...
+
+
+def _get_job_logger(name: str) -> logging.Logger:
+    """
+    Get the logger of a job in a worker, from the logging manager rather than ``logging.getLogger``, which a worker
+    started with fork may inherit patched (e.g. by the TUI, which gives every logger it returns its own handler).
+
+    :param name: The full name of the job's logger.
+    """
+    return logging.Logger.manager.getLogger(name)
 
 
 class BasePool(PoolProtocol, abc.ABC):
@@ -915,7 +925,7 @@ class ThreadedPool(BasePool):
         get_rc_manager(total=submission.resources)
 
         # Deserialize the job; threads share the parent's loggers, so the job's logger is used as it is
-        job = submission.to_job(logger=logging.getLogger(submission.job_logger_name))
+        job = submission.to_job(logger=_get_job_logger(submission.job_logger_name))
 
         # Reconstruct the IPC backend
         if submission.ipc is not None:
@@ -1081,7 +1091,7 @@ class MultiprocessPool(BasePool):
         get_rc_manager(total=submission.resources)
 
         # The job's logger only filters by level; its records propagate to the sink on the root logger
-        logger = logging.getLogger(submission.job_logger_name)
+        logger = _get_job_logger(submission.job_logger_name)
         logger.setLevel(submission.log_level)
 
         # Deserialize the job
@@ -1098,8 +1108,9 @@ class MultiprocessPool(BasePool):
     def _run_in_process(payload: dict) -> JobResults | None:
         submission = JobSubmission.from_dict(payload)
 
-        # NB: No need to clear CURRENT_LEASE here, because we are not
-        #  using copy_context to propagate the lease
+        # A worker started with fork inherits the context of the thread that started it, including the lease of
+        #  the parent's pool, which belongs to another ResourceManager. Pools opened by the job must start a new tree.
+        CURRENT_LEASE.set(None)
 
         return asyncio.run(MultiprocessPool._bootstrap_process(submission))
 
