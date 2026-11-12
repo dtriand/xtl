@@ -94,23 +94,13 @@ class SteppedRaising(SteppedJob[SteppedJobConfig]):
         raise ValueError('stepped boom')
 
 
-def _subclasses(cls: type) -> list[type]:
-    found = [cls]
-    for sub in cls.__subclasses__():
-        found.extend(_subclasses(sub))
-    return found
-
-
 @pytest.fixture(autouse=True)
 def fresh_logging():
     """
-    Undo what jobs, pools and the TUI leak into `logging` and into class attributes: the
-    class-level logger configs, `logging.getLogger`, the root logger, and every logger
-    created during the test.
+    Undo what jobs, pools and the TUI leak into `logging`: `logging.getLogger`, the
+    handlers, `propagate` and level of every logger, and the loggers created during the
+    test.
     """
-    missing = object()
-    classes = _subclasses(Job) + _subclasses(BasePool)
-    configs = {cls: cls.__dict__.get('_logger_config', missing) for cls in classes}
     get_logger = logging.getLogger
     manager = logging.root.manager
     existing = set(manager.loggerDict)
@@ -122,12 +112,6 @@ def fresh_logging():
     yield
 
     logging.getLogger = get_logger
-    for cls, config in configs.items():
-        if config is missing:
-            if '_logger_config' in cls.__dict__:
-                delattr(cls, '_logger_config')
-        else:
-            cls._logger_config = config
     for lg, (handlers, propagate, level) in states.items():
         lg.handlers[:] = handlers
         lg.propagate = propagate
@@ -195,6 +179,14 @@ class TestStandaloneJob:
         logger = Talker.get_logger('a5', capture_config('a5'))
         handlers = list(logger.handlers)
         assert Talker.get_logger('a5').handlers == handlers
+
+    def test_defaults_follow_the_settings(self, monkeypatch):
+        # The defaults are built when needed, so a change after import applies to new jobs and pools
+        from xtl import settings
+
+        monkeypatch.setattr(settings.jobs, 'threading_debug', True)
+        for logger in (Talker(job_id='a1b').logger, SimplePool(name='a1b').logger):
+            assert 'processName' in logger.handlers[0].formatter._fmt
 
     def test_logger_passed_in_is_used(self):
         custom = logging.getLogger('a5_custom')
@@ -334,7 +326,27 @@ class TestPools:
         assert 'info from c12_job.1' in messages('c12')
         assert all(r.processName.startswith('Process') for r in RECORDS['c12'])
 
-    @pytest.mark.xfail(strict=True, reason="a pool's config becomes the class default")
+    @pytest.mark.parametrize(
+        'pool_cls',
+        [
+            SimplePool,
+            AsyncPool,
+            ThreadedPool,
+            pytest.param(
+                MultiprocessPool,
+                marks=pytest.mark.xfail(strict=True, reason='records stay in the worker process'),
+            ),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_step_records_reach_the_pool(self, pool_cls):
+        key = f'c11c_{pool_cls.__name__}'
+        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key))
+        _, results = await run_pool(pool, Stepped, [f'{key}_1'], SteppedJobConfig())
+        assert all(r.success for r in results)
+        assert f'info from {key}_1.1' in messages(key)
+        assert f'info from {key}_1.2' in messages(key)
+
     @pytest.mark.asyncio
     async def test_no_config_leaks(self):
         pool = SimplePool(name='c13', logger_config=capture_config('c13'))
@@ -376,7 +388,7 @@ class TestPools:
 class TestSerialization:
     def test_submission_carries_the_level(self):
         # Step 5 moves the level from `JobData.logging_config` to `JobSubmission.log_level`
-        job = Talker(job_id='d16', logger=Talker.get_logger('d16', capture_config('d16', level=logging.DEBUG)))
+        job = Talker(job_id='d16', logger_config=capture_config('d16', level=logging.DEBUG))
         submission = JobSubmission.from_job(job)
         assert submission.data.logging_config['level'] == logging.DEBUG
 

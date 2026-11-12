@@ -106,9 +106,6 @@ class BasePool(PoolProtocol, abc.ABC):
     _logging_level = logging.INFO
     """Default logging level for the pool's logger configuration. Setting after initialization has no effect"""
 
-    _logger_config: LoggerConfig = get_logger_config(level=_logging_level)
-    """Default logging config for the pool's logger."""
-
     _executor_cls: Executor | None = None
     """The executor class to use for this pool. If None, the pool does not use an executor and runs jobs in the
     main thread."""
@@ -153,9 +150,10 @@ class BasePool(PoolProtocol, abc.ABC):
         self._name = name
 
         # Configure logger for this pool
+        self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
         self._logger = self.get_logger(
             logger_id=f'{self.__class__.__name__}|{self._name or self._pool_id}',
-            config=logger_config or self._logger_config,
+            config=self._logger_config,
         )
         self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
 
@@ -248,16 +246,20 @@ class BasePool(PoolProtocol, abc.ABC):
         return self._logger
 
     @classmethod
-    def get_logger(
-        cls, logger_id: str, config: LoggerConfig | None = None, update_config: bool = True
-    ) -> logging.Logger:
+    def _default_logger_config(cls) -> LoggerConfig:
+        """
+        The default logging configuration of this pool type, built from the current settings.
+        """
+        return get_logger_config(level=cls._logging_level)
+
+    @classmethod
+    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None) -> logging.Logger:
         """
         Get or create a logger for the pool with the specified ID. If a `config` is not specified, the default
-        configuration is chosen.
+        configuration of this pool type is chosen.
 
         :param logger_id: The ID for the logger (e.g., pool name)
         :param config: Optional logging configuration.
-        :param update_config: If True, update the class-level logging configuration with the provided config.
         """
         logger = logging.getLogger(str(logger_id))
 
@@ -265,10 +267,8 @@ class BasePool(PoolProtocol, abc.ABC):
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
             config.configure(logger)
-            if update_config:
-                cls._logger_config = config
         else:
-            cls._logger_config.configure(logger)
+            cls._default_logger_config().configure(logger)
         return logger
 
     async def __aenter__(self) -> Self:
@@ -482,7 +482,7 @@ class BasePool(PoolProtocol, abc.ABC):
             logger = job_cls.get_logger(job_id, self._job_logger_config)
 
             # Create job instance
-            job = job_cls(job_id=job_id, logger=logger)
+            job = job_cls(job_id=job_id, logger=logger, logger_config=self._job_logger_config)
             if config is not None:
                 job.configure(config)
             job.pool = self

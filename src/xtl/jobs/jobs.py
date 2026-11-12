@@ -118,10 +118,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     """The configuration class for this job type."""
 
     _logging_level: ClassVar[int] = logging.INFO
-    """Logging level for jobs."""
-
-    _logger_config: ClassVar[LoggerConfig] = get_logger_config(level=_logging_level)
-    """Logging configuration for jobs."""
+    """Default logging level for the loggers of this job type."""
 
     _keep_files: ClassVar[bool] = False
     """Whether to keep any files created by this job"""
@@ -129,14 +126,24 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None, *, enforce_id: bool = False):
+    def __init__(
+        self,
+        job_id: str | None = None,
+        logger: 'logging.Logger' = None,
+        *,
+        logger_config: LoggerConfig | None = None,
+        enforce_id: bool = False,
+    ):
         """
         Abstract base class for asynchronous jobs execution.
 
         :param job_id: Optional, a unique identifier for the job. If not provided,
             a unique ID will be generated.
         :param logger: Optional, a custom logger for the job. If not provided,
-            a logger will be created using `job_id`.
+            a logger will be created using `job_id` and `logger_config`.
+        :param logger_config: Optional, the logging configuration of the job, also
+            passed on to its child jobs. If not provided, the default of this job type
+            is used.
         :param enforce_id: If True, skip the check for duplicate job IDs and
             register the job unconditionally.
         """
@@ -150,7 +157,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 self._job_id = uuid.random(length=settings.jobs.job_digits)
 
         # Attach a logger
-        self._logger = logger or self.get_logger(self.job_id)
+        self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
+        self._logger = logger or self.get_logger(self.job_id, logger_config)
 
         # Register the job in the class registry
         self.__class__._registry.add(self._job_id)
@@ -224,7 +232,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
         Get a preconfigured job instance.
 
         :param config: Configuration of the job, or None for an unconfigured job.
-        :param kwargs: Keyword arguments passed to the constructor of the job class, e.g., `job_id`, `logger`, etc.
+        :param kwargs: Keyword arguments passed to the constructor of the job class, e.g., `job_id`, `logger`,
+            `logger_config`, etc.
         :raises TypeError: If `config` is not an instance of the expected configuration class for this job type.
         :return: A preconfigured job instance.
         """
@@ -235,8 +244,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # NB: We explicitly pop, so that subclasses that override this method can make use of the remaining kwargs
         job_id = kwargs.pop('job_id', None)
         logger = kwargs.pop('logger', None)
+        logger_config = kwargs.pop('logger_config', None)
         enforce_id = kwargs.pop('enforce_id', False)
-        job = cls(job_id=job_id, logger=logger, enforce_id=enforce_id)
+        job = cls(job_id=job_id, logger=logger, logger_config=logger_config, enforce_id=enforce_id)
 
         # Set configuration if provided
         if config is not None:
@@ -550,17 +560,30 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         return self._logger
 
+    @property
+    def logger_config(self) -> LoggerConfig:
+        """
+        Get the logging configuration of this job, which its child jobs inherit.
+        """
+        return self._logger_config
+
     @classmethod
-    def get_logger(cls, job_id: str, config: LoggerConfig = None, update_config: bool = True) -> logging.Logger:
+    def _default_logger_config(cls) -> LoggerConfig:
+        """
+        The default logging configuration of this job type, built from the current settings.
+        """
+        return get_logger_config(level=cls._logging_level)
+
+    @classmethod
+    def get_logger(cls, job_id: str, config: LoggerConfig = None) -> logging.Logger:
         """
         Get or create a logger for the job with the given ID. If `config` is not
-        specified, the default configuration is chosen. If a logger already exists,
-        but a new ``config`` is provided, the handlers will get reconfigured.
+        specified, a logger that xtl hasn't configured yet gets the default
+        configuration of this job type. If a logger already exists, but a new
+        ``config`` is provided, the handlers will get reconfigured.
 
         :param job_id: Unique identifier of the job.
         :param config: Optional logging configuration.
-        :param update_config: If True, update the class-level logging configuration
-            with the provided config.
         """
         # Cast job_id to string
         if not isinstance(job_id, str):
@@ -574,14 +597,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
             config.configure(logger)
-            if update_config:
-                # This is required for propagating log configs to subjobs
-                cls._logger_config = config
         else:
-            # When no `config` is passed, use the job class logger config
+            # When no `config` is passed, use the default of this job type
             has_xtl_handlers = any(getattr(h, '_xtl_owned', False) for h in logger.handlers)
             if not has_xtl_handlers:
-                cls._logger_config.configure(logger)
+                cls._default_logger_config().configure(logger)
         return logger
 
     @overload
@@ -630,12 +650,12 @@ class Job(abc.ABC, Generic[JobConfigType]):
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
 
+        logger_config = LoggerConfig.from_dict(jdata.logging_config) if jdata.logging_config else None
         job = job_cls.with_config(
             config=config,
             job_id=jdata.job_id,
-            logger=job_cls.get_logger(
-                jdata.job_id, config=LoggerConfig.from_dict(jdata.logging_config) if jdata.logging_config else None
-            ),
+            logger=job_cls.get_logger(jdata.job_id, config=logger_config),
+            logger_config=logger_config,
             enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
         return job
@@ -680,7 +700,14 @@ class Job(abc.ABC, Generic[JobConfigType]):
             child_logger.propagate = True
 
         # Spawn child job
-        child = job_cls.with_config(config=config, job_id=child_id, logger=child_logger, **kwargs)
+        # NB: The child remembers its override or, since it uses this job's handlers, this job's config
+        child = job_cls.with_config(
+            config=config,
+            job_id=child_id,
+            logger=child_logger,
+            logger_config=logger_config or self._logger_config,
+            **kwargs,
+        )
 
         # Optionally propagate pool
         if inherit_pool:
