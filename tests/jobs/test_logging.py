@@ -13,6 +13,7 @@ import ast
 import asyncio
 from collections import defaultdict
 import io
+import json
 import logging
 from pathlib import Path
 import subprocess
@@ -29,7 +30,13 @@ from xtl.jobs.pools import AsyncPool, BasePool, MultiprocessPool, SimplePool, Th
 from xtl.jobs.sites import LocalSite
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.submissions import JobSubmission
-from xtl.jobs.logging import FileHandlerConfig, HandlerConfig, LoggerConfig, StreamHandlerConfig
+from xtl.jobs.logging import (
+    FileHandlerConfig,
+    HandlerConfig,
+    LoggerConfig,
+    RelayHandler,
+    StreamHandlerConfig,
+)
 from xtl.tui.console import ConsoleIO
 from xtl.tui.live_pool import LivePool
 from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
@@ -267,10 +274,7 @@ class TestPools:
             SimplePool,
             AsyncPool,
             ThreadedPool,
-            pytest.param(
-                MultiprocessPool,
-                marks=pytest.mark.xfail(strict=True, reason='records stay in the worker process'),
-            ),
+            MultiprocessPool,
         ],
     )
     @pytest.mark.asyncio
@@ -288,14 +292,8 @@ class TestPools:
         [
             SimplePool,
             AsyncPool,
-            pytest.param(
-                ThreadedPool,
-                marks=pytest.mark.xfail(strict=True, reason='workers lose the stream, log to stderr'),
-            ),
-            pytest.param(
-                MultiprocessPool,
-                marks=pytest.mark.xfail(strict=True, reason='records stay in the worker process'),
-            ),
+            ThreadedPool,
+            MultiprocessPool,
         ],
     )
     @pytest.mark.asyncio
@@ -320,7 +318,7 @@ class TestPools:
                 job.logger.addHandler(Capture('c12'))
             results = await pool.launch()
         assert all(r.success for r in results)
-        # Under their own names (step 7 puts them under the pool's logger, hence endswith)
+        # Under their own names; endswith, so that the test holds if job loggers get a prefix
         for suffix in ('c12_job', 'c12_job.1', 'c12_job.2'):
             assert any(name.endswith(suffix) for name in names('c12')), names('c12')
         assert 'info from c12_job.1' in messages('c12')
@@ -332,10 +330,7 @@ class TestPools:
             SimplePool,
             AsyncPool,
             ThreadedPool,
-            pytest.param(
-                MultiprocessPool,
-                marks=pytest.mark.xfail(strict=True, reason='records stay in the worker process'),
-            ),
+            MultiprocessPool,
         ],
     )
     @pytest.mark.asyncio
@@ -357,7 +352,6 @@ class TestPools:
             assert not any(isinstance(h, Capture) for h in logger.handlers)
 
     @pytest.mark.parametrize('pool_cls', WORKER_POOLS)
-    @pytest.mark.xfail(strict=True, reason='file handler configs lose their filename in workers')
     @pytest.mark.asyncio
     async def test_file_handler_in_worker_pool(self, pool_cls, tmp_path):
         log = tmp_path / 'jobs.log'
@@ -367,6 +361,16 @@ class TestPools:
         _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
         assert all(r.success for r in results), [r.error for r in results]
         assert f'info from {key}_1' in log.read_text(encoding='utf-8')
+
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS)
+    @pytest.mark.asyncio
+    async def test_worker_records_follow_the_level(self, pool_cls):
+        key = f'c14d_{pool_cls.__name__}'
+        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key, level=logging.INFO))
+        _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
+        assert all(r.success for r in results)
+        assert f'info from {key}_1' in messages(key)
+        assert f'debug from {key}_1' not in messages(key)
 
     @pytest.mark.parametrize('pool_cls', WORKER_POOLS)
     @pytest.mark.asyncio
@@ -387,10 +391,40 @@ class TestPools:
 
 class TestSerialization:
     def test_submission_carries_the_level(self):
-        # Step 5 moves the level from `JobData.logging_config` to `JobSubmission.log_level`
         job = Talker(job_id='d16', logger_config=capture_config('d16', level=logging.DEBUG))
         submission = JobSubmission.from_job(job)
-        assert submission.data.logging_config['level'] == logging.DEBUG
+        assert submission.log_level == logging.DEBUG
+        assert JobSubmission.from_dict(submission.to_dict()).log_level == logging.DEBUG
+
+    def test_record_survives_json_and_relay(self):
+        logger = logging.getLogger('d17')
+        logger.handlers[:] = [Capture('d17')]
+        logger.setLevel(logging.DEBUG)
+        logger.propagate = False
+        try:
+            raise ValueError('boom')
+        except ValueError:
+            record = logger.makeRecord(
+                'd17', logging.ERROR, __file__, 1, 'failed %s', ('here',), sys.exc_info(), extra={'payload': object()}
+            )
+
+        MultiprocessPool._relay_log(json.loads(json.dumps(RelayHandler.record_to_dict(record))))
+
+        [relayed] = RECORDS['d17']
+        assert relayed.captured == 'failed here'
+        assert relayed.payload.startswith('<object object')
+        formatted = logging.Formatter('%(levelname)s %(message)s').format(relayed)
+        assert formatted.startswith('ERROR failed here\nTraceback')
+        assert 'ValueError: boom' in formatted
+
+    def test_relay_respects_the_level(self):
+        logger = logging.getLogger('d18')
+        logger.handlers[:] = [Capture('d18')]
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+        record = logger.makeRecord('d18', logging.DEBUG, __file__, 1, 'quiet', (), None)
+        MultiprocessPool._relay_log(RelayHandler.record_to_dict(record))
+        assert RECORDS['d18'] == []
 
 
 class TestTUI:

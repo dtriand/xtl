@@ -1,9 +1,11 @@
 """
-Logging configuration of jobs and pools: the handler and logger config models, and the defaults.
+Logging of jobs and pools: the handler and logger config models, the defaults, and the handler that sends the records
+of worker processes back to the parent.
 """
 
 import contextlib
 import logging
+from logging.handlers import QueueHandler
 import sys
 from typing import Any
 
@@ -156,3 +158,35 @@ def get_logger_config(level: int = logging.INFO) -> LoggerConfig:
         handlers=[StreamHandlerConfig(format=LoggingFormat(format=fmt, datefmt='%H:%M:%S'))],
     )
     return config
+
+
+_JSON_TYPES = (str, int, float, bool, type(None))
+
+
+class RelayHandler(QueueHandler):
+    """
+    The sink of a worker process: puts every record on a queue as a JSON-safe dict (:meth:`record_to_dict`), for the
+    parent to re-emit.
+    """
+
+    def prepare(self, record: logging.LogRecord) -> dict[str, Any]:
+        return self.record_to_dict(record)
+
+    @staticmethod
+    def record_to_dict(record: logging.LogRecord) -> dict[str, Any]:
+        """
+        Convert a log record to a JSON-safe dict, for the parent process to re-emit
+        (:meth:`xtl.jobs.pools.MultiprocessPool._relay_log`). The message is formatted with its arguments, the
+        traceback is kept as text, and any other value that JSON can't hold is turned into a string.
+
+        :param record: The record to convert.
+        :return: A dict that :func:`logging.makeLogRecord` turns back into a record.
+        """
+        data = dict(record.__dict__)
+        data['msg'] = record.getMessage()
+        data['args'] = None
+        if record.exc_info and not record.exc_text:
+            data['exc_text'] = logging.Formatter().formatException(record.exc_info)
+        data['exc_info'] = None
+        data.pop('message', None)
+        return {key: value if isinstance(value, _JSON_TYPES) else str(value) for key, value in data.items()}

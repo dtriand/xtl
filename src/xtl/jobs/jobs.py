@@ -70,8 +70,6 @@ class JobData(Options):
 
     config: dict[str, Any] | None = Option(..., desc='Job configuration')
 
-    logging_config: dict[str, Any] | None = Option(..., desc='Logging configuration for this job')
-
     @staticmethod
     def _import_symbol(path: str):
         """
@@ -625,18 +623,22 @@ class Job(abc.ABC, Generic[JobConfigType]):
             job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
             job_id=self.job_id,
             config=cfg.to_dict() if cfg else None,
-            logging_config=self._logger_config.to_dict() if self._logger_config else None,
         )
         if as_dict:
             return job_data.to_dict()
         return job_data
 
     @classmethod
-    def deserialize(cls, data: JobData | dict[str, Any]) -> 'Job[JobConfigType]':
+    def deserialize(
+        cls, data: JobData | dict[str, Any], *, logger: logging.Logger | None = None
+    ) -> 'Job[JobConfigType]':
         """
-        Deserialize a job from a JobData instance or raw dict.
+        Deserialize a job from a JobData instance or raw dict. The logging configuration doesn't travel with the job:
+        the side that runs it decides where its records go.
 
         :param data: Job or dict instance.
+        :param logger: Optional, the logger of the job, used as is. If not provided, the logger is fetched with
+            :meth:`get_logger`, which configures it only if xtl hasn't done so yet.
         :return: A configured Job instance
         """
         if isinstance(data, dict):
@@ -650,12 +652,10 @@ class Job(abc.ABC, Generic[JobConfigType]):
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
 
-        logger_config = LoggerConfig.from_dict(jdata.logging_config) if jdata.logging_config else None
         job = job_cls.with_config(
             config=config,
             job_id=jdata.job_id,
-            logger=job_cls.get_logger(jdata.job_id, config=logger_config),
-            logger_config=logger_config,
+            logger=logger or job_cls.get_logger(jdata.job_id),
             enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
         return job

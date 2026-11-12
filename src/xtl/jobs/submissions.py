@@ -1,3 +1,5 @@
+import logging
+
 from xtl import settings
 from xtl_core.options import Option, Options
 from xtl.math.uuid import UUIDFactory
@@ -30,10 +32,14 @@ class JobSubmission(Options):
     )
     resources: Resources | None = Option(default=None, desc='Optional resources granted to the current pool')
 
+    log_level: int = Option(
+        default=logging.NOTSET, desc='Level of the job logger in the worker; records below it are not sent back'
+    )
+
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':
         data = job.serialize(as_dict=False)
-        return cls(data=data)
+        return cls(data=data, log_level=job.logger.getEffectiveLevel())
 
-    def to_job(self) -> 'Job':
-        return Job.deserialize(self.data)
+    def to_job(self, logger: logging.Logger | None = None) -> 'Job':
+        return Job.deserialize(self.data, logger=logger)

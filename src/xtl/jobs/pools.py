@@ -5,20 +5,18 @@ import asyncio
 import contextlib
 from enum import Enum
 import logging
-from logging.handlers import QueueHandler
 import multiprocessing
 import re
 import threading
 from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
-from typing import AsyncIterator, Literal, overload, Type, Iterable, Protocol, runtime_checkable
+from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, runtime_checkable
 
 from xtl import settings
 from xtl_core.system.compatibility import PY310_OR_LESS
-from xtl_core.utils.pickling import is_picklable
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
-from xtl.jobs.logging import LoggerConfig, get_logger_config
+from xtl.jobs.logging import LoggerConfig, RelayHandler, get_logger_config
 from xtl.jobs.ipc import (
     IPCBackend,
     IPCHandle,
@@ -859,8 +857,8 @@ class ThreadedPool(BasePool):
         # Initialize the worker thread's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Deserialize the job
-        job = submission.to_job()
+        # Deserialize the job; threads share the parent's loggers, so the job's logger is used as it is
+        job = submission.to_job(logger=logging.getLogger(submission.data.job_id))
 
         # Reconstruct the IPC backend
         if submission.ipc is not None:
@@ -899,151 +897,107 @@ class MultiprocessPool(BasePool):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Eavesdropping task for capturing logs from worker processes
-        self._eavesdropping: asyncio.Task | None = None  # Managed by __aexit__ and _ensure_picklable_log_handlers
-        self._eavesdropping_qname = f'{self.pool_id}_log_queue'
+        # Listener that relays the records of worker processes to the loggers of this process
+        self._listener: asyncio.Task | None = None  # Managed by __aenter__ and __aexit__
+        self._log_qname = f'{self.pool_id}_log_queue'
 
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         return requested or Resources(jobs=max_jobs, threads=1, processes=max_jobs)
 
-    def _eavesdrop(self) -> None:
+    def _start_listener(self) -> None:
         """
-        Start an asynchronous task that listens to the log queue for log records emitted by worker processes and handles
-        them with the pool's logger. This allows logs from worker processes to be captured and displayed in the main
-        process.
+        Start an asynchronous task that takes the records that worker processes put on the log queue and passes them
+        to :meth:`_relay_log`, which re-emits them through the loggers of this process.
         """
-        if self._eavesdropping is not None and not self._eavesdropping.done():
-            # Eavesdropping is already active, no need to start another listener
-            return
-
-        # Get the log queue for this pool
-        #  NB: The queue is first created in __aenter__, therefore is guaranteed to exist
-        #      on every submit() call
-        log_queue = self.get_queue(self._eavesdropping_qname)
+        log_queue = self.get_queue(self._log_qname)
 
         async def _listen() -> None:
-            """
-            Continuously listen for log records on the log queue and handle them with the pool's logger.
-            """
             while True:
-                record = await log_queue.get()
-                if record is None:
+                data = await log_queue.get()
+                if data is None:
                     # Sentinel value indicating shutdown
                     break
-                if isinstance(record, dict):
-                    record = logging.makeLogRecord(record)
-                if isinstance(record, logging.LogRecord):
-                    logging.getLogger(record.name).handle(record)
+                self._relay_log(data)
 
-        # Start the eavesdropping task
-        self.logger.debug('Starting eavesdropper...')
-        self._eavesdropping = asyncio.create_task(
-            _listen(), name=f'{self.__class__.__name__}:{self.pool_id}-Eavesdropper'
-        )
+        self.logger.debug('Starting the log listener')
+        self._listener = asyncio.create_task(_listen(), name=f'{self.__class__.__name__}:{self.pool_id}-LogListener')
 
-    @contextlib.asynccontextmanager
-    async def _ensure_picklable_log_handlers(self, submission: JobSubmission) -> AsyncIterator[None]:
+    @staticmethod
+    def _relay_log(data: dict[str, Any]) -> None:
         """
-        Ensure job logging handlers are picklable for process execution. If no usable
-        handlers remain (including the case handlers=[]), inject a dummy marker so
-        the worker installs a QueueHandler and forwards logs to this pool.
+        Re-emit a record that a worker sent as a dict through the logger of the same name in this process, if that
+        logger is enabled for its level. From there, the logger tree takes it to the handlers.
+
+        :param data: A dict from :meth:`RelayHandler.record_to_dict`.
         """
-        popped_handlers: list[dict] = []
-        dummy: dict | None = None
+        record = logging.makeLogRecord(data)
+        logger = logging.getLogger(record.name)
+        if logger.isEnabledFor(record.levelno):
+            logger.handle(record)
 
-        # Ensure config structure exists
-        if submission.data.logging_config is None:
-            submission.data.logging_config = {}
-        log_cfg = submission.data.logging_config
-        handlers_configs = list(log_cfg.get('handlers', []))
+    async def _stop_listener(self) -> None:
+        """
+        Stop the log listener, once it has relayed the records already on the queue.
+        """
+        if self._listener is None:
+            return
 
-        # Keep only picklable handlers; stash removed ones for restoration
-        picklable_handlers: list[dict] = []
-        for handler_config in handlers_configs:
-            safe, _ = is_picklable(handler_config)
-            if safe:
-                picklable_handlers.append(handler_config)
-                continue
+        self.logger.debug('Stopping the log listener')
+        with contextlib.suppress(Exception):
+            # The sentinel goes after the records that are already on the queue
+            await self.get_queue(self._log_qname).put(None)
 
-            popped_handlers.append(handler_config)
-            handler = handler_config.get('handler', '<unknown>')
-            handler_name = getattr(handler, '__name__', str(handler))
-            self.logger.debug(
-                'Removed unpicklable log handler <%s> from submission of job: %s',
-                handler_name,
-                submission.data.job_id,
-            )
+        with contextlib.suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(asyncio.shield(self._listener), timeout=10.0)
 
-        # Update submission to only contain picklable handlers for process handoff
-        log_cfg['handlers'] = picklable_handlers
+        if not self._listener.done():
+            self.logger.warning('Log listener did not shut down within timeout')
+            self._listener.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listener
 
-        # Critical: if no handlers remain, still inject queue relay
-        need_relay = bool(popped_handlers) or not picklable_handlers
-        try:
-            if need_relay:
-                dummy = {
-                    'handler': 'XTL_DUMMY_QUEUE_HANDLER',
-                    'config': {'eavesdrop_queue': self._eavesdropping_qname},
-                }
-                log_cfg['handlers'].append(dummy)
-                self._eavesdrop()
-
-            yield
-
-        finally:
-            # Remove dummy relay marker if we added one
-            if dummy is not None and dummy in log_cfg.get('handlers', []):
-                log_cfg['handlers'].remove(dummy)
-
-            # Restore any removed unpicklable handlers
-            if popped_handlers:
-                self.logger.debug(
-                    'Reattaching popped handlers to submission for job: %s',
-                    submission.data.job_id,
-                )
-                log_cfg['handlers'].extend(popped_handlers)
-                popped_handlers.clear()
+        self._listener = None
 
     async def __aenter__(self):
         await super().__aenter__()
 
+        # The log queue and default lock must exist before the workers start, and before any job is submitted
+        self.get_queue(self._log_qname)
+        self.get_lock(None)
+        self._start_listener()
+
         # Initialize the process pool executor
         self._executor = self._executor_cls(
             max_workers=self._resources.jobs,  # type: ignore
-            initializer=self._rename_current_process,
+            initializer=self._init_worker,
+            initargs=(self._ipc._raw_queue(self._log_qname),),
         )
-
-        # Ensure that the log queue and default lock are created before any jobs are submitted
-        self.get_queue(self._eavesdropping_qname)
-        self.get_lock(None)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Check if eavesdropper is running and signal it to stop
-        if self._eavesdropping is not None:
-            self.logger.debug('Stopping eavesdropper')
-            with contextlib.suppress(Exception):
-                # Send sentinel value to unblock the eavesdropper if it's waiting on the queue
-                log_queue = self.get_queue(self._eavesdropping_qname)
-                await log_queue.put(None)
-
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._eavesdropping, timeout=2.0)
-
-            if not self._eavesdropping.done():
-                self.logger.warning('Eavesdropper did not shut down within timeout')
-                self._eavesdropping.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self._eavesdropping
-
-            self._eavesdropping = None
-
-        # Shutdown the process pool executor
+        # Shutdown the process pool executor, so that the workers have sent all their records
         if self._executor is not None:
             self._executor.shutdown(wait=True)
             self._executor = None
 
+        await self._stop_listener()
+
         await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    @staticmethod
+    def _init_worker(log_queue) -> None:
+        """
+        Set up a worker process: rename it and make the queue of the parent its only log sink.
+
+        :param log_queue: The raw log queue of the pool.
+        """
+        MultiprocessPool._rename_current_process()
+
+        # Workers started with fork inherit the handlers of the parent
+        root = logging.getLogger()
+        for handler in list(root.handlers):
+            root.removeHandler(handler)
+        root.addHandler(RelayHandler(log_queue))
 
     @staticmethod
     def _rename_current_process() -> None:
@@ -1064,41 +1018,21 @@ class MultiprocessPool(BasePool):
         # Initialize the worker process's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Filter out dummy queue handlers from the logging config
-        valid_handlers = []
-        eavesdropper: dict | None = None
-        for h in submission.data.logging_config.get('handlers', []):
-            if h['handler'] == 'XTL_DUMMY_QUEUE_HANDLER':
-                eavesdropper = h
-                continue
-            valid_handlers.append(h)
-        # Update the logging config to only include valid handlers
-        submission.data.logging_config['handlers'] = valid_handlers
+        # The job's logger only filters by level; its records propagate to the sink on the root logger.
+        #  Handlers inherited from the parent (fork) are removed, so that each record is handled once, by the parent.
+        logger = logging.getLogger(submission.data.job_id)
+        for handler in list(logger.handlers):
+            logger.removeHandler(handler)
+        logger.setLevel(submission.log_level)
+        logger.propagate = True
 
         # Deserialize the job
-        job = submission.to_job()
+        job = submission.to_job(logger=logger)
 
         # Reconstruct the IPC backend
         if submission.ipc is not None:
             ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
-
-            # Install relay queue handler if eavesdropper config was found
-            if eavesdropper is not None:
-                config: dict = eavesdropper.get('config', {})
-                qname: str | None = config.get('eavesdrop_queue', None)
-                if qname is None:
-                    raise ValueError('Eavesdropper config is missing the required "eavesdrop_queue" field')
-
-                # Get the actual queue object from the IPC backend
-                try:
-                    queue = submission.ipc.queues[qname]
-                except KeyError as e:
-                    raise KeyError(f'Eavesdropper queue {qname!r} not found in IPC') from e
-
-                # Add a QueueHandler to the job's logger to forward logs
-                handler = QueueHandler(queue)
-                job.logger.addHandler(handler)
 
         return await job.run()
 
@@ -1117,16 +1051,5 @@ class MultiprocessPool(BasePool):
         if job is None:
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
 
-        async with self._ensure_picklable_log_handlers(submission):
-            payload = submission.to_dict()
-            pickle_safe, reason = is_picklable(payload, path=JobSubmission.__name__)
-            if not pickle_safe:
-                path, obj_type, obj_repr = reason
-                raise TypeError(
-                    f'Job submission with job_id={job_id!r} contains an unpicklable object and cannot be executed in a '
-                    f'process pool\n'
-                    f'Offending object found at {path}: type={obj_type}, repr={obj_repr}'
-                )
-
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(self._executor, self._run_in_process, payload)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(self._executor, self._run_in_process, submission.to_dict())
