@@ -361,7 +361,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if max_jobs > limit:
             self.logger.warning(
                 'The requested max_jobs=%(max_jobs)d exceeds granted '
-                '%(dimension)s=%(limit)d for %(pool_type), capping to %(limit)d',
+                '%(dimension)s=%(limit)d for %(pool_type)s, capping to %(limit)d',
                 {'max_jobs': max_jobs, 'dimension': dimension, 'limit': limit, 'pool_type': pool_cls.__name__},
             )
             max_jobs = limit

@@ -347,7 +347,6 @@ class TestPools:
         _, results = await run_pool(pool, Talker, [f'{key}_1'], None)
         assert all(r.success for r in results)
 
-    @pytest.mark.xfail(strict=True, reason='broken format string in Job.get_pool()')
     @pytest.mark.asyncio
     async def test_get_pool_warning_is_formatted(self):
         job = Talker(job_id='c14c', logger=Talker.get_logger('c14c', capture_config('c14c')))
@@ -494,7 +493,6 @@ def format_problems(path: Path) -> list[str]:
 
 
 class TestFormatsAndTimeouts:
-    @pytest.mark.xfail(strict=True, reason='7 broken format strings in xtl.jobs')
     def test_logging_format_strings(self):
         problems = []
         for package in (xtl, xtl_core):
@@ -502,7 +500,6 @@ class TestFormatsAndTimeouts:
                 problems.extend(format_problems(path))
         assert not problems, '\n'.join(problems)
 
-    @pytest.mark.xfail(strict=True, reason='broken format strings in LocalSite.cancel_batch()')
     @pytest.mark.asyncio
     async def test_cancel_message_is_formatted(self, tmp_path):
         logger = logging.getLogger('xtl.jobs.sites')
