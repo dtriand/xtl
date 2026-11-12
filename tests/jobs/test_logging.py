@@ -510,7 +510,6 @@ class TestFormatsAndTimeouts:
             logger.handlers = [h for h in logger.handlers if not isinstance(h, Capture)]
         assert any(m.startswith('Cannot cancel batch file') for m in messages('g_cancel')), messages('g_cancel')
 
-    @pytest.mark.xfail(strict=True, reason='subprocess.TimeoutExpired is not caught')
     def test_execute_command_timeout(self):
         logger = logging.getLogger('xtl.jobs.sites')
         logger.addHandler(Capture('g_timeout'))

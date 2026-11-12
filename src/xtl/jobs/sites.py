@@ -159,7 +159,7 @@ class BaseComputeSite(ABC):
         """
         try:
             result = subprocess.run(command, capture_output=True, text=True, shell=False, timeout=timeout)
-        except TimeoutError:
+        except subprocess.TimeoutExpired:
             logger.error('Command `%s` timed out', ' '.join(command))
             return None
         return result
