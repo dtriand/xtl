@@ -33,6 +33,7 @@ from xtl.jobs.submissions import JobSubmission
 from xtl.jobs.logging import (
     FileHandlerConfig,
     HandlerConfig,
+    JobNameFilter,
     LoggerConfig,
     RelayHandler,
     StreamHandlerConfig,
@@ -94,6 +95,15 @@ class Stepped(SteppedJob[SteppedJobConfig]):
         StepSpec(name='one', job_cls=Talker, config_cls=JobConfig),
         StepSpec(name='two', job_cls=Talker, config_cls=JobConfig),
     )
+
+
+class Nesting(Job[JobConfig]):
+    async def _execute(self):
+        self.logger.info('outer from %s', self.job_id)
+        async with self.get_pool('threads', max_jobs=1) as pool:
+            pool.submit(Talker, configs=[JobConfig()])
+            results = await pool.launch()
+        return all(r.success for r in results)
 
 
 class SteppedRaising(SteppedJob[SteppedJobConfig]):
@@ -263,10 +273,53 @@ class TestPools:
         assert 'SimplePool|c9' in names('c9')
 
     @pytest.mark.asyncio
-    async def test_job_config_defaults_to_the_pool_config(self):
+    async def test_job_loggers_hang_under_the_pool(self):
         pool = SimplePool(name='c10', logger_config=capture_config('c10'))
-        await run_pool(pool, Talker, ['c10_job'], JobConfig())
+        jobs, _ = await run_pool(pool, Talker, ['c10_job'], JobConfig())
+        logger = jobs[0].logger
+        assert logger.name == 'SimplePool|c10.c10_job'
+        assert logger.handlers == []
+        assert logger.propagate is True
+        assert logger.level == logging.NOTSET
         assert 'info from c10_job' in messages('c10')
+
+    def test_unnamed_pool_logger(self):
+        pool = SimplePool()
+        assert pool.logger.name == f'SimplePool#{pool.pool_id}'
+        assert pool.label == 'SimplePool'
+        assert SimplePool(name='refine').label == 'SimplePool|refine'
+
+    def test_pool_name_without_dots(self):
+        with pytest.raises(ValueError, match='dots'):
+            SimplePool(name='a.b')
+
+    @pytest.mark.parametrize('pool_cls', POOLS)
+    @pytest.mark.asyncio
+    async def test_add_handler_gets_everything(self, pool_cls):
+        key = f'c15_{pool_cls.__name__}'
+        pool = pool_cls(max_jobs=2, logger_config=LoggerConfig(level=logging.DEBUG, handlers=[]))
+        handler = Capture(key)
+        pool.add_handler(handler)
+        _, results = await run_pool(pool, Stepped, [f'{key}_1'], SteppedJobConfig())
+        assert all(r.success for r in results)
+        shown = {r.job for r in RECORDS[key]}
+        assert {pool_cls.__name__, f'{key}_1', f'{key}_1.1', f'{key}_1.2'} <= shown, shown
+        assert f'info from {key}_1.2' in messages(key)
+        pool.remove_handler(handler)
+        assert handler not in pool.logger.handlers
+        assert handler.filters == []
+
+    @pytest.mark.parametrize('pool_cls', [SimplePool, MultiprocessPool])
+    @pytest.mark.asyncio
+    async def test_nested_pool_names(self, pool_cls):
+        key = f'c16_{pool_cls.__name__}'
+        pool = pool_cls(max_jobs=1, logger_config=capture_config(key))
+        _, results = await run_pool(pool, Nesting, [f'{key}_1'], JobConfig())
+        assert all(r.success for r in results), [r.error for r in results]
+        shown = {r.job for r in RECORDS[key]}
+        outer = f'{key}_1'
+        assert {pool_cls.__name__, outer, f'{outer}>ThreadedPool', f'{outer}>Talker|1'} <= shown, shown
+        assert 'info from Talker|1' in messages(key)
 
     @pytest.mark.parametrize(
         'pool_cls',
@@ -280,7 +333,7 @@ class TestPools:
     @pytest.mark.asyncio
     async def test_job_records_reach_the_pool(self, pool_cls):
         key = f'c11_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key))
+        pool = pool_cls(name=key, max_jobs=2, logger_config=capture_config(key))
         ids = [f'{key}_1', f'{key}_2']
         _, results = await run_pool(pool, Talker, ids, JobConfig())
         assert all(r.success for r in results)
@@ -302,7 +355,7 @@ class TestPools:
         handler = StreamHandlerConfig(stream=stream)
         config = LoggerConfig(level=logging.INFO, handlers=[handler])
         key = f'c11b_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=config)
+        pool = pool_cls(name=key, max_jobs=2, logger_config=config)
         _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
         assert all(r.success for r in results)
         assert f'info from {key}_1' in stream.getvalue()
@@ -311,7 +364,7 @@ class TestPools:
     async def test_tui_config_in_process_pool(self):
         # The TUI's lifeline: with no handlers, records still come back to the parent
         config = LoggerConfig(level=logging.INFO, handlers=[])
-        pool = MultiprocessPool(name='c12', max_jobs=2, logger_config=config, job_logger_config=config)
+        pool = MultiprocessPool(name='c12', max_jobs=2, logger_config=config)
         async with pool:
             jobs = pool.submit(Stepped, configs=[SteppedJobConfig()], job_ids=['c12_job'])
             for job in jobs:
@@ -336,7 +389,7 @@ class TestPools:
     @pytest.mark.asyncio
     async def test_step_records_reach_the_pool(self, pool_cls):
         key = f'c11c_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key))
+        pool = pool_cls(name=key, max_jobs=2, logger_config=capture_config(key))
         _, results = await run_pool(pool, Stepped, [f'{key}_1'], SteppedJobConfig())
         assert all(r.success for r in results)
         assert f'info from {key}_1.1' in messages(key)
@@ -357,7 +410,7 @@ class TestPools:
         log = tmp_path / 'jobs.log'
         config = LoggerConfig(level=logging.INFO, handlers=[FileHandlerConfig(filename=str(log))])
         key = f'c14_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=config)
+        pool = pool_cls(name=key, max_jobs=2, logger_config=config)
         _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
         assert all(r.success for r in results), [r.error for r in results]
         assert f'info from {key}_1' in log.read_text(encoding='utf-8')
@@ -366,7 +419,7 @@ class TestPools:
     @pytest.mark.asyncio
     async def test_worker_records_follow_the_level(self, pool_cls):
         key = f'c14d_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key, level=logging.INFO))
+        pool = pool_cls(name=key, max_jobs=2, logger_config=capture_config(key, level=logging.INFO))
         _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
         assert all(r.success for r in results)
         assert f'info from {key}_1' in messages(key)
@@ -376,7 +429,7 @@ class TestPools:
     @pytest.mark.asyncio
     async def test_job_without_config_in_worker_pool(self, pool_cls):
         key = f'c14b_{pool_cls.__name__}'
-        pool = pool_cls(name=key, max_jobs=2, job_logger_config=capture_config(key))
+        pool = pool_cls(name=key, max_jobs=2, logger_config=capture_config(key))
         _, results = await run_pool(pool, Talker, [f'{key}_1'], None)
         assert all(r.success for r in results)
 
@@ -416,6 +469,30 @@ class TestSerialization:
         formatted = logging.Formatter('%(levelname)s %(message)s').format(relayed)
         assert formatted.startswith('ERROR failed here\nTraceback')
         assert 'ValueError: boom' in formatted
+
+    @pytest.mark.parametrize(
+        'name, shown',
+        [
+            ('MultiprocessPool#123', 'MultiprocessPool'),
+            ('MultiprocessPool#123.Talker|1', 'Talker|1'),
+            ('MultiprocessPool#123.Talker|1.2', 'Talker|1.2'),
+            ('MultiprocessPool#123.my.job', 'my.job'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool#9.Talker|03', 'Outer|01>Talker|03'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool#9', 'Outer|01>ThreadedPool'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine', 'Outer|01>ThreadedPool|refine'),
+            ('MultiprocessPool#1234.Talker|1', 'MultiprocessPool#1234.Talker|1'),
+            ('xtl.jobs.sites', 'xtl.jobs.sites'),
+        ],
+    )
+    def test_display_names(self, name, shown):
+        name_filter = JobNameFilter(base='MultiprocessPool#123', label='MultiprocessPool')
+        assert name_filter.display_name(name) == shown
+
+    def test_standalone_job_names(self):
+        name_filter = JobNameFilter.for_logger(logging.getLogger('d19'))
+        assert name_filter.display_name('d19') == 'd19'
+        assert name_filter.display_name('d19.2') == 'd19.2'
+        assert name_filter.display_name('d19.SimplePool#7.Talker|1') == 'd19>Talker|1'
 
     def test_relay_respects_the_level(self):
         logger = logging.getLogger('d18')

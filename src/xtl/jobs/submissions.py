@@ -36,10 +36,21 @@ class JobSubmission(Options):
         default=logging.NOTSET, desc='Level of the job logger in the worker; records below it are not sent back'
     )
 
+    logger_name: str | None = Option(
+        default=None, desc="Full name of the job's logger, also used in the worker (default: the job's id)"
+    )
+
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':
         data = job.serialize(as_dict=False)
-        return cls(data=data, log_level=job.logger.getEffectiveLevel())
+        return cls(data=data, log_level=job.logger.getEffectiveLevel(), logger_name=job.logger.name)
+
+    @property
+    def job_logger_name(self) -> str:
+        """
+        Name of the job's logger: `logger_name`, or the job's id if it isn't set.
+        """
+        return self.logger_name or self.data.job_id
 
     def to_job(self, logger: logging.Logger | None = None) -> 'Job':
         return Job.deserialize(self.data, logger=logger)

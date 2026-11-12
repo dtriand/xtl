@@ -1,6 +1,6 @@
 """
-Logging of jobs and pools: the handler and logger config models, the defaults, and the handler that sends the records
-of worker processes back to the parent.
+Logging of jobs and pools: the handler and logger config models, the defaults, the filter that names jobs on screen,
+and the handler that sends the records of worker processes back to the parent.
 """
 
 import contextlib
@@ -109,13 +109,16 @@ class LoggerConfig(Options):
         default_factory=lambda: [StreamHandlerConfig()], desc='List of handlers for the job logger'
     )
 
-    def configure(self, logger: logging.Logger) -> None:
+    def configure(self, logger: logging.Logger, label: str | None = None) -> None:
         """
         Configure the given logger based on this configuration. Handlers installed by this
         method are tagged with a ``_xtl_owned`` attribute and are replaced on consecutive
-        calls of this method. Other handlers are not modified.
+        calls of this method. Other handlers are not modified. Each installed handler gets a
+        :class:`JobNameFilter`, so that formats can use ``%(job)s``.
 
         :param logger: The logger to configure
+        :param label: Optional, how the logger's own records are named on screen, e.g. a pool's label. If not
+            provided, records are named relative to the logger's parent, which suits jobs.
         """
         # Remove previously installed handlers by this method (iterate over a copy, since
         #  removing from the list being iterated skips every other handler)
@@ -128,8 +131,10 @@ class LoggerConfig(Options):
         logger.setLevel(self.level)
         logger.propagate = self.propagate
 
+        name_filter = JobNameFilter.for_logger(logger, label)
         for handler_config in self.handlers:
             handler = handler_config.get_handler()
+            handler.addFilter(name_filter)
             # Mark handlers created by this method
             handler._xtl_owned = True
             logger.addHandler(handler)
@@ -150,7 +155,7 @@ def get_logger_config(level: int = logging.INFO) -> LoggerConfig:
     if settings.jobs.threading_debug:
         fmt = '[%(asctime)s.%(msecs)03d:%(processName)s:%(threadName)s:%(name)s] %(message)s'
     else:
-        fmt = '[%(asctime)s.%(msecs)03d:%(name)s] %(message)s'
+        fmt = '[%(asctime)s.%(msecs)03d:%(job)s] %(message)s'
 
     config = LoggerConfig(
         level=level,
@@ -158,6 +163,125 @@ def get_logger_config(level: int = logging.INFO) -> LoggerConfig:
         handlers=[StreamHandlerConfig(format=LoggingFormat(format=fmt, datefmt='%H:%M:%S'))],
     )
     return config
+
+
+def pass_through(logger: logging.Logger) -> None:
+    """
+    Make a logger pass its records up the tree: remove the handlers xtl installed on it (others are kept), reset its
+    level, so that it inherits its parent's, and let it propagate.
+
+    :param logger: The logger to reset.
+    """
+    for handler in list(logger.handlers):
+        if getattr(handler, '_xtl_owned', False):
+            logger.removeHandler(handler)
+            with contextlib.suppress(Exception):
+                handler.close()
+    logger.setLevel(logging.NOTSET)
+    logger.propagate = True
+
+
+_POOL_CLASSES: set[str] = set()
+"""Names of the pool classes, filled by ``BasePool.__init_subclass__``, so that a pool's segment of a logger name can
+be told apart from a job's."""
+
+
+def register_pool_class(name: str) -> None:
+    """
+    Register the name of a pool class, so that :class:`JobNameFilter` recognizes the loggers of its pools.
+
+    :param name: The class name.
+    """
+    _POOL_CLASSES.add(name)
+
+
+def pool_label(segment: str) -> str | None:
+    """
+    How a pool's logger segment is shown on screen: ``<Cls>|<name>`` for a named pool, ``<Cls>`` for one named by its
+    id (``<Cls>#<pool_id>``).
+
+    :param segment: One dot-separated part of a logger name.
+    :return: The label, or None if the segment isn't a pool's.
+    """
+    cls_name, sep, _ = segment.partition('#')
+    if sep and cls_name in _POOL_CLASSES:
+        return cls_name
+    cls_name, sep, _ = segment.partition('|')
+    if sep and cls_name in _POOL_CLASSES:
+        return segment
+    return None
+
+
+class JobNameFilter(logging.Filter):
+    """
+    Sets ``record.job``, the name of the record's logger as shown on screen, relative to a base logger:
+
+    - the base's own records get its label, e.g. ``MultiprocessPool``;
+    - records from below it get their name relative to it, with each nested pool hidden and shown as a ``>`` instead,
+      e.g. ``Talker|01.2`` or ``Outer|01>Talker|03``; a nested pool's own records end in its label;
+    - records from loggers outside it keep their full name.
+
+    The filter lets every record through.
+    """
+
+    def __init__(self, base: str, label: str | None = None):
+        """
+        :param base: Name of the base logger; an empty string names records relative to the root logger.
+        :param label: How the base's own records are named. If not provided, they get the base's name.
+        """
+        super().__init__()
+        self.base = base
+        self.label = label if label is not None else base
+
+    @classmethod
+    def for_logger(cls, logger: logging.Logger, label: str | None = None) -> 'JobNameFilter':
+        """
+        The filter for the handlers of a logger: with a label, the logger is the base (a pool); without one, its
+        parent is, so that a job is named by its id and its steps by ``<job_id>.<i>``.
+
+        :param logger: The logger whose handlers get the filter.
+        :param label: Optional, how the logger's own records are named.
+        """
+        if label is not None:
+            return cls(base=logger.name, label=label)
+        parent = logger.parent
+        return cls(base='' if parent is None or parent is logging.root else parent.name)
+
+    def display_name(self, name: str) -> str:
+        """
+        The name of a logger as shown on screen.
+
+        :param name: The logger's name.
+        """
+        if name == self.base:
+            return self.label
+        if not self.base:
+            parts = name.split('.')
+        elif name.startswith(self.base + '.'):
+            parts = name[len(self.base) + 1 :].split('.')
+        else:
+            return name
+
+        levels: list[str] = []
+        current: list[str] = []
+        for i, part in enumerate(parts):
+            label = pool_label(part)
+            if label is None:
+                current.append(part)
+                continue
+            # A nested pool closes the current level; it's only shown for its own records
+            if current:
+                levels.append('.'.join(current))
+                current = []
+            if i == len(parts) - 1:
+                levels.append(label)
+        if current:
+            levels.append('.'.join(current))
+        return '>'.join(levels)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.job = self.display_name(record.name)
+        return True
 
 
 _JSON_TYPES = (str, int, float, bool, type(None))

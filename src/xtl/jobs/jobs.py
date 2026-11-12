@@ -35,7 +35,7 @@ from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
 from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
-from xtl.jobs.logging import LoggerConfig, get_logger_config
+from xtl.jobs.logging import LoggerConfig, get_logger_config, pass_through
 from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
@@ -375,7 +375,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Allocate the appropriate budget
         budget = Resources(jobs=max_jobs, threads=effective.threads, processes=effective.processes)
 
-        # Yield the pool
+        # Yield the pool, its logger under this job's
+        kwargs.setdefault('parent_logger', self.logger)
         async with pool_cls(max_jobs=max_jobs, resources=budget, **kwargs) as child:
             yield child
 
@@ -692,12 +693,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
             logger_config.configure(child_logger)
         else:
             # No handlers of its own (other than foreign ones); inherit the level and propagate to the parent
-            for handler in list(child_logger.handlers):
-                if getattr(handler, '_xtl_owned', False):
-                    child_logger.removeHandler(handler)
-                    handler.close()
-            child_logger.setLevel(logging.NOTSET)
-            child_logger.propagate = True
+            pass_through(child_logger)
 
         # Spawn child job
         # NB: The child remembers its override or, since it uses this job's handlers, this job's config

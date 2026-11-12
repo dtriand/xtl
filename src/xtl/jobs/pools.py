@@ -16,7 +16,14 @@ from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
-from xtl.jobs.logging import LoggerConfig, RelayHandler, get_logger_config
+from xtl.jobs.logging import (
+    JobNameFilter,
+    LoggerConfig,
+    RelayHandler,
+    get_logger_config,
+    pass_through,
+    register_pool_class,
+)
 from xtl.jobs.ipc import (
     IPCBackend,
     IPCHandle,
@@ -118,12 +125,17 @@ class BasePool(PoolProtocol, abc.ABC):
         logger_config: LoggerConfig = None,
         resources: Resources | None = None,
         resources_manager: ResourceManager | None = None,
+        parent_logger: logging.Logger | None = None,
         **kwargs,
     ):
         """
         Abstract base class for job pools.
 
-        :param name: Optional name for pool
+        The pool's logger is the root of a tree: the jobs' loggers are its children (``<pool logger>.<job_id>``), and
+        steps hang under their job. Jobs' loggers have no handlers and propagate, so that the pool's handlers get every
+        record. The pool's logger doesn't propagate further.
+
+        :param name: Optional name for pool; it can't contain dots
         :param max_jobs: The maximum number of concurrent jobs to run. This is capped by the available quota
             (default: 1).
         :param logger_config: Optional configuration for the pool's logger.
@@ -131,9 +143,10 @@ class BasePool(PoolProtocol, abc.ABC):
             (default: None, get all available)
         :param resources_manager: Optional ResourceManager to use for resource allocation. If not provided, the default
             global ResourceManager will be used.
-        :param kwargs: Additional keyword arguments:
-            - `job_logger_config`: Configuration for the Job loggers (default: same as pool)
-        :raises ValueError: If an invalid `max_jobs` is provided
+        :param parent_logger: Optional, the logger of the job that creates this pool. The pool's logger then hangs
+            under it and passes its records up, with no handlers of its own, unless a `logger_config` is passed.
+        :param kwargs: Additional keyword arguments.
+        :raises ValueError: If an invalid `max_jobs` is provided, or if `name` contains dots
         :raises TypeError: If `logger_config` is not of the correct type
         """
         if max_jobs < 1:
@@ -143,17 +156,27 @@ class BasePool(PoolProtocol, abc.ABC):
                 f'Expected a {LoggerConfig.__name__} instance for `logger_config`, got {type(logger_config).__name__}'
             )
 
+        if name is not None and '.' in str(name):
+            raise ValueError(f'Pool names cannot contain dots, got {name!r}')
+
         # Set up pool_id and name
         self._pool_id = uuid.random(settings.jobs.job_digits)
         self._name = name
 
         # Configure logger for this pool
+        #  NB: A named pool's logger is `<Cls>|<name>`, an unnamed one's `<Cls>#<pool_id>`, so that the name filter
+        #  can tell them apart (see `label`)
+        cls_name = self.__class__.__name__
+        logger_id = f'{cls_name}|{name}' if name is not None else f'{cls_name}#{self._pool_id}'
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
-        self._logger = self.get_logger(
-            logger_id=f'{self.__class__.__name__}|{self._name or self._pool_id}',
-            config=self._logger_config,
-        )
-        self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
+        if parent_logger is None:
+            self._logger = self.get_logger(logger_id=logger_id, config=self._logger_config, label=self.label)
+        else:
+            self._logger = parent_logger.getChild(logger_id)
+            if logger_config is not None:
+                logger_config.configure(self._logger, label=self.label)
+            else:
+                pass_through(self._logger)
 
         # Resources allocation
         self._rc_requested: Resources = self._resolve_resources(max_jobs=max_jobs, requested=resources)
@@ -191,6 +214,7 @@ class BasePool(PoolProtocol, abc.ABC):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        register_pool_class(cls.__name__)
         if not hasattr(cls, '_ipc_cls') or not issubclass(cls._ipc_cls, IPCBackend):
             raise TypeError(
                 f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
@@ -221,6 +245,14 @@ class BasePool(PoolProtocol, abc.ABC):
         return self._name
 
     @property
+    def label(self) -> str:
+        """
+        How this pool's own records are named on screen: its class, plus ``|<name>`` if it was named.
+        """
+        cls_name = self.__class__.__name__
+        return f'{cls_name}|{self._name}' if self._name is not None else cls_name
+
+    @property
     def resources(self) -> Resources | None:
         """
         The resources granted to this pool. Allocation happens within the context manager.
@@ -243,6 +275,29 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         return self._logger
 
+    def add_handler(self, handler: logging.Handler) -> None:
+        """
+        Add a handler to the pool's logger. It gets the records of the pool, of every job and of every step, also from
+        worker processes. The handler gets a filter that sets ``record.job``, the logger's name relative to this pool,
+        for formats to use as ``%(job)s``.
+
+        :param handler: The handler to add.
+        """
+        if not any(isinstance(f, JobNameFilter) for f in handler.filters):
+            handler.addFilter(JobNameFilter(base=self._logger.name, label=self.label))
+        self._logger.addHandler(handler)
+
+    def remove_handler(self, handler: logging.Handler) -> None:
+        """
+        Remove a handler added with :meth:`add_handler`, and the name filter it got from this pool.
+
+        :param handler: The handler to remove.
+        """
+        self._logger.removeHandler(handler)
+        for f in list(handler.filters):
+            if isinstance(f, JobNameFilter) and f.base == self._logger.name:
+                handler.removeFilter(f)
+
     @classmethod
     def _default_logger_config(cls) -> LoggerConfig:
         """
@@ -251,22 +306,23 @@ class BasePool(PoolProtocol, abc.ABC):
         return get_logger_config(level=cls._logging_level)
 
     @classmethod
-    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None) -> logging.Logger:
+    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None, label: str | None = None) -> logging.Logger:
         """
         Get or create a logger for the pool with the specified ID. If a `config` is not specified, the default
         configuration of this pool type is chosen.
 
         :param logger_id: The ID for the logger (e.g., pool name)
         :param config: Optional logging configuration.
+        :param label: Optional, how the pool's own records are named on screen (default: `logger_id`).
         """
         logger = logging.getLogger(str(logger_id))
 
         if config is not None:
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
-            config.configure(logger)
+            config.configure(logger, label=label or str(logger_id))
         else:
-            cls._default_logger_config().configure(logger)
+            cls._default_logger_config().configure(logger, label=label or str(logger_id))
         return logger
 
     async def __aenter__(self) -> Self:
@@ -476,11 +532,12 @@ class BasePool(PoolProtocol, abc.ABC):
                 # In case None was passed explicitly in job_ids
                 job_id = uuid.random(settings.jobs.job_digits)
 
-            # Create logger
-            logger = job_cls.get_logger(job_id, self._job_logger_config)
+            # The job's logger hangs under the pool's and passes its records up to the pool's handlers
+            logger = self._logger.getChild(str(job_id))
+            pass_through(logger)
 
             # Create job instance
-            job = job_cls(job_id=job_id, logger=logger, logger_config=self._job_logger_config)
+            job = job_cls(job_id=job_id, logger=logger)
             if config is not None:
                 job.configure(config)
             job.pool = self
@@ -858,7 +915,7 @@ class ThreadedPool(BasePool):
         get_rc_manager(total=submission.resources)
 
         # Deserialize the job; threads share the parent's loggers, so the job's logger is used as it is
-        job = submission.to_job(logger=logging.getLogger(submission.data.job_id))
+        job = submission.to_job(logger=logging.getLogger(submission.job_logger_name))
 
         # Reconstruct the IPC backend
         if submission.ipc is not None:
@@ -993,10 +1050,15 @@ class MultiprocessPool(BasePool):
         """
         MultiprocessPool._rename_current_process()
 
-        # Workers started with fork inherit the handlers of the parent
+        # Workers started with fork inherit the parent's loggers: reset them, so that the tree only passes records
+        #  up to the sink
+        for logger in list(logging.root.manager.loggerDict.values()):
+            if isinstance(logger, logging.Logger):
+                logger.handlers.clear()
+                logger.setLevel(logging.NOTSET)
+                logger.propagate = True
         root = logging.getLogger()
-        for handler in list(root.handlers):
-            root.removeHandler(handler)
+        root.handlers.clear()
         root.addHandler(RelayHandler(log_queue))
 
     @staticmethod
@@ -1018,13 +1080,9 @@ class MultiprocessPool(BasePool):
         # Initialize the worker process's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # The job's logger only filters by level; its records propagate to the sink on the root logger.
-        #  Handlers inherited from the parent (fork) are removed, so that each record is handled once, by the parent.
-        logger = logging.getLogger(submission.data.job_id)
-        for handler in list(logger.handlers):
-            logger.removeHandler(handler)
+        # The job's logger only filters by level; its records propagate to the sink on the root logger
+        logger = logging.getLogger(submission.job_logger_name)
         logger.setLevel(submission.log_level)
-        logger.propagate = True
 
         # Deserialize the job
         job = submission.to_job(logger=logger)

@@ -11,7 +11,7 @@ import rich.text
 import rich.theme
 from typer import BadParameter
 
-from xtl.jobs.logging import LoggerConfig
+from xtl.jobs.logging import JobNameFilter, LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
@@ -184,11 +184,13 @@ class LivePool(PoolProtocol):
         self._buffer_size = min(20, max(10, self._console.height - 8))
         self._buffer = BufferingHandler(tail_size=self._buffer_size)
 
-        # Log formatting
+        # Log formatting: names relative to the pool, or the full logger names when debugging
         if settings.jobs.threading_debug:
             log_fmt = '[%(name)s<%(processName)s:%(threadName)s>] %(message)s'
-        else:
+        elif self._console.verbose >= 2:
             log_fmt = '[%(name)s] %(message)s'
+        else:
+            log_fmt = '[%(job)s] %(message)s'
 
         # Rich components
         self._log_panel = LogPanel(console=self._console, handler=self._buffer, title='Job logs', log_fmt=log_fmt)
@@ -203,6 +205,7 @@ class LivePool(PoolProtocol):
 
         # Pool and loggers
         self._pool = self._create_pool(pool_type, max_jobs)
+        self._buffer.addFilter(JobNameFilter(base=self._pool.logger.name, label=self._pool.label))
         self._patcher = LoggerHandlerPatcher(handler=self._buffer)
 
         # Job submissions
@@ -222,7 +225,7 @@ class LivePool(PoolProtocol):
         if pool_type is None:
             pool_type = JobPool.SIMPLE
         pool_cls = JobPool(pool_type).get()
-        return pool_cls(name='root', max_jobs=max_jobs, logger_config=logger_config, job_logger_config=logger_config)
+        return pool_cls(max_jobs=max_jobs, logger_config=logger_config)
 
     async def __aenter__(self) -> Self:
         from xtl import settings
