@@ -40,7 +40,6 @@ from xtl.jobs.logging import (
 )
 from xtl.tui.console import ConsoleIO
 from xtl.tui.live_pool import LivePool
-from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
 
 RECORDS: dict[str, list[logging.LogRecord]] = defaultdict(list)
 """Records captured by :class:`Capture`, per key. Only filled in the process that emits them."""
@@ -121,7 +120,7 @@ def fresh_logging():
     get_logger = logging.getLogger
     manager = logging.root.manager
     existing = set(manager.loggerDict)
-    # The TUI swaps the handlers of every logger and doesn't put back `propagate`
+    # Restore every logger, so that a test that leaves one changed can't affect the next
     loggers = [logging.root] + [lg for lg in manager.loggerDict.values() if isinstance(lg, logging.Logger)]
     states = {lg: (list(lg.handlers), lg.propagate, lg.level) for lg in loggers}
     RECORDS.clear()
@@ -509,39 +508,37 @@ class TestSerialization:
         assert RECORDS['d18'] == []
 
 
+def logger_states() -> dict[str, tuple]:
+    """Handlers, `propagate` and level of the root and every logger."""
+    loggers = [logging.root] + [lg for lg in logging.root.manager.loggerDict.values() if isinstance(lg, logging.Logger)]
+    return {lg.name: (list(lg.handlers), lg.propagate, lg.level) for lg in loggers}
+
+
 class TestTUI:
-    def test_patcher_captures_existing_and_new_loggers(self):
-        buffer = BufferingHandler()
-        patcher = LoggerHandlerPatcher(handler=buffer)
-        existing = logging.getLogger('e17')
-        patcher.patch(existing)
-        logging.getLogger = patcher.patched_getLogger
-        try:
-            existing.warning('from existing')
-            logging.getLogger('e17_new').warning('from new')
-        finally:
-            patcher.restore()
-        assert [r.getMessage() for r in buffer._records] == ['from existing', 'from new']
-
-    def test_restore_puts_back_handlers_and_get_logger(self):
+    @pytest.mark.asyncio
+    async def test_live_pool_leaves_logging_as_it_found_it(self):
         original_get_logger = logging.getLogger
-        logger = logging.getLogger('e18')
-        handler = Capture('e18')
-        logger.addHandler(handler)
-        patcher = LoggerHandlerPatcher(handler=BufferingHandler())
-        patcher.patch(logger)
-        logging.getLogger = patcher.patched_getLogger
-        patcher.restore()
-        assert logger.handlers == [handler]
+        before = logger_states()
+        live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
+        async with live:
+            # Only the root logger is swapped during the display
+            assert logging.root.handlers == [live._buffer]
+            assert logging.getLogger is original_get_logger
+            live.submit(Talker, configs=[JobConfig()], job_ids=['e17'])
+            await live.launch()
+        after = logger_states()
         assert logging.getLogger is original_get_logger
+        assert {name: state for name, state in after.items() if name in before} == before
+        assert live._buffer not in live._pool.logger.handlers
+        assert live._buffer.filters == []
 
-    def test_restore_puts_back_propagate(self):
-        logger = logging.getLogger('e18b')
-        assert logger.propagate is True
-        patcher = LoggerHandlerPatcher(handler=BufferingHandler())
-        patcher.patch(logger)
-        patcher.restore()
-        assert logger.propagate is True
+    @pytest.mark.asyncio
+    async def test_live_pool_shows_library_warnings(self):
+        live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
+        async with live:
+            logging.getLogger('e18.library').warning('careful')
+            records = list(live._buffer._records)
+        assert [(r.job, r.getMessage()) for r in records] == [('e18.library', 'careful')]
 
     @pytest.mark.parametrize('pool_type', ['simple', 'processes'])
     @pytest.mark.asyncio
@@ -561,6 +558,7 @@ class TestTUI:
 
         assert all(r.success for r in results)
         assert f'info from {key}.1' in [r.getMessage() for r in records]
+        assert {r.job for r in records} >= {key, f'{key}.1', f'{key}.2'}
         assert logging.getLogger is original_get_logger
         assert bystander.handlers == [handler]
 
@@ -575,14 +573,22 @@ from xtl.jobs.config import JobConfig
 from xtl.jobs.pools import MultiprocessPool, SimplePool
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 from xtl.jobs.submissions import JobSubmission
-from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
 from tests.jobs.test_logging import Nesting
 
-# What a worker started with fork inherits: a configured pool, a patched getLogger and the parent's lease
+# What a worker started with fork inherits: a configured pool, the parent's lease and, if the application patched
+#  it, a getLogger that gives each logger a handler of its own and stops it from propagating
 pool = SimplePool(name='forked')
-patcher = LoggerHandlerPatcher(handler=BufferingHandler())
-patcher.patch(pool.logger)
-logging.getLogger = patcher.patched_getLogger
+get_logger = logging.getLogger
+
+
+def patched_get_logger(name=None):
+    logger = get_logger(name)
+    logger.handlers = [logging.NullHandler()]
+    logger.propagate = False
+    return logger
+
+
+logging.getLogger = patched_get_logger
 lease = asyncio.run(ResourceManager(total=Resources(jobs=1, threads=1, processes=1)).acquire(Resources(jobs=1)))
 CURRENT_LEASE.set(lease)
 job = Nesting(job_id='w1', logger=pool.logger.getChild('w1'))

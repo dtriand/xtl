@@ -11,11 +11,11 @@ import rich.text
 import rich.theme
 from typer import BadParameter
 
-from xtl.jobs.logging import JobNameFilter, LoggerConfig
+from xtl.jobs.logging import LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
-from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
+from xtl.tui.logging.handlers import BufferingHandler
 from xtl.tui.renderers import LogRenderer
 from xtl.tui.progress import ProgressBar
 from xtl.tui.styles import JOB_STYLES
@@ -205,8 +205,7 @@ class LivePool(PoolProtocol):
 
         # Pool and loggers
         self._pool = self._create_pool(pool_type, max_jobs)
-        self._buffer.addFilter(JobNameFilter(base=self._pool.logger.name, label=self._pool.label))
-        self._patcher = LoggerHandlerPatcher(handler=self._buffer)
+        self._root_handlers: list[logging.Handler] | None = None  # Managed by _install_buffer and _remove_buffer
 
         # Job submissions
         self._tasks: dict[str, str] = {}
@@ -289,9 +288,8 @@ class LivePool(PoolProtocol):
             # Empty the handler's buffer
             self._buffer.clear()
 
-            # Restore patched loggers
-            self._patcher.restore()
-            self._patcher.remove_handler()
+            # Detach the buffer and give the root logger back its handlers
+            self._remove_buffer()
 
             # Remove console theme
             self._console.pop_theme()
@@ -305,24 +303,30 @@ class LivePool(PoolProtocol):
 
     def _install_buffer(self) -> None:
         """
-        Install a buffering logging handler and patch all available loggers
+        Collect the records of the pool, its jobs and their steps in the buffer, and, for as long as the live
+        display runs, also the records that reach the root logger (e.g. warnings from libraries), in place of the
+        root's own handlers, which would print over the display.
         """
-        manager = logging.root.manager
+        self._pool.add_handler(self._buffer)
 
-        # Grab the default logger
-        all_loggers = [logging.getLogger()]
+        root = logging.getLogger()
+        self._root_handlers = list(root.handlers)
+        for handler in self._root_handlers:
+            root.removeHandler(handler)
+        root.addHandler(self._buffer)
 
-        # Also grap every other registered logger
-        for logger in manager.loggerDict.values():
-            if isinstance(logger, logging.Logger):
-                all_loggers.append(logger)
+    def _remove_buffer(self) -> None:
+        """
+        Undo :meth:`_install_buffer`: detach the buffer, and give the root logger back its handlers, in their order.
+        """
+        self._pool.remove_handler(self._buffer)
 
-        # Patch all loggers
-        self._patcher.patch(*all_loggers)
-
-        # Patch the default logger getter to ensure consistency with any loggers
-        #  that will be spawned in the future
-        logging.getLogger = self._patcher.patched_getLogger
+        root = logging.getLogger()
+        root.removeHandler(self._buffer)
+        if self._root_handlers is not None:
+            for handler in self._root_handlers:
+                root.addHandler(handler)
+            self._root_handlers = None
 
     def _replay_logs(self) -> None:
         """

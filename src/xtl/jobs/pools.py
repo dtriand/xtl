@@ -110,7 +110,7 @@ class PoolProtocol(Protocol):
 def _get_job_logger(name: str) -> logging.Logger:
     """
     Get the logger of a job in a worker, from the logging manager rather than ``logging.getLogger``, which a worker
-    started with fork may inherit patched (e.g. by the TUI, which gives every logger it returns its own handler).
+    started with fork may inherit patched by the application (e.g. to give every logger its own handler).
 
     :param name: The full name of the job's logger.
     """
@@ -967,9 +967,31 @@ class MultiprocessPool(BasePool):
         # Listener that relays the records of worker processes to the loggers of this process
         self._listener: asyncio.Task | None = None  # Managed by __aenter__ and __aexit__
         self._log_qname = f'{self.pool_id}_log_queue'
+        self._flushes: dict[str, asyncio.Event] = {}  # Managed by _flush_logs and the listener
+
+    _FLUSH_KEY = '_xtl_flush'
+    """Key of the marker that :meth:`_flush_logs` puts on the log queue."""
 
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         return requested or Resources(jobs=max_jobs, threads=1, processes=max_jobs)
+
+    async def _flush_logs(self, timeout: float = 10.0) -> None:
+        """
+        Wait until the listener has relayed every record that is on the log queue now. A worker puts its records on
+        the queue before its job returns, so, after a job's result, this brings in all of that job's records.
+
+        :param timeout: How long to wait, in seconds; a warning is logged if the listener doesn't get there in time.
+        """
+        if self._listener is None or self._listener.done():
+            return
+        token = uuid.random(settings.jobs.job_digits)
+        event = self._flushes[token] = asyncio.Event()
+        await self.get_queue(self._log_qname).put({self._FLUSH_KEY: token})
+        try:
+            await asyncio.wait_for(event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self._flushes.pop(token, None)
+            self.logger.warning('Log listener did not catch up within %.0f s', timeout)
 
     def _start_listener(self) -> None:
         """
@@ -984,6 +1006,11 @@ class MultiprocessPool(BasePool):
                 if data is None:
                     # Sentinel value indicating shutdown
                     break
+                if flush := data.get(self._FLUSH_KEY):
+                    # Every record put on the queue before this marker has been relayed
+                    if event := self._flushes.pop(flush, None):
+                        event.set()
+                    continue
                 self._relay_log(data)
 
         self.logger.debug('Starting the log listener')
@@ -1121,4 +1148,8 @@ class MultiprocessPool(BasePool):
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
 
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self._executor, self._run_in_process, submission.to_dict())
+        result = await loop.run_in_executor(self._executor, self._run_in_process, submission.to_dict())
+
+        # Relay the job's records before reporting its result, e.g. while a live display still shows them
+        await self._flush_logs()
+        return result
