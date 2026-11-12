@@ -5,13 +5,13 @@ settings is :class:`XTLSettings`.
 """
 
 from __future__ import annotations
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Iterable, Optional, Literal
 
 from pydantic import PrivateAttr
 
-from xtl import Logger
 from xtl import version as current_version
 from xtl.automate import ComputeSite
 from xtl.jobs.sites import ComputeSite as ComputeSite2
@@ -23,7 +23,7 @@ from xtl_core.options.serializers import PermissionOctal
 from xtl_core.options.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.options.exceptions import OptionsValidationError
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _get_extra_keys(options: Options) -> dict:

@@ -1,14 +1,15 @@
 import asyncio
 from functools import wraps
 import inspect
+import logging
 import typing
 from typing import Any, Callable, TypeVar
 from typing_extensions import Concatenate, ParamSpec
 
-from xtl import settings, Logger
+from xtl import settings
 import xtl.cli.utilities.common
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def typer_async(func):
@@ -59,7 +60,7 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> C
     main1.py
     ```
     @attach_hook(common.logging_options, hook_output="logger")
-    def foo(size: int, logger: Logger):
+    def foo(size: int, logger: logging.Logger):
         ....
 
     if __name__=="__main__":
@@ -69,7 +70,7 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> C
     main2.py
     ```
     @attach_hook(common.logging_options, hook_output="logger")
-    def bar(color: str, logger: Logger):
+    def bar(color: str, logger: logging.Logger):
         ....
 
     if __name__=="__main__":

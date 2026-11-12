@@ -1,9 +1,9 @@
 __all__ = ['BatchFile']
 
+import logging
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Literal, TYPE_CHECKING, Union
 
-from xtl import Logger
 from xtl.automate.sites import ComputeSite, LocalSite
 from xtl.automate.shells import Shell, DefaultShell, WslShell
 from xtl_core.system.os import FilePermissions
@@ -12,7 +12,7 @@ from xtl_core.system.compatibility import OS_POSIX
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BatchFile:

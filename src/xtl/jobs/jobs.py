@@ -28,16 +28,15 @@ if TYPE_CHECKING:
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
-from xtl import settings, Logger
+from xtl import settings
 from xtl.math.uuid import UUIDFactory
 from xtl_core.system.compatibility import OS_POSIX
 from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
-from xtl.logging.config import LoggerConfig
 from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
-from xtl.jobs.logging import get_logger_config
+from xtl.jobs.logging import LoggerConfig, get_logger_config
 from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
@@ -46,7 +45,7 @@ __all__ = ['Job', 'BatchJob', 'SteppedJob', 'JobData']
 
 
 uuid = UUIDFactory()
-logger_ = Logger(__name__)
+logger_ = logging.getLogger(__name__)
 
 
 class _DummyLock:

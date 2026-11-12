@@ -18,7 +18,7 @@ from xtl_core.utils.pickling import is_picklable
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.results import JobResults
-from xtl.jobs.logging import get_logger_config
+from xtl.jobs.logging import LoggerConfig, get_logger_config
 from xtl.jobs.ipc import (
     IPCBackend,
     IPCHandle,
@@ -32,7 +32,6 @@ from xtl.jobs.ipc import (
 )
 from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
-from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
 
 if PY310_OR_LESS:

@@ -5,7 +5,7 @@ from rich.logging import RichHandler
 from rich.highlighter import RegexHighlighter, Highlighter
 
 from xtl import settings
-from xtl.logging.config import LoggerConfig, LoggingFormat, HandlerConfig
+from xtl.jobs.logging import LoggerConfig, LoggingFormat, HandlerConfig
 
 
 class JobHighlighter(RegexHighlighter):

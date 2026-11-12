@@ -5,7 +5,7 @@ import rich.console
 import rich.theme
 
 from xtl import settings
-from xtl.logging.config import LoggerConfig
+from xtl.jobs.logging import LoggerConfig
 
 if TYPE_CHECKING:
     from xtl.jobs.pools import JobPool

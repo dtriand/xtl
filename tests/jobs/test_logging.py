@@ -29,7 +29,7 @@ from xtl.jobs.pools import AsyncPool, BasePool, MultiprocessPool, SimplePool, Th
 from xtl.jobs.sites import LocalSite
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.submissions import JobSubmission
-from xtl.logging.config import FileHandlerConfig, HandlerConfig, LoggerConfig, StreamHandlerConfig
+from xtl.jobs.logging import FileHandlerConfig, HandlerConfig, LoggerConfig, StreamHandlerConfig
 from xtl.tui.console import ConsoleIO
 from xtl.tui.live_pool import LivePool
 from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
@@ -424,12 +424,10 @@ def _run_python(code: str) -> subprocess.CompletedProcess:
 
 
 class TestModuleLoggers:
-    @pytest.mark.xfail(strict=True, reason='xtl calls logging.setLoggerClass()')
     def test_import_keeps_the_logger_class(self):
         result = _run_python('import logging, xtl; assert logging.getLoggerClass() is logging.Logger')
         assert result.returncode == 0, result.stderr
 
-    @pytest.mark.xfail(strict=True, reason='Logger() rejects a plain logger that exists already')
     def test_plain_logger_created_first(self):
         result = _run_python("import logging; logging.getLogger('xtl.jobs.jobs'); import xtl.jobs.jobs")
         assert result.returncode == 0, result.stderr

@@ -1,16 +1,18 @@
-__all__ = ['Logger', '__date__', '__version__', '__version_hex__', '__version_tuple__', 'settings', 'version']
+__all__ = ['__date__', '__version__', '__version_hex__', '__version_tuple__', 'settings', 'version']
 
+import logging
 import threading
 from typing import TYPE_CHECKING, Any
 
-from .logging import Logger
 from .config.version import version
 
 if TYPE_CHECKING:
     from .config.settings import XTLSettings
     from xtl_core.version import VersionInfo
 
-logger = Logger(__name__)
+# Libraries only add a `NullHandler`; applications configure handlers, levels and formats
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.info(f'XTL version: {version} [{version.release_date}]')
 
 version: 'VersionInfo'

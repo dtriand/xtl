@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Optional, TYPE_CHECKING
 
 from pydantic import computed_field, PrivateAttr, model_validator, field_serializer
 
-from xtl import settings, Logger
+from xtl import settings
 from xtl_core.options import Option, Options
 from xtl_core.system.os import FilePermissions
 from xtl_core.options.serializers import PermissionOctal
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 __all__ = ['JobConfig', 'BatchJobConfig', 'SteppedJobConfig']
 
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class JobConfig(Options):

@@ -11,7 +11,7 @@ import rich.text
 import rich.theme
 from typer import BadParameter
 
-from xtl.logging.config import LoggerConfig
+from xtl.jobs.logging import LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter

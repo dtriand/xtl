@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
+import logging
 from enum import Enum
 from pathlib import Path
 import re
@@ -18,14 +19,13 @@ from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType
-from xtl.logging import Logger
 from xtl.jobs.exceptions import SubprocessError
 
 
 __all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite', 'ModulesSite']
 
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 if PY310_OR_LESS:

@@ -4,7 +4,7 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from xtl.logging.config import LoggingFormat, HandlerConfig, StreamHandlerConfig, FileHandlerConfig, LoggerConfig
+from xtl.jobs.logging import LoggingFormat, HandlerConfig, StreamHandlerConfig, FileHandlerConfig, LoggerConfig
 
 
 class TestLoggingFormat:
