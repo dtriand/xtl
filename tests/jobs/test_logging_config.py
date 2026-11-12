@@ -1,10 +1,24 @@
 import io
+import json
 import logging
+import sys
 import pytest
 import tempfile
 from pathlib import Path
 
 from xtl.jobs.logging import LoggingFormat, HandlerConfig, StreamHandlerConfig, FileHandlerConfig, LoggerConfig
+from xtl_core.options import Option
+
+
+class TaggedHandler(logging.Handler):
+    """A user-defined handler class, importable from this module."""
+
+
+class TaggedHandlerConfig(HandlerConfig):
+    """A user-defined handler config, importable from this module."""
+
+    handler: type(logging.Handler) = Option(default=TaggedHandler, desc='Handler class')
+    tag: str = Option(default='', desc='A field of its own')
 
 
 class TestLoggingFormat:
@@ -159,7 +173,6 @@ class TestLoggerConfig:
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], logging.NullHandler)
 
-    @pytest.mark.xfail(strict=True, reason='handler subclasses lose their type and fields')
     def test_dict_round_trip(self):
         """Test that handler configs keep their type and fields through a dict round trip."""
         config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w')])
@@ -168,7 +181,6 @@ class TestLoggerConfig:
         assert isinstance(handler, FileHandlerConfig)
         assert (handler.filename, handler.mode) == ('job.log', 'w')
 
-    @pytest.mark.xfail(strict=True, reason='handler configs must survive JSON (job handler specs)')
     def test_json_round_trip(self):
         """Test that handler configs keep their type and fields through a JSON round trip."""
         config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w')])
@@ -176,6 +188,56 @@ class TestLoggerConfig:
         handler = restored.handlers[0]
         assert isinstance(handler, FileHandlerConfig)
         assert (handler.filename, handler.mode) == ('job.log', 'w')
+
+    def test_json_names_classes_by_import_path(self):
+        data = json.loads(LoggerConfig(handlers=[FileHandlerConfig()]).to_json())
+        spec = data['handlers'][0]
+        assert spec['handler'] == 'logging.FileHandler'
+        assert spec['config_cls'] == 'xtl.jobs.logging.FileHandlerConfig'
+
+    def test_user_defined_config_survives_json(self):
+        config = LoggerConfig(handlers=[TaggedHandlerConfig(tag='mine', options={'level': logging.WARNING})])
+        restored = LoggerConfig.from_json(config.to_json()).handlers[0]
+        assert isinstance(restored, TaggedHandlerConfig)
+        assert restored.tag == 'mine'
+        assert restored.handler is TaggedHandler
+        assert restored.get_handler().level == logging.WARNING
+
+    def test_spec_without_config_class(self):
+        restored = LoggerConfig.from_dict({'handlers': [{'handler': 'logging.NullHandler'}]}).handlers[0]
+        assert type(restored) is HandlerConfig
+        assert restored.handler is logging.NullHandler
+
+    def test_stream_defaults_to_the_current_stdout(self, monkeypatch):
+        stream = io.StringIO()
+        monkeypatch.setattr(sys, 'stdout', stream)
+        assert StreamHandlerConfig().get_handler().stream is stream
+        assert StreamHandlerConfig(stream='stderr').get_handler().stream is sys.stderr
+        assert json.loads(StreamHandlerConfig(stream=sys.stdout).to_json())['stream'] == 'stdout'
+
+    def test_stream_object_cannot_go_to_json(self):
+        with pytest.raises(Exception, match="stream object can't be serialized"):
+            LoggerConfig(handlers=[StreamHandlerConfig(stream=io.StringIO())]).to_json()
+
+    def test_live_handlers(self):
+        live = logging.NullHandler()
+        config = LoggerConfig(handlers=[live, StreamHandlerConfig(stream=io.StringIO())])
+        logger = logging.getLogger('test_live_handlers')
+        config.configure(logger, label='Live')
+        assert live in logger.handlers
+        assert len(logger.handlers) == 2
+        assert len(live.filters) == 1
+
+        # Reconfiguring detaches the live handler without closing it, and doesn't add a second filter
+        LoggerConfig(handlers=[]).configure(logger)
+        assert live not in logger.handlers
+        config.configure(logger, label='Live')
+        assert len(live.filters) == 1
+        logger.handlers.clear()
+
+        assert config.to_dict()['handlers'][0] is live
+        with pytest.raises(Exception, match="live handler can't be serialized"):
+            config.to_json()
 
 
 @pytest.fixture

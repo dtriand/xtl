@@ -4,10 +4,13 @@ and the handler that sends the records of worker processes back to the parent.
 """
 
 import contextlib
+import importlib
 import logging
 from logging.handlers import QueueHandler
 import sys
 from typing import Any
+
+from pydantic import SerializationInfo, field_serializer, field_validator
 
 from xtl_core.options import Option, Options
 
@@ -31,14 +34,78 @@ class LoggingFormat(Options):
         return logging.Formatter(fmt=self.format, datefmt=self.datefmt)
 
 
+_STREAMS = {'stdout': lambda: sys.stdout, 'stderr': lambda: sys.stderr}
+"""Streams that a config can name, resolved when the handler is made."""
+
+
 class HandlerConfig(Options):
     """
     Base configuration for a logging handler.
+
+    A config is data: dumped, it names the handler class by its import path and its own config class under
+    ``config_cls``, so that :class:`LoggerConfig` restores the right subclass from a dict or JSON.
     """
 
     handler: type(logging.Handler) = Option(default=logging.Handler, desc='Handler class for logging')
     format: LoggingFormat = Option(default=LoggingFormat(), desc='Format configuration for the handler')
     options: dict = Option(default=dict(), desc='Additional keyword arguments to pass to the handler constructor')
+
+    @staticmethod
+    def _import_path(obj: type) -> str:
+        """
+        The import path of a class, e.g. ``'logging.FileHandler'``.
+        """
+        return f'{obj.__module__}.{obj.__qualname__}'
+
+    @staticmethod
+    def _import_symbol(path: str) -> Any:
+        """
+        Import a symbol from its import path, e.g. ``'logging.FileHandler'``.
+
+        :raises ImportError: If the path can't be resolved.
+        """
+        module_path, _, attr = path.rpartition('.')
+        if not module_path or not attr:
+            raise ImportError(f'Invalid import path: {path!r}')
+        module = importlib.import_module(module_path)
+        try:
+            return getattr(module, attr)
+        except AttributeError as e:
+            raise ImportError(f'Could not resolve {path!r}') from e
+
+    @field_validator('handler', mode='before')
+    @classmethod
+    def _import_handler(cls, value: Any) -> Any:
+        return cls._import_symbol(value) if isinstance(value, str) else value
+
+    @field_serializer('handler', when_used='json')
+    def _handler_path(self, value: type[logging.Handler]) -> str:
+        return self._import_path(value)
+
+    def to_spec(self, mode: str = 'python') -> dict[str, Any]:
+        """
+        Dump this config with its config class under ``config_cls``, for :meth:`from_spec` to restore.
+
+        :param mode: ``'python'`` keeps classes and objects, ``'json'`` turns them into JSON values.
+        """
+        data = self.model_dump(mode=mode)
+        data['config_cls'] = self._import_path(type(self))
+        return data
+
+    @staticmethod
+    def from_spec(data: dict[str, Any]) -> 'HandlerConfig':
+        """
+        Restore a config dumped by :meth:`to_spec`, as the class named by ``config_cls`` (default:
+        :class:`HandlerConfig`).
+
+        :raises TypeError: If ``config_cls`` doesn't name a :class:`HandlerConfig` subclass.
+        """
+        data = dict(data)
+        config_cls = data.pop('config_cls', None)
+        cls = HandlerConfig._import_symbol(config_cls) if config_cls else HandlerConfig
+        if not (isinstance(cls, type) and issubclass(cls, HandlerConfig)):
+            raise TypeError(f'{config_cls!r} is not a {HandlerConfig.__name__} subclass')
+        return cls.model_validate(data)
 
     def get_handler(self) -> logging.Handler:
         """
@@ -58,7 +125,20 @@ class StreamHandlerConfig(HandlerConfig):
     """
 
     handler: type(logging.Handler) = Option(default=logging.StreamHandler, desc='Handler class for the stream')
-    stream: Any = Option(default=sys.stdout, desc='Stream to which log messages are sent')
+    stream: Any = Option(
+        default='stdout',
+        desc="Stream to which log messages are sent: 'stdout' or 'stderr', resolved when the handler is made, or a "
+        "stream object (which JSON can't hold)",
+    )
+
+    @field_serializer('stream', when_used='json')
+    def _stream_name(self, value: Any) -> str:
+        if isinstance(value, str):
+            return value
+        for name, get_stream in _STREAMS.items():
+            if value is get_stream():
+                return name
+        raise ValueError(f"A stream object can't be serialized, use 'stdout' or 'stderr' instead: {value!r}")
 
     def get_handler(self) -> logging.Handler:
         """
@@ -67,7 +147,12 @@ class StreamHandlerConfig(HandlerConfig):
         :return: A logging.StreamHandler instance configured with the specified stream,
                  format, and options
         """
-        handler = getattr(self, 'handler', logging.StreamHandler)(stream=self.stream)
+        stream = self.stream
+        if isinstance(stream, str):
+            if stream not in _STREAMS:
+                raise ValueError(f"Unknown stream {stream!r}, expected 'stdout' or 'stderr'")
+            stream = _STREAMS[stream]()
+        handler = getattr(self, 'handler', logging.StreamHandler)(stream=stream)
         handler.setFormatter(self.format.get_formatter())
         return handler
 
@@ -96,6 +181,21 @@ class FileHandlerConfig(HandlerConfig):
         return handler
 
 
+def _remove_xtl_handlers(logger: logging.Logger) -> None:
+    """
+    Remove the handlers that xtl added to a logger: those built from configs are closed, live ones (passed in by the
+    user) are only detached. Other handlers are kept.
+    """
+    # Iterate over a copy, since removing from the list being iterated skips every other handler
+    for handler in list(logger.handlers):
+        if getattr(handler, '_xtl_owned', False):
+            logger.removeHandler(handler)
+            with contextlib.suppress(Exception):
+                handler.close()
+        elif getattr(handler, '_xtl_live', False):
+            logger.removeHandler(handler)
+
+
 class LoggerConfig(Options):
     """
     Configuration for a Job logger.
@@ -105,38 +205,58 @@ class LoggerConfig(Options):
         default=logging.INFO, desc='Logging level for the job logger', ge=0, le=50
     )  # logging.UNSET to logging.CRITICAL
     propagate: bool = Option(default=False, desc='Whether to propagate log messages to parent loggers')
-    handlers: list[HandlerConfig] = Option(
-        default_factory=lambda: [StreamHandlerConfig()], desc='List of handlers for the job logger'
+    handlers: list[HandlerConfig | logging.Handler] = Option(
+        default_factory=lambda: [StreamHandlerConfig()],
+        desc='Handlers for the job logger: configs, or live handlers (which stay in this process and are not '
+        'serialized)',
     )
+
+    @field_validator('handlers', mode='before')
+    @classmethod
+    def _restore_handler_configs(cls, value: Any) -> Any:
+        if isinstance(value, (list, tuple)):
+            return [HandlerConfig.from_spec(item) if isinstance(item, dict) else item for item in value]
+        return value
+
+    @field_serializer('handlers')
+    def _dump_handlers(self, value: list[HandlerConfig | logging.Handler], info: SerializationInfo) -> list[Any]:
+        dumped = []
+        for item in value:
+            if isinstance(item, HandlerConfig):
+                dumped.append(item.to_spec(mode='json' if info.mode_is_json() else 'python'))
+            elif info.mode_is_json():
+                raise ValueError(f"A live handler can't be serialized, use a {HandlerConfig.__name__}: {item!r}")
+            else:
+                dumped.append(item)
+        return dumped
 
     def configure(self, logger: logging.Logger, label: str | None = None) -> None:
         """
-        Configure the given logger based on this configuration. Handlers installed by this
-        method are tagged with a ``_xtl_owned`` attribute and are replaced on consecutive
-        calls of this method. Other handlers are not modified. Each installed handler gets a
-        :class:`JobNameFilter`, so that formats can use ``%(job)s``.
+        Configure the given logger based on this configuration. Handlers built from configs
+        are tagged with a ``_xtl_owned`` attribute, and live handlers with ``_xtl_live``; both
+        are replaced on consecutive calls of this method (only the former are closed). Other
+        handlers are not modified. Each installed handler gets a :class:`JobNameFilter`, unless
+        it has one already, so that formats can use ``%(job)s``.
 
         :param logger: The logger to configure
         :param label: Optional, how the logger's own records are named on screen, e.g. a pool's label. If not
             provided, records are named relative to the logger's parent, which suits jobs.
         """
-        # Remove previously installed handlers by this method (iterate over a copy, since
-        #  removing from the list being iterated skips every other handler)
-        for handler in list(logger.handlers):
-            if getattr(handler, '_xtl_owned', False):
-                logger.removeHandler(handler)
-                with contextlib.suppress(Exception):
-                    handler.close()
+        _remove_xtl_handlers(logger)
 
         logger.setLevel(self.level)
         logger.propagate = self.propagate
 
         name_filter = JobNameFilter.for_logger(logger, label)
-        for handler_config in self.handlers:
-            handler = handler_config.get_handler()
-            handler.addFilter(name_filter)
-            # Mark handlers created by this method
-            handler._xtl_owned = True
+        for item in self.handlers:
+            if isinstance(item, logging.Handler):
+                handler = item
+                handler._xtl_live = True
+            else:
+                handler = item.get_handler()
+                handler._xtl_owned = True
+            if not any(isinstance(f, JobNameFilter) for f in handler.filters):
+                handler.addFilter(name_filter)
             logger.addHandler(handler)
 
         # Ensure at least a NullHandler is present
@@ -172,11 +292,7 @@ def pass_through(logger: logging.Logger) -> None:
 
     :param logger: The logger to reset.
     """
-    for handler in list(logger.handlers):
-        if getattr(handler, '_xtl_owned', False):
-            logger.removeHandler(handler)
-            with contextlib.suppress(Exception):
-                handler.close()
+    _remove_xtl_handlers(logger)
     logger.setLevel(logging.NOTSET)
     logger.propagate = True
 
