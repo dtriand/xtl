@@ -454,7 +454,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
             self._is_running = False
 
             # For SteppedJobs, check if any of the steps failed
-            if isinstance(self, SteppedJob):
+            #  NB: `result` is None if `_execute` raised
+            if isinstance(self, SteppedJob) and result is not None:
                 # SteppedJob._execute returns a tuple (step_results, data)
                 result: tuple[dict[str, JobResults | None], dict[str, Any]]
                 for i, r in enumerate(result[0].values()):
@@ -918,6 +919,9 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
 
         # Extract steps and context data from base_results
         raw = base_results.data
+        if raw is None and base_results.error is not None:
+            # `_execute` raised before returning any steps
+            raw = ({}, {})
         if not (isinstance(raw, tuple) and len(raw) == 2):
             raise TypeError(
                 f'{self.__class__.__name__}._execute() must return a 2-tuple (steps, data), got {type(raw).__name__!r}'

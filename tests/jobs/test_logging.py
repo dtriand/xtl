@@ -212,7 +212,6 @@ class TestChildJobs:
         assert 'info from b6.2' in messages('b6')
         assert {'b6', 'b6.1', 'b6.2'} <= names('b6')
 
-    @pytest.mark.xfail(strict=True, reason='SteppedJob.run() raises a TypeError that hides the error')
     @pytest.mark.asyncio
     async def test_stepped_job_error_is_returned(self):
         job = SteppedRaising(job_id='b7', logger=SteppedRaising.get_logger('b7', capture_config('b7')))
