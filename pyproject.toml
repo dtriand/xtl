@@ -117,12 +117,6 @@ include = ["/src", "/tests", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.ruff]
 line-length = 120
-extend-exclude = [
-    # Legacy code
-    "src/xtl/GSAS2",
-    "tests/GSAS2",
-]
-force-exclude = true  # also exclude these when pre-commit passes the file names
 
 [tool.ruff.format]
 quote-style = "single"
