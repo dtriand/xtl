@@ -181,6 +181,7 @@ class BasePool(PoolProtocol, abc.ABC):
         logger_id = f'{cls_name}|{name}' if name is not None else f'{cls_name}#{self._pool_id}'
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
         self._job_handlers: dict[str, HandlerConfig] = {}  # Managed by add_job_handler()
+        self._added_handlers: list[logging.Handler] = []  # Managed by add_handler() and remove_handler()
         if parent_logger is None:
             self._logger = self.get_logger(logger_id=logger_id, config=self._logger_config, label=self.label)
         else:
@@ -208,6 +209,7 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Context manager
         self._in_ctx: bool = False  # Managed by __aenter__ and __aexit__
+        self._used: bool = False  # Pools are single-use; set by __aenter__
 
         # Job tracking
         self._jobs: dict[str, Job] = {}
@@ -303,6 +305,8 @@ class BasePool(PoolProtocol, abc.ABC):
         if handler.level < self._logger.getEffectiveLevel():
             self._logger.setLevel(handler.level)
         self._logger.addHandler(handler)
+        if handler not in self._added_handlers:
+            self._added_handlers.append(handler)
 
     def add_job_handler(self, spec: HandlerConfig, name: str) -> None:
         """
@@ -338,6 +342,8 @@ class BasePool(PoolProtocol, abc.ABC):
         :param handler: The handler to remove.
         """
         self._logger.removeHandler(handler)
+        with contextlib.suppress(ValueError):
+            self._added_handlers.remove(handler)
         for f in list(handler.filters):
             if isinstance(f, JobNameFilter) and f.base == self._logger.name:
                 handler.removeFilter(f)
@@ -377,6 +383,9 @@ class BasePool(PoolProtocol, abc.ABC):
             raise RuntimeError(
                 f'{self.__class__.__name__} is already in a context manager and cannot be entered multiple times'
             )
+        if self._used:
+            raise RuntimeError(f'{self.__class__.__name__} objects are single-use; create a new pool instead')
+        self._used = True
 
         # Acquire resources for this pool
         self.logger.debug('Requesting resources for the pool: %s', self._rc_requested.__dict__)
@@ -401,7 +410,17 @@ class BasePool(PoolProtocol, abc.ABC):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Exit the context manager and handle any exceptions.
+        Exit the context manager and handle any exceptions. Last, the pool removes its loggers (see
+        :meth:`_release_loggers`).
+        """
+        try:
+            return await self._exit_context(exc_type, exc_val, exc_tb)
+        finally:
+            self._release_loggers()
+
+    async def _exit_context(self, exc_type, exc_val, exc_tb):
+        """
+        Handle any exceptions, cancel the running tasks and drain the pool.
         """
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
         # Exception handling
@@ -447,6 +466,34 @@ class BasePool(PoolProtocol, abc.ABC):
         await self._drain_pool()
         self.logger.debug('Exiting the pool context')
         return True
+
+    def _release_loggers(self) -> None:
+        """
+        Remove this pool's logger and every logger under it (jobs, steps, nested pools, names relayed from workers)
+        from ``logging``, so that a long session doesn't pile them up. Handlers the pool built from its config are
+        closed; handlers added with :meth:`add_handler` are detached, but not closed, since their owner closes them;
+        other handlers stay attached to the logger objects, which remain usable but are no longer registered.
+        """
+        for handler in list(self._added_handlers):
+            self.remove_handler(handler)
+
+        name = self._logger.name
+        prefix = f'{name}.'
+        manager = logging.Logger.manager
+        # NB: The module lock guards `loggerDict`, as in `logging.getLogger()`
+        with logging._lock:  # type: ignore[attr-defined]
+            removed = [manager.loggerDict.pop(k) for k in list(manager.loggerDict) if k == name or k.startswith(prefix)]
+            manager._clear_cache()
+        for logger in removed:
+            if not isinstance(logger, logging.Logger):
+                continue  # A placeholder
+            for handler in list(logger.handlers):
+                if getattr(handler, '_xtl_owned', False):
+                    logger.removeHandler(handler)
+                    with contextlib.suppress(Exception):
+                        handler.close()
+                elif getattr(handler, '_xtl_live', False):
+                    logger.removeHandler(handler)
 
     async def _drain_pool(self):
         """

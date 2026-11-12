@@ -572,6 +572,63 @@ class TestJobHandlers:
         assert isinstance(live._pool._job_handlers['file'], JobFileHandlerConfig)
 
 
+def registered_under(name: str) -> list[str]:
+    """Names of the loggers (and placeholders) registered as `name` or under it."""
+    return [k for k in logging.root.manager.loggerDict if k == name or k.startswith(f'{name}.')]
+
+
+class TestLoggerLifetime:
+    @pytest.mark.parametrize('pool_cls', POOLS)
+    @pytest.mark.asyncio
+    async def test_pool_removes_its_loggers(self, pool_cls, tmp_path):
+        key = f'l1_{pool_cls.__name__}'
+        pool_log, live_log = tmp_path / 'pool.log', tmp_path / 'live.log'
+        config = LoggerConfig(
+            level=logging.INFO,
+            handlers=[HandlerConfig(handler=Capture, options={'key': key}), FileHandlerConfig(filename=str(pool_log))],
+        )
+        pool = pool_cls(max_jobs=2, logger_config=config)
+        live = logging.FileHandler(live_log, encoding='utf-8')
+        pool.add_handler(live)
+        built = [h for h in pool.logger.handlers if isinstance(h, logging.FileHandler) and h is not live]
+        await run_pool(pool, Stepped, [f'{key}_1', f'{key}_2'], SteppedJobConfig())
+
+        # Nothing of the pool's tree stays registered: pool, jobs, steps (in a process pool, relayed names too)
+        assert registered_under(pool.logger.name) == []
+        # The handlers built from the config are closed, so their files can go (on Windows too)
+        assert [h.stream for h in built] == [None]
+        pool_log.unlink()
+        # A handler added with add_handler() is detached, without its name filter, but left open for its owner
+        assert live not in pool.logger.handlers
+        assert live.filters == []
+        assert live.stream is not None
+        live.close()
+        assert f'info from {key}_2.1' in live_log.read_text(encoding='utf-8')
+
+    @pytest.mark.asyncio
+    async def test_nested_pools_go_with_the_outer_pool(self):
+        pool = SimplePool(max_jobs=1, logger_config=capture_config('l2'))
+        _, results = await run_pool(pool, Nesting, ['l2_job'], JobConfig())
+        assert all(r.success for r in results)
+        assert registered_under(pool.logger.name) == []
+
+    @pytest.mark.asyncio
+    async def test_pools_are_single_use(self):
+        pool = SimplePool(max_jobs=1, logger_config=capture_config('l3'))
+        await run_pool(pool, Talker, ['l3_job'], JobConfig())
+        with pytest.raises(RuntimeError, match='single-use'):
+            async with pool:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_standalone_job_keeps_its_logger(self):
+        job = Talker.with_config(JobConfig(), job_id='l4', logger=Talker.get_logger('l4', capture_config('l4')))
+        await job.run()
+        job.clear()
+        assert registered_under('l4') == ['l4']
+        assert len(job.logger.handlers) == 1
+
+
 class TestSerialization:
     def test_submission_carries_the_level(self):
         job = Talker(job_id='d16', logger_config=capture_config('d16', level=logging.DEBUG))
