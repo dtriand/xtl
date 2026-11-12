@@ -218,6 +218,8 @@ class LivePool(PoolProtocol):
         :param pool_type: The type of the pool to use. If None, a simple pool is created.
         :param max_jobs: The maximum number of jobs to run concurrently in the pool.
         """
+        from xtl import settings
+
         logger_config = LoggerConfig(
             level=logging.DEBUG if self._console.debug else logging.INFO, propagate=False, handlers=[]
         )
@@ -227,7 +229,8 @@ class LivePool(PoolProtocol):
         pool = pool_cls(max_jobs=max_jobs, logger_config=logger_config)
 
         # Each job keeps a log file in its directory, which stays if the job fails
-        pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        if settings.cli.job_log_files:
+            pool.add_job_handler(JobFileHandlerConfig(), name='file')
         return pool
 
     async def __aenter__(self) -> Self:

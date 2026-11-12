@@ -1,9 +1,6 @@
 """
 Tests for the logging of jobs and pools.
 
-The tests assert the *intended* behavior. The ones that fail today are marked
-``xfail(strict=True)`` with the bug as the reason; the fix removes the marker.
-
 Records are captured with :class:`Capture`, an in-process handler, instead of caplog,
 because job and pool loggers don't propagate to the root logger. Jobs are defined at
 module level, so that worker processes can import them.
@@ -20,6 +17,7 @@ import subprocess
 import sys
 
 import pytest
+import rich.traceback
 
 import xtl
 import xtl_core
@@ -41,6 +39,7 @@ from xtl.jobs.logging import (
 )
 from xtl.tui.console import ConsoleIO
 from xtl.tui.live_pool import LivePool
+from xtl.tui.renderers import LogRenderer
 
 RECORDS: dict[str, list[logging.LogRecord]] = defaultdict(list)
 """Records captured by :class:`Capture`, per key. Only filled in the process that emits them."""
@@ -567,9 +566,15 @@ class TestJobHandlers:
         assert verbose.level == logging.DEBUG
         assert pool.logger.level == logging.DEBUG
 
-    def test_live_pool_adds_the_job_file(self):
+    def test_live_pool_adds_the_job_file(self, monkeypatch):
+        from xtl import settings
+
         live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
         assert isinstance(live._pool._job_handlers['file'], JobFileHandlerConfig)
+
+        monkeypatch.setattr(settings.cli, 'job_log_files', False)
+        live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
+        assert live._pool._job_handlers == {}
 
 
 def registered_under(name: str) -> list[str]:
@@ -722,6 +727,25 @@ class TestTUI:
             logging.getLogger('e18.library').warning('careful')
             records = list(live._buffer._records)
         assert [(r.job, r.getMessage()) for r in records] == [('e18.library', 'careful')]
+
+    def test_traceback_rendered_once(self):
+        renderer = LogRenderer(console=ConsoleIO(file=io.StringIO(), width=100))
+        try:
+            raise ValueError('boom')
+        except ValueError:
+            record = logging.getLogger('e20').makeRecord(
+                'e20', logging.ERROR, __file__, 1, 'failed', (), sys.exc_info()
+            )
+
+        # In-process: the text has the message only, and rich draws the traceback
+        text, traceback = renderer._create_renderables(record)
+        assert 'Traceback' not in text.plain
+        assert isinstance(traceback, rich.traceback.Traceback)
+
+        # Relayed from a worker: the traceback is text, the only place it shows
+        relayed = logging.makeLogRecord(RelayHandler.record_to_dict(record))
+        [text] = renderer._create_renderables(relayed)
+        assert 'ValueError: boom' in text.plain
 
     @pytest.mark.parametrize('pool_type', ['simple', 'processes'])
     @pytest.mark.asyncio

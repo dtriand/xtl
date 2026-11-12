@@ -323,6 +323,8 @@ class CLISettings(Settings):
 
     max_fps: int = Option(default=10, gt=1, lt=60, desc='Maximum refreshes (per s) for live console elements')
 
+    job_log_files: bool = Option(default=True, desc='Write a log file (xtl.log) in the directory of each job')
+
 
 @dataclass(frozen=True)
 class ConfigFileInfo:
