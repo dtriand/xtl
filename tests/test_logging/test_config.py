@@ -159,6 +159,24 @@ class TestLoggerConfig:
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], logging.NullHandler)
 
+    @pytest.mark.xfail(strict=True, reason='handler subclasses lose their type and fields')
+    def test_dict_round_trip(self):
+        """Test that handler configs keep their type and fields through a dict round trip."""
+        config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w')])
+        restored = LoggerConfig.from_dict(config.to_dict())
+        handler = restored.handlers[0]
+        assert isinstance(handler, FileHandlerConfig)
+        assert (handler.filename, handler.mode) == ('job.log', 'w')
+
+    @pytest.mark.xfail(strict=True, reason='handler configs must survive JSON (job handler specs)')
+    def test_json_round_trip(self):
+        """Test that handler configs keep their type and fields through a JSON round trip."""
+        config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w')])
+        restored = LoggerConfig.from_json(config.to_json())
+        handler = restored.handlers[0]
+        assert isinstance(handler, FileHandlerConfig)
+        assert (handler.filename, handler.mode) == ('job.log', 'w')
+
 
 @pytest.fixture
 def cleanup_logging():

@@ -559,7 +559,7 @@ class TestUpgradeStep:
 
         assert len(A.upgrade_steps()) == 1
         assert B.upgrade_steps() == []
-        # A subclass runs its parent's steps (D-065), but registers none of its own
+        # A subclass runs its parent's steps, but registers none of its own
         assert [step.func for step in C.upgrade_steps()] == [noop]
         assert C._upgrade_steps == {}
 
@@ -924,7 +924,7 @@ class TestLoad:
 
 
 class TestInheritedSteps:
-    """Subclasses run their parents' steps as well as their own (D-065, D-066)."""
+    """Subclasses run their parents' steps as well as their own."""
 
     @staticmethod
     def make_parent(calls: list | None = None) -> type[VersionedOptions]:
@@ -1046,7 +1046,7 @@ class JobConfigV1(Options):
 
 
 class TestTypedParentStep:
-    """A parent's typed step gets only the keys its frozen model knows; the rest are carried over (D-066)."""
+    """A parent's typed step gets only the keys its frozen model knows; the rest are carried over."""
 
     @pytest.fixture
     def Child(self):

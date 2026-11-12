@@ -180,7 +180,7 @@ class TestInitialize:
         ],
     )
     def test_broken_file(self, locs, caplog, text):
-        # D-021: defaults, the file isn't overwritten, later locations are ignored
+        # Defaults, the file isn't overwritten, later locations are ignored
         locs.write(locs.local, text)
         locs.write(locs.user, '[units]\ntemperature = "K"\n')
         before = locs.files()

@@ -7,7 +7,7 @@ from xtl_core.errors import XTLCoreError
 
 
 def test_xtl_error_is_a_core_error():
-    """``except XTLCoreError`` catches the exceptions of both xtl and xtl-core (D-067)."""
+    """``except XTLCoreError`` catches the exceptions of both xtl and xtl-core."""
     assert issubclass(XTLError, XTLCoreError)
     with pytest.raises(XTLCoreError):
         raise XTLError('raised by xtl')
