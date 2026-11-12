@@ -262,24 +262,24 @@ class LocalSite(BaseComputeSite):
                 batch._status = BatchFileStatus.COMPLETED
         except asyncio.CancelledError as e:
             # Raise cancellation up the stack after marking the batch as cancelled
-            logger.error('Batch execution was cancelled by user')
+            batch.logger.error('Batch execution was cancelled by user')
             batch._status = BatchFileStatus.CANCELLED
             raise e
         except Exception as e:
             # Log any other exceptions during execution
-            logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
+            batch.logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
             batch._status = BatchFileStatus.FAILED
             raise SubprocessError(f'Error executing file {batch.file}', command=cmd) from e
         finally:
             # Terminate batch if still running
             if batch.process and batch.process.returncode is None:
-                logger.debug('Terminating batch file %(file)s', {'file': batch.file})
+                batch.logger.debug('Terminating batch file %(file)s', {'file': batch.file})
                 await self._terminate_batch(batch)
 
             # Terminate logging tasks
             for task in (stdout_task, stderr_task):
                 if task and not task.done():
-                    logger.debug('Cancelling async task %(name)s', {'name': task.get_name()})
+                    batch.logger.debug('Cancelling async task %(name)s', {'name': task.get_name()})
                     task.cancel()
                     try:
                         await task
@@ -288,9 +288,9 @@ class LocalSite(BaseComputeSite):
 
     async def cancel_batch(self, batch: BatchFile, **kwargs):
         if batch.status != BatchFileStatus.RUNNING:
-            logger.warning('Cannot cancel batch file %(file)s; it is not running', {'file': batch.file})
+            batch.logger.warning('Cannot cancel batch file %(file)s; it is not running', {'file': batch.file})
             return
-        logger.info('Cancelling batch file %(file)s', {'file': batch.file})
+        batch.logger.info('Cancelling batch file %(file)s', {'file': batch.file})
         batch._status = BatchFileStatus.CANCELLED
         await self._terminate_batch(batch)
 
@@ -298,14 +298,14 @@ class LocalSite(BaseComputeSite):
     async def _terminate_batch(batch: BatchFile, **kwargs):
         if batch.process and batch.process.returncode is None:
             # Request graceful termination of the process
-            logger.debug('Sending SIGTERM to batch process PID %(pid)d', {'pid': batch.process.pid})
+            batch.logger.debug('Sending SIGTERM to batch process PID %(pid)d', {'pid': batch.process.pid})
             batch.process.terminate()
             try:
                 # Wait 10 s for a graceful shutdown
                 await asyncio.wait_for(batch.process.wait(), timeout=10)
             except asyncio.TimeoutError:
                 # Force kill the process
-                logger.debug('Sending SIGKILL to batch process PID %(pid)d', {'pid': batch.process.pid})
+                batch.logger.debug('Sending SIGKILL to batch process PID %(pid)d', {'pid': batch.process.pid})
                 batch.process.kill()
                 await batch.process.wait()
 

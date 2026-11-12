@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
+import logging
 from enum import Enum
 from pathlib import Path
 from string import Template
@@ -81,6 +82,7 @@ class BatchFile:
         shell: ShellType = None,
         dependencies: str | DependencySettings | Iterable[str | DependencySettings] = None,
         permissions: str | FilePermissions = None,
+        logger: logging.Logger | None = None,
     ):
         """
         A class for programmatically creating batch/script files. The behavior of the
@@ -94,6 +96,8 @@ class BatchFile:
                                 file.
         :param permissions: The file permissions for the batch file in octal format
                             (e.g., '700').
+        :param logger: The logger that the compute site reports to while running the
+                            batch file, e.g. a job's logger (default: this module's logger).
         :raises TypeError: If `compute_site` or `shell` are of incorrect types.
         :raises ValueError: If `permissions` do not allow owner execute access.
         """
@@ -126,6 +130,7 @@ class BatchFile:
         self._saved = False
         self._process: asyncio.subprocess.Process | None = None
         self._config: BatchJobConfig | None = None
+        self._logger: logging.Logger = logger or logging.getLogger(__name__)
 
     @property
     def file(self) -> Path:
@@ -133,6 +138,17 @@ class BatchFile:
         Returns the batch file `Path` object.
         """
         return self._filename
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        Returns the logger that the compute site reports to while running the batch file.
+        """
+        return self._logger
+
+    @logger.setter
+    def logger(self, logger: logging.Logger) -> None:
+        self._logger = logger
 
     @property
     def shell(self) -> ShellType:

@@ -246,7 +246,6 @@ class TestChildJobs:
         result = await job.run()
         assert isinstance(result.error, ValueError)
 
-    @pytest.mark.xfail(strict=True, reason="sites log to their module logger, not the job's")
     @pytest.mark.asyncio
     async def test_site_messages_reach_the_job(self, tmp_path, monkeypatch):
         async def cannot_start(*args, **kwargs):
@@ -261,6 +260,12 @@ class TestChildJobs:
         result = await job.run()
         assert not result.success
         assert any(m.startswith('Error executing batch file') for m in messages('b8'))
+
+    def test_batch_file_default_logger(self, tmp_path):
+        batch = BatchFile(tmp_path / 'b8b')
+        assert batch.logger is logging.getLogger('xtl.jobs.batchfiles')
+        job_logger = logging.getLogger('b8b')
+        assert BatchFile(tmp_path / 'b8c', logger=job_logger).logger is job_logger
 
 
 class TestPools:
@@ -680,12 +685,9 @@ class TestFormatsAndTimeouts:
 
     @pytest.mark.asyncio
     async def test_cancel_message_is_formatted(self, tmp_path):
-        logger = logging.getLogger('xtl.jobs.sites')
+        logger = logging.getLogger('g_cancel')
         logger.addHandler(Capture('g_cancel'))
-        try:
-            await LocalSite().cancel_batch(BatchFile(tmp_path / 'idle'))
-        finally:
-            logger.handlers = [h for h in logger.handlers if not isinstance(h, Capture)]
+        await LocalSite().cancel_batch(BatchFile(tmp_path / 'idle', logger=logger))
         assert any(m.startswith('Cannot cancel batch file') for m in messages('g_cancel')), messages('g_cancel')
 
     def test_execute_command_timeout(self):

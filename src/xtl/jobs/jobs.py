@@ -759,6 +759,7 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         # Create batch file
         self.logger.debug('Creating batch file in %s', job_dir)
         batch = cfg.get_batch(context=self.context)
+        batch.logger = self.logger  # the compute site reports to this job
         self._batch = batch
 
         # Save batch file
