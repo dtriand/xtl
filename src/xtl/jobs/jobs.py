@@ -3,7 +3,6 @@ import asyncio
 import contextlib
 from copy import deepcopy
 import logging
-from logging.handlers import QueueHandler
 import shutil
 from typing import (
     Any,
@@ -649,27 +648,36 @@ class Job(abc.ABC, Generic[JobConfigType]):
         suffix: str | int,
         logger_config: LoggerConfig | None = None,
         inherit_pool: bool = True,
-        inherit_queue_handlers: bool = True,
         **kwargs,
     ) -> 'Job':
         """
         Spawn a child Job that inherits the configuration from the current Job.
 
+        The child's logger is a child of this job's logger (``<parent logger>.<suffix>``). It has no handlers of its
+        own and propagates its records to this job's logger, so they reach the same handlers, wherever the job runs.
+
         :param job_cls: Job class to spawn.
         :param config: Configuration to use for the child job.
         :param suffix: Suffix to use for the child job ID.
-        :param logger_config: Logging configuration to use for the child job.
+        :param logger_config: Optional logging configuration for the child job, instead of using this job's handlers.
         :param inherit_pool: Whether the child job should inherit the current pool.
-        :param inherit_queue_handlers: Whether the child job should inherit any queue handlers attached to the current
-            job. This is used to propagate Queue handlers that are injected during runtime.
         :param kwargs: Additional keyword arguments to pass to the `Job.with_config` constructor
         :returns: The spawned child Job instance.
         """
         child_id = f'{self.job_id}.{suffix}'
 
-        # Create logger for child
-        lcfg = logger_config or self._logger_config
-        child_logger = job_cls.get_logger(job_id=child_id, config=lcfg)
+        # Create the child's logger under this job's logger
+        child_logger = self.logger.getChild(str(suffix))
+        if logger_config is not None:
+            logger_config.configure(child_logger)
+        else:
+            # No handlers of its own (other than foreign ones); inherit the level and propagate to the parent
+            for handler in list(child_logger.handlers):
+                if getattr(handler, '_xtl_owned', False):
+                    child_logger.removeHandler(handler)
+                    handler.close()
+            child_logger.setLevel(logging.NOTSET)
+            child_logger.propagate = True
 
         # Spawn child job
         child = job_cls.with_config(config=config, job_id=child_id, logger=child_logger, **kwargs)
@@ -682,18 +690,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
             else:
                 self.logger.debug('Propagating pool %s to child job: %s', pool.pool_id, child_id)
                 child.pool = pool
-
-        # Optionally propagate any Queue handlers (assuming they are injected at runtime)
-        if inherit_queue_handlers:
-            existing_qids = {id(h.queue) for h in child.logger.handlers if isinstance(h, QueueHandler)}
-            for handler in self.logger.handlers:
-                if isinstance(handler, QueueHandler):
-                    qid = id(handler.queue)
-                    if qid in existing_qids:
-                        continue
-                    self.logger.debug('Propagating QueueHandler (id: %s) to child job: %s', qid, child_id)
-                    child.logger.addHandler(handler)
-                    existing_qids.add(qid)
 
         return child
 

@@ -212,6 +212,24 @@ class TestChildJobs:
         assert 'info from b6.2' in messages('b6')
         assert {'b6', 'b6.1', 'b6.2'} <= names('b6')
 
+    def test_step_loggers_use_the_parents_handlers(self):
+        parent = Stepped(job_id='b6b', logger=Stepped.get_logger('b6b', capture_config('b6b')))
+        child = parent._create_child(Talker, JobConfig(), suffix=1, inherit_pool=False)
+        assert child.logger.name == 'b6b.1'
+        assert child.logger.parent is parent.logger
+        assert child.logger.handlers == []
+        assert child.logger.propagate is True
+        assert child.logger.level == logging.NOTSET
+
+    def test_step_logger_config_override(self):
+        parent = Stepped(job_id='b6c', logger=Stepped.get_logger('b6c', capture_config('b6c')))
+        child = parent._create_child(
+            Talker, JobConfig(), suffix=1, logger_config=capture_config('b6c_child'), inherit_pool=False
+        )
+        child.logger.info('from the child')
+        assert messages('b6c_child') == ['from the child']
+        assert messages('b6c') == []
+
     @pytest.mark.asyncio
     async def test_stepped_job_error_is_returned(self):
         job = SteppedRaising(job_id='b7', logger=SteppedRaising.get_logger('b7', capture_config('b7')))
