@@ -339,7 +339,6 @@ class TestPools:
         assert f'info from {key}_1' in log.read_text(encoding='utf-8')
 
     @pytest.mark.parametrize('pool_cls', WORKER_POOLS)
-    @pytest.mark.xfail(strict=True, reason='jobs without a config fail to deserialize')
     @pytest.mark.asyncio
     async def test_job_without_config_in_worker_pool(self, pool_cls):
         key = f'c14b_{pool_cls.__name__}'

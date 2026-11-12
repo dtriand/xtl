@@ -225,12 +225,12 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         Get a preconfigured job instance.
 
-        :param config: Configuration of the job.
+        :param config: Configuration of the job, or None for an unconfigured job.
         :param kwargs: Keyword arguments passed to the constructor of the job class, e.g., `job_id`, `logger`, etc.
         :raises TypeError: If `config` is not an instance of the expected configuration class for this job type.
         :return: A preconfigured job instance.
         """
-        if not isinstance(config, cls._config_class):
+        if config is not None and not isinstance(config, cls._config_class):
             raise TypeError(f'Expected config of type {cls._config_class.__name__}, got {type(config).__name__}')
 
         # Extract init parameters
