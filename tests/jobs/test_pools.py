@@ -11,7 +11,7 @@ from tests.jobs.test_logging import POOLS, WORKER_POOLS, Talker, fresh_logging  
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
 from xtl.jobs.ipc.base import IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job
-from xtl.jobs.pools import AsyncPool, ThreadedPool
+from xtl.jobs.pools import AsyncPool, SimplePool, ThreadedPool
 from xtl.jobs.resources import Resources
 from xtl.jobs.shells import Shell
 
@@ -42,6 +42,14 @@ class UsesUnknownLock(Job[JobConfig]):
 class Sleeper(Job[JobConfig]):
     async def _execute(self):
         await asyncio.sleep(2)
+
+
+class Naps(Job[JobConfig]):
+    """Returns its id; a job whose id starts with `slow` takes longer."""
+
+    async def _execute(self):
+        await asyncio.sleep(0.2 if self.job_id.startswith('slow') else 0.01)
+        return self.job_id
 
 
 class ReadsSettings(Job[JobConfig]):
@@ -85,6 +93,40 @@ class TestSubmit:
             (result,) = await pool.launch()
         assert result.error is None
         assert result.data.stdout.strip() == "[x y] [it's]"
+
+
+class TestLaunch:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_each_launch_runs_new_jobs_only(self, pool_cls):
+        async with pool_cls(max_jobs=2) as pool:
+            pool.submit(Naps, job_ids=['a'])
+            first = await pool.launch()
+            pool.submit(Naps, configs=[None, None], job_ids=['b', 'c'])
+            second = await pool.launch()
+            third = await pool.launch()
+        assert [r.data for r in first] == ['a']
+        assert [r.data for r in second] == ['b', 'c']
+        assert third == []
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        'pool_cls, mode, expected',
+        [
+            (AsyncPool, 'all', ['slow', 'fast']),  # submission order
+            (AsyncPool, 'stream', ['fast', 'slow']),  # completion order
+            (SimplePool, 'all', ['slow', 'fast']),
+            (SimplePool, 'stream', ['slow', 'fast']),  # one at a time, in submission order
+        ],
+    )
+    async def test_result_order(self, pool_cls, mode, expected):
+        async with pool_cls(max_jobs=2) as pool:
+            pool.submit(Naps, configs=[None, None], job_ids=['slow', 'fast'])
+            if mode == 'all':
+                results = await pool.launch()
+            else:
+                results = [r async for r in await pool.launch('stream')]
+        assert [r.data for r in results] == expected
 
 
 class TestExit:

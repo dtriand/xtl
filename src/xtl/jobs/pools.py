@@ -719,58 +719,61 @@ class BasePool(PoolProtocol, abc.ABC):
             return self._launch_stream()
         raise ValueError(f"Invalid mode: {mode!r}. Expected 'all' or 'stream'.")
 
-    async def _launch_all(self) -> list[JobResults]:
+    def _start_tasks(self) -> list[asyncio.Task]:
         """
-        Launch all submitted jobs and return their aggregated results.
+        Start a task for each job submitted since the last launch, in submission order. Jobs launched before don't run
+        again.
+
+        :return: The new tasks, in submission order.
         """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
+        pending = [s for s in self._submissions.values() if s.submission_id not in self._tasks]
+        if not pending:
+            if self._submissions:
+                self.logger.warning('No jobs submitted to pool since the last launch')
+            else:
+                self.logger.warning('No jobs submitted to pool')
             return []
 
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
+        self.logger.debug('Launching %d jobs', len(pending))
+        tasks = []
+        for submission in pending:
+            task = asyncio.create_task(self._process_submission(submission))
+            self._tasks[submission.submission_id] = task
+            tasks.append(task)
+        return tasks
 
-            # Wait for all tasks to complete and gather results
-            self.logger.debug('Launching jobs...')
-            results = list(await asyncio.gather(*self._tasks.values()))
+    async def _launch_all(self) -> list[JobResults]:
+        """
+        Launch the jobs submitted since the last launch and return their results, in submission order.
+        """
+        tasks = self._start_tasks()
+        if not tasks:
+            return []
+
+        # No exception handling at this stage, this is managed by __aexit__
+        self._is_running = True
+        try:
+            results = list(await asyncio.gather(*tasks))
             self.logger.debug('All jobs completed')
             return results
         finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
             self._is_running = False
 
     async def _launch_stream(self) -> AsyncIterator[JobResults]:
         """
-        Launch all submitted jobs and yield the results as they become available.
+        Launch the jobs submitted since the last launch and yield their results as each job completes.
         """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
+        tasks = self._start_tasks()
+        if not tasks:
             return
 
-        # Activate the pool
+        # No exception handling at this stage, this is managed by __aexit__
         self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
         try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            self.logger.debug('Launching jobs...')
-            for task in asyncio.as_completed(self._tasks.values()):
-                self.logger.debug('A job has completed, yielding result...')
+            for task in asyncio.as_completed(tasks):
                 yield await task
             self.logger.debug('All jobs completed')
         finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
             self._is_running = False
 
     def get_lock(self, name: str | None = None) -> IPCLock:
@@ -897,62 +900,13 @@ class SimplePool(AsyncPool):
     debugging, since it enforces a deterministic operations order.
     """
 
+    # NB: With one job at a time, the jobs run in submission order (a semaphore wakes its waiters first in, first
+    #  out), so both launch modes give the results in submission order
+
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         # Hard cap max_jobs to 1, since this pool is meant for sequential execution
         r = requested or Resources(jobs=1, threads=1, processes=1)
         return Resources(jobs=1, threads=r.threads, processes=r.processes)
-
-    async def _launch_all(self) -> list[JobResults]:
-        """
-        Launch all submitted jobs and return their aggregated results.
-        """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
-            return []
-
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            # Wait for all tasks to complete and gather results
-            self.logger.debug('Launching jobs...')
-            results = []
-            for task in self._tasks.values():
-                results.append(await task)
-            self.logger.debug('All jobs completed')
-            return results
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
-
-    async def _launch_stream(self) -> AsyncIterator[JobResults]:
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
-            return
-
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            self.logger.debug('Launching jobs...')
-            for task in self._tasks.values():
-                yield await task
-            self.logger.debug('All jobs completed')
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
 
 
 class ThreadedPool(BasePool):
