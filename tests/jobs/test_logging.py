@@ -3,7 +3,8 @@ Tests for the logging of jobs and pools.
 
 Records are captured with :class:`Capture`, an in-process handler, instead of caplog,
 because job and pool loggers don't propagate to the root logger. Jobs are defined at
-module level, so that worker processes can import them.
+module level, so that worker processes can import them. ``fresh_logging`` (in
+``conftest.py``) undoes what each test leaves in `logging`.
 """
 
 import ast
@@ -25,6 +26,7 @@ from xtl.jobs.batchfiles import BatchFile
 from xtl.jobs.config import BatchJobConfig, JobConfig, SteppedJobConfig
 from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.pools import AsyncPool, BasePool, MultiprocessPool, SimplePool, ThreadedPool
+from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Talker
 from xtl.jobs.sites import LocalSite
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.submissions import JobSubmission
@@ -43,9 +45,6 @@ from xtl.tui.renderers import LogRenderer
 
 RECORDS: dict[str, list[logging.LogRecord]] = defaultdict(list)
 """Records captured by :class:`Capture`, per key. Only filled in the process that emits them."""
-
-POOLS = [SimplePool, AsyncPool, ThreadedPool, MultiprocessPool]
-WORKER_POOLS = [ThreadedPool, MultiprocessPool]
 
 
 class Capture(logging.Handler):
@@ -74,19 +73,6 @@ def messages(key: str) -> list[str]:
 
 def names(key: str) -> set[str]:
     return {r.name for r in RECORDS[key]}
-
-
-class Talker(Job[JobConfig]):
-    async def _execute(self):
-        self.logger.debug('debug from %s', self.job_id)
-        self.logger.info('info from %s', self.job_id)
-        self.logger.warning('warning from %s', self.job_id)
-        return self.job_id
-
-
-class Failing(Job[JobConfig]):
-    async def _execute(self):
-        raise ValueError('boom')
 
 
 class Stepped(SteppedJob[SteppedJobConfig]):
@@ -123,32 +109,9 @@ class SteppedRaising(SteppedJob[SteppedJobConfig]):
 
 
 @pytest.fixture(autouse=True)
-def fresh_logging():
-    """
-    Undo what jobs, pools and the TUI leak into `logging`: `logging.getLogger`, the
-    handlers, `propagate` and level of every logger, and the loggers created during the
-    test.
-    """
-    get_logger = logging.getLogger
-    manager = logging.root.manager
-    existing = set(manager.loggerDict)
-    # Restore every logger, so that a test that leaves one changed can't affect the next
-    loggers = [logging.root] + [lg for lg in manager.loggerDict.values() if isinstance(lg, logging.Logger)]
-    states = {lg: (list(lg.handlers), lg.propagate, lg.level) for lg in loggers}
+def fresh_records():
     RECORDS.clear()
-
     yield
-
-    logging.getLogger = get_logger
-    for lg, (handlers, propagate, level) in states.items():
-        lg.handlers[:] = handlers
-        lg.propagate = propagate
-        lg.setLevel(level)
-    for name in set(manager.loggerDict) - existing:
-        logger = manager.loggerDict.pop(name)
-        for handler in getattr(logger, 'handlers', []):
-            handler.close()
-    manager._clear_cache()
     RECORDS.clear()
 
 

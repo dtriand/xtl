@@ -9,7 +9,7 @@ import typing
 import pytest
 
 from xtl import settings
-from tests.jobs.test_logging import POOLS, WORKER_POOLS, Failing, Talker, fresh_logging  # noqa: F401 (autouse fixture)
+from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Naps, Sleeper, Talker
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
 from xtl.jobs.ipc.base import IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job
@@ -42,19 +42,6 @@ class UsesUnknownLock(Job[JobConfig]):
     async def _execute(self):
         async with self.lock('unknown'):
             return True
-
-
-class Sleeper(Job[JobConfig]):
-    async def _execute(self):
-        await asyncio.sleep(2)
-
-
-class Naps(Job[JobConfig]):
-    """Returns its id; a job whose id starts with `slow` takes longer."""
-
-    async def _execute(self):
-        await asyncio.sleep(0.2 if self.job_id.startswith('slow') else 0.01)
-        return self.job_id
 
 
 class ReadsSettings(Job[JobConfig]):
