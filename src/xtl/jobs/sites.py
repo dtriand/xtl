@@ -39,8 +39,6 @@ class ComputeSite(StrEnum):
     # General purpose compute sites
     LOCAL = 'local'
     MODULES = 'modules'
-    SLURM = 'slurm'
-    SLURM_LOCAL = 'slurm_local'
 
     # Specialized compute sites
     if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
@@ -50,8 +48,6 @@ class ComputeSite(StrEnum):
         mapping: dict[str, type] = {
             ComputeSite.LOCAL: LocalSite,
             ComputeSite.MODULES: ModulesSite,
-            ComputeSite.SLURM: SlurmModulesSite,
-            ComputeSite.SLURM_LOCAL: SlurmLocalSite,
         }
         if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
             mapping[ComputeSite.BIOTIX] = BiotixHPC

@@ -57,6 +57,11 @@ class TestModulesSite:
         assert ModulesSite().check_dependencies(['autoproc'], shell=BashShell()) is found
 
 
+def test_only_working_sites_are_offered():
+    # The Slurm sites can't submit jobs yet, so `--compute-site` doesn't offer them
+    assert {site.value for site in ComputeSite} - {'biotix'} == {'local', 'modules'}
+
+
 class TestJobOptions:
     def test_cli_modules_go_to_the_settings(self, modules):
         settings.dependencies.modules = ['from/config']
