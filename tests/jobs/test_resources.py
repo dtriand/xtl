@@ -5,6 +5,7 @@ import pytest
 
 from xtl.jobs.pools import BasePool
 from xtl.jobs.ipc import IPCBackend, IPCLock, IPCQueue, IPCState, IPCHandle
+from xtl.jobs.ipc.async_ import AsyncLock
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources
 
 
@@ -16,7 +17,7 @@ class _DummyIPCBackend(IPCBackend):
         pass
 
     def get_lock(self, name: str = None) -> IPCLock:
-        pass
+        return AsyncLock(name or self._default_lock_name)
 
     def get_queue(self, name: str, maxsize: int = 0) -> IPCQueue:
         pass

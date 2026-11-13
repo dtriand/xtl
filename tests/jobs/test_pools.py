@@ -1,0 +1,100 @@
+"""
+Tests for submitting jobs to pools and sharing locks, queues and states with them.
+"""
+
+import asyncio
+
+import pytest
+
+from tests.jobs.test_logging import POOLS, WORKER_POOLS, Talker, fresh_logging  # noqa: F401 (autouse fixture)
+from xtl.jobs.config import BatchJobConfig, JobConfig
+from xtl.jobs.ipc.base import IPCHandleNames
+from xtl.jobs.jobs import BatchJob, Job
+from xtl.jobs.pools import AsyncPool, ThreadedPool
+from xtl.jobs.resources import Resources
+from xtl.jobs.shells import Shell
+
+
+class Counter(Job[JobConfig]):
+    """Increments a shared counter with a read-modify-write that only a lock makes safe."""
+
+    async def _execute(self):
+        state = self.pool.get_state('counter')
+        async with self.lock():
+            value = state['n']
+            await asyncio.sleep(0.001)
+            state['n'] = value + 1
+
+
+class UsesLateLock(Job[JobConfig]):
+    async def _execute(self):
+        async with self.lock('late'):
+            return True
+
+
+class UsesUnknownLock(Job[JobConfig]):
+    async def _execute(self):
+        async with self.lock('unknown'):
+            return True
+
+
+ECHO = {Shell.BASH: 'echo "[$1] [$2]"', Shell.CMD: 'echo [%~1] [%~2]'}
+
+
+class TestSubmit:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_job_with_a_resource_request(self, pool_cls):
+        async with pool_cls(max_jobs=2) as pool:
+            pool.submit(Talker, configs=[JobConfig(resources=Resources(jobs=4, threads=4, processes=1))])
+            submission = next(iter(pool._submissions.values()))
+            assert submission.resources == Resources(jobs=4, threads=4, processes=1).cap_to(pool.resources)
+            results = await pool.launch()
+        assert [r.success for r in results] == [True]
+
+    @pytest.mark.asyncio
+    async def test_batch_job_in_a_path_with_spaces(self, tmp_path):
+        config = BatchJobConfig(job_directory=tmp_path / 'my dir', templates=ECHO)
+        async with AsyncPool(max_jobs=1) as pool:
+            (job,) = pool.submit(BatchJob, configs=[config])
+            job._batch_args = ['x y', "it's"]
+            (result,) = await pool.launch()
+        assert result.error is None
+        assert result.data.stdout.strip() == "[x y] [it's]"
+
+
+class TestSharedPrimitives:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_default_lock_is_shared(self, pool_cls):
+        async with pool_cls(max_jobs=4) as pool:
+            state = pool.get_state('counter')
+            state['n'] = 0
+            pool.submit(Counter, configs=[JobConfig() for _ in range(16)])
+            results = await pool.launch()
+            assert all(r.success for r in results)
+            assert state['n'] == 16
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    async def test_lock_registered_after_submit_is_shared(self, pool_cls):
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(UsesLateLock)
+            pool.get_lock('late')
+            (result,) = await pool.launch()
+        assert result.error is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    async def test_unregistered_lock_raises_in_workers(self, pool_cls):
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(UsesUnknownLock)
+            (result,) = await pool.launch()
+        assert isinstance(result.error, KeyError)
+        assert "pool.get_lock('unknown')" in str(result.error)
+
+    def test_worker_backend_cannot_create(self):
+        backend = ThreadedPool._ipc_cls.from_handle(ThreadedPool._ipc_cls().to_handle(IPCHandleNames()))
+        for get in (backend.get_lock, backend.get_queue, backend.get_state):
+            with pytest.raises(KeyError, match='was not registered with the pool'):
+                get('x')

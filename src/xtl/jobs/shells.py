@@ -70,6 +70,7 @@ from enum import Enum
 from pathlib import Path
 import re
 import shlex
+import subprocess
 from typing import Iterable, Optional
 
 from xtl_core.system.compatibility import OS_WINDOWS, PY310_OR_LESS
@@ -156,7 +157,8 @@ class BaseShell:
     # Commands
     batch_command: str = field(init=False, repr=False)
     """The command used to execute the batch file. This is an f-string that should
-    contain the keys ``executable``, ``batch_file`` and ``batch_arguments``."""
+    contain the keys ``executable``, ``batch_file`` and ``batch_arguments``, the last one
+    as a word of its own."""
     _batch_command_fstring_keys: frozenset[str] = field(
         init=False, repr=False, default_factory=lambda: frozenset({'executable', 'batch_file', 'batch_arguments'})
     )
@@ -184,6 +186,11 @@ class BaseShell:
         self._validate_fstring(
             fstring=self.batch_command, name='batch_command', required_keys=self._batch_command_fstring_keys
         )
+        if '{batch_arguments}' not in self.batch_command.split():
+            raise ValueError(
+                f'Invalid f-string for `batch_command`: {self.batch_command}. '
+                f'The key batch_arguments must be a word of its own'
+            )
         self._validate_fstring(
             fstring=self.dependency_command,
             name='dependency_command',
@@ -240,35 +247,31 @@ class BaseShell:
         :param as_list: Whether to return the command as a list of strings
         :return: The command as a single string or list of strings
         """
-        # Prepare the batch arguments string
-        if arguments is None:
-            arguments = []
-
-        batch_arguments = ''
-        for argument in arguments:
-            # Map each argument to a string
-            arg = str(argument)
-            # Escape arguments with spaces
-            if ' ' in arg:
-                arg = f"'{arg}'"
-            # Append to the batch arguments string
-            if arg:
-                batch_arguments += f'{arg} '
-        # Trim trailing whitespace
-        batch_arguments = batch_arguments.rstrip()
-
-        # Substitute values into the batch command f-string
-        command = self.batch_command.format(
-            executable=self.executable, batch_file=str(file), batch_arguments=batch_arguments
-        )
-        # Remove trailing space when there are no arguments
-        command = command.rstrip()
+        # Substitute values into each word of the batch command f-string; the arguments take the place of theirs
+        # NB: The list is built directly, so that paths and arguments with spaces or quotes stay one item each
+        values = {'executable': self.executable, 'batch_file': str(file)}
+        bits = []
+        for word in self.batch_command.split():
+            if word == '{batch_arguments}':
+                bits.extend(str(argument) for argument in arguments or [])
+            else:
+                bits.append(word.format(**values))
 
         # Return as list or string
         if as_list:
-            bits = shlex.split(command, posix=self.is_posix)
             return bits
-        return command
+        return self.join(bits)
+
+    def join(self, bits: Iterable[str]) -> str:
+        """
+        Join a command's items into a string, quoted for this shell: as by :func:`shlex.join` for POSIX shells, and
+        as Windows does when it starts a process otherwise.
+
+        :param bits: The items of the command
+        """
+        if self.is_posix:
+            return shlex.join(bits)
+        return subprocess.list2cmdline(bits)
 
     def get_dependency_resolution_command(self, dependency: str, as_list: bool = False) -> str | list[str]:
         """
@@ -388,7 +391,8 @@ class CmdShell(BaseShell):
     comment_char = 'rem'
     new_line_char = '\n'
     batch_extension = '.bat'
-    batch_command = '{executable} /Q /C {batch_file} {batch_arguments}'
+    # NB: `call` keeps `/C` from stripping the quotes of a batch file path with spaces, if an argument is quoted too
+    batch_command = '{executable} /Q /C call {batch_file} {batch_arguments}'
     dependency_command = 'where {dependency} > nul 2>&1 && echo 0 || echo 1'
     execute_command = '{executable} /C {command}'
 

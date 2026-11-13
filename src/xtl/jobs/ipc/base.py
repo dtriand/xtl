@@ -179,6 +179,19 @@ class IPCBackend(abc.ABC):
         """
         ...
 
+    @staticmethod
+    def _unregistered(kind: str, name: str) -> KeyError:
+        """
+        The error of a worker-side backend asked for a primitive that the pool didn't register.
+
+        :param kind: ``'lock'``, ``'queue'`` or ``'state'``.
+        :param name: The name of the primitive.
+        """
+        return KeyError(
+            f'{kind.capitalize()} {name!r} was not registered with the pool. '
+            f'Call pool.get_{kind}({name!r}) before launching jobs.'
+        )
+
 
 @dataclass
 class IPCHandleNames:

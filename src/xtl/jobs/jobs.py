@@ -137,6 +137,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
+    _init_kwargs: ClassVar[tuple[str, ...]] = ('job_id', 'logger', 'logger_config', 'enforce_id')
+    """The keyword arguments of `with_config()` that go to the constructor"""
+
     def __init__(
         self,
         job_id: str | None = None,
@@ -256,12 +259,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
             raise TypeError(f'Expected config of type {cls._config_class.__name__}, got {type(config).__name__}')
 
         # Extract init parameters
-        # NB: We explicitly pop, so that subclasses that override this method can make use of the remaining kwargs
-        job_id = kwargs.pop('job_id', None)
-        logger = kwargs.pop('logger', None)
-        logger_config = kwargs.pop('logger_config', None)
-        enforce_id = kwargs.pop('enforce_id', False)
-        job = cls(job_id=job_id, logger=logger, logger_config=logger_config, enforce_id=enforce_id)
+        # NB: Subclasses that override this method and take more kwargs must pop `_init_kwargs` themselves, since
+        #  this method only sees a copy of their kwargs
+        job = cls(**{key: kwargs.pop(key) for key in cls._init_kwargs if key in kwargs})
 
         # Set configuration if provided
         if config is not None:
@@ -420,7 +420,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         if self._config is not None:
             resources = self._config.resources
-            if resources is not None:
+            # NB: Batch job configs redefine `resources` for the scheduler, which isn't a pool request
+            if isinstance(resources, Resources):
                 return resources
         return self._resources
 
@@ -640,7 +641,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         if self._pool is None:
             # If no pool is set, return a dummy lock that does nothing
-            self.logger.warning('Requested a lock for job outside a pool context manager')
+            self.logger.debug('No pool to lock; requested a lock outside a pool context manager')
             return _DummyLock()
         # Use the pool's lock
         return self._pool.get_lock(name)
@@ -806,7 +807,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if inherit_pool:
             pool: PoolProtocol | None = self._pool
             if pool is None:
-                self.logger.warning('Cannot propagate pool to child job, because no pool is available.')
+                self.logger.debug('No pool to propagate to child job: %s', child_id)
             else:
                 self.logger.debug('Propagating pool %s to child job: %s', pool.pool_id, child_id)
                 child.pool = pool
@@ -908,11 +909,12 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
     @classmethod
     def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> 'BatchJob[BatchJobConfigType]':
+        init_kwargs = {key: kwargs.pop(key) for key in cls._init_kwargs if key in kwargs}
+        batch_args = kwargs.pop('batch_args', [])
         # NB: We cast the result to the right type for type-checking reasons
-        job = cast('BatchJob[BatchJobConfigType]', super().with_config(config=config, **kwargs))
-        # Assign any additional kwargs that were not popped in the parent method
-        #  as context for rendering batch file templates.
-        job._batch_args = kwargs.pop('batch_args', [])
+        job = cast('BatchJob[BatchJobConfigType]', super().with_config(config=config, **init_kwargs))
+        # Any other kwargs are context for rendering batch file templates
+        job._batch_args = batch_args
         job._batch_context |= kwargs
         return job
 

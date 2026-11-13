@@ -403,6 +403,7 @@ class BasePool(PoolProtocol, abc.ABC):
         ipc = self._ipc_cls()
         ipc.start()
         self._ipc = ipc
+        self.get_lock(None)  # Jobs in workers can only use what the pool has registered
 
         self._in_ctx = True
         self.logger.debug('Entering the pool context manager')
@@ -580,9 +581,8 @@ class BasePool(PoolProtocol, abc.ABC):
 
         :param job_cls: The job type to submit. Must be a subclass of `Job`.
         :param configs: The configs to submit to the pool.
-        :param kwargs: Additional keyword arguments to pass to `job_cls`.
-            - `job_ids`: Optional list of job IDs to assign to the submitted jobs. If not provided, job IDs will be
-                generated in the format `<job_cls>|<i>`, where i is an incrementing index
+        :param kwargs: Only ``job_ids``: an optional list of IDs for the submitted jobs, one per config. If not
+            provided, IDs are generated as ``<job_cls>|<i>``, where ``i`` is an incrementing index.
         :raises RuntimeError: If the method is called outside the pool's context manager
         :raises TypeError: If `job_cls` is not a subclass of `Job`.
         :raises TypeError: If one of the `configs` is not a `JobConfig` instance or None.
@@ -637,13 +637,12 @@ class BasePool(PoolProtocol, abc.ABC):
 
             # Create submission
             submission = JobSubmission.from_job(job)
-            submission.ipc = self._build_ipc_handle()
 
             # Allocate resources
             job_request = job.get_resources()
             if job_request and self._resources:
                 # Ensure the granted resources for the submission are capped by the pool's resources
-                submission.resources = job_request.cap(self._resources)
+                submission.resources = job_request.cap_to(self._resources)
             elif job_request:
                 # If the pool has no limit, then grant whatever has been requested
                 submission.resources = job_request
@@ -682,6 +681,8 @@ class BasePool(PoolProtocol, abc.ABC):
         async with self._semaphore:
             job_id = submission.data.job_id
             self._running_jobs.add(job_id)
+            # Everything registered until the job starts is shared with it
+            submission.ipc = self._build_ipc_handle()
             try:
                 result = await self._execute_submission(submission)
                 self._completed_jobs.add(job_id)
@@ -1138,9 +1139,8 @@ class MultiprocessPool(BasePool):
     async def __aenter__(self):
         await super().__aenter__()
 
-        # The log queue and default lock must exist before the workers start, and before any job is submitted
+        # The log queue must exist before the workers start
         self.get_queue(self._log_qname)
-        self.get_lock(None)
         self._start_listener()
 
         # Initialize the process pool executor

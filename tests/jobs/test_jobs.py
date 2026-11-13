@@ -4,12 +4,14 @@ Tests for the job execution functionality.
 
 import pytest
 import asyncio
+import logging
 import tempfile
 import shutil
 from pathlib import Path
 
-from xtl.jobs.jobs import Job
-from xtl.jobs.config import JobConfig
+from xtl.jobs.jobs import BatchJob, Job, SteppedJob
+from xtl.jobs.config import BatchJobConfig, JobConfig, SteppedJobConfig
+from xtl.jobs.steps import StepSpec
 from xtl_core.options import Option
 
 
@@ -24,6 +26,13 @@ class SimpleJob(Job[SimpleJobConfig]):
             raise ValueError('Job execution failed')
         await asyncio.sleep(0.2)  # Simulate some work
         return {'result': 123}
+
+
+class TwoSteps(SteppedJob[SteppedJobConfig]):
+    _steps = (
+        StepSpec(name='one', job_cls=SimpleJob, config_cls=SimpleJobConfig),
+        StepSpec(name='two', job_cls=SimpleJob, config_cls=SimpleJobConfig),
+    )
 
 
 @pytest.fixture
@@ -107,6 +116,27 @@ class TestJob:
             logger = SimpleJob.get_logger('static_logger')
             assert logger is not None
             assert logger.name == 'static_logger'
+
+        def test_batch_job_with_config_context(self):
+            """Only the arguments that aren't the constructor's are template context."""
+            logger = logging.getLogger('test_batch_context')
+            job = BatchJob.with_config(
+                BatchJobConfig(), job_id='test_batch_context', logger=logger, enforce_id=True, batch_args=['a'], x=1
+            )
+            assert job.job_id == 'test_batch_context'
+            assert job.logger is logger
+            assert job._batch_args == ['a']
+            assert job._batch_context == {'x': 1}
+
+        @pytest.mark.asyncio
+        async def test_stepped_job_without_pool_logs_no_warnings(self, caplog):
+            """A stepped job run on its own has nothing to warn about."""
+            job = TwoSteps(job_id='test_stepped_no_pool', logger=logging.getLogger('test_stepped_no_pool'))
+            job.configure(SteppedJobConfig())
+            with caplog.at_level(logging.DEBUG, logger='test_stepped_no_pool'):
+                result = await job.run()
+            assert result.success
+            assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
 
         def test_job_registry(self):
             """Test job registry functionality."""

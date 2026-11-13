@@ -192,28 +192,19 @@ class ProxyProcessIPCBackend(IPCBackend):
         try:
             return self._locks[name]
         except KeyError:
-            raise KeyError(
-                f'Lock {name!r} not pre-registered in the parent process. '
-                f'Call pool.get_lock({name!r}) before launching jobs.'
-            )
+            raise self._unregistered('lock', name) from None
 
     def get_queue(self, name: str, maxsize: int = 0) -> ProcessQueue:
         try:
             return self._queues[name]
         except KeyError:
-            raise KeyError(
-                f'Queue {name!r} not pre-registered in the parent process. '
-                f'Call pool.get_queue({name!r}) before launching jobs.'
-            )
+            raise self._unregistered('queue', name) from None
 
     def get_state(self, name: str) -> ProcessState:
         try:
             return self._states[name]
         except KeyError:
-            raise KeyError(
-                f'State {name!r} not pre-registered in the parent process. '
-                f'Call pool.get_state({name!r}) before launching jobs.'
-            )
+            raise self._unregistered('state', name) from None
 
     def _raw_lock(self, name: str | None) -> Any:
         raise NotImplementedError(f'{ProxyProcessIPCBackend.__name__} cannot create new primitives')

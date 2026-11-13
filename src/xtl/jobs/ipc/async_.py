@@ -57,6 +57,8 @@ class AsyncIPCBackend(IPCBackend):
         self._locks: dict[str, AsyncLock] = {}
         self._queues: dict[str, AsyncQueue] = {}
         self._states: dict[str, AsyncState] = {}
+        # A worker's backend (see from_handle) only gives out what the pool registered
+        self._shim: bool = False
 
     def start(self) -> None:
         pass
@@ -70,16 +72,22 @@ class AsyncIPCBackend(IPCBackend):
         if name is None:
             name = self._default_lock_name
         if name not in self._locks:
+            if self._shim:
+                raise self._unregistered('lock', name)
             self._locks[name] = AsyncLock(name=name)
         return self._locks[name]
 
     def get_queue(self, name: str, maxsize: int = 0) -> AsyncQueue:
         if name not in self._queues:
+            if self._shim:
+                raise self._unregistered('queue', name)
             self._queues[name] = AsyncQueue(maxsize=maxsize)
         return self._queues[name]
 
     def get_state(self, name: str) -> AsyncState:
         if name not in self._states:
+            if self._shim:
+                raise self._unregistered('state', name)
             self._states[name] = AsyncState()
         return self._states[name]
 
@@ -97,6 +105,7 @@ class AsyncIPCBackend(IPCBackend):
     @classmethod
     def from_handle(cls, handle: IPCHandle) -> 'AsyncIPCBackend':
         backend = cls()
+        backend._shim = True
         # Iterate over lists to ensure atomic operations
         for name, lock in handle.locks.items():
             backend._locks[name] = lock
