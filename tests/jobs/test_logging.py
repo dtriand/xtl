@@ -645,7 +645,6 @@ class TestLoggerLifetime:
     async def test_standalone_job_keeps_its_logger(self):
         job = Talker.with_config(JobConfig(), job_id='l4', logger=Talker.get_logger('l4', capture_config('l4')))
         await job.run()
-        job.clear()
         assert registered_under('l4') == ['l4']
         assert len(job.logger.handlers) == 1
 

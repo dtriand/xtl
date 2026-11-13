@@ -146,7 +146,7 @@ class BasePool(PoolProtocol, abc.ABC):
         steps hang under their job. Jobs' loggers have no handlers and propagate, so that the pool's handlers get every
         record. The pool's logger doesn't propagate further.
 
-        :param name: Optional name for pool; it can't contain dots
+        :param name: Optional name for pool; it can't contain dots or #
         :param max_jobs: The maximum number of concurrent jobs to run. This is capped by the available quota
             (default: 1).
         :param logger_config: Optional configuration for the pool's logger.
@@ -157,7 +157,7 @@ class BasePool(PoolProtocol, abc.ABC):
         :param parent_logger: Optional, the logger of the job that creates this pool. The pool's logger then hangs
             under it and passes its records up, with no handlers of its own, unless a `logger_config` is passed.
         :param kwargs: Additional keyword arguments.
-        :raises ValueError: If an invalid `max_jobs` is provided, or if `name` contains dots
+        :raises ValueError: If an invalid `max_jobs` is provided, or if `name` contains dots or #
         :raises TypeError: If `logger_config` is not of the correct type
         """
         if max_jobs < 1:
@@ -501,12 +501,6 @@ class BasePool(PoolProtocol, abc.ABC):
         Pool tear down procedure.
         """
         self._tasks.clear()
-
-        # Release job ids from Job._registry, to allow reusing job ids
-        #  NB: This is especially needed when using predictable ids, such as Job1, Job2, etc.
-        for job in self._jobs.values():
-            with contextlib.suppress(Exception):
-                job.clear()
         self._jobs.clear()
         self._submissions.clear()
 
@@ -537,11 +531,9 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Find the indices of all existing job ids
         taken: set[int] = set()
-        for job in self._jobs.values():
-            if not isinstance(job, job_cls):
-                # Skip for different Job types
-                continue
-            m = pattern.match(job.job_id)
+        for job_id in self._jobs:
+            # NB: Any job's id counts, since a job of another type can be given an id of this pattern
+            m = pattern.match(job_id)
             if not m:
                 # Skip for randomized or user-provided job_ids
                 continue
@@ -587,6 +579,7 @@ class BasePool(PoolProtocol, abc.ABC):
         :raises TypeError: If `job_cls` is not a subclass of `Job`.
         :raises TypeError: If one of the `configs` is not a `JobConfig` instance or None.
         :raises ValueError: If `job_ids` is provided but does not have the same length as `configs`
+        :raises ValueError: If a job id is already in the pool, or given twice
         :return: A list of the configured submitted jobs.
         """
         if not self._in_ctx:
@@ -616,13 +609,17 @@ class BasePool(PoolProtocol, abc.ABC):
                 f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs_list)})'
             )
 
+        # In case None was passed explicitly in job_ids
+        job_ids = [str(job_id) if job_id is not None else uuid.random(settings.jobs.job_digits) for job_id in job_ids]
+
+        # Job ids are unique within the pool
+        taken = sorted({job_id for job_id in job_ids if job_id in self._jobs or job_ids.count(job_id) > 1})
+        if taken:
+            raise ValueError(f'Job ids must be unique within the pool, got duplicates: {", ".join(taken)}')
+
         # Create and register jobs
         created_jobs: list[Job] = []
         for job_id, config in zip(job_ids, configs_list):
-            if job_id is None:
-                # In case None was passed explicitly in job_ids
-                job_id = uuid.random(settings.jobs.job_digits)
-
             # The job's logger hangs under the pool's and passes its records up to the pool's handlers
             logger = self._logger.getChild(str(job_id))
             pass_through(logger)

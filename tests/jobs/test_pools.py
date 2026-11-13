@@ -63,6 +63,33 @@ class TestSubmit:
         assert result.data.stdout.strip() == "[x y] [it's]"
 
 
+class TestJobIds:
+    @pytest.mark.asyncio
+    async def test_pools_at_once_generate_the_same_ids(self):
+        async with AsyncPool(max_jobs=2) as first, AsyncPool(max_jobs=2) as second:
+            first_jobs = first.submit(Talker, configs=[JobConfig(), JobConfig()])
+            second_jobs = second.submit(Talker, configs=[JobConfig(), JobConfig()])
+            assert [j.job_id for j in first_jobs] == [j.job_id for j in second_jobs] == ['Talker|1', 'Talker|2']
+            assert first_jobs[0].logger is not second_jobs[0].logger
+
+    @pytest.mark.asyncio
+    async def test_duplicate_ids_raise(self):
+        async with AsyncPool(max_jobs=2) as pool:
+            pool.submit(Talker, job_ids=['a'])
+            with pytest.raises(ValueError, match='unique within the pool, got duplicates: a'):
+                pool.submit(Talker, job_ids=['a'])
+            with pytest.raises(ValueError, match='got duplicates: b'):
+                pool.submit(Talker, configs=[None, None], job_ids=['b', 'b'])
+            assert list(pool._jobs) == ['a']
+
+    @pytest.mark.asyncio
+    async def test_generated_ids_skip_ids_given_to_other_jobs(self):
+        async with AsyncPool(max_jobs=2) as pool:
+            pool.submit(Counter, job_ids=['Talker|1'])
+            (job,) = pool.submit(Talker)
+            assert job.job_id == 'Talker|2'
+
+
 class TestSharedPrimitives:
     @pytest.mark.asyncio
     @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)

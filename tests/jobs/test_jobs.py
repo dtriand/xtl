@@ -121,7 +121,7 @@ class TestJob:
             """Only the arguments that aren't the constructor's are template context."""
             logger = logging.getLogger('test_batch_context')
             job = BatchJob.with_config(
-                BatchJobConfig(), job_id='test_batch_context', logger=logger, enforce_id=True, batch_args=['a'], x=1
+                BatchJobConfig(), job_id='test_batch_context', logger=logger, batch_args=['a'], x=1
             )
             assert job.job_id == 'test_batch_context'
             assert job.logger is logger
@@ -138,12 +138,9 @@ class TestJob:
             assert result.success
             assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
 
-        def test_job_registry(self):
-            """Test job registry functionality."""
-            job_id = 'registry_test'
-            job = SimpleJob(job_id=job_id)
-            assert job_id in SimpleJob._registry
-
-            # Test cleanup on deletion
-            job.clear()
-            assert job_id not in SimpleJob._registry
+        def test_job_id_is_used_as_given(self):
+            """Two jobs given the same id keep it, and share its logger."""
+            first = SimpleJob(job_id='same_id')
+            second = SimpleJob(job_id='same_id')
+            assert first.job_id == second.job_id == 'same_id'
+            assert first.logger is second.logger

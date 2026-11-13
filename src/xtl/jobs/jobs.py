@@ -51,7 +51,6 @@ __all__ = ['Job', 'BatchJob', 'SteppedJob', 'JobData']
 
 
 uuid = UUIDFactory()
-logger_ = logging.getLogger(__name__)
 
 
 class _DummyLock:
@@ -120,9 +119,6 @@ BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
 
 class Job(abc.ABC, Generic[JobConfigType]):
-    _registry: ClassVar[set[str]] = set()
-    """Registry of all alive job IDs of this class. Used to prevent duplicate IDs"""
-
     # Note that this class variable is updated in __init_subclass__ when the subclass
     #  is defined with a generic parameter, e.g., Job[Config].
     _config_class: ClassVar[Type[JobConfig]] = JobConfig
@@ -137,7 +133,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
-    _init_kwargs: ClassVar[tuple[str, ...]] = ('job_id', 'logger', 'logger_config', 'enforce_id')
+    _init_kwargs: ClassVar[tuple[str, ...]] = ('job_id', 'logger', 'logger_config')
     """The keyword arguments of `with_config()` that go to the constructor"""
 
     def __init__(
@@ -146,36 +142,24 @@ class Job(abc.ABC, Generic[JobConfigType]):
         logger: 'logging.Logger' = None,
         *,
         logger_config: LoggerConfig | None = None,
-        enforce_id: bool = False,
     ):
         """
         Abstract base class for asynchronous jobs execution.
 
-        :param job_id: Optional, a unique identifier for the job. If not provided,
-            a unique ID will be generated.
+        :param job_id: Optional, an identifier for the job, used as given. If not
+            provided, a random ID is generated. A pool makes sure its jobs' IDs are
+            unique; two jobs given the same ID outside a pool share a logger.
         :param logger: Optional, a custom logger for the job. If not provided,
             a logger will be created using `job_id` and `logger_config`.
         :param logger_config: Optional, the logging configuration of the job, also
             passed on to its child jobs. If not provided, the default of this job type
             is used.
-        :param enforce_id: If True, skip the check for duplicate job IDs and
-            register the job unconditionally.
         """
-        # Create a unique job ID
         self._job_id = str(job_id) if job_id else uuid.random(length=settings.jobs.job_digits)
-
-        if not enforce_id:
-            while self._job_id in self._registry:
-                # Regenerate if necessary
-                logger_.debug('Regenerating job_id: %s', self._job_id)
-                self._job_id = uuid.random(length=settings.jobs.job_digits)
 
         # Attach a logger
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
         self._logger = logger or self.get_logger(self.job_id, logger_config)
-
-        # Register the job in the class registry
-        self.__class__._registry.add(self._job_id)
 
         # Job state
         self._is_running = False
@@ -396,16 +380,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         kwargs.setdefault('parent_logger', self.logger)
         async with pool_cls(max_jobs=max_jobs, resources=budget, **kwargs) as child:
             yield child
-
-    def clear(self) -> None:
-        """
-        Explicitly remove this job from the registry.
-        """
-        # Called by __del__ and BasePool._drain_pool()
-        self.__class__._registry.discard(self._job_id)
-
-    def __del__(self) -> None:
-        self.clear()
 
     def get_resources(self) -> Resources | None:
         """
@@ -753,7 +727,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
             config=config,
             job_id=jdata.job_id,
             logger=logger or job_cls.get_logger(jdata.job_id),
-            enforce_id=True,  # Use the requested job_id; skip job_id collision check
         )
         job._log_handlers = {name: HandlerConfig.from_spec(spec) for name, spec in jdata.log_handlers.items()}
         job._pool_label = jdata.pool_label
