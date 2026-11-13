@@ -8,7 +8,7 @@ import pytest
 
 from xtl import settings
 from tests.jobs.test_logging import POOLS, WORKER_POOLS, Talker, fresh_logging  # noqa: F401 (autouse fixture)
-from xtl.jobs.config import BatchJobConfig, JobConfig
+from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
 from xtl.jobs.ipc.base import IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job
 from xtl.jobs.pools import AsyncPool, ThreadedPool
@@ -57,6 +57,19 @@ class TestSubmit:
             assert submission.resources == Resources(jobs=4, threads=4, processes=1).cap_to(pool.resources)
             results = await pool.launch()
         assert [r.success for r in results] == [True]
+
+    @pytest.mark.asyncio
+    async def test_batch_job_asks_pool_and_site_apart(self, tmp_path):
+        config = BatchJobConfig(
+            job_directory=tmp_path,
+            resources=Resources(jobs=1, threads=2, processes=1),
+            site_resources=SiteResources(cpus=8, memory=16),
+        )
+        assert '--cpus=8' in config.to_slurm()
+        async with AsyncPool(max_jobs=2) as pool:
+            pool.submit(BatchJob, configs=[config])
+            submission = next(iter(pool._submissions.values()))
+            assert submission.resources == Resources(jobs=1, threads=2, processes=1).cap_to(pool.resources)
 
     @pytest.mark.asyncio
     async def test_batch_job_in_a_path_with_spaces(self, tmp_path):

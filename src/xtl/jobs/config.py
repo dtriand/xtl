@@ -57,11 +57,16 @@ class JobConfig(Options):
         return {k: v.to_spec(mode=mode) if v is not None else None for k, v in value.items()}
 
 
-class ResourcesConfig(Options):
+class SiteResources(Options):
+    """
+    Resources that a job asks of its compute site (e.g. a Slurm allocation), as opposed to
+    ``JobConfig.resources``, which it asks of its pool.
+    """
+
     # TODO: Custom formatters & aliases for SLURM
     # TODO: Custom validators for SLURM-like input
     # Formatting should be handled within different methods, e.g. to_slurm()
-    # Maybe we implement a _aliases and _formatters PrivateAttr in the ResourcesConfig for this purpose?
+    # Maybe we implement a _aliases and _formatters PrivateAttr in the SiteResources for this purpose?
     cpus: int = Option(
         default=1,
         ge=1,
@@ -137,7 +142,9 @@ class BatchJobConfig(JobConfig):
     templates: dict[Shell, str] = Option(
         default_factory=dict, desc='Templates for the content of the batch file for different shells'
     )
-    resources: ResourcesConfig = Option(default_factory=ResourcesConfig, desc='Resources required for the batch job')
+    site_resources: SiteResources = Option(
+        default_factory=SiteResources, desc='Resources that the batch job asks of its compute site'
+    )
 
     _shell: Shell | None = PrivateAttr(None)
     """The shell that will be used to execute the batch file"""
@@ -270,7 +277,7 @@ class BatchJobConfig(JobConfig):
             args.append(f'--job-name={self.name}')
         if self.description:
             args.append(f'--comment={self.description}')
-        args.extend(self.resources.to_slurm())
+        args.extend(self.site_resources.to_slurm())
         args.append(f'--output={self.stdout}')
         args.append(f'--error={self.stderr}')
         return args

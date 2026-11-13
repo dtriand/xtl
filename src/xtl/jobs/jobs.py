@@ -394,8 +394,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         if self._config is not None:
             resources = self._config.resources
-            # NB: Batch job configs redefine `resources` for the scheduler, which isn't a pool request
-            if isinstance(resources, Resources):
+            if resources is not None:
                 return resources
         return self._resources
 
