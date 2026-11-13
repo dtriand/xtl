@@ -1219,6 +1219,9 @@ class MultiprocessPool(BasePool):
     def _run_in_process(payload: dict) -> JobResults | None:
         submission = JobSubmission.from_dict(payload)
 
+        # A worker started with spawn reads the settings from `xtl.toml`; the job runs with the parent's instead
+        submission.apply_settings()
+
         # A worker started with fork inherits the context of the thread that started it, including the lease of
         #  the parent's pool, which belongs to another ResourceManager. Pools opened by the job must start a new tree.
         CURRENT_LEASE.set(None)
@@ -1230,6 +1233,9 @@ class MultiprocessPool(BasePool):
         job = self._jobs.get(job_id)
         if job is None:
             raise KeyError(f'No job found for submission with job_id={job_id!r}')
+
+        # The job runs with the settings as they are when it starts, as in the other pools
+        submission.xtl_settings = settings.to_dict()
 
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(self._executor, self._run_in_process, submission.to_dict())

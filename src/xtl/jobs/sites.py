@@ -373,12 +373,12 @@ class ModulesSite(LocalSite):
     def _prepare_modules_preamble(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
     ) -> str:
-        from xtl.cli.utilities.common import REQUIRED_DEPENDENCIES
+        from xtl import settings
 
         preamble = self._purge_modules(shell=shell)
-        if extra := REQUIRED_DEPENDENCIES.get('extra', []):
-            # Inject extra modules declared during runtime from the CLI
-            preamble += self._load_modules(modules=extra, shell=shell)
+        if common := settings.dependencies.modules:
+            # Modules that every job loads, before those of its dependencies
+            preamble += self._load_modules(modules=common, shell=shell)
         for dep in self.resolve_dependencies(dependencies):
             if dep.modules:
                 preamble += self._load_modules(modules=dep.modules, shell=shell)
@@ -418,32 +418,43 @@ class ModulesSite(LocalSite):
             logger.error('Missing `module` command for dependency resolution')
             return False
 
-        # Run `module avail -t -a <module>` to check if modules are available
+        # Check the modules that every job loads, then those of each dependency
+        from xtl import settings
+
+        modules = list(settings.dependencies.modules)
         for dep in self.resolve_dependencies(dependencies):
-            if not dep.modules:
-                continue
-            for module in dep.modules:
-                module = str(module).strip()
-                if not self._is_module_name_safe(module):
-                    logger.error(
-                        'Invalid module name `%(module)s`. Module names may '
-                        'only contain alphanumeric characters, hyphens, '
-                        'underscores, periods and slashes.',
-                        {'module': module},
-                    )
-                    return False
-                cmd = shell.get_execute_command(f'module avail -t -a {module}', as_list=True)
-                result = self.execute_command(command=cmd, timeout=20)
-                if result is None:
-                    return False
-                if module in result.stdout:
-                    logger.debug('Found module `%(module)s`', {'module': module})
-                else:
-                    logger.error('Missing module `%(module)s`', {'module': module})
-                    return False
-        else:
-            logger.debug('All dependencies are met.')
+            modules.extend(dep.modules)
+        if not all(self._check_module(module, shell=shell) for module in modules):
+            return False
+        logger.debug('All dependencies are met.')
+        return True
+
+    def _check_module(self, module: str, shell: ShellType) -> bool:
+        """
+        Check that a module is available, with ``module avail -t -a <module>``.
+
+        :param module: The module name.
+        :param shell: The shell to run the command in.
+        :return: True if the module is available, False otherwise (also for an unsafe name).
+        """
+        module = str(module).strip()
+        if not self._is_module_name_safe(module):
+            logger.error(
+                'Invalid module name `%(module)s`. Module names may '
+                'only contain alphanumeric characters, hyphens, '
+                'underscores, periods and slashes.',
+                {'module': module},
+            )
+            return False
+        cmd = shell.get_execute_command(f'module avail -t -a {module}', as_list=True)
+        result = self.execute_command(command=cmd, timeout=20)
+        if result is None:
+            return False
+        if module in result.stdout:
+            logger.debug('Found module `%(module)s`', {'module': module})
             return True
+        logger.error('Missing module `%(module)s`', {'module': module})
+        return False
 
     @staticmethod
     def _is_module_name_safe(module: str) -> bool:

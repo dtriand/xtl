@@ -69,6 +69,13 @@ class TestDependenciesSettings:
         assert DependenciesSettings.names() == ['atsas', 'autoproc', 'easybragg']
         assert deps.names() == ['atsas', 'autoproc', 'easybragg']
 
+    def test_common_modules(self):
+        # Modules that every job loads keep the order of the config file
+        s = XTLSettings.from_toml('[dependencies]\nmodules = ["gcc/12", "openmpi/4"]\n')
+        assert s.dependencies.modules == ['gcc/12', 'openmpi/4']
+        assert XTLSettings().dependencies.modules == []
+        assert 'modules' not in s.dependencies
+
     def test_contains(self, deps):
         assert 'atsas' in deps
         assert 'resolution' not in deps

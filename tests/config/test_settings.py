@@ -20,6 +20,22 @@ def _path(locs, name: str) -> Path:
     return {'env': locs.env, 'local': locs.local, 'user': locs.user, 'global': locs.global_}[name]
 
 
+def test_update_from_keeps_the_objects():
+    # Code that holds the settings, or one of their sections, sees the new values
+    s = XTLSettings()
+    jobs, permissions = s.jobs, s.jobs.permissions
+    other = XTLSettings()
+    other.jobs.keep_temp = True
+    other.jobs.permissions.update = True
+    other.dependencies.modules = ['gcc/12']
+
+    s.update_from(other)
+    assert s.jobs is jobs and s.jobs.permissions is permissions
+    assert jobs.keep_temp is True
+    assert permissions.update is True
+    assert s.dependencies.modules == ['gcc/12']
+
+
 def test_session_uses_temp_config():
     # tests/conftest.py points XTL_CONFIG to a temporary file for the whole session
     from xtl import settings

@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 
+from xtl import settings
 from tests.jobs.test_logging import POOLS, WORKER_POOLS, Talker, fresh_logging  # noqa: F401 (autouse fixture)
 from xtl.jobs.config import BatchJobConfig, JobConfig
 from xtl.jobs.ipc.base import IPCHandleNames
@@ -38,6 +39,11 @@ class UsesUnknownLock(Job[JobConfig]):
             return True
 
 
+class ReadsSettings(Job[JobConfig]):
+    async def _execute(self):
+        return settings.jobs.keep_temp, settings.jobs.permissions.update, settings.dependencies.modules
+
+
 ECHO = {Shell.BASH: 'echo "[$1] [$2]"', Shell.CMD: 'echo [%~1] [%~2]'}
 
 
@@ -61,6 +67,22 @@ class TestSubmit:
             (result,) = await pool.launch()
         assert result.error is None
         assert result.data.stdout.strip() == "[x y] [it's]"
+
+
+class TestSettings:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_jobs_see_settings_changed_in_code(self, pool_cls, monkeypatch):
+        # A process worker started with spawn reads `xtl.toml` afresh; the job still sees the parent's settings
+        monkeypatch.setattr(settings.jobs, 'keep_temp', not settings.jobs.keep_temp)
+        monkeypatch.setattr(settings.jobs.permissions, 'update', not settings.jobs.permissions.update)
+        monkeypatch.setattr(settings.dependencies, 'modules', ['gcc/12', 'openmpi/4'])
+        expected = (settings.jobs.keep_temp, settings.jobs.permissions.update, ['gcc/12', 'openmpi/4'])
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(ReadsSettings)
+            (result,) = await pool.launch()
+        assert result.error is None
+        assert tuple(result.data) == expected
 
 
 class TestJobIds:

@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional, Literal
+from typing import ClassVar, Iterable, Optional, Literal, get_origin
 
 from pydantic import PrivateAttr
 
@@ -69,6 +69,20 @@ class Settings(Options):
     #   all options should have a default value, ensuring that the model can be
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
+
+    def update_from(self, other: Settings) -> None:
+        """
+        Take the values of `other`, in place: nested settings are updated rather than replaced, so that code holding
+        this object, or one of its sections, sees the new values.
+
+        :param other: Settings of the same type.
+        """
+        for name in type(self).model_fields:
+            mine, theirs = getattr(self, name), getattr(other, name)
+            if isinstance(mine, Settings) and type(mine) is type(theirs):
+                mine.update_from(theirs)
+            elif mine != theirs:
+                setattr(self, name, theirs)
 
 
 class UnitsSettings(Settings):
@@ -220,6 +234,12 @@ class DependenciesSettings(Settings):
         'If "loose", missing dependencies will be ignored.',
     )
 
+    modules: list[str] = Option(
+        default_factory=list,
+        desc='Modules that every job loads on a modules compute site, in this order, before the modules of its '
+        'dependencies',
+    )
+
     atsas: AtsasSettings = Option(default=AtsasSettings())
     autoproc: AutoprocSettings = Option(default=AutoprocSettings())
     easybragg: EasyBraggSettings = Option(default=EasyBraggSettings())
@@ -229,10 +249,14 @@ class DependenciesSettings(Settings):
         """
         Names of the known dependencies, in definition order.
         """
+        # NB: `get_origin()` leaves out generic aliases (e.g. `list[str]`), which pass `isinstance(..., type)` on
+        #  Python 3.10, but not `issubclass()`
         return [
             name
             for name, field in cls.model_fields.items()
-            if isinstance(field.annotation, type) and issubclass(field.annotation, DependencySettings)
+            if get_origin(field.annotation) is None
+            and isinstance(field.annotation, type)
+            and issubclass(field.annotation, DependencySettings)
         ]
 
     def __contains__(self, name: object) -> bool:

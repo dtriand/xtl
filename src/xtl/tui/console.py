@@ -35,14 +35,17 @@ class ConsoleIO(rich.console.Console):
         settings.jobs.permissions.directories = options.permissions.directories
         settings.jobs.keep_temp = options.keep_temp
 
-        # Inject modules to settings
+        # Inject modules to settings: those of a dependency replace its modules, the rest the common modules
         if options.has_modules:
+            common = []
             for dep_name, modules in options.modules.items():
                 if dep_name in settings.dependencies:
                     REQUIRED_DEPENDENCIES[dep_name] = modules
                     settings.dependencies.get(dep_name).modules = modules
                 else:
-                    REQUIRED_DEPENDENCIES['extra'].extend(modules)
+                    common.extend(modules)
+            if common:
+                settings.dependencies.modules = common
 
         # Report job settings
         if self.verbose >= 1:
@@ -56,8 +59,12 @@ class ConsoleIO(rich.console.Console):
                     f'{options.permissions.directories.octal[2:]} (directories)',
                     highlight=False,
                 )
-            if options.compute_site == 'modules' and any(REQUIRED_DEPENDENCIES.values()):
+            if options.compute_site == 'modules' and (
+                settings.dependencies.modules or any(REQUIRED_DEPENDENCIES.values())
+            ):
                 self.print('Using modules: ', highlight=False)
+                if settings.dependencies.modules:
+                    self.print(f'- all jobs: [dim]{", ".join(settings.dependencies.modules)}[/dim]', highlight=False)
                 for dep, modules in sorted(REQUIRED_DEPENDENCIES.items()):
                     if modules:
                         self.print(f'- {dep}: [dim]{", ".join(modules)}[/dim]', highlight=False)

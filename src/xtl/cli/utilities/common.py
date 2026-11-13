@@ -27,12 +27,13 @@ def get_console_options(
     return ConsoleOptions(verbose=verbose, debug=debug)
 
 
-# Modified by `xtl.cli.utilities.decorators.job_options`
-REQUIRED_DEPENDENCIES: dict[str, list[str]] = {'extra': []}
-"""Dictionary of required dependencies and their modules for job execution, modified by decorators."""
+# Modified by `xtl.cli.utilities.decorators.jobs_depend_on`
+REQUIRED_DEPENDENCIES: dict[str, list[str]] = {}
+"""Dictionary of required dependencies and their modules for job execution, modified by decorators. Modules that
+every job loads are in ``settings.dependencies.modules``."""
 
-REQUIRED_MODULES: list[str] = list()
-"""List of required modules for job execution, modified by decorators."""
+REQUIRED_MODULES: list[str] = list(settings.dependencies.modules)
+"""List of required modules for job execution (shown as the default of ``--modules``), modified by decorators."""
 
 
 @dataclass(frozen=True)
