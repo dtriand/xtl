@@ -3,17 +3,21 @@ Tests for submitting jobs to pools and sharing locks, queues and states with the
 """
 
 import asyncio
+import io
 
 import pytest
 
 from xtl import settings
-from tests.jobs.test_logging import POOLS, WORKER_POOLS, Talker, fresh_logging  # noqa: F401 (autouse fixture)
+from tests.jobs.test_logging import POOLS, WORKER_POOLS, Failing, Talker, fresh_logging  # noqa: F401 (autouse fixture)
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
 from xtl.jobs.ipc.base import IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job
 from xtl.jobs.pools import AsyncPool, SimplePool, ThreadedPool
 from xtl.jobs.resources import Resources
+from xtl.jobs.results import JobStatus
 from xtl.jobs.shells import Shell
+from xtl.tui.console import ConsoleIO
+from xtl.tui.live_pool import LivePool
 
 
 class Counter(Job[JobConfig]):
@@ -129,6 +133,45 @@ class TestLaunch:
         assert [r.data for r in results] == expected
 
 
+class TestStatus:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_finished_jobs(self, pool_cls):
+        async with pool_cls(max_jobs=2) as pool:
+            pool.submit(Naps, job_ids=['a'])
+            pool.submit(Failing, job_ids=['b'])
+            assert pool.status == {'a': JobStatus.SUBMITTED, 'b': JobStatus.SUBMITTED}
+            await pool.launch()
+        # Still readable after the pool exits
+        assert pool.status == {'a': JobStatus.DONE, 'b': JobStatus.FAILED}
+        counts = pool.counts()
+        assert set(counts) == set(JobStatus)
+        assert (counts[JobStatus.DONE], counts[JobStatus.FAILED], sum(counts.values())) == (1, 1, 2)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_queued_running_and_cancelled(self, pool_cls):
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(Sleeper, configs=[None, None], job_ids=['first', 'second'])
+            launch = asyncio.create_task(pool.launch())
+            for _ in range(100):  # until the first job has its slot (a process pool starts its workers first)
+                await asyncio.sleep(0.02)
+                if pool.status['first'] == JobStatus.RUNNING:
+                    break
+            assert pool.status == {'first': JobStatus.RUNNING, 'second': JobStatus.QUEUED}
+            launch.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await launch
+            # Running or waiting for a slot, both are dropped
+            assert pool.status == {'first': JobStatus.CANCELLED, 'second': JobStatus.CANCELLED}
+
+    def test_status_is_a_copy(self):
+        pool = AsyncPool()
+        pool.status['x'] = JobStatus.DONE
+        pool.counts()[JobStatus.DONE] = 5
+        assert pool.status == {} and pool.counts()[JobStatus.DONE] == 0
+
+
 class TestExit:
     @pytest.mark.asyncio
     @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
@@ -231,3 +274,31 @@ class TestSharedPrimitives:
         for get in (backend.get_lock, backend.get_queue, backend.get_state):
             with pytest.raises(KeyError, match='was not registered with the pool'):
                 get('x')
+
+
+class TestLivePool:
+    @staticmethod
+    def live(pool_type: str = 'async') -> LivePool:
+        return LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type=pool_type, max_jobs=2)
+
+    @pytest.mark.asyncio
+    async def test_results_like_the_pool(self):
+        async with self.live() as live:
+            live.submit(Naps, configs=[None, None], job_ids=['slow', 'fast'])
+            first = await live.launch()
+            live.submit(Naps, job_ids=['c'])
+            second = await live.launch()
+        # Submission order, and only the jobs of each launch
+        assert [r.data for r in first] == ['slow', 'fast']
+        assert [r.data for r in second] == ['c']
+
+    @pytest.mark.asyncio
+    async def test_progress_follows_the_status(self):
+        async with self.live() as live:
+            live.submit(Naps, job_ids=['a'])
+            live.submit(Failing, job_ids=['b'])
+            await live.launch()
+            live._progress.sync()
+            task = live._progress._job_task._task
+            assert (task.total, task.completed) == (2, 2)
+            assert (task.fields['success'], task.fields['failed'], task.fields['running']) == (1, 1, 0)

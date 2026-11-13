@@ -15,7 +15,7 @@ from xtl import settings
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
-from xtl.jobs.results import JobResults
+from xtl.jobs.results import JobResults, JobStatus
 from xtl.jobs.logging import (
     HandlerConfig,
     JobNameFilter,
@@ -213,18 +213,14 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Job tracking
         self._jobs: dict[str, Job] = {}
-        self._running_jobs: set[str] = set()
-        self._completed_jobs: set[str] = set()
+        self._status: dict[str, JobStatus] = {}  # Managed by _set_status(); kept after exit
+        self._counts: dict[JobStatus, int] = {status: 0 for status in JobStatus}
 
         # Task tracking
         self._tasks: dict[str, asyncio.Task] = {}  # Managed by __aexit__ and launchers
 
         # Submission tracking
         self._submissions: dict[str, JobSubmission] = {}  # Managed by submit() and launchers
-
-        # Pool state
-        self._is_running = False  # Managed by launcher methods
-        self._error: Exception | None = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -288,6 +284,30 @@ class BasePool(PoolProtocol, abc.ABC):
         Get the logger associated with this pool.
         """
         return self._logger
+
+    @property
+    def status(self) -> dict[str, JobStatus]:
+        """
+        The status of each job submitted to this pool, by job id, in submission order. It is a copy, so it can be read
+        from another thread (e.g. a display's), and it stays readable after the pool exits.
+        """
+        return dict(self._status)
+
+    def counts(self) -> dict[JobStatus, int]:
+        """
+        How many of this pool's jobs are in each status, with every status present (0 if none).
+        """
+        return dict(self._counts)
+
+    def _set_status(self, job_id: str, status: JobStatus) -> None:
+        """
+        Set the status of a job and keep the counts up to date. Only called from the pool's event loop.
+        """
+        previous = self._status.get(job_id)
+        if previous is not None:
+            self._counts[previous] -= 1
+        self._status[job_id] = status
+        self._counts[status] += 1
 
     def add_handler(self, handler: logging.Handler) -> None:
         """
@@ -436,7 +456,6 @@ class BasePool(PoolProtocol, abc.ABC):
                     exc_type.__name__,
                     exc_info=settings.jobs.tracebacks,
                 )
-            self._error = exc_val
 
             # Request cancellation of all running tasks
             self.logger.warning('Cancelling all running tasks')
@@ -650,6 +669,7 @@ class BasePool(PoolProtocol, abc.ABC):
             # Register submission and job
             self._submissions[submission.submission_id] = submission
             self._jobs[job.job_id] = job
+            self._set_status(job.job_id, JobStatus.SUBMITTED)
             created_jobs.append(job)
             self.logger.debug('Submitted job %s to %s', job.job_id, self.__class__.__name__)
 
@@ -675,20 +695,25 @@ class BasePool(PoolProtocol, abc.ABC):
         if self._semaphore is None:
             raise RuntimeError('Pool semaphore is not initialized')
 
-        async with self._semaphore:
-            job_id = submission.data.job_id
-            self._running_jobs.add(job_id)
-            # Everything registered until the job starts is shared with it
-            submission.ipc = self._build_ipc_handle()
-            try:
-                result = await self._execute_submission(submission)
-                self._completed_jobs.add(job_id)
-                return result
-            except Exception as exc:
-                self.logger.error('Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks)
-                return JobResults(job_id=job_id, data=None, error=exc)
-            finally:
-                self._running_jobs.discard(job_id)
+        job_id = submission.data.job_id
+        try:
+            async with self._semaphore:
+                self._set_status(job_id, JobStatus.RUNNING)
+                # Everything registered until the job starts is shared with it
+                submission.ipc = self._build_ipc_handle()
+                try:
+                    result = await self._execute_submission(submission)
+                except Exception as exc:
+                    self.logger.error(
+                        'Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks
+                    )
+                    result = JobResults(job_id=job_id, data=None, error=exc)
+        except asyncio.CancelledError:
+            # Waiting for a slot or running; a worker thread or process may still finish the job
+            self._set_status(job_id, JobStatus.CANCELLED)
+            raise
+        self._set_status(job_id, JobStatus.DONE if result is not None and result.success else JobStatus.FAILED)
+        return result
 
     @overload
     async def launch(self, mode: Literal['stream']) -> AsyncIterator[JobResults]: ...
@@ -737,6 +762,7 @@ class BasePool(PoolProtocol, abc.ABC):
         self.logger.debug('Launching %d jobs', len(pending))
         tasks = []
         for submission in pending:
+            self._set_status(submission.data.job_id, JobStatus.QUEUED)
             task = asyncio.create_task(self._process_submission(submission))
             self._tasks[submission.submission_id] = task
             tasks.append(task)
@@ -751,13 +777,9 @@ class BasePool(PoolProtocol, abc.ABC):
             return []
 
         # No exception handling at this stage, this is managed by __aexit__
-        self._is_running = True
-        try:
-            results = list(await asyncio.gather(*tasks))
-            self.logger.debug('All jobs completed')
-            return results
-        finally:
-            self._is_running = False
+        results = list(await asyncio.gather(*tasks))
+        self.logger.debug('All jobs completed')
+        return results
 
     async def _launch_stream(self) -> AsyncIterator[JobResults]:
         """
@@ -768,13 +790,9 @@ class BasePool(PoolProtocol, abc.ABC):
             return
 
         # No exception handling at this stage, this is managed by __aexit__
-        self._is_running = True
-        try:
-            for task in asyncio.as_completed(tasks):
-                yield await task
-            self.logger.debug('All jobs completed')
-        finally:
-            self._is_running = False
+        for task in asyncio.as_completed(tasks):
+            yield await task
+        self.logger.debug('All jobs completed')
 
     def get_lock(self, name: str | None = None) -> IPCLock:
         """
@@ -975,11 +993,6 @@ class ThreadedPool(BasePool):
         return asyncio.run(ThreadedPool._bootstrap_thread(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        job_id = submission.data.job_id
-        job = self._jobs.get(job_id)
-        if job is None:
-            raise KeyError(f'No job found for submission with job_id={job_id!r}')
-
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(self._executor, self._run_in_thread, submission)
 
@@ -1183,11 +1196,6 @@ class MultiprocessPool(BasePool):
         return asyncio.run(MultiprocessPool._bootstrap_process(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        job_id = submission.data.job_id
-        job = self._jobs.get(job_id)
-        if job is None:
-            raise KeyError(f'No job found for submission with job_id={job_id!r}')
-
         # The job runs with the settings as they are when it starts, as in the other pools
         submission.xtl_settings = settings.to_dict()
 

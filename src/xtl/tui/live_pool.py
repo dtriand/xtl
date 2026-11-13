@@ -13,6 +13,7 @@ from typer import BadParameter
 
 from xtl.jobs.logging import JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
+from xtl.jobs.results import JobStatus
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
 from xtl.tui.logging.handlers import BufferingHandler
@@ -27,7 +28,6 @@ else:
 
 if TYPE_CHECKING:
     from xtl.jobs import Job, JobConfig
-    from xtl.jobs.results import JobResults
     from xtl.tui.console import ConsoleIO
 
 
@@ -43,11 +43,12 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
 
         success = int(task.fields.get('success', 0))
         failed = int(task.fields.get('failed', 0))
+        running = int(task.fields.get('running', 0))
+        text = f'[dim]({running:{fmt}} running)[/dim] ' if running else ''
         if (success + failed != completed) or (completed == 0):
             # Assume the fields are not getting updated properly
-            text = f'[dim]{completed}{self._sep}{total}[/dim]'
+            text += f'[dim]{completed}{self._sep}{total}[/dim]'
         else:
-            text = ''
             if success:
                 text += f'[green]{success:{fmt}}[/green][dim]{self._sep}[/dim]'
             if failed:
@@ -58,9 +59,16 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
 
 
 class PoolProgress(ProgressBar):
-    def __init__(self, *, console: 'ConsoleIO') -> None:
+    def __init__(self, *, console: 'ConsoleIO', pool: BasePool) -> None:
+        """
+        A progress bar of a pool's jobs, drawn from the pool's job counts each time it is rendered.
+
+        :param console: The console to render the bar in.
+        :param pool: The pool whose jobs to show.
+        """
         # Setting transient=False, since it's managed by the Live instance
         super().__init__(console=console, transient=False)
+        self._pool = pool
 
         # Expand the BarColumn to the console width
         col: rich.progress.BarColumn = self.columns[2]  # type: ignore
@@ -73,6 +81,7 @@ class PoolProgress(ProgressBar):
             description='Waiting for jobs...',
             success=0,
             failed=0,
+            running=0,
         )
 
     @classmethod
@@ -90,20 +99,23 @@ class PoolProgress(ProgressBar):
         self._job_task.description = 'Running jobs'
         self._job_task.start()
 
-    def complete_job(self, result: 'JobResults'):
-        self._job_task.advance(1)
-        if result.success:
-            self._job_task.advance(1, field='success')
-        else:
-            self._job_task.advance(1, field='failed')
+    def sync(self) -> None:
+        """
+        Update the bar from the pool's job counts. Called on every render, from the display's thread.
+        """
+        counts = self._pool.counts()
+        failed = counts[JobStatus.FAILED] + counts[JobStatus.CANCELLED]
+        self._job_task.update(
+            total=sum(counts.values()) or None,
+            completed=counts[JobStatus.DONE] + failed,
+            success=counts[JobStatus.DONE],
+            failed=failed,
+            running=counts[JobStatus.RUNNING],
+        )
 
-    @property
-    def total(self) -> float | None:
-        return self._job_task.total
-
-    @total.setter
-    def total(self, total: float) -> None:
-        self._job_task.total = total
+    def __rich__(self):
+        self.sync()
+        return super().__rich__()
 
     @property
     def description(self) -> str:
@@ -194,22 +206,12 @@ class LivePool(PoolProtocol):
 
         # Rich components
         self._log_panel = LogPanel(console=self._console, handler=self._buffer, title='Job logs', log_fmt=log_fmt)
-        self._progress = (
-            PoolProgress(
-                console=self._console,
-            )
-            if progress
-            else None
-        )
+        self._pool = self._create_pool(pool_type, max_jobs)
+        self._progress = PoolProgress(console=self._console, pool=self._pool) if progress else None
         self._live: rich.live.Live | None = None
 
-        # Pool and loggers
-        self._pool = self._create_pool(pool_type, max_jobs)
+        # Loggers
         self._root_handlers: list[logging.Handler] | None = None  # Managed by _install_buffer and _remove_buffer
-
-        # Job submissions
-        self._tasks: dict[str, str] = {}
-        self._results = []
 
     def _create_pool(self, pool_type: JobPool | JOB_POOL_TYPES | None = None, max_jobs: int = 1) -> BasePool:
         """
@@ -273,7 +275,7 @@ class LivePool(PoolProtocol):
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
         # Check for job errors
-        job_errors = self._results and any(r.error for r in self._results)
+        job_errors = self._pool.counts()[JobStatus.FAILED] > 0
 
         suppressed = False
         try:
@@ -359,49 +361,24 @@ class LivePool(PoolProtocol):
         :param configs: Job configs to iterate over.
         :param kwargs: Extra keyword arguments to pass to the underlying pool's `.submit` method.
         """
-        jobs = self._pool.submit(job_cls, configs=configs, **kwargs)
-
-        for job in jobs:
-            self._tasks[job.job_id] = job.__class__.__name__
-
-        # Update progress bar
-        if self._progress:
-            # Count total tasks, not just the jobs currently submitted
-            self._progress.total = len(self._tasks)
-
-        return jobs
+        return self._pool.submit(job_cls, configs=configs, **kwargs)
 
     async def launch(self, mode: Literal['all', 'stream'] = 'all'):
         """
-        Launch all submitted jobs and track their progress.
+        Launch the jobs submitted since the last launch, as the pool does; the progress bar follows the pool's job
+        status.
 
-        :param mode: Whether to return all results together (`'all'`) or yield them as each job completes (`'stream'`).
+        :param mode: Whether to return all results together, in submission order (`'all'`), or yield them as each job
+            completes (`'stream'`).
         """
         if mode not in ['all', 'stream']:
             raise BadParameter("`mode` must be one of: 'all', 'stream'")
 
         # Start progress bar
         if self._progress:
-            self._progress.total = len(self._tasks)
             self._progress.start()
 
-        if mode == 'stream':
-            return self._launch_stream()
-        return await self._launch_all()
-
-    async def _launch_all(self):
-        # NB: Internally we stream the results, so that we can update the
-        #  progress bar accordingly
-        async for _ in self._launch_stream():
-            pass
-        return self._results
-
-    async def _launch_stream(self):
-        async for result in await self._pool.launch(mode='stream'):
-            if self._progress:
-                self._progress.complete_job(result)
-            self._results.append(result)
-            yield result
+        return await self._pool.launch(mode)
 
     def get_lock(self, name: str | None = None):
         return self._pool.get_lock(name)

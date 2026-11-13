@@ -1,8 +1,44 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
+from xtl_core.system.compatibility import PY310_OR_LESS
 
-__all__ = ['JobResults', 'SteppedJobResults', 'BatchResults']
+if PY310_OR_LESS:
+
+    class StrEnum(str, Enum): ...
+else:
+    from enum import StrEnum
+
+
+__all__ = ['JobStatus', 'JobResults', 'SteppedJobResults', 'BatchResults']
+
+
+class JobStatus(StrEnum):
+    """
+    Where a job submitted to a pool stands. The pool sets it, in the process that opened the pool, the same way in every
+    pool type.
+    """
+
+    SUBMITTED = 'submitted'
+    """Submitted, not launched yet"""
+    QUEUED = 'queued'
+    """Launched, waiting for a slot"""
+    RUNNING = 'running'
+    """Has a slot: running in the pool's event loop, or handed to a worker thread or process"""
+    DONE = 'done'
+    """Finished without an error"""
+    FAILED = 'failed'
+    """Finished with an error, or the pool failed to run it"""
+    CANCELLED = 'cancelled'
+    """Cancelled; in a thread or process pool, the worker may still finish the job, but its result is dropped"""
+
+    @property
+    def is_finished(self) -> bool:
+        """
+        Whether the job has stopped for the pool: done, failed or cancelled.
+        """
+        return self in (JobStatus.DONE, JobStatus.FAILED, JobStatus.CANCELLED)
 
 
 @dataclass
