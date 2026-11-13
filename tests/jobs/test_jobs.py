@@ -138,6 +138,22 @@ class TestJob:
             assert result.success
             assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
 
+        @pytest.mark.parametrize(
+            'steps, error, match',
+            [
+                ({'three': {}}, ValueError, "Unknown step 'three' in `steps`; the steps of TwoSteps are: one, two"),
+                ({'one': {'shuold_fail': True}}, ValueError, "Unknown options for step 'one'.*shuold_fail"),
+                ({'one': [True]}, TypeError, "override of step 'one' must be a dict"),
+            ],
+        )
+        def test_stepped_job_checks_step_overrides(self, steps, error, match):
+            with pytest.raises(error, match=match):
+                TwoSteps.with_config(SteppedJobConfig(steps=steps))
+
+        def test_stepped_job_step_overrides_apply(self):
+            job = TwoSteps.with_config(SteppedJobConfig(steps={'two': {'should_fail': True}}))
+            assert job._get_step_config('two', ctx=None).should_fail is True
+
         def test_job_id_is_used_as_given(self):
             """Two jobs given the same id keep it, and share its logger."""
             first = SimpleJob(job_id='same_id')

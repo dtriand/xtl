@@ -912,6 +912,34 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
 
     _steps: ClassVar[tuple['StepSpec', ...]] = ()
 
+    def configure(self, config: SteppedJobConfig) -> None:
+        """
+        Configure a stepped job instance, checking its step overrides (``config.steps``): each key must name one of
+        the job's steps, and each override must be a dict of options of that step's configuration class. Values are
+        checked when the step's configuration is built, together with its defaults.
+
+        :param config: Configuration of the job.
+        :raises TypeError: If `config` is not of the expected class, or a step's override isn't a dict.
+        :raises ValueError: If an override names an unknown step, or an unknown option of a step.
+        """
+        super().configure(config)
+        specs = {spec.name: spec for spec in self._steps}
+        for name, overrides in config.steps.items():
+            spec = specs.get(name)
+            if spec is None:
+                raise ValueError(
+                    f'Unknown step {name!r} in `steps`; the steps of {self.__class__.__name__} are: '
+                    f'{", ".join(specs) or "none"}'
+                )
+            if not isinstance(overrides, dict):
+                raise TypeError(f'The override of step {name!r} must be a dict, got {type(overrides).__name__}')
+            fields = spec.config_cls.model_fields
+            known = set(fields) | {field.alias for field in fields.values() if field.alias}
+            if unknown := sorted(set(overrides) - known):
+                raise ValueError(
+                    f'Unknown options for step {name!r} ({spec.config_cls.__name__}): {", ".join(unknown)}'
+                )
+
     def _get_step_config(self, step_name: str, ctx: 'JobContext') -> JobConfig | BatchJobConfig:
         # Check for configuration
         parent_config = self.config
