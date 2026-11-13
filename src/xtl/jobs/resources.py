@@ -147,6 +147,8 @@ class ResourcesLease:
         """
         if self._released:
             return
+        # Before anything that can raise, so that the resources are never returned twice
+        self._released = True
 
         if self._parent is None:
             await self._manager._release_global(self.granted)
@@ -155,7 +157,6 @@ class ResourcesLease:
 
         if self._token is not None:
             CURRENT_LEASE.reset(self._token)
-        self._released = True
 
     async def __aenter__(self) -> 'ResourcesLease':
         return self
@@ -246,7 +247,8 @@ def get_rc_manager(total: Resources | None = None) -> ResourceManager:
     """
     Returns one ResourceManager per running event loop. Avoids sharing asyncio primitives across loops.
 
-    :param total: Optional total resources for the manager. If None, uses get_total_resources().
+    :param total: Optional total resources for the manager. If None, uses get_total_resources(). Only used when the
+        loop has no manager yet.
     :return: A ResourceManager instance for the current event loop.
     """
     loop = asyncio.get_running_loop()
