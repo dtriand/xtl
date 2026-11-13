@@ -129,7 +129,7 @@ class BatchJobConfig(JobConfig):
     name: Optional[str] = Option(default=None, desc='Name of the batch job')  # for slurm --job-name
     description: Optional[str] = Option(default=None, desc='Description of the batch job')  # for slurm --comment
     permissions: FilePermissions | str | int = Option(
-        default=settings.jobs.permissions.scripts,
+        default_factory=lambda: settings.jobs.permissions.scripts,
         desc='Permissions for the batch file in octal format (e.g., 700)',
         cast_as=FilePermissions,
         formatter=PermissionOctal,

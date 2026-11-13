@@ -138,6 +138,14 @@ class TestJob:
             assert result.success
             assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
 
+        def test_batch_config_defaults_follow_the_settings(self, monkeypatch):
+            """Defaults read the settings when a config is made, not when the module is imported."""
+            from xtl import settings
+            from xtl_core.system.os import FilePermissions
+
+            monkeypatch.setattr(settings.jobs.permissions, 'scripts', FilePermissions(0o750))
+            assert BatchJobConfig().permissions == FilePermissions(0o750)
+
         @pytest.mark.parametrize(
             'steps, error, match',
             [
