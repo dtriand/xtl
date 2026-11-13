@@ -167,18 +167,18 @@ class BasePool(PoolProtocol, abc.ABC):
                 f'Expected a {LoggerConfig.__name__} instance for `logger_config`, got {type(logger_config).__name__}'
             )
 
-        if name is not None and '.' in str(name):
-            raise ValueError(f'Pool names cannot contain dots, got {name!r}')
+        if name is not None and ('.' in str(name) or '#' in str(name)):
+            raise ValueError(f'Pool names cannot contain dots or #, got {name!r}')
 
         # Set up pool_id and name
         self._pool_id = uuid.random(settings.jobs.job_digits)
         self._name = name
 
         # Configure logger for this pool
-        #  NB: A named pool's logger is `<Cls>|<name>`, an unnamed one's `<Cls>#<pool_id>`, so that the name filter
-        #  can tell them apart (see `label`)
+        #  NB: A named pool's logger is `<Cls>|<name>#<pool_id>`, an unnamed one's `<Cls>#<pool_id>`: the id keeps
+        #  pools of the same name apart, and isn't shown on screen (see `label`)
         cls_name = self.__class__.__name__
-        logger_id = f'{cls_name}|{name}' if name is not None else f'{cls_name}#{self._pool_id}'
+        logger_id = f'{cls_name}|{name}#{self._pool_id}' if name is not None else f'{cls_name}#{self._pool_id}'
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
         self._job_handlers: dict[str, HandlerConfig] = {}  # Managed by add_job_handler()
         self._added_handlers: list[logging.Handler] = []  # Managed by add_handler() and remove_handler()

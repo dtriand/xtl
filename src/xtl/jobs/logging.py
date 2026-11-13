@@ -394,18 +394,17 @@ def register_pool_class(name: str) -> None:
 
 def pool_label(segment: str) -> str | None:
     """
-    How a pool's logger segment is shown on screen: ``<Cls>|<name>`` for a named pool, ``<Cls>`` for one named by its
-    id (``<Cls>#<pool_id>``).
+    How a pool's logger segment is shown on screen, without the pool's id: ``<Cls>|<name>`` for a named pool
+    (``<Cls>|<name>#<pool_id>``), ``<Cls>`` for an unnamed one (``<Cls>#<pool_id>``).
 
     :param segment: One dot-separated part of a logger name.
     :return: The label, or None if the segment isn't a pool's.
     """
-    cls_name, sep, _ = segment.partition('#')
-    if sep and cls_name in _POOL_CLASSES:
-        return cls_name
-    cls_name, sep, _ = segment.partition('|')
-    if sep and cls_name in _POOL_CLASSES:
-        return segment
+    label, sep, _ = segment.partition('#')
+    if not sep:
+        return None
+    if label in _POOL_CLASSES or label.partition('|')[0] in _POOL_CLASSES:
+        return label
     return None
 
 

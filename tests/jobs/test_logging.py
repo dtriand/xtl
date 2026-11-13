@@ -284,16 +284,16 @@ class TestPools:
     async def test_pool_logger(self):
         pool = SimplePool(name='c9', logger_config=capture_config('c9'))
         await run_pool(pool, Talker, ['c9_job'], JobConfig())
-        assert pool.logger.name == 'SimplePool|c9'
+        assert pool.logger.name == f'SimplePool|c9#{pool.pool_id}'
         assert pool.logger.propagate is False
-        assert 'SimplePool|c9' in names('c9')
+        assert pool.logger.name in names('c9')
 
     @pytest.mark.asyncio
     async def test_job_loggers_hang_under_the_pool(self):
         pool = SimplePool(name='c10', logger_config=capture_config('c10'))
         jobs, _ = await run_pool(pool, Talker, ['c10_job'], JobConfig())
         logger = jobs[0].logger
-        assert logger.name == 'SimplePool|c10.c10_job'
+        assert logger.name == f'SimplePool|c10#{pool.pool_id}.c10_job'
         assert logger.handlers == []
         assert logger.propagate is True
         assert logger.level == logging.NOTSET
@@ -305,9 +305,25 @@ class TestPools:
         assert pool.label == 'SimplePool'
         assert SimplePool(name='refine').label == 'SimplePool|refine'
 
-    def test_pool_name_without_dots(self):
-        with pytest.raises(ValueError, match='dots'):
-            SimplePool(name='a.b')
+    @pytest.mark.parametrize('name', ['a.b', 'a#b'])
+    def test_pool_name_without_dots_or_hashes(self, name):
+        with pytest.raises(ValueError, match='dots or #'):
+            SimplePool(name=name)
+
+    @pytest.mark.asyncio
+    async def test_same_named_pools_at_once(self):
+        # The first pool to exit removes only its own loggers; the other's jobs still reach its handlers
+        first = SimplePool(name='c10b', logger_config=capture_config('c10b_first'))
+        second = SimplePool(name='c10b', logger_config=capture_config('c10b_second'))
+        assert first.logger is not second.logger
+        assert first.label == second.label == 'SimplePool|c10b'
+        async with second:
+            await run_pool(first, Talker, ['c10b_1'], JobConfig())
+            second.submit(Talker, configs=[JobConfig()], job_ids=['c10b_2'])
+            await second.launch()
+        assert 'info from c10b_1' in messages('c10b_first')
+        assert 'info from c10b_2' in messages('c10b_second')
+        assert 'info from c10b_2' not in messages('c10b_first')
 
     @pytest.mark.parametrize('pool_cls', POOLS)
     @pytest.mark.asyncio
@@ -671,7 +687,8 @@ class TestSerialization:
             ('MultiprocessPool#123.my.job', 'my.job'),
             ('MultiprocessPool#123.Outer|01.ThreadedPool#9.Talker|03', 'Outer|01>Talker|03'),
             ('MultiprocessPool#123.Outer|01.ThreadedPool#9', 'Outer|01>ThreadedPool'),
-            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine', 'Outer|01>ThreadedPool|refine'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9', 'Outer|01>ThreadedPool|refine'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9.Talker|03', 'Outer|01>Talker|03'),
             ('MultiprocessPool#1234.Talker|1', 'MultiprocessPool#1234.Talker|1'),
             ('xtl.jobs.sites', 'xtl.jobs.sites'),
         ],
@@ -825,7 +842,8 @@ class TestForkedWorker:
         #  subprocess recreates that state, so that the test also runs where fork isn't available
         result = _run_python(FORKED_WORKER)
         assert result.returncode == 0, result.stderr
-        assert 'SimplePool|forked.w1' in result.stdout
+        assert "'SimplePool|forked#" in result.stdout
+        assert '.w1' in result.stdout
         assert 'Talker|1' in result.stdout
 
 
