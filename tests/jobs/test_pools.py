@@ -39,6 +39,11 @@ class UsesUnknownLock(Job[JobConfig]):
             return True
 
 
+class Sleeper(Job[JobConfig]):
+    async def _execute(self):
+        await asyncio.sleep(2)
+
+
 class ReadsSettings(Job[JobConfig]):
     async def _execute(self):
         return settings.jobs.keep_temp, settings.jobs.permissions.update, settings.dependencies.modules
@@ -80,6 +85,30 @@ class TestSubmit:
             (result,) = await pool.launch()
         assert result.error is None
         assert result.data.stdout.strip() == "[x y] [it's]"
+
+
+class TestExit:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_cancellation_propagates(self, pool_cls):
+        after_block = False
+
+        async def run():
+            nonlocal after_block
+            async with pool_cls(max_jobs=1) as pool:
+                pool.submit(Sleeper)
+                await pool.launch()
+            after_block = True
+
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(run(), timeout=0.5)
+        assert not after_block
+
+    @pytest.mark.asyncio
+    async def test_exceptions_propagate(self):
+        with pytest.raises(ValueError, match='from the block'):
+            async with AsyncPool(max_jobs=1):
+                raise ValueError('from the block')
 
 
 class TestSettings:

@@ -458,15 +458,15 @@ class BasePool(PoolProtocol, abc.ABC):
 
             self._in_ctx = False
             await self._drain_pool()
-            if interrupted:
-                return True  # Suppress the exception
-            return False  # Propagate other exceptions
+            # NB: Exceptions propagate, interrupts too, so that cancellation (e.g. `asyncio.timeout()`) and Ctrl+C
+            #  stop the caller; an application decides what to show (as `LivePool` does)
+            return False
 
         # Normal exit
         self._in_ctx = False
         await self._drain_pool()
         self.logger.debug('Exiting the pool context')
-        return True
+        return False
 
     def _release_loggers(self) -> None:
         """
