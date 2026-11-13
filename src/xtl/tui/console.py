@@ -1,9 +1,9 @@
-from typing import Literal, TYPE_CHECKING, Union
+from typing import Optional, TYPE_CHECKING
 
 import rich.console
 
 if TYPE_CHECKING:
-    from xtl.jobs import JobPool
+    from xtl.jobs.pools import PoolType
     from xtl.cli.utilities.common import JobOptions
     from xtl.tui.live_pool import LivePool
 
@@ -69,9 +69,7 @@ class ConsoleIO(rich.console.Console):
                     if modules:
                         self.print(f'- {dep}: [dim]{", ".join(modules)}[/dim]', highlight=False)
 
-    def get_pool(
-        self, pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = None, max_jobs: int = 1
-    ) -> 'LivePool':
+    def get_pool(self, pool_type: Optional['PoolType'] = None, max_jobs: int = 1) -> 'LivePool':
         """
         Get a pool for job execution which redirects job logs and status updates to a transient Live view on the
         console.

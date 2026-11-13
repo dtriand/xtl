@@ -12,7 +12,7 @@ import rich.theme
 from typer import BadParameter
 
 from xtl.jobs.logging import JobFileHandlerConfig, LoggerConfig
-from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
+from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, PoolType
 from xtl.jobs.results import JobStatus
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
@@ -176,7 +176,7 @@ class LivePool(PoolProtocol):
     def __init__(
         self,
         console: 'ConsoleIO',
-        pool_type: JobPool | JOB_POOL_TYPES | None = None,
+        pool_type: PoolType | None = None,
         max_jobs: int = 1,
         progress: bool = True,
     ) -> None:
@@ -213,7 +213,7 @@ class LivePool(PoolProtocol):
         # Loggers
         self._root_handlers: list[logging.Handler] | None = None  # Managed by _install_buffer and _remove_buffer
 
-    def _create_pool(self, pool_type: JobPool | JOB_POOL_TYPES | None = None, max_jobs: int = 1) -> BasePool:
+    def _create_pool(self, pool_type: PoolType | None = None, max_jobs: int = 1) -> BasePool:
         """
         Create a preconfigured job pool.
 
@@ -352,16 +352,17 @@ class LivePool(PoolProtocol):
         self,
         job_cls: Type['Job'],
         configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
-        **kwargs,
+        *,
+        job_ids: Iterable[str | None] | None = None,
     ) -> list['Job']:
         """
         Submit one or more jobs to the pool.
 
         :param job_cls: Job class to submit to.
         :param configs: Job configs to iterate over.
-        :param kwargs: Extra keyword arguments to pass to the underlying pool's `.submit` method.
+        :param job_ids: Optional, the IDs of the submitted jobs, as for the pool's `submit()`.
         """
-        return self._pool.submit(job_cls, configs=configs, **kwargs)
+        return self._pool.submit(job_cls, configs=configs, job_ids=job_ids)
 
     async def launch(self, mode: Literal['all', 'stream'] = 'all'):
         """

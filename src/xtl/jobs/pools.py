@@ -9,7 +9,7 @@ import multiprocessing
 import re
 import threading
 from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
-from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, runtime_checkable
+from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, Union, runtime_checkable
 
 from xtl import settings
 from xtl_core.system.compatibility import PY310_OR_LESS
@@ -59,14 +59,11 @@ __all__ = [
     'AsyncPool',
     'ThreadedPool',
     'MultiprocessPool',
-    'JOB_POOL_TYPES',
+    'PoolType',
 ]
 
 
 uuid = UUIDFactory()
-
-
-JOB_POOL_TYPES = Literal['simple', 'async', 'threads', 'processes']
 
 
 class JobPool(StrEnum):
@@ -92,6 +89,10 @@ class JobPool(StrEnum):
         if self == JobPool.PROCESSES:
             return MultiprocessPool
         raise ValueError(f'Unsupported {JobPool.__name__} type: {self!r}')
+
+
+PoolType = Union[JobPool, Literal['simple', 'async', 'threads', 'processes']]
+"""A pool type, as a :class:`JobPool` or its value. The strings match the members of :class:`JobPool` (tested)."""
 
 
 @runtime_checkable
@@ -577,7 +578,11 @@ class BasePool(PoolProtocol, abc.ABC):
         return job_ids
 
     def submit(
-        self, job_cls: Type[Job], configs: JobConfig | None | Iterable[JobConfig | None] = None, **kwargs
+        self,
+        job_cls: Type[Job],
+        configs: JobConfig | None | Iterable[JobConfig | None] = None,
+        *,
+        job_ids: Iterable[str | None] | None = None,
     ) -> list[Job]:
         """
         Submit a job to the pool for execution. This method must be called from within the pool's context manager.
@@ -592,7 +597,7 @@ class BasePool(PoolProtocol, abc.ABC):
 
         :param job_cls: The job type to submit. Must be a subclass of `Job`.
         :param configs: The configs to submit to the pool.
-        :param kwargs: Only ``job_ids``: an optional list of IDs for the submitted jobs, one per config. If not
+        :param job_ids: Optional, the IDs of the submitted jobs, one per config (None for a random one). If not
             provided, IDs are generated as ``<job_cls>|<i>``, where ``i`` is an incrementing index.
         :raises RuntimeError: If the method is called outside the pool's context manager
         :raises TypeError: If `job_cls` is not a subclass of `Job`.
@@ -618,7 +623,7 @@ class BasePool(PoolProtocol, abc.ABC):
             raise TypeError(f'Invalid `configs` type: {type(configs).__name__}')
 
         # Generate job IDs if not provided
-        if (job_ids := kwargs.get('job_ids', None)) is None:
+        if job_ids is None:
             job_ids = self._generate_job_ids(job_cls, len(configs_list))
         job_ids = list(job_ids)
 

@@ -4,6 +4,7 @@ Tests for submitting jobs to pools and sharing locks, queues and states with the
 
 import asyncio
 import io
+import typing
 
 import pytest
 
@@ -12,7 +13,7 @@ from tests.jobs.test_logging import POOLS, WORKER_POOLS, Failing, Talker, fresh_
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
 from xtl.jobs.ipc.base import IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job
-from xtl.jobs.pools import AsyncPool, SimplePool, ThreadedPool
+from xtl.jobs.pools import AsyncPool, JobPool, PoolType, SimplePool, ThreadedPool
 from xtl.jobs.resources import Resources
 from xtl.jobs.results import JobStatus
 from xtl.jobs.shells import Shell
@@ -97,6 +98,27 @@ class TestSubmit:
             (result,) = await pool.launch()
         assert result.error is None
         assert result.data.stdout.strip() == "[x y] [it's]"
+
+
+class TestTypes:
+    def test_pool_type_names_match_the_enum(self):
+        # A type checker can't derive the strings from the enum, so they're written twice
+        enum_cls, names = typing.get_args(PoolType)
+        assert enum_cls is JobPool
+        assert set(typing.get_args(names)) == {member.value for member in JobPool}
+
+    @pytest.mark.asyncio
+    async def test_submit_rejects_unknown_arguments(self):
+        async with AsyncPool(max_jobs=1) as pool:
+            with pytest.raises(TypeError):
+                pool.submit(Talker, job_id=['a'])  # misspelled
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_type', [JobPool.THREADS, 'threads'])
+    async def test_get_pool_takes_a_member_or_its_value(self, pool_type):
+        job = Talker(job_id='parent')
+        async with job.get_pool(pool_type, max_jobs=1) as pool:
+            assert isinstance(pool, ThreadedPool)
 
 
 class TestLaunch:

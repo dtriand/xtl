@@ -17,13 +17,21 @@ from typing import (
     overload,
     Literal,
     cast,
-    Union,
 )
 
 from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, SimplePool, AsyncPool, ThreadedPool, MultiprocessPool
+    from xtl.jobs.pools import (
+        PoolProtocol,
+        PoolType,
+        JobPool,
+        BasePool,
+        SimplePool,
+        AsyncPool,
+        ThreadedPool,
+        MultiprocessPool,
+    )
     from xtl.jobs.batchfiles import BatchFile
     from xtl.jobs.steps import StepSpec, JobContext
 
@@ -278,54 +286,49 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._pool = pool
 
     @overload
-    async def get_pool(
-        self, max_jobs: int = 1, *, resources: Resources | None = None, **kwargs
-    ) -> AsyncIterator['SimplePool']: ...
-
-    @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['simple', 'JobPool.SIMPLE'],
+        pool_type: "Literal['simple', JobPool.SIMPLE]" = 'simple',
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['SimplePool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[SimplePool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['async', 'JobPool.ASYNC'],
+        pool_type: "Literal['async', JobPool.ASYNC]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['AsyncPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[AsyncPool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['threads', 'JobPool.THREADS'],
+        pool_type: "Literal['threads', JobPool.THREADS]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['ThreadedPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[ThreadedPool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['processes', 'JobPool.PROCESSES'],
+        pool_type: "Literal['processes', JobPool.PROCESSES]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['MultiprocessPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[MultiprocessPool]': ...
 
     @contextlib.asynccontextmanager
     async def get_pool(
         self,
-        pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = 'simple',
+        pool_type: 'PoolType' = 'simple',
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
