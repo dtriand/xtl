@@ -54,6 +54,12 @@ docs/build/
 .tox
 .pytest_cache
 
+## Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
 ## PyPI
 .pypirc
 

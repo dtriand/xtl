@@ -78,6 +78,7 @@ h5peek = "xtl.cli.cli_h5peek:app"
 test = [
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
     "pytest-mock>=3.10.0",
     "pytest-timeout>=2.3.1",
 ]
@@ -174,3 +175,20 @@ markers = [
 ]
 tmp_path_retention_policy = "failed"
 asyncio_default_fixture_loop_scope = "session"
+
+[tool.coverage.run]
+source = ["xtl", "xtl_core"]
+branch = true
+concurrency = ["thread", "multiprocessing"]  # jobs run in worker threads and processes
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "@(typing\\.)?overload",
+    "@(abc\\.)?abstractmethod",
+    "raise NotImplementedError",
+    "^\\s*\\.\\.\\.$",
+]
