@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 from xtl import settings
 from xtl.math.uuid import UUIDFactory
 from xtl_core.system.compatibility import OS_POSIX
+from xtl_core.utils.imports import import_object, import_path
 from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
@@ -82,32 +83,18 @@ class JobData(Options):
 
     pool_label: str | None = Option(default=None, desc="Label of the job's pool, for the `{pool}` placeholder")
 
-    @staticmethod
-    def _import_symbol(path: str):
-        """
-        Dynamically import a symbol from a module given its import path.
-        """
-        module_path, _, attr = path.rpartition('.')
-        if not module_path or not attr:
-            raise ValueError(f'Invalid import path: {path!r}')
-        module = __import__(module_path, fromlist=[attr])
-        try:
-            return getattr(module, attr)
-        except AttributeError as exc:
-            raise ImportError(f'Could not resolve symbol {path!r}') from exc
-
     def get_job_cls(self) -> Type['Job']:
         """
         Dynamically import and return the Job class specified by `job_cls`.
         """
-        return self._import_symbol(self.job_cls)
+        return import_object(self.job_cls)
 
     @field_validator('job_cls', mode='before')
     @classmethod
     def validate_job_cls(cls, value: Any) -> str:
         try:
-            job_cls = cls._import_symbol(value)
-        except (ImportError, ValueError) as exc:
+            job_cls = import_object(value)
+        except ImportError as exc:
             raise ValueError(f'Invalid `job_cls`: {value!r}') from exc
         if not isinstance(job_cls, type) or not issubclass(job_cls, Job):
             raise TypeError(f'`job_cls` must be a subclass of {Job.__name__}, got {value!r}')
@@ -688,7 +675,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         cfg = self.config
         job_data = JobData(
-            job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
+            job_cls=import_path(self.__class__),
             job_id=self.job_id,
             config=cfg.to_dict() if cfg else None,
             log_handlers={name: spec.to_spec(mode='json') for name, spec in self._log_handlers.items()},

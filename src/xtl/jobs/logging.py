@@ -4,7 +4,6 @@ and the handler that sends the records of worker processes back to the parent.
 """
 
 import contextlib
-import importlib
 import logging
 from logging.handlers import QueueHandler
 from pathlib import Path
@@ -14,6 +13,7 @@ from typing import Any, ClassVar
 from pydantic import SerializationInfo, field_serializer, field_validator
 
 from xtl_core.options import Option, Options
+from xtl_core.utils.imports import import_object, import_path
 
 
 class LoggingFormat(Options):
@@ -61,37 +61,14 @@ class HandlerConfig(Options):
         default=logging.NOTSET, desc="Level of the handler (default: NOTSET, the logger config's level)", ge=0, le=50
     )
 
-    @staticmethod
-    def _import_path(obj: type) -> str:
-        """
-        The import path of a class, e.g. ``'logging.FileHandler'``.
-        """
-        return f'{obj.__module__}.{obj.__qualname__}'
-
-    @staticmethod
-    def _import_symbol(path: str) -> Any:
-        """
-        Import a symbol from its import path, e.g. ``'logging.FileHandler'``.
-
-        :raises ImportError: If the path can't be resolved.
-        """
-        module_path, _, attr = path.rpartition('.')
-        if not module_path or not attr:
-            raise ImportError(f'Invalid import path: {path!r}')
-        module = importlib.import_module(module_path)
-        try:
-            return getattr(module, attr)
-        except AttributeError as e:
-            raise ImportError(f'Could not resolve {path!r}') from e
-
     @field_validator('handler', mode='before')
     @classmethod
     def _import_handler(cls, value: Any) -> Any:
-        return cls._import_symbol(value) if isinstance(value, str) else value
+        return import_object(value) if isinstance(value, str) else value
 
     @field_serializer('handler', when_used='json')
     def _handler_path(self, value: type[logging.Handler]) -> str:
-        return self._import_path(value)
+        return import_path(value)
 
     def to_spec(self, mode: str = 'python') -> dict[str, Any]:
         """
@@ -100,7 +77,7 @@ class HandlerConfig(Options):
         :param mode: ``'python'`` keeps classes and objects, ``'json'`` turns them into JSON values.
         """
         data = self.model_dump(mode=mode)
-        data['config_cls'] = self._import_path(type(self))
+        data['config_cls'] = import_path(type(self))
         return data
 
     @staticmethod
@@ -113,7 +90,7 @@ class HandlerConfig(Options):
         """
         data = dict(data)
         config_cls = data.pop('config_cls', None)
-        cls = HandlerConfig._import_symbol(config_cls) if config_cls else HandlerConfig
+        cls = import_object(config_cls) if config_cls else HandlerConfig
         if not (isinstance(cls, type) and issubclass(cls, HandlerConfig)):
             raise TypeError(f'{config_cls!r} is not a {HandlerConfig.__name__} subclass')
         return cls.model_validate(data)
