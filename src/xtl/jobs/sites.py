@@ -94,11 +94,12 @@ class BaseComputeSite(ABC):
             return self == other.get()
         elif isinstance(other, BaseComputeSite):
             return (
-                self.default_shell == other.default_shell
+                type(self) is type(other)
+                and self.default_shell == other.default_shell
                 and self.supported_shells == other.supported_shells
                 and self.policy == other.policy
             )
-        raise NotImplementedError(f'Cannot compare {type(self)} with {type(other)}')
+        return NotImplemented
 
     def is_valid_shell(self, shell: Shell) -> bool:
         if not self.supported_shells:
@@ -151,12 +152,16 @@ class BaseComputeSite(ABC):
         :param command: The command to execute as a list of strings.
         :param timeout: The timeout in seconds for the command execution.
         :return: The CompletedProcess object if the command executed successfully,
-            None if the command timed out.
+            None if the command timed out or couldn't be started (e.g. the program
+            doesn't exist).
         """
         try:
             result = subprocess.run(command, capture_output=True, text=True, shell=False, timeout=timeout)
         except subprocess.TimeoutExpired:
             logger.error('Command `%s` timed out', ' '.join(command))
+            return None
+        except OSError as e:
+            logger.error('Command `%s` could not be started: %s', ' '.join(command), e)
             return None
         return result
 
@@ -196,6 +201,7 @@ class LocalSite(BaseComputeSite):
     ) -> bool:
 
         for dep in self.resolve_dependencies(dependencies):
+            name = self._dependency_name(dep)
             # Check if the dependency executables are available
             for exe in dep.provides:
                 try:
@@ -211,17 +217,28 @@ class LocalSite(BaseComputeSite):
                 if result.stdout.strip() == '0':
                     logger.debug(
                         'Found executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': dep.name},
+                        {'exe': exe, 'dependency': name},
                     )
                 else:
                     logger.error(
                         'Missing executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': dep.name},
+                        {'exe': exe, 'dependency': name},
                     )
                     return False
         else:
             logger.debug('All dependencies are met.')
             return True
+
+    @staticmethod
+    def _dependency_name(dependency: DependencySettings) -> str:
+        """
+        The name the settings know a dependency by, e.g. ``'autoproc'``, or its class name if they don't.
+        """
+        from xtl import settings
+
+        return next(
+            (name for name, known in settings.dependencies.items() if known is dependency), type(dependency).__name__
+        )
 
     async def execute_batch(self, batch: BatchFile, stdout: Path = None, stderr: Path = None, **kwargs):
         # Get command to execute the batch file
@@ -458,7 +475,7 @@ class ModulesSite(LocalSite):
         """
         Check if the module name is safe to use in shell commands. A safe module name
         contains only alphanumeric characters, hyphens, underscores, periods and
-        slashes.
+        slashes, and no part of it starts with a hyphen (which would read as an option).
 
         :param module: The module name to check.
         :return: True if the module name is safe, False otherwise.
@@ -469,10 +486,10 @@ class ModulesSite(LocalSite):
         elif len(module) > 255:
             # Prevent potential buffer overflow attacks
             return False
-        # Pattern for a safe module name (slash separated segments of alphanumeric,
-        #  dash, and underscore characters plus optional leading dot)
-        pattern = r'^\.?[A-Za-z0-9_-]+([/\\]\.?[A-Za-z0-9_-]+)*$'
-        return re.match(pattern, module) is not None
+        # Pattern for a safe module name: slash separated segments of alphanumeric, dot, dash and underscore
+        #  characters, none starting with a dash
+        segment = r'[A-Za-z0-9_.][A-Za-z0-9_.-]*'
+        return re.fullmatch(rf'{segment}([/\\]{segment})*', module) is not None
 
 
 class SchedulerSite(BaseComputeSite):
