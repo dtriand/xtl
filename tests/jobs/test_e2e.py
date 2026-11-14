@@ -284,8 +284,12 @@ async def greet(
 
 
 def run(args: list[str]):
-    # Wide enough that rich doesn't wrap the lines the tests look for
     return CliRunner().invoke(app, args, env={'COLUMNS': '200'})
+
+
+def text(result) -> str:
+    """The output with its whitespace collapsed, so that where rich wraps a line (long paths) doesn't matter."""
+    return ' '.join(result.output.split())
 
 
 @pytest.fixture
@@ -300,16 +304,16 @@ class TestCommandLine:
     def test_jobs_run_through_the_console(self, tmp_path, restore_settings):
         result = run(['a', 'b', '--root', str(tmp_path)])
         assert result.exit_code == 0, result.output
-        assert 'a: hello a' in result.output
-        assert 'b: hello b' in result.output
+        assert 'a: hello a' in text(result)
+        assert 'b: hello b' in text(result)
         assert list(tmp_path.iterdir()) == []
 
     def test_a_failing_job_shows_the_logs(self, tmp_path, restore_settings):
         result = run(['a', 'fail', '--root', str(tmp_path)])
         assert result.exit_code == 1
-        assert 'a: hello a' in result.output
-        assert 'An error occurred while executing jobs' in result.output
-        assert 'failed with return code 3' in result.output
+        assert 'a: hello a' in text(result)
+        assert 'An error occurred while executing jobs' in text(result)
+        assert 'failed with return code 3' in text(result)
         assert [p.name for p in tmp_path.iterdir()] == ['fail']
 
     def test_job_options_apply(self, tmp_path, restore_settings):
