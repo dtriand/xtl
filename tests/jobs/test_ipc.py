@@ -4,6 +4,7 @@ handle. The process backend starts a `multiprocessing` manager per test (about 1
 """
 
 import asyncio
+import threading
 
 import pytest
 
@@ -62,8 +63,7 @@ class TestLocks:
 
     @pytest.mark.asyncio
     async def test_excludes_concurrent_holders(self, backend):
-        if isinstance(backend, ThreadedIPCBackend):
-            pytest.skip('a threading.RLock lets coroutines on the same thread in together')
+        # Coroutines on the same thread too: a thread lock that belongs to the thread would let them all in
         lock = backend.get_lock('a')
         inside, peak = 0, 0
 
@@ -77,6 +77,87 @@ class TestLocks:
 
         await asyncio.wait_for(asyncio.gather(*(critical() for _ in range(3))), timeout=10)
         assert peak == 1
+
+
+def run_in_new_loop(main, timeout: float = 10):
+    """
+    Run ``main()`` with ``asyncio.run()`` in a thread, as a job runs in a worker, and fail if it doesn't return in
+    time (a thread left waiting in the loop's executor keeps ``asyncio.run()`` from returning).
+    """
+    outcome = {}
+
+    def target():
+        try:
+            outcome['result'] = asyncio.run(main())
+        except BaseException as e:
+            outcome['error'] = e
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(timeout)
+    assert not thread.is_alive(), 'asyncio.run() did not return'
+    if 'error' in outcome:
+        raise outcome['error']
+    return outcome['result']
+
+
+class TestWaits:
+    """Waiting doesn't block the event loop, and a wait that is given up leaves nothing behind."""
+
+    def test_lock_waits_without_blocking_the_loop(self, backend):
+        lock = backend.get_lock('a')
+
+        async def main():
+            await lock.acquire()
+            waiting = asyncio.ensure_future(lock.acquire())
+            await asyncio.sleep(0.1)  # the loop keeps running while the lock is taken
+            assert not waiting.done()
+            await lock.release()
+            await asyncio.wait_for(waiting, timeout=5)
+            await lock.release()
+
+        run_in_new_loop(main)
+
+    def test_timed_out_acquire_leaves_the_lock_free(self, backend):
+        lock = backend.get_lock('a')
+
+        async def main():
+            await lock.acquire()
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(lock.acquire(), timeout=0.1)
+            await lock.release()
+            await asyncio.wait_for(lock.acquire(), timeout=1)
+            await lock.release()
+
+        run_in_new_loop(main)
+
+    def test_timed_out_get_takes_nothing(self, backend):
+        q = backend.get_queue('q')
+
+        async def main():
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(q.get(), timeout=0.1)
+            await q.put('item')
+            await asyncio.sleep(0.2)
+            return await asyncio.wait_for(q.get(), timeout=1)
+
+        assert run_in_new_loop(main) == 'item'
+
+    def test_put_waits_while_full(self, backend):
+        q = backend.get_queue('bounded', maxsize=1)
+
+        async def main():
+            await q.put('first')
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(q.put('dropped'), timeout=0.1)
+            waiting = asyncio.ensure_future(q.put('second'))
+            await asyncio.sleep(0.1)
+            assert not waiting.done()
+            assert await q.get() == 'first'
+            await asyncio.wait_for(waiting, timeout=1)
+            return await q.get(), q.empty()
+
+        assert run_in_new_loop(main) == ('second', True)
 
 
 class TestQueues:
@@ -145,8 +226,6 @@ class TestWorkerBackend:
 
     @pytest.mark.asyncio
     async def test_shares_the_pools_locks(self, backend, worker):
-        if isinstance(backend, ThreadedIPCBackend):
-            pytest.skip('a threading.RLock lets coroutines on the same thread in together')
         async with backend.get_lock('l'):
             waiting = asyncio.ensure_future(worker.get_lock('l').acquire())
             await asyncio.sleep(0.1)

@@ -44,6 +44,14 @@ class UsesUnknownLock(Job[JobConfig]):
             return True
 
 
+class Producer(Job[JobConfig]):
+    """Puts its id in the pool's queue `items`, a little after it starts."""
+
+    async def _execute(self):
+        await asyncio.sleep(0.05)
+        await self.pool.get_queue('items').put(self.job_id)
+
+
 class ReadsSettings(Job[JobConfig]):
     async def _execute(self):
         return settings.jobs.keep_temp, settings.jobs.permissions.update, settings.dependencies.modules
@@ -259,6 +267,17 @@ class TestSharedPrimitives:
             results = await pool.launch()
             assert all(r.success for r in results)
             assert state['n'] == 16
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+    async def test_caller_reads_the_queue_while_jobs_run(self, pool_cls):
+        async with pool_cls(max_jobs=2) as pool:
+            q = pool.get_queue('items')
+            pool.submit(Producer, configs=[None, None], job_ids=['a', 'b'])
+            launch = asyncio.create_task(pool.launch())
+            items = [await asyncio.wait_for(q.get(), timeout=30) for _ in range(2)]
+            await launch
+        assert sorted(items) == ['a', 'b']
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)

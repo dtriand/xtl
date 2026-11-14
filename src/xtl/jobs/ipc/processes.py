@@ -1,16 +1,17 @@
-import asyncio
 import multiprocessing as mp
 from multiprocessing.managers import SyncManager
+import queue
 from typing import Any
 
-from .base import IPCLock, IPCQueue, IPCState, IPCBackend, IPCHandle
+from .base import IPCLock, IPCQueue, IPCState, IPCBackend, IPCHandle, NOT_YET, poll
 
 
 class ProcessLock(IPCLock):
     """
     Process context manager for locks
 
-    Wraps a multiprocessing.Manager().Lock() proxy with an async interface.
+    Wraps a multiprocessing.Manager().Lock() proxy with an async interface. Each try to acquire it is a call to the
+    manager process.
     """
 
     def __init__(self, lock, name: str):
@@ -18,10 +19,7 @@ class ProcessLock(IPCLock):
         self._lock = lock
 
     async def acquire(self) -> None:
-        # Manager lock acquisition is blocking; run it in an executor thread
-        #  to avoid blocking the main event loop.
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, self._lock.acquire)
+        await poll(lambda: True if self._lock.acquire(False) else NOT_YET)
 
     async def release(self) -> None:
         self._lock.release()
@@ -31,19 +29,30 @@ class ProcessQueue(IPCQueue):
     """
     Process interface for queues
 
-    Wraps a multiprocessing.Manager().Queue() proxy with an async interface.
+    Wraps a multiprocessing.Manager().Queue() proxy with an async interface. Each try to put or get an item is a call
+    to the manager process.
     """
 
     def __init__(self, queue):
         self._q = queue
 
+    def _try_put(self, item: Any) -> Any:
+        try:
+            self._q.put_nowait(item)
+        except queue.Full:
+            return NOT_YET
+
+    def _try_get(self) -> Any:
+        try:
+            return self._q.get_nowait()
+        except queue.Empty:
+            return NOT_YET
+
     async def put(self, item: Any) -> None:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, self._q.put, item)
+        await poll(lambda: self._try_put(item))
 
     async def get(self) -> Any:
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._q.get)
+        return await poll(self._try_get)
 
     def empty(self) -> bool:
         return self._q.empty()
