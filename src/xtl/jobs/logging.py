@@ -101,7 +101,9 @@ class HandlerConfig(Options):
 
         :return: A logging.Handler instance configured with the specified class,
                  format, and options
+        :raises MissingPlaceholderError: If a placeholder wasn't filled in, e.g. a job's spec used outside a job.
         """
+        self._check_filled()
         handler = getattr(self, 'handler', logging.Handler)(**self.options)
         handler.setFormatter(self.format.get_formatter())
         if self.level:
@@ -142,6 +144,12 @@ class HandlerConfig(Options):
                 update[name] = {k: fill_text(v) if isinstance(v, str) else v for k, v in value.items()}
         return self.model_copy(update=update)
 
+    def _check_filled(self) -> None:
+        """
+        :raises MissingPlaceholderError: If a placeholder wasn't filled in.
+        """
+        self.fill({})
+
 
 class StreamHandlerConfig(HandlerConfig):
     """
@@ -170,13 +178,15 @@ class StreamHandlerConfig(HandlerConfig):
 
         :return: A logging.StreamHandler instance configured with the specified stream,
                  format, and options
+        :raises MissingPlaceholderError: If a placeholder wasn't filled in.
         """
+        self._check_filled()
         stream = self.stream
         if isinstance(stream, str):
             if stream not in _STREAMS:
                 raise ValueError(f"Unknown stream {stream!r}, expected 'stdout' or 'stderr'")
             stream = _STREAMS[stream]()
-        handler = getattr(self, 'handler', logging.StreamHandler)(stream=stream)
+        handler = getattr(self, 'handler', logging.StreamHandler)(stream=stream, **self.options)
         handler.setFormatter(self.format.get_formatter())
         if self.level:
             handler.setLevel(self.level)
@@ -199,9 +209,11 @@ class FileHandlerConfig(HandlerConfig):
 
         :return: A logging.FileHandler instance configured with the specified filename,
                  mode, encoding, format, and options
+        :raises MissingPlaceholderError: If a placeholder wasn't filled in.
         """
+        self._check_filled()
         handler = getattr(self, 'handler', logging.FileHandler)(
-            filename=self.filename, mode=self.mode, encoding=self.encoding
+            filename=self.filename, mode=self.mode, encoding=self.encoding, **self.options
         )
         handler.setFormatter(self.format.get_formatter())
         if self.level:
@@ -227,7 +239,10 @@ class JobFileHandlerConfig(FileHandlerConfig):
     def get_handler(self) -> logging.Handler:
         """
         Create the file handler, and the file's directory if it doesn't exist yet.
+
+        :raises MissingPlaceholderError: If a placeholder wasn't filled in, e.g. outside a job.
         """
+        self._check_filled()
         Path(self.filename).parent.mkdir(parents=True, exist_ok=True)
         return super().get_handler()
 

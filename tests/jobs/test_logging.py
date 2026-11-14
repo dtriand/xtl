@@ -1,5 +1,6 @@
 """
-Tests for the logging of jobs and pools.
+Tests for the logging of jobs and pools: first the classes and functions of ``xtl.jobs.logging``, then how jobs, pools
+and the TUI use them.
 
 Records are captured with :class:`Capture`, an in-process handler, instead of caplog,
 because job and pool loggers don't propagate to the root logger. Jobs are defined at
@@ -13,7 +14,9 @@ from collections import defaultdict
 import io
 import json
 import logging
+import logging.handlers
 from pathlib import Path
+import queue
 import subprocess
 import sys
 
@@ -22,10 +25,11 @@ import rich.traceback
 
 import xtl
 import xtl_core
+from xtl.jobs import logging as xtl_logging
 from xtl.jobs.batchfiles import BatchFile
 from xtl.jobs.config import BatchJobConfig, JobConfig, SteppedJobConfig
 from xtl.jobs.jobs import BatchJob, Job, SteppedJob
-from xtl.jobs.pools import AsyncPool, BasePool, MultiprocessPool, SimplePool, ThreadedPool
+from xtl.jobs.pools import BasePool, MultiprocessPool, SimplePool
 from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Talker
 from xtl.jobs.sites import LocalSite
 from xtl.jobs.steps import StepSpec
@@ -36,12 +40,19 @@ from xtl.jobs.logging import (
     JobFileHandlerConfig,
     JobNameFilter,
     LoggerConfig,
+    LoggingFormat,
+    MissingPlaceholderError,
     RelayHandler,
     StreamHandlerConfig,
+    get_logger_config,
+    pass_through,
+    pool_label,
+    register_pool_class,
 )
 from xtl.tui.console import ConsoleIO
 from xtl.tui.live_pool import LivePool
 from xtl.tui.renderers import LogRenderer
+from xtl_core.options import Option, OptionsValidationError
 
 RECORDS: dict[str, list[logging.LogRecord]] = defaultdict(list)
 """Records captured by :class:`Capture`, per key. Only filled in the process that emits them."""
@@ -63,7 +74,6 @@ class Capture(logging.Handler):
 
 
 def capture_config(key: str, level: int = logging.DEBUG) -> LoggerConfig:
-    # `options` is the one part of a handler config that survives a dict round trip today
     return LoggerConfig(level=level, propagate=False, handlers=[HandlerConfig(handler=Capture, options={'key': key})])
 
 
@@ -73,6 +83,21 @@ def messages(key: str) -> list[str]:
 
 def names(key: str) -> set[str]:
     return {r.name for r in RECORDS[key]}
+
+
+class TaggedHandler(logging.Handler):
+    """A user-defined handler class, importable from this module."""
+
+
+class TaggedHandlerConfig(HandlerConfig):
+    """A user-defined handler config, importable from this module."""
+
+    handler: type(logging.Handler) = Option(default=TaggedHandler, desc='Handler class')
+    tag: str = Option(default='', desc='A field of its own')
+
+
+class TaggedFileHandler(logging.FileHandler):
+    """A user-defined handler class, importable by worker processes."""
 
 
 class Stepped(SteppedJob[SteppedJobConfig]):
@@ -99,10 +124,6 @@ class KeptStepped(Stepped):
     _keep_files = True
 
 
-class TaggedFileHandler(logging.FileHandler):
-    """A user-defined handler class, importable by worker processes."""
-
-
 class SteppedRaising(SteppedJob[SteppedJobConfig]):
     async def _execute(self):
         raise ValueError('stepped boom')
@@ -122,8 +143,473 @@ async def run_pool(pool: BasePool, job_cls: type[Job], job_ids: list[str], confi
     return jobs, results
 
 
-def default_config(job_cls: type[Job]) -> JobConfig:
-    return SteppedJobConfig() if issubclass(job_cls, SteppedJob) else JobConfig()
+def make_record(name: str, level: int = logging.INFO, msg: str = 'message', args: tuple = (), **kwargs):
+    return logging.getLogger(name).makeRecord(name, level, __file__, 1, msg, args, None, **kwargs)
+
+
+# The classes and functions of xtl.jobs.logging
+
+
+class TestLoggingFormat:
+    def test_defaults(self):
+        fmt = LoggingFormat()
+        assert fmt.format == '[%(asctime)s] - %(name)s - %(levelname)s - %(message)s'
+        assert fmt.datefmt == '%H:%M:%S'
+
+    def test_get_formatter(self):
+        formatter = LoggingFormat(format='%(levelname)s: %(message)s', datefmt='%H:%M').get_formatter()
+        assert isinstance(formatter, logging.Formatter)
+        assert formatter._fmt == '%(levelname)s: %(message)s'
+        assert formatter.datefmt == '%H:%M'
+
+
+class TestHandlerConfig:
+    def test_handler_from_its_import_path(self):
+        assert HandlerConfig(handler='logging.NullHandler').handler is logging.NullHandler
+
+    def test_get_handler(self):
+        handler = HandlerConfig(
+            handler=Capture, options={'key': 'k'}, format=LoggingFormat(format='%(message)s')
+        ).get_handler()
+        assert isinstance(handler, Capture)
+        assert handler.key == 'k'
+        assert handler.formatter._fmt == '%(message)s'
+        assert handler.level == logging.NOTSET
+
+    def test_get_handler_level(self):
+        assert HandlerConfig(handler=logging.NullHandler, level=logging.WARNING).get_handler().level == logging.WARNING
+
+    def test_get_handler_with_a_placeholder_left(self):
+        with pytest.raises(MissingPlaceholderError, match='job_id'):
+            HandlerConfig(handler=Capture, options={'key': '{job_id}'}).get_handler()
+
+    def test_to_spec(self):
+        spec = TaggedHandlerConfig(tag='mine').to_spec()
+        assert spec['config_cls'] == 'tests.jobs.test_logging.TaggedHandlerConfig'
+        assert spec['handler'] is TaggedHandler
+        assert TaggedHandlerConfig().to_spec(mode='json')['handler'] == 'tests.jobs.test_logging.TaggedHandler'
+
+    def test_from_spec(self):
+        restored = HandlerConfig.from_spec(TaggedHandlerConfig(tag='mine').to_spec(mode='json'))
+        assert isinstance(restored, TaggedHandlerConfig)
+        assert (restored.tag, restored.handler) == ('mine', TaggedHandler)
+
+    def test_from_spec_without_config_class(self):
+        restored = HandlerConfig.from_spec({'handler': 'logging.NullHandler'})
+        assert type(restored) is HandlerConfig
+        assert restored.handler is logging.NullHandler
+
+    def test_from_spec_leaves_the_spec_alone(self):
+        spec = {'config_cls': 'xtl.jobs.logging.HandlerConfig'}
+        HandlerConfig.from_spec(spec)
+        assert spec == {'config_cls': 'xtl.jobs.logging.HandlerConfig'}
+
+    def test_from_spec_with_a_class_that_is_not_a_config(self):
+        with pytest.raises(TypeError, match='not a HandlerConfig subclass'):
+            HandlerConfig.from_spec({'config_cls': 'logging.NullHandler'})
+
+    def test_fill(self):
+        spec = HandlerConfig(
+            handler=logging.NullHandler,
+            format=LoggingFormat(format='{job_id} %(message)s'),
+            options={'tag': '{pool}:{job_id}', 'other': '{unknown}', 'count': 3},
+        )
+        filled = spec.fill({'job_directory': None, 'job_id': 'T_1', 'job_class': 'T', 'pool': 'SimplePool'})
+        assert filled.options == {'tag': 'SimplePool:T_1', 'other': '{unknown}', 'count': 3}
+        # The format is left alone, and so is the original
+        assert filled.format.format == '{job_id} %(message)s'
+        assert spec.options['tag'] == '{pool}:{job_id}'
+
+    def test_fill_string_fields(self):
+        filled = TaggedHandlerConfig(tag='{job_class}').fill({'job_class': 'Talker'})
+        assert isinstance(filled, TaggedHandlerConfig)
+        assert filled.tag == 'Talker'
+
+    def test_fill_without_a_value(self):
+        with pytest.raises(MissingPlaceholderError, match='job_directory'):
+            HandlerConfig(options={'filename': '{job_directory}/x.log'}).fill({'job_directory': None})
+
+
+class TestStreamHandlerConfig:
+    def test_get_handler(self):
+        stream = io.StringIO()
+        handler = StreamHandlerConfig(stream=stream, format=LoggingFormat(format='%(message)s')).get_handler()
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.stream is stream
+        handler.handle(make_record('stream'))
+        assert stream.getvalue() == 'message\n'
+
+    def test_named_streams_are_resolved_when_the_handler_is_made(self, monkeypatch):
+        stream = io.StringIO()
+        monkeypatch.setattr(sys, 'stdout', stream)
+        assert StreamHandlerConfig().get_handler().stream is stream
+        assert StreamHandlerConfig(stream='stderr').get_handler().stream is sys.stderr
+
+    def test_unknown_stream_name(self):
+        with pytest.raises(ValueError, match="Unknown stream 'stdin'"):
+            StreamHandlerConfig(stream='stdin').get_handler()
+
+    def test_get_handler_level(self):
+        assert StreamHandlerConfig(level=logging.ERROR).get_handler().level == logging.ERROR
+
+    def test_get_handler_options(self):
+        class Tagged(logging.StreamHandler):
+            def __init__(self, stream=None, tag=''):
+                super().__init__(stream)
+                self.tag = tag
+
+        assert StreamHandlerConfig(handler=Tagged, options={'tag': 'mine'}).get_handler().tag == 'mine'
+
+    def test_json_names_the_stream(self):
+        assert json.loads(StreamHandlerConfig(stream='stderr').to_json())['stream'] == 'stderr'
+        assert json.loads(StreamHandlerConfig(stream=sys.stdout).to_json())['stream'] == 'stdout'
+        assert json.loads(StreamHandlerConfig(stream=sys.stderr).to_json())['stream'] == 'stderr'
+
+    def test_stream_object_cannot_go_to_json(self):
+        with pytest.raises(Exception, match="stream object can't be serialized"):
+            StreamHandlerConfig(stream=io.StringIO()).to_json()
+
+
+class TestFileHandlerConfig:
+    def test_defaults(self):
+        config = FileHandlerConfig()
+        assert (config.handler, config.filename, config.mode, config.encoding) == (
+            logging.FileHandler,
+            'job.log',
+            'a',
+            'utf-8',
+        )
+
+    def test_get_handler(self, tmp_path):
+        log = tmp_path / 'test.log'
+        log.write_text('before\n', encoding='utf-8')
+        handler = FileHandlerConfig(
+            filename=str(log), level=logging.INFO, format=LoggingFormat(format='%(message)s')
+        ).get_handler()
+        assert isinstance(handler, logging.FileHandler)
+        assert (handler.baseFilename, handler.mode, handler.encoding) == (str(log), 'a', 'utf-8')
+        assert handler.level == logging.INFO
+        handler.handle(make_record('file', msg='ünïcode'))
+        handler.close()
+        assert log.read_text(encoding='utf-8') == 'before\nünïcode\n'
+
+    def test_get_handler_options(self, tmp_path):
+        config = FileHandlerConfig(
+            filename=str(tmp_path / 'test.log'),
+            handler=logging.handlers.RotatingFileHandler,
+            options={'maxBytes': 100, 'backupCount': 2},
+        )
+        handler = config.get_handler()
+        handler.close()
+        assert (handler.maxBytes, handler.backupCount) == (100, 2)
+
+
+class TestJobFileHandlerConfig:
+    def test_defaults(self):
+        config = JobFileHandlerConfig()
+        assert (config.filename, config.mode, config.level) == ('{job_directory}/xtl.log', 'w', logging.DEBUG)
+        assert config.format.datefmt == '%Y-%m-%d %H:%M:%S'
+
+    def test_get_handler_creates_the_directory(self, tmp_path):
+        handler = JobFileHandlerConfig().fill({'job_directory': str(tmp_path / 'new')}).get_handler()
+        handler.close()
+        assert Path(handler.baseFilename) == tmp_path / 'new' / 'xtl.log'
+
+    def test_get_handler_without_a_job(self, tmp_path, monkeypatch):
+        # Outside a job, e.g. among a pool's handlers, there's no directory to create
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(MissingPlaceholderError, match='job_directory'):
+            JobFileHandlerConfig().get_handler()
+        assert list(tmp_path.iterdir()) == []
+
+
+class TestLoggerConfig:
+    def test_defaults(self):
+        config = LoggerConfig()
+        assert config.level == logging.INFO
+        assert config.propagate is False
+        assert len(config.handlers) == 1
+        assert isinstance(config.handlers[0], StreamHandlerConfig)
+        assert LoggerConfig().handlers[0] is not config.handlers[0]
+
+    def test_handlers_from_specs(self):
+        specs = (FileHandlerConfig(filename='a.log').to_spec(), {'handler': 'logging.NullHandler'})
+        config = LoggerConfig(handlers=specs)
+        assert [type(h) for h in config.handlers] == [FileHandlerConfig, HandlerConfig]
+        with pytest.raises(OptionsValidationError):
+            LoggerConfig(handlers=FileHandlerConfig())
+
+    def test_dict_round_trip(self):
+        config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w')])
+        restored = LoggerConfig.from_dict(config.to_dict()).handlers[0]
+        assert isinstance(restored, FileHandlerConfig)
+        assert (restored.filename, restored.mode) == ('job.log', 'w')
+
+    def test_json_round_trip(self):
+        config = LoggerConfig(handlers=[FileHandlerConfig(filename='job.log', mode='w'), JobFileHandlerConfig()])
+        restored = LoggerConfig.from_json(config.to_json()).handlers
+        assert [type(h) for h in restored] == [FileHandlerConfig, JobFileHandlerConfig]
+        assert (restored[0].filename, restored[0].mode) == ('job.log', 'w')
+
+    def test_json_names_classes_by_import_path(self):
+        spec = json.loads(LoggerConfig(handlers=[FileHandlerConfig()]).to_json())['handlers'][0]
+        assert spec['handler'] == 'logging.FileHandler'
+        assert spec['config_cls'] == 'xtl.jobs.logging.FileHandlerConfig'
+
+    def test_user_defined_config_survives_json(self):
+        config = LoggerConfig(handlers=[TaggedHandlerConfig(tag='mine', options={'level': logging.WARNING})])
+        restored = LoggerConfig.from_json(config.to_json()).handlers[0]
+        assert isinstance(restored, TaggedHandlerConfig)
+        assert restored.tag == 'mine'
+        assert restored.handler is TaggedHandler
+        assert restored.get_handler().level == logging.WARNING
+
+    def test_configure(self):
+        stream = io.StringIO()
+        config = LoggerConfig(
+            level=logging.DEBUG,
+            handlers=[StreamHandlerConfig(stream=stream, format=LoggingFormat(format='%(levelname)s: %(message)s'))],
+        )
+        logger = logging.getLogger('configure')
+        logger.propagate = True
+        config.configure(logger)
+        assert logger.level == logging.DEBUG
+        assert logger.propagate is False
+        [handler] = logger.handlers
+        assert handler._xtl_owned
+        logger.debug('Debug message')
+        assert stream.getvalue() == 'DEBUG: Debug message\n'
+
+    def test_configure_several_handlers(self, tmp_path):
+        log, stream = tmp_path / 'configure.log', io.StringIO()
+        config = LoggerConfig(
+            level=logging.DEBUG,
+            handlers=[
+                StreamHandlerConfig(stream=stream, format=LoggingFormat(format='STREAM: %(levelname)s - %(message)s')),
+                FileHandlerConfig(filename=str(log), format=LoggingFormat(format='FILE: %(levelname)s - %(message)s')),
+            ],
+        )
+        logger = logging.getLogger('configure_several')
+        config.configure(logger)
+        logger.debug('Debug message')
+        logger.warning('Warning message')
+        for handler in logger.handlers:
+            handler.close()
+        assert stream.getvalue() == 'STREAM: DEBUG - Debug message\nSTREAM: WARNING - Warning message\n'
+        assert log.read_text(encoding='utf-8') == 'FILE: DEBUG - Debug message\nFILE: WARNING - Warning message\n'
+
+    def test_configure_again_replaces_its_own_handlers(self, tmp_path):
+        logger = logging.getLogger('configure_again')
+        foreign = Capture('foreign')
+        logger.addHandler(foreign)
+        LoggerConfig(handlers=[FileHandlerConfig(filename=str(tmp_path / 'first.log'))]).configure(logger)
+        [first] = [h for h in logger.handlers if h is not foreign]
+        LoggerConfig(handlers=[HandlerConfig(handler=Capture)]).configure(logger)
+        # The first config's handler is closed and gone, the foreign one stays
+        assert first.stream is None
+        assert first not in logger.handlers
+        assert foreign in logger.handlers
+        assert len(logger.handlers) == 2
+
+    def test_configure_without_handlers(self):
+        logger = logging.getLogger('configure_none')
+        LoggerConfig(level=logging.WARNING, handlers=[]).configure(logger)
+        [handler] = logger.handlers
+        assert isinstance(handler, logging.NullHandler)
+        assert logger.level == logging.WARNING
+
+    def test_handler_levels(self):
+        config = LoggerConfig(
+            level=logging.INFO,
+            handlers=[HandlerConfig(handler=logging.NullHandler), HandlerConfig(handler=logging.NullHandler, level=10)],
+        )
+        logger = logging.getLogger('handler_levels')
+        config.configure(logger)
+        # A handler without a level gets the config's; the logger lets through what the most verbose one wants
+        assert [h.level for h in logger.handlers] == [logging.INFO, logging.DEBUG]
+        assert logger.level == logging.DEBUG
+
+    def test_name_filter(self):
+        parent = logging.getLogger('named')
+        LoggerConfig(handlers=[HandlerConfig(handler=Capture, options={'key': 'named'})]).configure(parent)
+        child = parent.getChild('2')
+        child.propagate = True
+        parent.info('parent')
+        child.info('child')
+        assert [r.job for r in RECORDS['named']] == ['named', 'named.2']
+
+        LoggerConfig(handlers=[HandlerConfig(handler=Capture, options={'key': 'label'})]).configure(parent, 'Label')
+        child.info('child')
+        parent.info('parent')
+        assert [r.job for r in RECORDS['label']] == ['2', 'Label']
+
+    def test_live_handlers(self):
+        live = logging.NullHandler()
+        config = LoggerConfig(handlers=[live, StreamHandlerConfig(stream=io.StringIO())])
+        logger = logging.getLogger('live_handlers')
+        config.configure(logger, label='Live')
+        assert live in logger.handlers
+        assert len(logger.handlers) == 2
+        assert len(live.filters) == 1
+
+        # Reconfiguring detaches the live handler without closing it, and doesn't add a second filter
+        LoggerConfig(handlers=[]).configure(logger)
+        assert live not in logger.handlers
+        config.configure(logger, label='Live')
+        assert len(live.filters) == 1
+
+        assert config.to_dict()['handlers'][0] is live
+        with pytest.raises(Exception, match="live handler can't be serialized"):
+            config.to_json()
+
+
+class TestGetLoggerConfig:
+    def test_defaults(self):
+        config = get_logger_config()
+        assert (config.level, config.propagate) == (logging.INFO, False)
+        [handler] = config.handlers
+        assert isinstance(handler, StreamHandlerConfig)
+        assert handler.format.format == '[%(asctime)s.%(msecs)03d:%(job)s] %(message)s'
+        assert get_logger_config(level=logging.DEBUG).level == logging.DEBUG
+
+    def test_threading_debug(self, monkeypatch):
+        monkeypatch.setattr(xtl.settings.jobs, 'threading_debug', True)
+        assert '%(threadName)s' in get_logger_config().handlers[0].format.format
+
+
+class TestPassThrough:
+    def test_pass_through(self, tmp_path):
+        logger = logging.getLogger('pass_through')
+        foreign = Capture('foreign')
+        logger.addHandler(foreign)
+        LoggerConfig(level=logging.WARNING, handlers=[FileHandlerConfig(filename=str(tmp_path / 'x.log'))]).configure(
+            logger
+        )
+        [owned] = [h for h in logger.handlers if h is not foreign]
+        pass_through(logger)
+        assert logger.handlers == [foreign]
+        assert owned.stream is None
+        assert logger.level == logging.NOTSET
+        assert logger.propagate is True
+
+
+class TestPoolLabel:
+    @pytest.mark.parametrize(
+        'segment, label',
+        [
+            ('SimplePool#1', 'SimplePool'),
+            ('SimplePool|refine#1', 'SimplePool|refine'),
+            ('SimplePool', None),
+            ('Talker|1', None),
+            ('job#1', None),
+            ('job|SimplePool#1', None),
+        ],
+    )
+    def test_pool_label(self, segment, label):
+        assert pool_label(segment) == label
+
+    def test_register_pool_class(self, monkeypatch):
+        monkeypatch.setattr(xtl_logging, '_POOL_CLASSES', set(xtl_logging._POOL_CLASSES))
+        assert pool_label('Custom#1') is None
+        register_pool_class('Custom')
+        assert pool_label('Custom|x#1') == 'Custom|x'
+
+    def test_pool_classes_register_themselves(self, monkeypatch):
+        monkeypatch.setattr(xtl_logging, '_POOL_CLASSES', set(xtl_logging._POOL_CLASSES))
+
+        class CustomPool(SimplePool):
+            pass
+
+        assert pool_label('CustomPool#1') == 'CustomPool'
+
+
+class TestJobNameFilter:
+    @pytest.mark.parametrize(
+        'name, shown',
+        [
+            ('MultiprocessPool#123', 'MultiprocessPool'),
+            ('MultiprocessPool#123.Talker|1', 'Talker|1'),
+            ('MultiprocessPool#123.Talker|1.2', 'Talker|1.2'),
+            ('MultiprocessPool#123.my.job', 'my.job'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool#9.Talker|03', 'Outer|01>Talker|03'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool#9', 'Outer|01>ThreadedPool'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9', 'Outer|01>ThreadedPool|refine'),
+            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9.Talker|03', 'Outer|01>Talker|03'),
+            ('MultiprocessPool#1234.Talker|1', 'MultiprocessPool#1234.Talker|1'),
+            ('xtl.jobs.sites', 'xtl.jobs.sites'),
+        ],
+    )
+    def test_display_name(self, name, shown):
+        name_filter = JobNameFilter(base='MultiprocessPool#123', label='MultiprocessPool')
+        assert name_filter.display_name(name) == shown
+
+    def test_label_defaults_to_the_base(self):
+        assert JobNameFilter(base='base').display_name('base') == 'base'
+
+    def test_relative_to_the_root(self):
+        name_filter = JobNameFilter(base='')
+        assert name_filter.display_name('job.SimplePool#7.Talker|1') == 'job>Talker|1'
+
+    def test_for_a_standalone_job(self):
+        name_filter = JobNameFilter.for_logger(logging.getLogger('standalone'))
+        assert name_filter.base == ''
+        assert name_filter.display_name('standalone') == 'standalone'
+        assert name_filter.display_name('standalone.2') == 'standalone.2'
+        assert name_filter.display_name('standalone.SimplePool#7.Talker|1') == 'standalone>Talker|1'
+
+    def test_for_a_job_in_a_pool(self):
+        logging.getLogger('SimplePool#7')
+        name_filter = JobNameFilter.for_logger(logging.getLogger('SimplePool#7.Talker|1'))
+        assert name_filter.base == 'SimplePool#7'
+        assert name_filter.display_name('SimplePool#7.Talker|1.2') == 'Talker|1.2'
+
+    def test_for_a_pool(self):
+        name_filter = JobNameFilter.for_logger(logging.getLogger('SimplePool#7'), label='SimplePool')
+        assert (name_filter.base, name_filter.label) == ('SimplePool#7', 'SimplePool')
+
+    def test_filter(self):
+        record = make_record('SimplePool#7.Talker|1')
+        assert JobNameFilter(base='SimplePool#7', label='SimplePool').filter(record) is True
+        assert record.job == 'Talker|1'
+
+
+class TestRelayHandler:
+    def test_record_to_dict(self):
+        try:
+            raise ValueError('boom')
+        except ValueError:
+            record = logging.getLogger('relay').makeRecord(
+                'relay', logging.ERROR, __file__, 1, 'failed %s', ('here',), sys.exc_info(), extra={'payload': object()}
+            )
+        record.message = record.getMessage()  # as a formatter leaves it; left out
+        data = RelayHandler.record_to_dict(record)
+        assert json.loads(json.dumps(data)) == data
+        assert (data['msg'], data['args'], data['exc_info']) == ('failed here', None, None)
+        assert data['exc_text'].startswith('Traceback') and 'ValueError: boom' in data['exc_text']
+        assert data['payload'].startswith('<object object')
+        assert 'message' not in data
+        assert logging.makeLogRecord(data).getMessage() == 'failed here'
+
+    def test_record_to_dict_keeps_the_traceback_text(self):
+        record = make_record('relay')
+        record.exc_text = 'already formatted'
+        assert RelayHandler.record_to_dict(record)['exc_text'] == 'already formatted'
+
+    def test_percent_sign_in_the_message(self):
+        data = RelayHandler.record_to_dict(make_record('relay', msg='%s done', args=('100%',)))
+        assert logging.makeLogRecord(data).getMessage() == '100% done'
+
+    def test_emit(self):
+        sink = queue.Queue()
+        logger = logging.getLogger('relay_emit')
+        logger.addHandler(RelayHandler(sink))
+        logger.warning('to the %s', 'parent')
+        item = sink.get_nowait()
+        assert isinstance(item, dict)
+        assert (item['name'], item['levelno'], item['msg']) == ('relay_emit', logging.WARNING, 'to the parent')
+
+
+# How jobs, pools and the TUI use them
 
 
 class TestStandaloneJob:
@@ -173,9 +659,7 @@ class TestStandaloneJob:
 
     def test_defaults_follow_the_settings(self, monkeypatch):
         # The defaults are built when needed, so a change after import applies to new jobs and pools
-        from xtl import settings
-
-        monkeypatch.setattr(settings.jobs, 'threading_debug', True)
+        monkeypatch.setattr(xtl.settings.jobs, 'threading_debug', True)
         for logger in (Talker(job_id='a1b').logger, SimplePool(name='a1b').logger):
             assert 'processName' in logger.handlers[0].formatter._fmt
 
@@ -304,6 +788,16 @@ class TestPools:
         assert handler not in pool.logger.handlers
         assert handler.filters == []
 
+    def test_add_handler_levels(self):
+        pool = SimplePool(logger_config=LoggerConfig(level=logging.INFO, handlers=[]))
+        plain, verbose = Capture('c15b'), Capture('c15b', level=logging.DEBUG)
+        pool.add_handler(plain)
+        assert plain.level == logging.INFO
+        assert pool.logger.level == logging.INFO
+        pool.add_handler(verbose)
+        assert verbose.level == logging.DEBUG
+        assert pool.logger.level == logging.DEBUG
+
     @pytest.mark.parametrize('pool_cls', [SimplePool, MultiprocessPool])
     @pytest.mark.asyncio
     async def test_nested_pool_names(self, pool_cls):
@@ -316,15 +810,7 @@ class TestPools:
         assert {pool_cls.__name__, outer, f'{outer}>ThreadedPool', f'{outer}>Talker|1'} <= shown, shown
         assert 'info from Talker|1' in messages(key)
 
-    @pytest.mark.parametrize(
-        'pool_cls',
-        [
-            SimplePool,
-            AsyncPool,
-            ThreadedPool,
-            MultiprocessPool,
-        ],
-    )
+    @pytest.mark.parametrize('pool_cls', POOLS)
     @pytest.mark.asyncio
     async def test_job_records_reach_the_pool(self, pool_cls):
         key = f'c11_{pool_cls.__name__}'
@@ -335,20 +821,11 @@ class TestPools:
         for job_id in ids:
             assert f'info from {job_id}' in messages(key)
 
-    @pytest.mark.parametrize(
-        'pool_cls',
-        [
-            SimplePool,
-            AsyncPool,
-            ThreadedPool,
-            MultiprocessPool,
-        ],
-    )
+    @pytest.mark.parametrize('pool_cls', POOLS)
     @pytest.mark.asyncio
     async def test_stream_handler_in_pool(self, pool_cls):
         stream = io.StringIO()
-        handler = StreamHandlerConfig(stream=stream)
-        config = LoggerConfig(level=logging.INFO, handlers=[handler])
+        config = LoggerConfig(level=logging.INFO, handlers=[StreamHandlerConfig(stream=stream)])
         key = f'c11b_{pool_cls.__name__}'
         pool = pool_cls(name=key, max_jobs=2, logger_config=config)
         _, results = await run_pool(pool, Talker, [f'{key}_1'], JobConfig())
@@ -372,15 +849,7 @@ class TestPools:
         assert 'info from c12_job.1' in messages('c12')
         assert all(r.processName.startswith('Process') for r in RECORDS['c12'])
 
-    @pytest.mark.parametrize(
-        'pool_cls',
-        [
-            SimplePool,
-            AsyncPool,
-            ThreadedPool,
-            MultiprocessPool,
-        ],
-    )
+    @pytest.mark.parametrize('pool_cls', POOLS)
     @pytest.mark.asyncio
     async def test_step_records_reach_the_pool(self, pool_cls):
         key = f'c11c_{pool_cls.__name__}'
@@ -525,33 +994,11 @@ class TestJobHandlers:
         skipped = [r for r in RECORDS['h5b'] if r.captured.startswith("Skipped log handler 'broken'")]
         assert [r.levelno for r in skipped] == [logging.WARNING], messages('h5b')
 
-    def test_specs_travel_with_the_job(self):
-        job = Talker(job_id='h6')
-        job._log_handlers = {'file': JobFileHandlerConfig(level=logging.INFO)}
-        job._pool_label = 'SimplePool|h6'
-        restored = Job.deserialize(json.loads(json.dumps(job.serialize())))
-        spec = restored._log_handlers['file']
-        assert isinstance(spec, JobFileHandlerConfig)
-        assert spec.level == logging.INFO
-        assert restored._pool_label == 'SimplePool|h6'
-
-    def test_add_handler_levels(self):
-        pool = SimplePool(logger_config=LoggerConfig(level=logging.INFO, handlers=[]))
-        plain, verbose = Capture('h7'), Capture('h7', level=logging.DEBUG)
-        pool.add_handler(plain)
-        assert plain.level == logging.INFO
-        assert pool.logger.level == logging.INFO
-        pool.add_handler(verbose)
-        assert verbose.level == logging.DEBUG
-        assert pool.logger.level == logging.DEBUG
-
     def test_live_pool_adds_the_job_file(self, monkeypatch):
-        from xtl import settings
-
         live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
         assert isinstance(live._pool._job_handlers['file'], JobFileHandlerConfig)
 
-        monkeypatch.setattr(settings.cli, 'job_log_files', False)
+        monkeypatch.setattr(xtl.settings.cli, 'job_log_files', False)
         live = LivePool(console=ConsoleIO(file=io.StringIO(), width=100), pool_type='simple', max_jobs=1)
         assert live._pool._job_handlers == {}
 
@@ -619,7 +1066,17 @@ class TestSerialization:
         assert submission.log_level == logging.DEBUG
         assert JobSubmission.from_dict(submission.to_dict()).log_level == logging.DEBUG
 
-    def test_record_survives_json_and_relay(self):
+    def test_handler_specs_travel_with_the_job(self):
+        job = Talker(job_id='d16b')
+        job._log_handlers = {'file': JobFileHandlerConfig(level=logging.INFO)}
+        job._pool_label = 'SimplePool|d16b'
+        restored = Job.deserialize(json.loads(json.dumps(job.serialize())))
+        spec = restored._log_handlers['file']
+        assert isinstance(spec, JobFileHandlerConfig)
+        assert spec.level == logging.INFO
+        assert restored._pool_label == 'SimplePool|d16b'
+
+    def test_relayed_record_is_emitted_again(self):
         logger = logging.getLogger('d17')
         logger.handlers[:] = [Capture('d17')]
         logger.setLevel(logging.DEBUG)
@@ -640,38 +1097,12 @@ class TestSerialization:
         assert formatted.startswith('ERROR failed here\nTraceback')
         assert 'ValueError: boom' in formatted
 
-    @pytest.mark.parametrize(
-        'name, shown',
-        [
-            ('MultiprocessPool#123', 'MultiprocessPool'),
-            ('MultiprocessPool#123.Talker|1', 'Talker|1'),
-            ('MultiprocessPool#123.Talker|1.2', 'Talker|1.2'),
-            ('MultiprocessPool#123.my.job', 'my.job'),
-            ('MultiprocessPool#123.Outer|01.ThreadedPool#9.Talker|03', 'Outer|01>Talker|03'),
-            ('MultiprocessPool#123.Outer|01.ThreadedPool#9', 'Outer|01>ThreadedPool'),
-            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9', 'Outer|01>ThreadedPool|refine'),
-            ('MultiprocessPool#123.Outer|01.ThreadedPool|refine#9.Talker|03', 'Outer|01>Talker|03'),
-            ('MultiprocessPool#1234.Talker|1', 'MultiprocessPool#1234.Talker|1'),
-            ('xtl.jobs.sites', 'xtl.jobs.sites'),
-        ],
-    )
-    def test_display_names(self, name, shown):
-        name_filter = JobNameFilter(base='MultiprocessPool#123', label='MultiprocessPool')
-        assert name_filter.display_name(name) == shown
-
-    def test_standalone_job_names(self):
-        name_filter = JobNameFilter.for_logger(logging.getLogger('d19'))
-        assert name_filter.display_name('d19') == 'd19'
-        assert name_filter.display_name('d19.2') == 'd19.2'
-        assert name_filter.display_name('d19.SimplePool#7.Talker|1') == 'd19>Talker|1'
-
     def test_relay_respects_the_level(self):
         logger = logging.getLogger('d18')
         logger.handlers[:] = [Capture('d18')]
         logger.setLevel(logging.INFO)
         logger.propagate = False
-        record = logger.makeRecord('d18', logging.DEBUG, __file__, 1, 'quiet', (), None)
-        MultiprocessPool._relay_log(RelayHandler.record_to_dict(record))
+        MultiprocessPool._relay_log(RelayHandler.record_to_dict(make_record('d18', logging.DEBUG, 'quiet')))
         assert RECORDS['d18'] == []
 
 
