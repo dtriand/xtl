@@ -258,8 +258,14 @@ class LivePool(PoolProtocol):
         # Install special buffer handler for redirecting logs
         self._install_buffer()
 
-        # Enter the actual pool
-        await self._pool.__aenter__()
+        # Enter the actual pool; if it can't start, undo the display, the buffer and the theme
+        try:
+            await self._pool.__aenter__()
+        except BaseException:
+            live.stop()
+            self._remove_buffer()
+            self._console.pop_theme()
+            raise
 
         # Resources allocation
         #  NB: This is only available from within the pool context
