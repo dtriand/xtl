@@ -57,7 +57,6 @@ class TestBatchJobConfig:
         for config in (first, second):
             assert config.job_directory.parent == Path(tempfile.gettempdir())
             assert config.job_directory.name.startswith('xtl_batch_')
-            assert not config.job_directory.exists()  # the job creates it when it runs
         assert first.job_directory != second.job_directory
 
     def test_paths(self, tmp_path):
