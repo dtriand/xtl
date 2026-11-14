@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import threading
+import time
 import typing
 
 import pytest
@@ -544,6 +545,30 @@ class TestBasePool:
         # Cancelled again after the wait
         assert pool.status == {'a': JobStatus.CANCELLED}
         assert 'Waiting for 1 tasks to cancel' in records.messages(logging.WARNING)
+
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    @pytest.mark.asyncio
+    async def test_exit_keeps_the_event_loop_going(self, pool_cls):
+        ticks = []
+
+        async def ticker():
+            while True:
+                ticks.append(time.monotonic())
+                await asyncio.sleep(0.02)
+
+        ticking = asyncio.create_task(ticker())
+        with pytest.raises(ValueError):
+            async with pool_cls(max_jobs=1) as pool:
+                pool.submit(Sleeper, job_ids=['a'])
+                asyncio.create_task(pool.launch())
+                while pool.status['a'] != JobStatus.RUNNING:
+                    await asyncio.sleep(0.02)
+                raise ValueError
+        ticking.cancel()
+        # The running job still finishes in its worker, but the loop goes on meanwhile
+        assert max(b - a for a, b in zip(ticks, ticks[1:])) < 0.5
+        assert pool._executor is None
+        assert pool.status == {'a': JobStatus.CANCELLED}
 
     # Settings and shared primitives
 

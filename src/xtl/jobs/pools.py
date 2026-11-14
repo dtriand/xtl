@@ -482,6 +482,7 @@ class BasePool(PoolProtocol, abc.ABC):
                     await asyncio.gather(*pending, return_exceptions=True)
 
             self._in_ctx = False
+            await self._stop_workers()
             await self._drain_pool()
             # NB: Exceptions propagate, interrupts too, so that cancellation (e.g. `asyncio.timeout()`) and Ctrl+C
             #  stop the caller; an application decides what to show (as `LivePool` does)
@@ -489,6 +490,7 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Normal exit
         self._in_ctx = False
+        await self._stop_workers()
         await self._drain_pool()
         self.logger.debug('Exiting the pool context')
         return False
@@ -513,6 +515,16 @@ class BasePool(PoolProtocol, abc.ABC):
         for logger in removed:
             if isinstance(logger, logging.Logger):  # Not a placeholder
                 _remove_xtl_handlers(logger)
+
+    async def _stop_workers(self) -> None:
+        """
+        Shut down the pool's executor, if it has one, once its tasks are done or cancelled. Running jobs in worker
+        threads or processes still finish, since they can't be stopped from here; the wait happens in another thread,
+        so that the event loop goes on meanwhile.
+        """
+        if self._executor is not None:
+            executor, self._executor = self._executor, None
+            await asyncio.to_thread(executor.shutdown, wait=True)
 
     async def _drain_pool(self):
         """
@@ -950,12 +962,6 @@ class ThreadedPool(BasePool):
         self._executor = self._executor_cls(max_workers=self._resources.jobs)  # type: ignore
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._executor is not None:
-            self._executor.shutdown(wait=True)
-            self._executor = None
-        await super().__aexit__(exc_type, exc_val, exc_tb)
-
     @staticmethod
     def _rename_current_thread() -> None:
         """
@@ -1118,15 +1124,10 @@ class MultiprocessPool(BasePool):
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Shutdown the process pool executor, so that the workers have sent all their records
-        if self._executor is not None:
-            self._executor.shutdown(wait=True)
-            self._executor = None
-
+    async def _stop_workers(self) -> None:
+        # Stop the listener once the workers are gone, so that they have sent all their records
+        await super()._stop_workers()
         await self._stop_listener()
-
-        await super().__aexit__(exc_type, exc_val, exc_tb)
 
     @staticmethod
     def _init_worker(log_queue) -> None:
