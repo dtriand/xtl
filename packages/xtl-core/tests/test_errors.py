@@ -1,3 +1,5 @@
+import pickle
+
 import pytest
 from pydantic import ValidationError
 
@@ -21,3 +23,13 @@ def test_options_validation_error(base):
         Model(count='abc')
     assert isinstance(excinfo.value, OptionsValidationError)
     assert not isinstance(excinfo.value, ValidationError)
+
+
+def test_options_error_survives_pickling():
+    # E.g. a job that fails in a worker process, whose result travels back pickled
+    with pytest.raises(OptionsValidationError) as excinfo:
+        Model(count='abc')
+    restored = pickle.loads(pickle.dumps(excinfo.value))
+    assert type(restored) is OptionsValidationError
+    assert (restored.model_name, restored.errors) == (excinfo.value.model_name, excinfo.value.errors)
+    assert str(restored) == str(excinfo.value)

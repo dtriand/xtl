@@ -70,3 +70,21 @@ class OptionsValidationError(XTLCoreError, ValueError):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.errors!r})'
+
+    def __reduce__(self):
+        # Rebuilt from its parts, since its constructor wants a pydantic error that can't be made again, e.g. in the
+        #  process that unpickles it
+        return _rebuild_options_error, (type(self), self.model_name, self.errors)
+
+
+def _rebuild_options_error(
+    cls: type[OptionsValidationError], model_name: str, errors: list[dict[str, Any]]
+) -> OptionsValidationError:
+    """
+    Rebuild an :class:`OptionsValidationError` that was pickled.
+    """
+    error = cls.__new__(cls)
+    error.model_name = model_name
+    error.errors = errors
+    Exception.__init__(error, str(error))
+    return error
