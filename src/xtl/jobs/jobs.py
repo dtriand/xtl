@@ -43,6 +43,7 @@ from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
 from xtl_core.system.os import chmod_recursively
 from xtl.jobs.exceptions import SubprocessError
+from xtl.jobs.batchfiles import BatchFileStatus
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
 from xtl.jobs.logging import (
     HandlerConfig,
@@ -443,8 +444,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
             self._is_running = False
 
             # For SteppedJobs, check if any of the steps failed
-            #  NB: `result` is None if `_execute` raised
-            if isinstance(self, SteppedJob) and result is not None:
+            #  NB: `result` is None if `_execute` raised; anything but a 2-tuple is reported by `SteppedJob.run()`
+            if isinstance(self, SteppedJob) and isinstance(result, tuple) and len(result) == 2:
                 # SteppedJob._execute returns a tuple (step_results, data)
                 result: tuple[dict[str, JobResults | None], dict[str, Any]]
                 for i, r in enumerate(result[0].values()):
@@ -553,18 +554,14 @@ class Job(abc.ABC, Generic[JobConfigType]):
             return
 
         if not (self._keep_files or settings.jobs.keep_temp):
-            try:
-                self.logger.debug('Cleaning up job directory: %s', job_dir)
-                async with self.lock():
-                    shutil.rmtree(job_dir, ignore_errors=True)
+            self.logger.debug('Cleaning up job directory: %s', job_dir)
+            async with self.lock():
+                shutil.rmtree(job_dir, ignore_errors=True)
+            # NB: rmtree goes on past what it can't delete (e.g. a file that is still open on Windows)
+            if job_dir.exists():
+                self.logger.warning('Job directory %s could not be removed completely', job_dir)
+            else:
                 self.logger.debug('Job directory cleaned up successfully')
-            except OSError as e:
-                self.logger.error(
-                    'Failed to clean up job directory %s due to error: %s',
-                    job_dir,
-                    str(e),
-                    exc_info=settings.jobs.tracebacks,
-                )
         else:
             # Skip permission update on non-POSIX systems
             if not OS_POSIX:
@@ -843,7 +840,9 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         try:
             await batch.execute(stdout=cfg.stdout, stderr=cfg.stderr, batch_args=self._batch_args)
         except asyncio.CancelledError as e:
-            await batch.cancel()
+            # A local site stops the batch itself when it's cancelled; a batch that still runs is stopped here
+            if batch.status == BatchFileStatus.RUNNING:
+                await batch.cancel()
             self.logger.error('Batch execution was cancelled by the user')
             raise e
 
