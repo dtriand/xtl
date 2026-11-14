@@ -247,10 +247,34 @@ class JobFileHandlerConfig(FileHandlerConfig):
         return super().get_handler()
 
 
+def set_default_level(handler: logging.Handler, level: int) -> None:
+    """
+    Give a handler without a level of its own (NOTSET) a level, marked so that :func:`clear_default_level` can take it
+    back when the handler is removed. A handler with a level keeps it.
+
+    :param handler: The handler.
+    :param level: The level to give it.
+    """
+    if handler.level == logging.NOTSET:
+        handler.setLevel(level)
+        handler._xtl_level = True
+
+
+def clear_default_level(handler: logging.Handler) -> None:
+    """
+    Take back a level given by :func:`set_default_level`, so that a handler is left as it came.
+
+    :param handler: The handler.
+    """
+    if getattr(handler, '_xtl_level', False):
+        handler.setLevel(logging.NOTSET)
+        del handler._xtl_level
+
+
 def _remove_xtl_handlers(logger: logging.Logger) -> None:
     """
     Remove the handlers that xtl added to a logger: those built from configs are closed, live ones (passed in by the
-    user) are only detached. Other handlers are kept.
+    user) are only detached, with their level as it came. Other handlers are kept.
     """
     # Iterate over a copy, since removing from the list being iterated skips every other handler
     for handler in list(logger.handlers):
@@ -260,6 +284,7 @@ def _remove_xtl_handlers(logger: logging.Logger) -> None:
                 handler.close()
         elif getattr(handler, '_xtl_live', False):
             logger.removeHandler(handler)
+            clear_default_level(handler)
 
 
 class LoggerConfig(Options):
@@ -322,8 +347,7 @@ class LoggerConfig(Options):
                 handler = item.get_handler()
                 handler._xtl_owned = True
             # A handler without a level of its own gets the config's, so that a lower one elsewhere doesn't widen it
-            if handler.level == logging.NOTSET:
-                handler.setLevel(self.level)
+            set_default_level(handler, self.level)
             levels.append(handler.level)
             if not any(isinstance(f, JobNameFilter) for f in handler.filters):
                 handler.addFilter(name_filter)

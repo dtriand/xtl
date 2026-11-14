@@ -21,8 +21,11 @@ from xtl.jobs.logging import (
     JobNameFilter,
     LoggerConfig,
     RelayHandler,
+    _remove_xtl_handlers,
+    clear_default_level,
     get_logger_config,
     pass_through,
+    set_default_level,
     register_pool_class,
 )
 from xtl.jobs.ipc import (
@@ -320,9 +323,9 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         if not any(isinstance(f, JobNameFilter) for f in handler.filters):
             handler.addFilter(JobNameFilter(base=self._logger.name, label=self.label))
-        # A handler without a level gets the pool's, so that it doesn't show what only a job's own handlers want
-        if handler.level == logging.NOTSET:
-            handler.setLevel(self._logger_config.level)
+        # A handler without a level gets the pool's, so that it doesn't show what only a job's own handlers want;
+        #  it gets NOTSET back when it's removed
+        set_default_level(handler, self._logger_config.level)
         if handler.level < self._logger.getEffectiveLevel():
             self._logger.setLevel(handler.level)
         self._logger.addHandler(handler)
@@ -358,7 +361,8 @@ class BasePool(PoolProtocol, abc.ABC):
 
     def remove_handler(self, handler: logging.Handler) -> None:
         """
-        Remove a handler added with :meth:`add_handler`, and the name filter it got from this pool.
+        Remove a handler added with :meth:`add_handler`, the name filter it got from this pool, and the level, if it
+        got the pool's.
 
         :param handler: The handler to remove.
         """
@@ -368,6 +372,7 @@ class BasePool(PoolProtocol, abc.ABC):
         for f in list(handler.filters):
             if isinstance(f, JobNameFilter) and f.base == self._logger.name:
                 handler.removeFilter(f)
+        clear_default_level(handler)
 
     @classmethod
     def _default_logger_config(cls) -> LoggerConfig:
@@ -506,15 +511,8 @@ class BasePool(PoolProtocol, abc.ABC):
             removed = [manager.loggerDict.pop(k) for k in list(manager.loggerDict) if k == name or k.startswith(prefix)]
             manager._clear_cache()
         for logger in removed:
-            if not isinstance(logger, logging.Logger):
-                continue  # A placeholder
-            for handler in list(logger.handlers):
-                if getattr(handler, '_xtl_owned', False):
-                    logger.removeHandler(handler)
-                    with contextlib.suppress(Exception):
-                        handler.close()
-                elif getattr(handler, '_xtl_live', False):
-                    logger.removeHandler(handler)
+            if isinstance(logger, logging.Logger):  # Not a placeholder
+                _remove_xtl_handlers(logger)
 
     async def _drain_pool(self):
         """

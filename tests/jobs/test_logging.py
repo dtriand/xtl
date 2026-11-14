@@ -444,17 +444,22 @@ class TestLoggerConfig:
         assert [r.job for r in RECORDS['label']] == ['2', 'Label']
 
     def test_live_handlers(self):
-        live = logging.NullHandler()
-        config = LoggerConfig(handlers=[live, StreamHandlerConfig(stream=io.StringIO())])
+        live, leveled = logging.NullHandler(), logging.NullHandler(logging.ERROR)
+        config = LoggerConfig(
+            level=logging.WARNING, handlers=[live, leveled, StreamHandlerConfig(stream=io.StringIO())]
+        )
         logger = logging.getLogger('live_handlers')
         config.configure(logger, label='Live')
         assert live in logger.handlers
-        assert len(logger.handlers) == 2
+        assert len(logger.handlers) == 3
         assert len(live.filters) == 1
+        assert (live.level, leveled.level) == (logging.WARNING, logging.ERROR)
 
-        # Reconfiguring detaches the live handler without closing it, and doesn't add a second filter
+        # Reconfiguring detaches the live handler without closing it, with the level it came with, and doesn't add a
+        #  second filter
         LoggerConfig(handlers=[]).configure(logger)
         assert live not in logger.handlers
+        assert (live.level, leveled.level) == (logging.NOTSET, logging.ERROR)
         config.configure(logger, label='Live')
         assert len(live.filters) == 1
 
@@ -480,15 +485,16 @@ class TestGetLoggerConfig:
 class TestPassThrough:
     def test_pass_through(self, tmp_path):
         logger = logging.getLogger('pass_through')
-        foreign = Capture('foreign')
+        foreign, live = Capture('foreign'), Capture('live')
         logger.addHandler(foreign)
-        LoggerConfig(level=logging.WARNING, handlers=[FileHandlerConfig(filename=str(tmp_path / 'x.log'))]).configure(
-            logger
-        )
-        [owned] = [h for h in logger.handlers if h is not foreign]
+        LoggerConfig(
+            level=logging.WARNING, handlers=[FileHandlerConfig(filename=str(tmp_path / 'x.log')), live]
+        ).configure(logger)
+        [owned] = [h for h in logger.handlers if h not in (foreign, live)]
         pass_through(logger)
         assert logger.handlers == [foreign]
         assert owned.stream is None
+        assert live.level == logging.NOTSET
         assert logger.level == logging.NOTSET
         assert logger.propagate is True
 
@@ -797,6 +803,10 @@ class TestPools:
         pool.add_handler(verbose)
         assert verbose.level == logging.DEBUG
         assert pool.logger.level == logging.DEBUG
+        # Removed, a handler gets back the level it came with
+        pool.remove_handler(plain)
+        pool.remove_handler(verbose)
+        assert (plain.level, verbose.level) == (logging.NOTSET, logging.DEBUG)
 
     @pytest.mark.parametrize('pool_cls', [SimplePool, MultiprocessPool])
     @pytest.mark.asyncio
@@ -1032,6 +1042,7 @@ class TestLoggerLifetime:
         # A handler added with add_handler() is detached, without its name filter, but left open for its owner
         assert live not in pool.logger.handlers
         assert live.filters == []
+        assert live.level == logging.NOTSET
         assert live.stream is not None
         live.close()
         assert f'info from {key}_2.1' in live_log.read_text(encoding='utf-8')
