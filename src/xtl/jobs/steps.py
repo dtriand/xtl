@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Optional, Callable
 
+from pydantic import model_validator
+
 from xtl_core.options import Option, Options
 from xtl.jobs.jobs import Job, BatchJob
 from xtl.jobs.config import JobConfig, BatchJobConfig
@@ -41,6 +43,17 @@ class StepSpec(Options):
         desc='An optional function that takes the JobContext and the result of the step, and can modify the '
         'results before being stored to the JobContext.',
     )
+
+    @model_validator(mode='after')
+    def _check_config_cls(self):
+        # Otherwise the step fails only when it starts, after the steps before it have run
+        expected = self.job_cls._config_class
+        if not issubclass(self.config_cls, expected):
+            raise ValueError(
+                f'Step {self.name!r}: config_cls must be a subclass of {expected.__name__}, the configuration of '
+                f'{self.job_cls.__name__}, got {self.config_cls.__name__}'
+            )
+        return self
 
     def __repr__(self):
         return (

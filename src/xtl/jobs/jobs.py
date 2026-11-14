@@ -902,6 +902,18 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
 
     _steps: ClassVar[tuple['StepSpec', ...]] = ()
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Steps are looked up, overridden and reported by name
+        names = [spec.name for spec in cls._steps]
+        if duplicates := sorted({name for name in names if names.count(name) > 1}):
+            raise ValueError(f'Duplicate step names in {cls.__name__}._steps: {", ".join(duplicates)}')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._progress: tuple[dict[str, JobResults | None], dict[str, Any]] = ({}, {})
+        """The results and data of the steps so far, kept if a step's hook raises"""
+
     def configure(self, config: SteppedJobConfig) -> None:
         """
         Configure a stepped job instance, checking its step overrides (``config.steps``): each key must name one of
@@ -964,6 +976,7 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         ctx = JobContext(parent=self)
         step_results: dict[str, JobResults | None] = ctx.results  # Passing the dicts from ctx by reference
         shared_data: dict[str, Any] = ctx.data  #  for type checking reasons
+        self._progress = (step_results, shared_data)
 
         # Execute steps sequentially
         for i, spec in enumerate(self._steps, start=1):
@@ -1028,8 +1041,9 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         # Extract steps and context data from base_results
         raw = base_results.data
         if raw is None and base_results.error is not None:
-            # `_execute` raised before returning any steps
-            raw = ({}, {})
+            # `_execute` raised (e.g. a step's condition, defaults or post-processor, or a bad option value): keep
+            #  the steps done so far
+            raw = self._progress
         if not (isinstance(raw, tuple) and len(raw) == 2):
             raise TypeError(
                 f'{self.__class__.__name__}._execute() must return a 2-tuple (steps, data), got {type(raw).__name__!r}'
