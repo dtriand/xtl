@@ -247,20 +247,38 @@ class BaseShell:
         :param as_list: Whether to return the command as a list of strings
         :return: The command as a single string or list of strings
         """
-        # Substitute values into each word of the batch command f-string; the arguments take the place of theirs
-        # NB: The list is built directly, so that paths and arguments with spaces or quotes stay one item each
-        values = {'executable': self.executable, 'batch_file': str(file)}
-        bits = []
-        for word in self.batch_command.split():
-            if word == '{batch_arguments}':
-                bits.extend(str(argument) for argument in arguments or [])
-            else:
-                bits.append(word.format(**values))
+        bits = self._fill(
+            self.batch_command,
+            values={'executable': self.executable, 'batch_file': str(file)},
+            items={'batch_arguments': [str(argument) for argument in arguments or []]},
+        )
 
         # Return as list or string
         if as_list:
             return bits
         return self.join(bits)
+
+    @staticmethod
+    def _fill(template: str, values: dict[str, str], items: dict[str, list[str]]) -> list[str]:
+        """
+        Build a command as a list from one of the f-strings: values are substituted into each word, and a word that is
+        only a key of ``items`` (bare or in double quotes) is replaced by those items.
+
+        NB: The list is built directly, so that paths, arguments and commands with spaces or quotes stay one item each,
+        and the quotes around a placeholder in the f-string don't end up in the item.
+
+        :param template: The f-string
+        :param values: Values substituted into words
+        :param items: Lists of items that take the place of their word
+        """
+        bits = []
+        for word in template.split():
+            key = word.strip('"')
+            if key.startswith('{') and key.endswith('}') and key[1:-1] in items:
+                bits.extend(items[key[1:-1]])
+            else:
+                bits.append(word.format(**values))
+        return bits
 
     def join(self, bits: Iterable[str]) -> str:
         """
@@ -290,15 +308,8 @@ class BaseShell:
                 f'characters, dashes, underscores, and dots.'
             )
 
-        # Substitute values into the dependency command f-string
-        dep_command = self.dependency_command.format(dependency=dependency)
-        command = self.execute_command.format(executable=self.executable, command=dep_command)
-
-        # Return as list or string
-        if as_list:
-            bits = shlex.split(command, posix=self.is_posix)
-            return bits
-        return command
+        # Substitute values into the dependency command f-string, then run it in the shell
+        return self.get_execute_command(self.dependency_command.format(dependency=dependency), as_list=as_list)
 
     @staticmethod
     def _is_dependency_name_safe(dependency: str) -> bool:
@@ -326,18 +337,16 @@ class BaseShell:
         """
         Get the command required to execute a command directly in this shell.
 
-        :param command: The command to execute
+        :param command: The command to execute, passed to the shell as one argument
         :param as_list: Whether to return the command as a list of strings
         :return: The command as a single string or list of strings
         """
-        # Substitute values into the execute command f-string
-        full_command = self.execute_command.format(executable=self.executable, command=command)
+        bits = self._fill(self.execute_command, values={'executable': self.executable}, items={'command': [command]})
 
         # Return as list or string
         if as_list:
-            bits = shlex.split(full_command, posix=self.is_posix)
             return bits
-        return full_command
+        return self.join(bits)
 
     def sanitize_value(self, value):
         match value:
@@ -347,8 +356,8 @@ class BaseShell:
                     # Use shlex.quote to properly escape the path for POSIX shells
                     return shlex.quote(path_str)
                 elif self == Shell.CMD:  # CMD requires double quotes for escaping
-                    # Escape internal quotes by doubling them
-                    path_str = path_str.replace('"', '""')
+                    # Escape internal quotes by doubling them, and % too, which a batch file expands even in quotes
+                    path_str = path_str.replace('"', '""').replace('%', '%%')
                     return f'"{path_str}"'
                 elif self == Shell.POWERSHELL:  # PWSH requires single quotes for escaping
                     # Escape internal quotes by doubling them
@@ -374,7 +383,7 @@ class BashShell(BaseShell):
     new_line_char = '\n'
     batch_extension = '.sh'
     batch_command = '{executable} {batch_file} {batch_arguments}'
-    dependency_command = r'command -v {dependency} > /dev/null 2>&1; echo \$?'
+    dependency_command = 'command -v {dependency} > /dev/null 2>&1; echo $?'
     execute_command = '{executable} --noprofile --norc -c "{command}"'
 
 
