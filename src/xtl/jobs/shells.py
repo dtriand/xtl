@@ -145,12 +145,12 @@ class BaseShell:
 
     # Shell syntax properties
     shebang: str = field(init=False, repr=False)
-    """The shebang line for the shell
-    (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_)"""
+    """The first line of a batch file: the shebang line for POSIX shells
+    (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_), or any setup line the shell needs first"""
     comment_char: str = field(init=False, repr=False)
     """The character used to denote comments in the shell"""
     new_line_char: str = field(init=False, repr=False)
-    """The character used to denote new lines in the shell"""
+    """The line ending of the shell's batch files"""
     batch_extension: str = field(init=False, repr=False)
     """The file extension for scripts"""
 
@@ -396,9 +396,12 @@ class CmdShell(BaseShell):
     name = 'cmd'
     executable = r'C:\Windows\System32\cmd.exe'
     is_posix = False
-    shebang = ''
+    # Batch files are written in UTF-8, which cmd reads in the console's code page unless switched to UTF-8 first
+    #  (the console keeps the code page after the batch file ends)
+    shebang = 'chcp 65001 > nul'
     comment_char = 'rem'
-    new_line_char = '\n'
+    # NB: cmd's labels (goto, call :label) can misbehave in files with LF line endings
+    new_line_char = '\r\n'
     batch_extension = '.bat'
     # NB: `call` keeps `/C` from stripping the quotes of a batch file path with spaces, if an argument is quoted too
     batch_command = '{executable} /Q /C call {batch_file} {batch_arguments}'

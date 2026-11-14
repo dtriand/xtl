@@ -43,10 +43,10 @@ class BatchFileStatus(StrEnum):
     """The batch file is currently being executed on a compute site."""
 
     COMPLETED = 'completed'
-    """The batch file has completed execution successfully."""
+    """The batch file ran to the end with exit code 0."""
 
     FAILED = 'failed'
-    """The batch file execution has failed."""
+    """The batch file ended with a non-zero exit code, or couldn't be run."""
 
     CANCELLED = 'cancelled'
     """The batch file execution has been cancelled."""
@@ -194,12 +194,11 @@ class BatchFile:
         return self._process
 
     def _add_line(self, line: str) -> None:
-        if line:
-            self._lines.append(str(line))
+        self._lines.append(str(line))
 
     def add_line(self, line: str) -> None:
         """
-        Add a single line to the batch file.
+        Add a single line to the batch file. An empty string adds a blank line.
 
         :param line: The line to add to the batch file.
         """
@@ -239,7 +238,8 @@ class BatchFile:
         """
         Returns the main content of the batch file.
         """
-        commands = [self.compute_site.prepare_command(line) for line in self._lines]
+        # Blank lines aren't commands, e.g. for a policy that prefixes each command
+        commands = [self.compute_site.prepare_command(line) if line.strip() else line for line in self._lines]
         content = self.shell.new_line_char.join(commands)
         return self.compute_site.prepare_content(content)
 
@@ -271,8 +271,8 @@ class BatchFile:
         if postamble := self.get_postamble():
             text += postamble + self.shell.new_line_char
 
-        # Write contents to file
-        self.file.write_text(data=text, encoding='utf-8', newline=self.shell.new_line_char)
+        # Write contents to file, as they are: the lines already end with the shell's line ending
+        self.file.write_text(data=text, encoding='utf-8', newline='')
 
         # Update file permissions
         if update_permissions:

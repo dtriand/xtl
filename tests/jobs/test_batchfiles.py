@@ -13,11 +13,12 @@ from xtl.jobs.policies import NiceCommandPolicy
 from xtl.jobs.shells import BashShell, CmdShell, DefaultShell, PowerShell, Shell
 from xtl.jobs.sites import LocalSite
 from xtl_core.system.os import FilePermissions
+from xtl_core.system.compatibility import OS_WINDOWS
 
-WINDOWS = DefaultShell() == CmdShell()
-EXIT_3 = 'exit /b 3' if WINDOWS else 'exit 3'
-TO_STDERR = 'echo oops 1>&2' if WINDOWS else 'echo oops >&2'
-SLEEP_2 = 'ping -n 3 127.0.0.1 > nul' if WINDOWS else 'sleep 2'
+
+EXIT_3 = 'exit /b 3' if OS_WINDOWS else 'exit 3'
+TO_STDERR = 'echo oops 1>&2' if OS_WINDOWS else 'echo oops >&2'
+SLEEP_2 = 'ping -n 3 127.0.0.1 > nul' if OS_WINDOWS else 'sleep 2'
 
 
 class NiceSite(LocalSite):
@@ -97,11 +98,19 @@ class TestContent:
         batch.save()
         assert batch.file.read_bytes() == '#!/bin/bash\n\necho é\n'.encode('utf-8')
 
-    def test_save_cmd_uses_its_newlines(self, tmp_path):
+    def test_save_cmd(self, tmp_path):
+        # UTF-8 first, and CRLF line endings
         batch = BatchFile(tmp_path / 'job', shell=CmdShell())
         batch.add_lines(['echo a', 'echo b'])
         batch.save()
-        assert batch.file.read_bytes() == b'echo a\necho b\n'
+        assert batch.file.read_bytes() == b'chcp 65001 > nul\r\n\r\necho a\r\necho b\r\n'
+
+    def test_blank_lines_kept(self, tmp_path):
+        batch = BatchFile(tmp_path / 'job', shell=BashShell(), compute_site=NiceSite())
+        batch.add_lines(['cat <<EOF', 'a', '', 'b', 'EOF'])
+        batch.add_line('')
+        # Blank lines aren't commands: the policy leaves them alone
+        assert batch.get_content() == 'nice -n 10 cat <<EOF\nnice -n 10 a\n\nnice -n 10 b\nnice -n 10 EOF\n'
 
     def test_save_does_not_overwrite(self, tmp_path):
         batch = BatchFile(tmp_path / 'job')
@@ -168,6 +177,11 @@ class TestTemplates:
         assert batch.permissions == FilePermissions('750')
         assert batch.get_content() == 'echo me'
 
+    def test_template_blank_lines_kept(self, tmp_path):
+        shell = DefaultShell()
+        config = BatchJobConfig(job_directory=tmp_path, templates={Shell(shell.name): 'echo a\n\necho b\n'})
+        assert BatchFile.from_config(config).get_content() == shell.new_line_char.join(['echo a', '', 'echo b'])
+
     def test_from_dict_without_template(self, tmp_path):
         batch = BatchFile.from_config({'job_directory': tmp_path})
         assert batch.get_content() == ''
@@ -188,12 +202,36 @@ class TestExecute:
         assert (tmp_path / 'out.log').read_text().strip() == 'hello'
         assert (tmp_path / 'err.log').read_text().strip() == 'oops'
         assert batch.process.returncode == 3
-        assert batch.status == BatchFileStatus.COMPLETED  # it ran to the end; the exit code is for the caller
+        assert batch.status == BatchFileStatus.FAILED
+
+    @pytest.mark.asyncio
+    async def test_completed(self, tmp_path):
+        batch = BatchFile(tmp_path / 'job')
+        batch.add_line('echo fine')
+        batch.save()
+        await batch.execute()
+        assert batch.process.returncode == 0
+        assert batch.status == BatchFileStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('name', ['café', 'Δοκιμή'])
+    async def test_non_ascii_text(self, tmp_path, name):
+        # A path and output outside the console's code page (cmd reads a batch file as UTF-8 only after chcp)
+        folder = tmp_path / name
+        folder.mkdir()
+        (folder / 'data.txt').write_text('ok\n', encoding='utf-8')
+        batch = BatchFile(tmp_path / 'job')
+        command = 'type' if OS_WINDOWS else 'cat'
+        batch.add_lines([f'{command} {batch.shell.sanitize_value(folder / "data.txt")}', f'echo {name}'])
+        batch.save()
+        await batch.execute(stdout=tmp_path / 'out.log', stderr=tmp_path / 'err.log')
+        assert batch.status == BatchFileStatus.COMPLETED, (tmp_path / 'err.log').read_text(errors='replace')
+        assert (tmp_path / 'out.log').read_text(encoding='utf-8').split() == ['ok', name]
 
     @pytest.mark.asyncio
     async def test_arguments(self, tmp_path):
         batch = BatchFile(tmp_path / 'job')
-        batch.add_line('echo [%~1]' if WINDOWS else 'echo "[$1]"')
+        batch.add_line('echo [%~1]' if OS_WINDOWS else 'echo "[$1]"')
         batch.save()
         await batch.execute(stdout=tmp_path / 'out.log', batch_args=['a b'])
         assert (tmp_path / 'out.log').read_text().strip() == '[a b]'

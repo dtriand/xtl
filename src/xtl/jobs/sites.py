@@ -255,7 +255,8 @@ class LocalSite(BaseComputeSite):
 
             # Check if the batch was cancelled by .cancel_batch()
             if batch.status != BatchFileStatus.CANCELLED:
-                batch._status = BatchFileStatus.COMPLETED
+                failed = batch.process.returncode != 0
+                batch._status = BatchFileStatus.FAILED if failed else BatchFileStatus.COMPLETED
         except asyncio.CancelledError as e:
             # Raise cancellation up the stack after marking the batch as cancelled
             batch.logger.error('Batch execution was cancelled by user')
