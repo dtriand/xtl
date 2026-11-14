@@ -10,7 +10,7 @@ from typing import Callable, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings
-    from xtl.jobs.sites import ComputeSiteType, SchedulerSite
+    from xtl.jobs.sites import ComputeSiteType
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
 from xtl_core.system.compatibility import PY310_OR_LESS
@@ -291,6 +291,8 @@ class BatchFile:
                          (if supported by the compute site).
         :raises RuntimeError: If the batch file has not been saved yet.
         """
+        from xtl.jobs.sites import SchedulerSite
+
         if not self._saved:
             raise RuntimeError('Batch file has not been saved yet. Call `save()` before `execute()`.')
         if schedule and isinstance(self.compute_site, SchedulerSite):
