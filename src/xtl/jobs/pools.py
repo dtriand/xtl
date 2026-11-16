@@ -699,7 +699,7 @@ class BasePool(PoolProtocol, abc.ABC):
         :param job_cls: the job class to generate job ids for
         :param n: the number of job ids to generate
         """
-        prefix = f'{job_cls.__name__}|'
+        prefix = f'{job_cls.__name__}-'
         pattern = re.compile(rf'^{re.escape(prefix)}(\d+)$')
 
         # Find the indices of all existing job ids
@@ -751,12 +751,14 @@ class BasePool(PoolProtocol, abc.ABC):
         :param job_cls: The job type to submit. Must be a subclass of `Job`.
         :param configs: The configs to submit to the pool.
         :param job_ids: Optional, the IDs of the submitted jobs, one per config (None for a random one). If not
-            provided, IDs are generated as ``<job_cls>|<i>``, where ``i`` is an incrementing index.
+            provided, IDs are generated as ``<job_cls>-<i>``, where ``i`` is an incrementing index; such a job is
+            shown as ``<job_cls>|<i>`` (its :attr:`~xtl.jobs.jobs.Job.label`). Given IDs must be usable in file names
+            and commands (no ``| / \\ : * ? " < >``).
         :raises RuntimeError: If the method is called outside the pool's context manager
         :raises TypeError: If `job_cls` is not a subclass of `Job`.
         :raises TypeError: If one of the `configs` is not a `JobConfig` instance or None.
         :raises ValueError: If `job_ids` is provided but does not have the same length as `configs`
-        :raises ValueError: If a job id is already in the pool, or given twice
+        :raises ValueError: If a job id is already in the pool, given twice, or not usable in file names and commands
         :return: A list of the configured submitted jobs.
         """
         if not self._in_ctx:
@@ -789,7 +791,9 @@ class BasePool(PoolProtocol, abc.ABC):
         # In case None was passed explicitly in job_ids
         job_ids = [str(job_id) if job_id is not None else uuid.random(settings.jobs.job_digits) for job_id in job_ids]
 
-        # Job ids are unique within the pool
+        # Job ids can be used in file names and commands, and are unique within the pool
+        for job_id in job_ids:
+            Job.check_job_id(job_id)
         taken = sorted({job_id for job_id in job_ids if job_id in self._jobs or job_ids.count(job_id) > 1})
         if taken:
             raise ValueError(f'Job ids must be unique within the pool, got duplicates: {", ".join(taken)}')
@@ -798,7 +802,7 @@ class BasePool(PoolProtocol, abc.ABC):
         created_jobs: list[Job] = []
         for job_id, config in zip(job_ids, configs_list):
             # The job's logger hangs under the pool's and passes its records up to the pool's handlers
-            logger = self._logger.getChild(str(job_id))
+            logger = self._logger.getChild(job_cls.label_of(job_id))
             pass_through(logger)
 
             # Create job instance

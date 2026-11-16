@@ -379,7 +379,11 @@ class TestBasePool:
     async def test_job_ids(self, monkeypatch):
         monkeypatch.setattr(settings.jobs, 'job_digits', 6)
         async with AsyncPool() as pool:
-            assert [j.job_id for j in pool.submit(Talker, configs=[None] * 10)][::9] == ['Talker|01', 'Talker|10']
+            jobs = pool.submit(Talker, configs=[None] * 10)
+            assert [j.job_id for j in jobs][::9] == ['Talker-01', 'Talker-10']
+            # Shown as before, also in the names of their loggers
+            assert [j.label for j in jobs][::9] == ['Talker|01', 'Talker|10']
+            assert jobs[0].logger.name == f'{pool.logger.name}.Talker|01'
             (given, random) = pool.submit(Talker, configs=[None, None], job_ids=['given', None])
             assert given.job_id == 'given'
             assert len(random.job_id) == 6
@@ -397,18 +401,26 @@ class TestBasePool:
             assert list(pool._jobs) == ['a']
 
     @pytest.mark.asyncio
+    async def test_job_ids_that_cannot_be_file_names_raise(self):
+        async with AsyncPool(max_jobs=2) as pool:
+            with pytest.raises(ValueError, match='usable in file names and commands'):
+                pool.submit(Talker, configs=[None, None], job_ids=['fine', 'Talker|1'])
+            # None of them is submitted
+            assert pool.status == {}
+
+    @pytest.mark.asyncio
     async def test_generated_job_ids_skip_ids_given_to_other_jobs(self):
         async with AsyncPool(max_jobs=2) as pool:
-            pool.submit(Counter, job_ids=['Talker|1'])
+            pool.submit(Counter, job_ids=['Talker-1'])
             (job,) = pool.submit(Talker)
-            assert job.job_id == 'Talker|2'
+            assert job.job_id == 'Talker-2'
 
     @pytest.mark.asyncio
     async def test_pools_at_once_generate_the_same_job_ids(self):
         async with AsyncPool(max_jobs=2) as first, AsyncPool(max_jobs=2) as second:
             first_jobs = first.submit(Talker, configs=[JobConfig(), JobConfig()])
             second_jobs = second.submit(Talker, configs=[JobConfig(), JobConfig()])
-            assert [j.job_id for j in first_jobs] == [j.job_id for j in second_jobs] == ['Talker|1', 'Talker|2']
+            assert [j.job_id for j in first_jobs] == [j.job_id for j in second_jobs] == ['Talker-1', 'Talker-2']
             assert first_jobs[0].logger is not second_jobs[0].logger
 
     @pool_types

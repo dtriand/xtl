@@ -218,6 +218,21 @@ class TestJob:
         with pytest.raises(TypeError, match='Expected config of type ValueConfig, got JobConfig'):
             job.configure(JobConfig())
 
+    @pytest.mark.parametrize(
+        'job_id, label',
+        [('Talker-1', 'Talker|1'), ('Talker-01', 'Talker|01'), ('Talker-x', 'Talker-x'), ('Other-1', 'Other-1')],
+    )
+    def test_label(self, job_id, label):
+        # A pool's number is shown as before; any other id as it is
+        job = Talker(job_id=job_id)
+        assert (job.job_id, job.label, Talker.label_of(job_id)) == (job_id, label, label)
+        assert job.logger.name == label
+
+    @pytest.mark.parametrize('job_id', ['', 'a|b', 'a/b', 'a\\b', 'a:b', 'a*b', 'a?b', 'a"b', 'a<b', 'a>b', 'a\nb'])
+    def test_ids_that_cannot_be_file_names_raise(self, job_id):
+        with pytest.raises(ValueError, match='usable in file names and commands'):
+            Talker(job_id=job_id)
+
     def test_constructor(self):
         config = ValueConfig()
         logger = logging.getLogger('a4_logger')

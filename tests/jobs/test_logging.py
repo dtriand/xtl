@@ -818,7 +818,7 @@ class TestPools:
         shown = {r.job for r in RECORDS[key]}
         outer = f'{key}_1'
         assert {pool_cls.__name__, outer, f'{outer}>ThreadedPool', f'{outer}>Talker|1'} <= shown, shown
-        assert 'info from Talker|1' in messages(key)
+        assert 'info from Talker-1' in messages(key)
 
     @pytest.mark.parametrize('pool_cls', POOLS)
     @pytest.mark.asyncio
@@ -962,10 +962,11 @@ class TestJobHandlers:
             handler=TaggedFileHandler, options={'filename': '{job_directory}/{job_class}.{job_id}.{pool}.log'}
         )
         pool.add_job_handler(spec, name='tagged')
-        _, results = await run_pool(pool, KeptTalker, [f'{key}|1'], JobConfig(job_directory=tmp_path))
+        _, results = await run_pool(pool, KeptTalker, [f'{key}-1'], JobConfig(job_directory=tmp_path))
         assert all(r.success for r in results), [r.error for r in results]
-        log = tmp_path / f'KeptTalker.{key}_1.{pool_cls.__name__}_h3.log'
-        assert f'info from {key}|1' in log.read_text(encoding='utf-8')
+        # The id goes in the file name as it is; the pool's label has its `|` replaced
+        log = tmp_path / f'KeptTalker.{key}-1.{pool_cls.__name__}_h3.log'
+        assert f'info from {key}-1' in log.read_text(encoding='utf-8')
 
     @pytest.mark.asyncio
     async def test_config_adds_replaces_and_switches_off(self, tmp_path):

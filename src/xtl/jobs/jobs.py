@@ -3,6 +3,7 @@ import asyncio
 import contextlib
 from copy import deepcopy
 import logging
+import re
 import shutil
 from typing import (
     Any,
@@ -141,20 +142,21 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         :param config: Optional, the configuration of the job, an instance of the job's configuration class (see
             :meth:`configure`). A job without one can be configured later.
-        :param job_id: Optional, an identifier for the job, used as given. If not
-            provided, a random ID is generated. A pool makes sure its jobs' IDs are
-            unique; two jobs given the same ID outside a pool share a logger.
+        :param job_id: Optional, an identifier for the job, used as given; it must be usable in file names and
+            commands (no ``| / \\ : * ? " < >``). If not provided, a random ID is generated. A pool makes sure its
+            jobs' IDs are unique; two jobs given the same ID outside a pool share a logger.
         :param logger: Optional, a custom logger for the job. If not provided,
-            a logger will be created using `job_id` and `logger_config`.
+            a logger will be created using the job's :attr:`label` and `logger_config`.
         :param logger_config: Optional, the logging configuration of the job, also
             passed on to its child jobs. If not provided, the default of this job type
             is used.
+        :raises ValueError: If `job_id` isn't usable in file names and commands (see :meth:`check_job_id`).
         """
-        self._job_id = str(job_id) if job_id else uuid.random(length=settings.jobs.job_digits)
+        self._job_id = self.check_job_id(str(job_id)) if job_id is not None else uuid.random(settings.jobs.job_digits)
 
         # Attach a logger
         self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
-        self._logger = logger or self.get_logger(self.job_id, logger_config)
+        self._logger = logger or self.get_logger(self.label, logger_config)
 
         # Job state
         self._is_running = False
@@ -228,9 +230,47 @@ class Job(abc.ABC, Generic[JobConfigType]):
     @property
     def job_id(self) -> str:
         """
-        Get the unique identifier of the job.
+        Get the unique identifier of the job. It can be used as it is in file names and commands.
         """
         return self._job_id
+
+    @staticmethod
+    def check_job_id(job_id: str) -> str:
+        """
+        Check that a job id can be used as it is in file names and commands.
+
+        :param job_id: The job id.
+        :raises ValueError: If it is empty, or holds one of ``| / \\ : * ? " < >`` or a control character.
+        :return: The job id.
+        """
+        # Not allowed in file names on Windows, or meaningful to shells
+        unsafe = re.compile(r'[|/\\:*?"<>\x00-\x1f]')
+        if not job_id or unsafe.search(job_id):
+            raise ValueError(
+                'Job ids must be usable in file names and commands, without | / \\ : * ? " < > or control characters, '
+                f'got {job_id!r}'
+            )
+        return job_id
+
+    @classmethod
+    def label_of(cls, job_id: str) -> str:
+        """
+        How a job of this class with the id `job_id` is shown: a pool's number, ``<JobClass>-<i>``, as
+        ``<JobClass>|<i>`` (like a pool's :attr:`~xtl.jobs.pools.BasePool.label`); any other id as it is.
+
+        :param job_id: The job's id.
+        """
+        if match := re.fullmatch(rf'{re.escape(cls.__name__)}-([0-9]+)', job_id):
+            return f'{cls.__name__}|{match.group(1)}'
+        return job_id
+
+    @property
+    def label(self) -> str:
+        """
+        How this job is shown, on screen and in the name of its logger (see :meth:`label_of`). Since an id can't hold
+        ``|``, two jobs of different ids never have the same label.
+        """
+        return self.label_of(self._job_id)
 
     @property
     def is_running(self) -> bool:
@@ -471,7 +511,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         job_dir = cfg.job_directory if cfg is not None else None
         values = {
             'job_directory': str(job_dir) if job_dir is not None else None,
-            'job_id': self.job_id.replace('|', '_'),
+            'job_id': self.job_id,
             'job_class': self.__class__.__name__,
             'pool': self._pool_label.replace('|', '_') if self._pool_label else None,
         }
@@ -685,7 +725,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
 
-        job = job_cls(config, job_id=jdata.job_id, logger=logger or job_cls.get_logger(jdata.job_id))
+        job = job_cls(config, job_id=jdata.job_id, logger=logger or job_cls.get_logger(job_cls.label_of(jdata.job_id)))
         job._log_handlers = {name: HandlerConfig.from_spec(spec) for name, spec in jdata.log_handlers.items()}
         job._pool_label = jdata.pool_label
         return job
