@@ -4,6 +4,7 @@ handle. The process backend starts a `multiprocessing` manager per test (about 1
 """
 
 import asyncio
+import signal
 import threading
 
 import pytest
@@ -16,7 +17,8 @@ from xtl.jobs.ipc import (
     ProcessIPCBackend,
     ThreadedIPCBackend,
 )
-from xtl.jobs.ipc.processes import ProxyProcessIPCBackend
+from xtl.jobs.ipc.processes import ProxyProcessIPCBackend, ignore_interrupts
+from xtl_core.system.compatibility import OS_WINDOWS
 
 BACKENDS = [AsyncIPCBackend, ThreadedIPCBackend, ProcessIPCBackend]
 
@@ -275,6 +277,20 @@ class TestProcessIPCBackend:
         with pytest.raises(RuntimeError, match='must be started'):
             backend.get_state('s')
         backend.stop()  # again: nothing to do
+
+    def test_ignore_interrupts(self):
+        previous = signal.getsignal(signal.SIGINT)
+        try:
+            ignore_interrupts()
+            handler = signal.getsignal(signal.SIGINT)
+        finally:
+            signal.signal(signal.SIGINT, previous)
+        if OS_WINDOWS:
+            assert handler is signal.SIG_IGN
+        else:
+            # A handler, not SIG_IGN, which the programs a worker starts would inherit
+            assert callable(handler)
+            handler(signal.SIGINT, None)
 
     def test_worker_backend_cannot_create_primitives(self):
         worker = ProcessIPCBackend.from_handle(IPCHandle(locks={}, queues={}, state={}))

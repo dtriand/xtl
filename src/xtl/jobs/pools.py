@@ -11,7 +11,7 @@ import pickle
 import re
 import threading
 import traceback
-from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, ProcessPoolExecutor
 from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, Union, runtime_checkable
 
 from xtl import settings
@@ -43,6 +43,7 @@ from xtl.jobs.ipc import (
     ThreadedIPCBackend,
     ProcessIPCBackend,
 )
+from xtl.jobs.ipc.processes import ignore_interrupts
 from xtl.jobs.resources import CURRENT_LEASE, Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.math.uuid import UUIDFactory
@@ -182,6 +183,49 @@ def _picklable_results(results: JobResults | None, logger: logging.Logger) -> Jo
     return fixed
 
 
+_CANCEL_STATE = '_xtl_cancel'
+"""Name of the shared state where a pool flags the jobs it cancels in its workers, by job id, with the reason."""
+
+_CANCEL_POLL = 0.25
+"""Seconds between two looks of a worker at its job's cancel flag."""
+
+
+async def _run_watched(job: Job, ipc: IPCBackend | None) -> JobResults | None:
+    """
+    Run a job in a worker thread or process, and cancel it once its pool flags it as cancelled: a cancellation in the
+    pool can't reach the worker's event loop otherwise. The worker looks at the flag every :data:`_CANCEL_POLL`
+    seconds, as long as the job gives its event loop a chance; a job that blocks it isn't cancelled (see
+    :attr:`BasePool._CANCEL_GRACE`).
+
+    :param job: The job, rebuilt in the worker.
+    :param ipc: The worker's view of the pool's IPC backend, with the cancel flags.
+    """
+    run = asyncio.ensure_future(job.run())
+    try:
+        flags = ipc.get_state(_CANCEL_STATE) if ipc is not None else None
+    except KeyError:
+        flags = None
+    if flags is None:
+        return await run
+
+    async def watch() -> None:
+        try:
+            while job.job_id not in flags:
+                await asyncio.sleep(_CANCEL_POLL)
+            reason = flags[job.job_id]
+        except Exception:
+            # E.g. the pool's manager is gone; nothing to watch any more
+            return
+        job.logger.warning('Cancellation received, stopping')
+        run.cancel(reason or None)
+
+    watcher = asyncio.ensure_future(watch())
+    try:
+        return await run
+    finally:
+        watcher.cancel()
+
+
 class BasePool(PoolProtocol, abc.ABC):
     _logging_level = logging.INFO
     """Default logging level for the pool's logger configuration. Setting after initialization has no effect"""
@@ -192,6 +236,10 @@ class BasePool(PoolProtocol, abc.ABC):
 
     _ipc_cls: type[IPCBackend]
     """The IPCBackend class to use for this pool."""
+
+    _CANCEL_GRACE: float = 15.0
+    """Seconds that a pool with workers waits, on exit, for its cancelled jobs to stop: a batch job takes up to 10 s to
+    stop its programs. A process pool then ends the workers that are still busy; a thread pool can only wait."""
 
     def __init__(
         self,
@@ -282,6 +330,7 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Task tracking
         self._tasks: dict[str, asyncio.Task] = {}  # Managed by __aexit__ and launchers
+        self._workers: dict[str, Future] = {}  # Jobs sent to a worker, by job id; managed by _send_to_worker()
 
         # Submission tracking
         self._submissions: dict[str, JobSubmission] = {}  # Managed by submit() and launchers
@@ -490,6 +539,8 @@ class BasePool(PoolProtocol, abc.ABC):
         ipc.start()
         self._ipc = ipc
         self.get_lock(None)  # Jobs in workers can only use what the pool has registered
+        if self._executor_cls is not None:
+            self.get_state(_CANCEL_STATE)
 
         self._in_ctx = True
         self.logger.debug('Entering the pool context manager')
@@ -523,8 +574,18 @@ class BasePool(PoolProtocol, abc.ABC):
                     exc_info=settings.jobs.tracebacks,
                 )
 
-            # Request cancellation of all running tasks
-            self.logger.warning('Cancelling all running tasks')
+            # Request cancellation of all running tasks, and say so at once, since stopping takes a while
+            #  NB: A cancelled `launch()` has already cancelled the tasks (a `gather()` waits for them), but jobs in
+            #  workers may still be stopping
+            stopping = {job_id for job_id, status in self._status.items() if status == JobStatus.RUNNING}
+            stopping |= {job_id for job_id, future in self._workers.items() if not future.done()}
+            running = len(stopping)
+            if running and self._executor is not None:
+                self.logger.warning(
+                    'Cancelling %d running jobs; waiting up to %g s for them to stop', running, self._CANCEL_GRACE
+                )
+            elif running:
+                self.logger.warning('Cancelling %d running jobs', running)
             for job_id, task in list(self._tasks.items()):
                 if interrupted:
                     task.cancel('Execution interrupted by user')
@@ -534,7 +595,6 @@ class BasePool(PoolProtocol, abc.ABC):
             # Await cancellation
             pending = [t for t in self._tasks.values() if not t.done()]
             if pending:
-                self.logger.warning('Waiting for %d tasks to cancel', len(pending))
                 done, pending = await asyncio.wait(pending, timeout=5)
                 if pending:
                     for t in pending:
@@ -542,15 +602,15 @@ class BasePool(PoolProtocol, abc.ABC):
                     await asyncio.gather(*pending, return_exceptions=True)
 
             self._in_ctx = False
-            await self._stop_workers()
+            await self._stop_workers(cancelled=True)
             await self._drain_pool()
             # NB: Exceptions propagate, interrupts too, so that cancellation (e.g. `asyncio.timeout()`) and Ctrl+C
             #  stop the caller; an application decides what to show (as `LivePool` does)
             return False
 
-        # Normal exit
+        # Normal exit; jobs cancelled meanwhile (e.g. by a timeout the caller caught) may still be stopping
         self._in_ctx = False
-        await self._stop_workers()
+        await self._stop_workers(cancelled=self._counts[JobStatus.CANCELLED] > 0)
         await self._drain_pool()
         self.logger.debug('Exiting the pool context')
         return False
@@ -576,21 +636,44 @@ class BasePool(PoolProtocol, abc.ABC):
             if isinstance(logger, logging.Logger):  # Not a placeholder
                 _remove_xtl_handlers(logger)
 
-    async def _stop_workers(self) -> None:
+    async def _stop_workers(self, cancelled: bool = False) -> None:
         """
-        Shut down the pool's executor, if it has one, once its tasks are done or cancelled. Running jobs in worker
-        threads or processes still finish, since they can't be stopped from here; the wait happens in another thread,
-        so that the event loop goes on meanwhile.
+        Shut down the pool's executor, if it has one, once its tasks are done or cancelled. The wait happens in another
+        thread, so that the event loop goes on meanwhile.
+
+        :param cancelled: Whether jobs were cancelled: their workers get :attr:`_CANCEL_GRACE` seconds to stop them,
+            then :meth:`_end_workers`. Otherwise, the running jobs finish.
         """
-        if self._executor is not None:
-            executor, self._executor = self._executor, None
-            await asyncio.to_thread(executor.shutdown, wait=True)
+        if self._executor is None:
+            return
+        executor, self._executor = self._executor, None
+        shutdown = asyncio.ensure_future(asyncio.to_thread(executor.shutdown, wait=True))
+        if cancelled:
+            await asyncio.wait({shutdown}, timeout=self._CANCEL_GRACE)
+            busy = sum(not future.done() for future in self._workers.values())
+            if not shutdown.done() and busy:
+                await self._end_workers(executor, busy)
+        await shutdown
+        self._workers.clear()
+
+    async def _end_workers(self, executor: Executor, busy: int) -> None:
+        """
+        Deal with workers whose jobs didn't stop within :attr:`_CANCEL_GRACE` seconds of their cancellation, e.g.
+        because they block their event loop. A thread can't be ended from outside, so the pool warns and keeps waiting.
+
+        :param executor: The pool's executor, shutting down.
+        :param busy: How many workers still run a job.
+        """
+        self.logger.warning(
+            "%d jobs didn't stop within %g s; waiting for their workers to finish", busy, self._CANCEL_GRACE
+        )
 
     async def _drain_pool(self):
         """
         Pool tear down procedure.
         """
         self._tasks.clear()
+        self._workers.clear()
         self._jobs.clear()
         self._submissions.clear()
 
@@ -783,12 +866,37 @@ class BasePool(PoolProtocol, abc.ABC):
                         'Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks
                     )
                     result = JobResults(job_id=job_id, data=None, error=exc)
-        except asyncio.CancelledError:
-            # Waiting for a slot or running; a worker thread or process may still finish the job
+        except asyncio.CancelledError as e:
+            # Waiting for a slot or running; a job in a worker is told to stop
             self._set_status(job_id, JobStatus.CANCELLED)
+            self._flag_cancelled(job_id, str(e.args[0]) if e.args else '')
             raise
         self._set_status(job_id, JobStatus.DONE if result is not None and result.success else JobStatus.FAILED)
         return result
+
+    async def _send_to_worker(self, job_id: str, fn, *args) -> Any:
+        """
+        Run ``fn(*args)`` in the pool's executor, for the job `job_id`, and wait for its result. The pool keeps the
+        worker's future, so that it can tell which workers are still busy after a cancellation.
+        """
+        future = self._executor.submit(fn, *args)
+        self._workers[job_id] = future
+        return await asyncio.wrap_future(future)
+
+    def _flag_cancelled(self, job_id: str, reason: str) -> None:
+        """
+        Tell the worker that runs a job to cancel it (see :func:`_run_watched`). Nothing happens for a job that hasn't
+        reached a worker, or has finished there.
+
+        :param job_id: The job's id.
+        :param reason: The reason of the cancellation, passed on to the job's task, or an empty string.
+        """
+        future = self._workers.get(job_id)
+        if future is None or future.done() or self._ipc is None:
+            return
+        with contextlib.suppress(Exception):
+            # NB: A process pool's manager may be unreachable; then the worker is ended on exit
+            self._ipc.get_state(_CANCEL_STATE)[job_id] = reason
 
     @overload
     async def launch(self, mode: Literal['stream']) -> AsyncIterator[JobResults]: ...
@@ -1050,11 +1158,12 @@ class ThreadedPool(BasePool):
         job = submission.to_job(logger=_get_job_logger(submission.job_logger_name))
 
         # Reconstruct the IPC backend
+        ipc = None
         if submission.ipc is not None:
             ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-        return await job.run()
+        return await _run_watched(job, ipc)
 
     @staticmethod
     def _run_in_thread(submission: JobSubmission) -> JobResults | None:
@@ -1062,8 +1171,7 @@ class ThreadedPool(BasePool):
         return asyncio.run(ThreadedPool._bootstrap_thread(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self._executor, self._run_in_thread, submission)
+        return await self._send_to_worker(submission.data.job_id, self._run_in_thread, submission)
 
 
 class MultiprocessPool(BasePool):
@@ -1184,10 +1292,30 @@ class MultiprocessPool(BasePool):
         )
         return self
 
-    async def _stop_workers(self) -> None:
+    async def _stop_workers(self, cancelled: bool = False) -> None:
         # Stop the listener once the workers are gone, so that they have sent all their records
-        await super()._stop_workers()
+        await super()._stop_workers(cancelled=cancelled)
         await self._stop_listener()
+
+    async def _end_workers(self, executor: Executor, busy: int) -> None:
+        """
+        End the worker processes, since some still run a job that didn't stop after its cancellation: ``terminate()``,
+        then ``kill()`` for those still alive after a few seconds. The executor's processes are private
+        (``ProcessPoolExecutor._processes``); if they can't be found, the pool warns and keeps waiting.
+        """
+        processes = getattr(executor, '_processes', None)
+        if not isinstance(processes, dict):
+            await super()._end_workers(executor, busy)
+            return
+
+        self.logger.warning("Ending %d workers that didn't stop", busy)
+        alive = [process for process in list(processes.values()) if process.is_alive()]
+        for process in alive:
+            process.terminate()
+        for process in alive:
+            await asyncio.to_thread(process.join, 5)
+            if process.is_alive():
+                process.kill()
 
     @staticmethod
     def _init_worker(log_queue) -> None:
@@ -1196,6 +1324,8 @@ class MultiprocessPool(BasePool):
 
         :param log_queue: The raw log queue of the pool.
         """
+        # Ctrl+C is the parent's to handle: it cancels the jobs, which their workers then stop (see `_run_watched`)
+        ignore_interrupts()
         MultiprocessPool._rename_current_process()
 
         # Workers started with fork inherit the parent's loggers: reset them, so that the tree only passes records
@@ -1240,11 +1370,12 @@ class MultiprocessPool(BasePool):
         job = submission.to_job(logger=logger)
 
         # Reconstruct the IPC backend
+        ipc = None
         if submission.ipc is not None:
             ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-        return await job.run()
+        return await _run_watched(job, ipc)
 
     @staticmethod
     def _run_in_process(payload: dict) -> JobResults | None:
@@ -1272,8 +1403,7 @@ class MultiprocessPool(BasePool):
         # The job runs with the settings as they are when it starts, as in the other pools
         submission.xtl_settings = settings.to_dict()
 
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(self._executor, self._run_in_process, submission.to_dict())
+        result = await self._send_to_worker(submission.data.job_id, self._run_in_process, submission.to_dict())
 
         # Relay the job's records before reporting its result, e.g. while a live display still shows them
         await self._flush_logs()

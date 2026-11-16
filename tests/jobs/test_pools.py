@@ -7,18 +7,22 @@ import asyncio
 import logging
 import os
 import pickle
+import subprocess
+import sys
+import textwrap
 import threading
 import time
 import typing
+from pathlib import Path
 
 import pytest
 
 from xtl import settings
-from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Naps, Sleeper, Talker
+from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Naps, Sleeper, Talker, until
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources, SteppedJobConfig
 from xtl.jobs.exceptions import WorkerError
 from xtl.jobs.ipc import AsyncIPCBackend, ThreadedIPCBackend
-from xtl.jobs.ipc.base import IPCHandleNames
+from xtl.jobs.ipc.base import IPCHandle, IPCHandleNames
 from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.logging import HandlerConfig, JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import (
@@ -31,12 +35,14 @@ from xtl.jobs.pools import (
     SimplePool,
     ThreadedPool,
     _picklable_results,
+    _run_watched,
 )
 from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, JobStatus, SteppedJobResults
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.submissions import JobSubmission
 from xtl.jobs.shells import Shell
+from xtl_core.options import Option
 
 
 class Records(logging.Handler):
@@ -113,6 +119,31 @@ class Stubborn(Job[JobConfig]):
             await asyncio.sleep(30)
 
 
+class MarksConfig(JobConfig):
+    marker: typing.Optional[Path] = Option(default=None, desc='Where the job notes what happened to it')
+    seconds: float = Option(default=10, desc='How long the job runs')
+
+
+class Marks(Job[MarksConfig]):
+    """Notes in its marker file that it started, then, if it is cancelled, that it was."""
+
+    async def _execute(self):
+        self.config.marker.write_text('started')
+        try:
+            await asyncio.sleep(self.config.seconds)
+        except asyncio.CancelledError:
+            self.config.marker.write_text('cancelled')
+            raise
+
+
+class Blocks(Job[MarksConfig]):
+    """Notes that it started, then blocks its event loop, so that no cancellation reaches it."""
+
+    async def _execute(self):
+        self.config.marker.write_text('started')
+        time.sleep(self.config.seconds)
+
+
 class Dies(Job[JobConfig]):
     """Ends its worker process."""
 
@@ -148,6 +179,41 @@ class SteppedPicky(SteppedJob[SteppedJobConfig]):
 ECHO = {Shell.BASH: 'echo "[$1] [$2]"', Shell.CMD: 'echo [%~1] [%~2]'}
 
 pool_types = pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
+
+
+def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.CompletedProcess:
+    """
+    Run a script that sends itself Ctrl+C, in a console or a session of its own, so that Ctrl+C reaches only the
+    script and its processes; `ctrl_c()` is defined for it.
+    """
+    ctrl_c = textwrap.dedent(
+        """
+        import ctypes, os, signal
+
+
+        def ctrl_c():
+            if os.name == 'nt':
+                os.kill(0, signal.CTRL_C_EVENT)
+            else:
+                os.killpg(0, signal.SIGINT)
+
+
+        if os.name == 'nt':
+            ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)  # Ctrl+C may be off for children
+        """
+    )
+    path = tmp_path / 'script.py'
+    path.write_text(ctrl_c + textwrap.dedent(script))
+    options = {'creationflags': subprocess.CREATE_NEW_CONSOLE} if os.name == 'nt' else {'start_new_session': True}
+    root = str(Path(__file__).parents[2])
+    return subprocess.run(
+        [sys.executable, str(path), *args],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env={**os.environ, 'PYTHONPATH': os.pathsep.join(filter(None, [root, os.environ.get('PYTHONPATH')]))},
+        **options,
+    )
 
 
 class TestJobPool:
@@ -551,7 +617,7 @@ class TestBasePool:
         assert launch.cancelled() or launch.done()
         assert pool.status == {'a': JobStatus.CANCELLED}
         assert 'An exception occurred within the pool context: ValueError' in records.messages(logging.ERROR)
-        assert 'Cancelling all running tasks' in records.messages(logging.WARNING)
+        assert 'Cancelling 1 running jobs' in records.messages(logging.WARNING)
 
     @pytest.mark.asyncio
     async def test_interrupt(self):
@@ -574,7 +640,7 @@ class TestBasePool:
                 raise ValueError
         # Cancelled again after the wait
         assert pool.status == {'a': JobStatus.CANCELLED}
-        assert 'Waiting for 1 tasks to cancel' in records.messages(logging.WARNING)
+        assert records.messages(logging.WARNING).count('Job was cancelled') == 1
 
     @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
     @pytest.mark.asyncio
@@ -595,10 +661,127 @@ class TestBasePool:
                     await asyncio.sleep(0.02)
                 raise ValueError
         ticking.cancel()
-        # The running job still finishes in its worker, but the loop goes on meanwhile
+        # The loop goes on while the worker stops the job
         assert max(b - a for a, b in zip(ticks, ticks[1:])) < 0.5
         assert pool._executor is None
         assert pool.status == {'a': JobStatus.CANCELLED}
+
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    @pytest.mark.asyncio
+    async def test_cancellation_reaches_jobs_in_workers(self, pool_cls, tmp_path):
+        marker = tmp_path / 'marker'
+        pool, records = recorded(pool_cls, max_jobs=1)
+
+        async def run():
+            async with pool:
+                pool.submit(Marks, MarksConfig(marker=marker), job_ids=['a'])
+                await pool.launch()
+
+        task = asyncio.create_task(run())
+        await until(marker.exists)
+        start = time.monotonic()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        # The job is stopped, not left to run its 10 s, and the pool says so before the job does
+        assert time.monotonic() - start < 3
+        assert marker.read_text() == 'cancelled'
+        assert pool.status == {'a': JobStatus.CANCELLED}
+        warnings = records.messages(logging.WARNING)
+        said = warnings.index('Cancelling 1 running jobs; waiting up to 15 s for them to stop')
+        assert said < warnings.index('Cancellation received, stopping') < warnings.index('Job was cancelled')
+
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    @pytest.mark.asyncio
+    async def test_jobs_in_workers_get_the_reason(self, pool_cls, tmp_path):
+        marker = tmp_path / 'marker'
+        pool, records = recorded(pool_cls, max_jobs=1)
+        with pytest.raises(ValueError):
+            async with pool:
+                pool.submit(Marks, MarksConfig(marker=marker), job_ids=['a'])
+                asyncio.create_task(pool.launch())
+                await until(marker.exists)
+                raise ValueError
+        assert marker.read_text() == 'cancelled'
+        reason = 'Job cancellation requested with reason: An exception occurred in the pool context'
+        assert reason in records.messages(logging.WARNING)
+
+    @pytest.mark.parametrize('pool_cls', WORKER_POOLS, ids=lambda c: c.__name__)
+    @pytest.mark.asyncio
+    async def test_a_cancelled_launch_stops_jobs_in_workers(self, pool_cls, tmp_path):
+        marker = tmp_path / 'marker'
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(Marks, MarksConfig(marker=marker), job_ids=['a'])
+            launch = asyncio.create_task(pool.launch())
+            await until(marker.exists)
+            launch.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await launch
+        # The pool goes on, and its exit waits for the worker to stop the job
+        assert marker.read_text() == 'cancelled'
+
+    @pytest.mark.asyncio
+    async def test_threads_that_dont_stop_are_waited_for(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(ThreadedPool, '_CANCEL_GRACE', 0.2)
+        marker = tmp_path / 'marker'
+        pool, records = recorded(ThreadedPool, max_jobs=1)
+        start = time.monotonic()
+        with pytest.raises(ValueError):
+            async with pool:
+                pool.submit(Blocks, MarksConfig(marker=marker, seconds=1.5), job_ids=['a'])
+                asyncio.create_task(pool.launch())
+                await until(marker.exists)
+                raise ValueError
+        assert time.monotonic() - start >= 1.5
+        assert "1 jobs didn't stop within 0.2 s; waiting for their workers to finish" in records.messages(
+            logging.WARNING
+        )
+
+    @pytest.mark.parametrize('pool', ['ThreadedPool', 'MultiprocessPool'])
+    def test_ctrl_c_cancels_batch_jobs(self, tmp_path, pool):
+        # The console's or terminal's Ctrl+C doesn't reach a batch file's programs, which would die of it before the
+        #  worker cancels the job (failing it): the job is cancelled, and stops them
+        done = run_ctrl_c_script(
+            tmp_path,
+            f"""
+            import asyncio, sys
+
+            from tests.jobs.helpers import until
+            from xtl.jobs.config import BatchJobConfig
+            from xtl.jobs.jobs import BatchJob
+            from xtl.jobs.pools import {pool}
+            from xtl.jobs.results import JobStatus
+            from xtl.jobs.shells import Shell
+
+            python = '"' + sys.executable + '"'
+            sleep = python + ' -c "import time; time.sleep(30)"'
+
+
+            async def main():
+                pool = {pool}(max_jobs=2)
+                try:
+                    async with pool:
+                        configs = [BatchJobConfig(templates={{Shell.BASH: sleep, Shell.CMD: sleep}}) for _ in range(2)]
+                        pool.submit(BatchJob, configs, job_ids=['a', 'b'])
+                        launch = asyncio.ensure_future(pool.launch())
+                        await until(lambda: set(pool.status.values()) == {{JobStatus.RUNNING}})
+                        await asyncio.sleep(2)  # the programs have started
+                        ctrl_c()
+                        await launch
+                finally:
+                    print('status:', sorted(s.value for s in pool.status.values()))
+
+
+            if __name__ == '__main__':
+                try:
+                    asyncio.run(main())
+                except KeyboardInterrupt:
+                    print('interrupted')
+            """,
+        )
+        assert done.returncode == 0, done.stderr
+        assert "status: ['cancelled', 'cancelled']" in done.stdout, done.stdout + done.stderr
+        assert 'subprocess error' not in done.stdout + done.stderr
 
     # Settings and shared primitives
 
@@ -676,6 +859,28 @@ class TestProxyPool:
             with pytest.raises(KeyError, match='was not registered with the pool'):
                 get('x')
         backend.stop()
+
+
+class TestRunWatched:
+    class Gone:
+        """A shared state whose manager has gone away."""
+
+        def __contains__(self, key):
+            raise ConnectionError('gone')
+
+    @pytest.mark.parametrize(
+        'ipc', [None, ThreadedIPCBackend.from_handle(IPCHandle({}, {}, {}))], ids=['none', 'empty']
+    )
+    @pytest.mark.asyncio
+    async def test_without_flags_the_job_just_runs(self, ipc):
+        result = await _run_watched(Naps(job_id='a'), ipc)
+        assert result.data == 'a'
+
+    @pytest.mark.asyncio
+    async def test_flags_that_go_away_leave_the_job_running(self):
+        ipc = ThreadedIPCBackend.from_handle(IPCHandle({}, {}, {'_xtl_cancel': self.Gone()}))
+        result = await _run_watched(Naps(job_id='a'), ipc)
+        assert result.data == 'a'
 
 
 class TestSimplePool:
@@ -822,6 +1027,109 @@ class TestMultiprocessPool:
         monkeypatch.setattr(MultiprocessPool, '_bootstrap_process', staticmethod(escapes_plainly))
         with pytest.raises(ValueError, match='plain'):
             MultiprocessPool._run_in_process(payload)
+
+    @pytest.mark.asyncio
+    async def test_workers_that_dont_stop_are_ended(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(MultiprocessPool, '_CANCEL_GRACE', 0.5)
+        marker = tmp_path / 'marker'
+        pool, records = recorded(MultiprocessPool, max_jobs=1)
+        with pytest.raises(ValueError):
+            async with pool:
+                pool.submit(Blocks, MarksConfig(marker=marker, seconds=30), job_ids=['a'])
+                asyncio.create_task(pool.launch())
+                await until(marker.exists)
+                start = time.monotonic()
+                raise ValueError
+        assert time.monotonic() - start < 10
+        assert pool.status == {'a': JobStatus.CANCELLED}
+        warnings = records.messages(logging.WARNING)
+        assert 'Cancelling 1 running jobs; waiting up to 0.5 s for them to stop' in warnings
+        assert "Ending 1 workers that didn't stop" in warnings
+
+    @pytest.mark.asyncio
+    async def test_ending_workers_without_their_processes(self):
+        # `ProcessPoolExecutor._processes` is private: without it, the pool can only wait
+        pool, records = recorded(MultiprocessPool)
+        await pool._end_workers(object(), busy=2)
+        assert "2 jobs didn't stop within 15 s; waiting for their workers to finish" in records.messages(
+            logging.WARNING
+        )
+
+    def test_ctrl_c_is_left_to_the_parent(self, tmp_path):
+        # Ctrl+C reaches every process on the console (or in the terminal's process group); a worker waiting for work
+        #  and the manager used to die of it, which broke the pool. Here the parent takes it and goes on.
+        done = run_ctrl_c_script(
+            tmp_path,
+            """
+            import asyncio
+
+            from tests.jobs.helpers import Naps, until
+            from xtl.jobs.pools import MultiprocessPool
+
+            received = []
+
+
+            async def main():
+                async with MultiprocessPool(max_jobs=2) as pool:
+                    pool.submit(Naps, job_ids=['before'])
+                    await pool.launch()  # its worker now waits for work
+                    state = pool.get_state('shared')
+                    signal.signal(signal.SIGINT, lambda *args: received.append(True))
+                    ctrl_c()
+                    await until(lambda: received)
+                    await asyncio.sleep(0.5)
+                    state['x'] = 1  # the manager is still there
+                    pool.submit(Naps, job_ids=['after'])
+                    (result,) = await pool.launch()
+                    print('after:', result.success, repr(result.error))
+
+
+            if __name__ == '__main__':
+                asyncio.run(main())
+            """,
+        )
+        assert done.returncode == 0, done.stderr
+        assert 'after: True None' in done.stdout, done.stdout + done.stderr
+
+    def test_ctrl_c_stops_the_jobs(self, tmp_path):
+        # Only the parent acts on Ctrl+C, and the workers stop their jobs
+        marker = tmp_path / 'marker'
+        done = run_ctrl_c_script(
+            tmp_path,
+            """
+                import asyncio, sys
+                from pathlib import Path
+
+                from tests.jobs.helpers import Naps, until
+                from tests.jobs.test_pools import Marks, MarksConfig
+                from xtl.jobs.pools import MultiprocessPool
+                from xtl.jobs.results import JobStatus
+
+
+                async def main(marker):
+                    async with MultiprocessPool(max_jobs=2) as pool:
+                        # A job that ends at once leaves its worker waiting for work, the other one runs
+                        pool.submit(Naps, job_ids=['quick'])
+                        pool.submit(Marks, MarksConfig(marker=marker, seconds=30), job_ids=['slow'])
+                        launch = asyncio.ensure_future(pool.launch())
+                        await until(lambda: marker.exists() and pool.status['quick'] == JobStatus.DONE)
+                        ctrl_c()
+                        await launch
+
+
+                if __name__ == '__main__':
+                    try:
+                        asyncio.run(main(Path(sys.argv[1])))
+                    except KeyboardInterrupt:
+                        print('interrupted')
+            """,
+            str(marker),
+        )
+        assert done.returncode == 0, done.stderr
+        assert 'interrupted' in done.stdout
+        assert 'BrokenProcessPool' not in done.stderr
+        assert 'handle is closed' not in done.stderr
+        assert marker.read_text() == 'cancelled'
 
     def test_results_that_survive_pickling_are_left_alone(self):
         results = JobResults(job_id='a', data={'x': 1}, error=ValueError('fine'))

@@ -17,7 +17,7 @@ import aiofiles
 if TYPE_CHECKING:
     from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
-from xtl_core.system.compatibility import OS_POSIX, PY310_OR_LESS
+from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS, PY310_OR_LESS
 from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
@@ -275,8 +275,9 @@ class LocalSite(BaseComputeSite):
         # Initialize stream logging tasks
         stdout_task, stderr_task = None, None
         try:
-            # Start batch execution; on POSIX in a session of its own, so that the programs it starts can be stopped
-            #  together (see `_terminate_batch`). Without input: a batch file isn't interactive, and the console's
+            # Start batch execution; in a session (POSIX) or process group (Windows) of its own, so that the programs
+            #  it starts can be stopped together (see `_terminate_batch`), and that Ctrl+C on the terminal or console
+            #  reaches only the application, which cancels the job and stops them. Without input: a batch file isn't interactive, and the console's
             #  input belongs to the application (e.g. cmd's "Terminate batch job (Y/N)?" after Ctrl+C would wait for
             #  the keyboard, competing with the application's own prompts)
             batch._process = await asyncio.create_subprocess_exec(
@@ -286,6 +287,7 @@ class LocalSite(BaseComputeSite):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 start_new_session=OS_POSIX,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if OS_WINDOWS else 0,
             )
             batch._status = BatchFileStatus.RUNNING
 
@@ -305,8 +307,9 @@ class LocalSite(BaseComputeSite):
                 failed = batch.process.returncode != 0
                 batch._status = BatchFileStatus.FAILED if failed else BatchFileStatus.COMPLETED
         except asyncio.CancelledError as e:
-            # Raise cancellation up the stack after marking the batch as cancelled
-            batch.logger.error('Batch execution was cancelled by user')
+            # Raise cancellation up the stack after marking the batch as cancelled; said before the clean-up, which
+            #  takes a while
+            batch.logger.warning('Stopping the batch file and the programs it started')
             batch._status = BatchFileStatus.CANCELLED
             raise e
         except Exception as e:
@@ -359,7 +362,8 @@ class LocalSite(BaseComputeSite):
         """
         Stop a batch file and every program it started: on POSIX, its process group gets ``SIGINT`` (what Ctrl+C in a
         terminal sends), then ``SIGTERM``, then ``SIGKILL``, each after a grace period if something still runs; on
-        Windows, ``taskkill /T /F`` ends the shell and its tree.
+        Windows, its process group gets ``CTRL_BREAK_EVENT`` (Ctrl+C doesn't reach a group of its own), then, if the
+        shell still runs after the grace period, ``taskkill /T /F`` ends it and its tree.
         """
         process = batch.process
         if process is None:
@@ -367,7 +371,9 @@ class LocalSite(BaseComputeSite):
         if OS_POSIX:
             await LocalSite._signal_group(batch)
         elif process.returncode is None:
-            await LocalSite._kill_tree(batch)
+            await LocalSite._break_group(batch)
+            if process.returncode is None:
+                await LocalSite._kill_tree(batch)
 
     @staticmethod
     def _group_alive(pgid: int) -> bool:
@@ -395,6 +401,20 @@ class LocalSite(BaseComputeSite):
             while LocalSite._group_alive(pgid) and asyncio.get_running_loop().time() < deadline:
                 await asyncio.sleep(0.05)
         await batch.process.wait()
+
+    @staticmethod
+    async def _break_group(batch: BatchFile) -> None:
+        # The shell leads a process group of its own, so the group's id is its pid
+        process = batch.process
+        batch.logger.debug('Sending CTRL_BREAK_EVENT to the processes of batch file %(file)s', {'file': batch.file})
+        try:
+            os.kill(process.pid, signal.CTRL_BREAK_EVENT)
+        except OSError:
+            # E.g. no console to send it through: the tree is ended instead
+            return
+        deadline = asyncio.get_running_loop().time() + LocalSite._TERMINATE_GRACE
+        while process.returncode is None and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.05)
 
     @staticmethod
     async def _kill_tree(batch: BatchFile) -> None:

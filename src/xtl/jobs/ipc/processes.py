@@ -1,9 +1,27 @@
 import multiprocessing as mp
 from multiprocessing.managers import SyncManager
 import queue
+import signal
 from typing import Any
 
+from xtl_core.system.compatibility import OS_WINDOWS
+
 from .base import IPCLock, IPCQueue, IPCState, IPCBackend, IPCHandle, NOT_YET, poll
+
+
+def _on_interrupt(signum, frame) -> None:
+    pass
+
+
+def ignore_interrupts() -> None:
+    """
+    Make the current process ignore Ctrl+C (``SIGINT``), for the processes of a pool: Ctrl+C reaches every process on
+    the console, and is the parent's to handle. On POSIX with a handler that does nothing rather than ``SIG_IGN``,
+    which programs started from the process would inherit (it isn't reset on ``exec``), so that a batch file's
+    programs still stop on ``SIGINT``; on Windows with ``SIG_IGN``, since a handler would still interrupt the
+    process's waits.
+    """
+    signal.signal(signal.SIGINT, signal.SIG_IGN if OS_WINDOWS else _on_interrupt)
 
 
 class ProcessLock(IPCLock):
@@ -116,7 +134,9 @@ class ProcessIPCBackend(IPCBackend):
         self._raw_states: dict[str, Any] = {}
 
     def start(self) -> None:
-        self._manager = mp.Manager()
+        # As `mp.Manager()`, but the manager process leaves Ctrl+C to the pool
+        self._manager = SyncManager(ctx=mp.get_context())
+        self._manager.start(initializer=ignore_interrupts)
 
     def stop(self) -> None:
         self._locks.clear()

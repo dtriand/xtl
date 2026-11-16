@@ -184,13 +184,19 @@ class TestLivePool:
         assert 'Job failed due to an exception: boom' in output(c)
 
     @pytest.mark.asyncio
-    async def test_no_replay_without_records(self):
+    async def test_replay_includes_the_pools_exit(self):
         c = console()
         with pytest.raises(ValueError):
             async with live(console=c):
                 raise ValueError
+        # The logs are replayed once the pool has exited, with what it said while stopping
         assert 'An error occurred while executing jobs' in output(c)
-        assert '--- Job logs ---' not in output(c)
+        assert output(c).index('--- Job logs ---') < output(c).index('An exception occurred within the pool context')
+
+    def test_no_replay_without_records(self):
+        c = console()
+        live(console=c)._replay_logs()
+        assert output(c) == ''
 
     @pytest.mark.asyncio
     async def test_interrupt(self):
@@ -199,6 +205,37 @@ class TestLivePool:
             async with live(console=c):
                 raise KeyboardInterrupt
         assert 'User cancelled the job execution.' in output(c)
+
+    @pytest.mark.asyncio
+    async def test_interrupt_is_reported_before_the_jobs_stop(self, monkeypatch):
+        c = console()
+        pool = live(console=c)
+        seen = {}
+        pool_exit = pool._pool.__aexit__
+
+        async def exiting(*args):
+            # The pool stops its jobs now, with the display still up
+            seen['said'] = output(c)
+            seen['progress'] = pool._progress.description
+            seen['live'] = pool._live.is_started
+            return await pool_exit(*args)
+
+        replay = pool._replay_logs
+
+        def replaying():
+            seen['pool open at replay'] = pool._pool._ipc is not None
+            replay()
+
+        monkeypatch.setattr(pool._pool, '__aexit__', exiting)
+        monkeypatch.setattr(pool, '_replay_logs', replaying)
+        with pytest.raises(KeyboardInterrupt):
+            async with pool:
+                raise KeyboardInterrupt
+        assert 'Ctrl+C received: stopping the running jobs...' in seen['said']
+        assert seen['progress'] == 'Cancelling jobs'
+        assert seen['live']
+        # The logs are offered once the pool has exited
+        assert seen['pool open at replay'] is False
 
     @pytest.mark.asyncio
     async def test_pool_that_cannot_start(self):

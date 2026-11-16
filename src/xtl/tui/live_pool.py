@@ -280,25 +280,31 @@ class LivePool(PoolProtocol):
         # Check if the exit was caused by Ctrl+C
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
-        # Check for job errors
-        job_errors = self._pool.counts()[JobStatus.FAILED] > 0
-
         suppressed = False
         try:
-            # Stop rich.Live and clear output
-            if live := self._live:
-                live.stop()
+            # The pool stops its running jobs, which can take a while: say so at once, and keep the display up
+            #  meanwhile, with the jobs' messages
+            if interrupted:
+                self._console.print('Ctrl+C received: stopping the running jobs...', style='yellow')
+            if exc_val and self._progress:
+                self._progress.description = 'Cancelling jobs'
 
-            # Replay logs if there were any errors on the jobs
+            # Let the pool exit, then stop rich.Live and clear output
+            try:
+                suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
+            finally:
+                if live := self._live:
+                    live.stop()
+
+            # Replay logs if there were any errors on the jobs; asked once the jobs have stopped, so that nothing else
+            #  competes for the console
+            job_errors = self._pool.counts()[JobStatus.FAILED] > 0
             if exc_val or job_errors:
                 self._console.print('An error occurred while executing jobs', style='red')
                 if not self._console.is_terminal or self._console.confirm(
                     'Would you like to print the job logs?', default=True
                 ):
                     self._replay_logs()
-
-            # Let the pool exit normally
-            suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             # Empty the handler's buffer
             self._buffer.clear()

@@ -843,7 +843,6 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
             # A local site stops the batch itself when it's cancelled; a batch that still runs is stopped here
             if batch.status == BatchFileStatus.RUNNING:
                 await batch.cancel()
-            self.logger.error('Batch execution was cancelled by the user')
             raise e
 
         # Handle result

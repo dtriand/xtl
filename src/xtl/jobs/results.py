@@ -31,7 +31,7 @@ class JobStatus(StrEnum):
     FAILED = 'failed'
     """Finished with an error, or the pool failed to run it"""
     CANCELLED = 'cancelled'
-    """Cancelled; in a thread or process pool, the worker may still finish the job, but its result is dropped"""
+    """Cancelled while running or waiting; in a thread or process pool, stopped by the time the pool exits"""
 
     @property
     def is_finished(self) -> bool:

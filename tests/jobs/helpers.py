@@ -5,6 +5,8 @@ Jobs are defined at module level, so that worker processes can import them.
 """
 
 import asyncio
+import time
+from typing import Callable
 
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
@@ -12,6 +14,14 @@ from xtl.jobs.pools import AsyncPool, MultiprocessPool, SimplePool, ThreadedPool
 
 POOLS = [SimplePool, AsyncPool, ThreadedPool, MultiprocessPool]
 WORKER_POOLS = [ThreadedPool, MultiprocessPool]
+
+
+async def until(condition: Callable[[], bool], timeout: float = 20) -> None:
+    """Wait until `condition()` is true; fail after `timeout` seconds (a process pool takes a while to start)."""
+    deadline = time.monotonic() + timeout
+    while not condition():
+        assert time.monotonic() < deadline, 'timed out'
+        await asyncio.sleep(0.02)
 
 
 class Talker(Job[JobConfig]):

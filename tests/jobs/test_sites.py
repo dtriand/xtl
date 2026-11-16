@@ -38,9 +38,19 @@ elif mode == 'note-sigint':
         sys.exit(0)
 
     signal.signal(signal.SIGINT, noted)
+elif mode == 'ignore-break':
+    signal.signal(signal.SIGBREAK, signal.SIG_IGN)
+elif mode == 'note-break':
+    def noted(*args):
+        with open(pidfile + '.sigbreak', 'w') as f:
+            f.write('SIGBREAK')
+        sys.exit(0)
+
+    signal.signal(signal.SIGBREAK, noted)
 with open(pidfile, 'w') as f:
     f.write(str(os.getpid()))
-time.sleep(30)
+for _ in range(300):
+    time.sleep(0.1)  # short sleeps: on Windows, a handler only runs between them
 """
 
 
@@ -253,6 +263,8 @@ class TestLocalSite:
         batch.save()
         await asyncio.wait_for(LocalSite().execute_batch(batch, stdout=tmp_path / 'stdout.log'), 30)
         assert started[0]['stdin'] == asyncio.subprocess.DEVNULL
+        # In a process group of its own on Windows, so that the console's Ctrl+C doesn't reach it
+        assert started[0]['creationflags'] == (subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0)
         assert (tmp_path / 'stdout.log').read_text().strip() == '0'
 
     @pytest.mark.asyncio
@@ -384,6 +396,46 @@ class TestLocalSite:
 
     @skipif_not_windows
     @pytest.mark.asyncio
+    async def test_programs_get_ctrl_break_first(self, tmp_path):
+        batch, pidfile = self.program_batch(tmp_path, mode='note-break')
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+        assert (tmp_path / 'child.pid.sigbreak').read_text() == 'SIGBREAK'
+
+    @skipif_not_windows
+    @pytest.mark.asyncio
+    async def test_programs_that_ignore_ctrl_break_are_ended(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(LocalSite, '_TERMINATE_GRACE', 0.5)
+        batch, pidfile = self.program_batch(tmp_path, mode='ignore-break')
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        start = time.monotonic()
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+        assert time.monotonic() - start < 5
+
+    @skipif_not_windows
+    @pytest.mark.asyncio
+    async def test_without_a_console_the_tree_is_ended_at_once(self, tmp_path, monkeypatch):
+        def no_console(pid, sig):
+            raise OSError('no console')
+
+        monkeypatch.setattr(os, 'kill', no_console)
+        batch, pidfile = self.program_batch(tmp_path, mode='ignore-break')
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        start = time.monotonic()
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+        assert time.monotonic() - start < LocalSite._TERMINATE_GRACE
+
+    @skipif_not_windows
+    @pytest.mark.asyncio
     async def test_kill_tree_falls_back_to_the_shell(self, tmp_path):
         class Shell:
             pid, returncode, killed = 4_000_000, None, False  # no such process: taskkill fails
@@ -396,7 +448,9 @@ class TestLocalSite:
 
         batch = BatchFile(tmp_path / 'job')
         batch._process = Shell()
-        await LocalSite._terminate_batch(batch)
+        # NB: Not through `_terminate_batch()`, whose Ctrl+Break to a group that doesn't exist could reach every
+        #  process on the console
+        await LocalSite._kill_tree(batch)
         assert batch.process.killed
 
 

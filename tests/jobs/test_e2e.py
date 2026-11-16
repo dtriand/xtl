@@ -14,7 +14,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from tests.jobs.helpers import POOLS, WORKER_POOLS
+from tests.jobs.helpers import POOLS
 from xtl import settings
 from xtl.cli.utilities.common import ConsoleOptions, JobOptions, get_console_options, get_job_options
 from xtl.cli.utilities.decorators import attach_hook, typer_async
@@ -229,7 +229,7 @@ class TestTimeouts:
     @pytest.mark.asyncio
     async def test_timeout_in_the_middle_of_a_launch(self, pool_cls, tmp_path):
         available = await get_rc_manager().available()
-        configs = [GreetConfig(job_directory=tmp_path / str(i), name=str(i), seconds=2) for i in range(3)]
+        configs = [GreetConfig(job_directory=tmp_path / str(i), name=str(i), seconds=30) for i in range(3)]
         pool = pool_cls(max_jobs=2)
 
         async def run():
@@ -246,13 +246,9 @@ class TestTimeouts:
         assert set(pool.status.values()) == {JobStatus.CANCELLED}
         assert await get_rc_manager().available() == available
         assert not [name for name in logging.root.manager.loggerDict if name.startswith(pool.logger.name)]
-        if pool_cls in WORKER_POOLS:
-            # A job in a worker can't be stopped: the exit waits for the scripts that run (2 s, a process pool also
-            #  starts its workers)
-            assert elapsed >= 1.5
-        else:
-            # In the event loop, the scripts are stopped
-            assert elapsed < 2
+        # The scripts are stopped, in the event loop and in workers, long before they would end (30 s); on Windows,
+        #  `ping` ignores Ctrl+Break, so they are ended after the grace period (5 s)
+        assert elapsed < 15
 
 
 # A command line tool, written like xtl's: options from the hooks, a live pool from the console
