@@ -76,10 +76,23 @@ Context variable to track the current ResourcesLease in scope.
 """
 
 
+def _live(lease: 'ResourcesLease | None') -> 'ResourcesLease | None':
+    """
+    The nearest lease that isn't released, from `lease` up through its parents, or None (the manager).
+    """
+    while lease is not None and lease._released:
+        lease = lease._parent
+    return lease
+
+
 class ResourcesLease:
     """
     Represents a lease of resources granted by a ResourceManager. Supports nested leases for hierarchical resource
     management.
+
+    A lease may be released while its children are still open (e.g. a pool exits while one of its jobs still runs a
+    pool of its own): it then gives back only what its children don't hold, and its children belong to its parent (or
+    the manager) from then on, so that the manager never hands out more than its total.
 
     :param manager: The ResourceManager that granted this lease.
     :param granted: The Resources that were granted for this lease.
@@ -103,6 +116,7 @@ class ResourcesLease:
         # Resources available to nested pools created within this lease scope.
         self._child_available = granted
         self._child_condition = asyncio.Condition()
+        self._children: set[ResourcesLease] = set()  # Open child leases
 
     async def acquire_child(self, requested: Resources, timeout: float | None = None) -> 'ResourcesLease':
         """
@@ -111,52 +125,72 @@ class ResourcesLease:
 
         :param requested: The resources being requested for the child lease.
         :param timeout: Optional timeout in seconds for acquiring the child lease. If None, wait indefinitely.
-        :return: A ResourcesLease representing the granted child resources.
+        :return: A ResourcesLease representing the granted child resources. If this lease is released, before or while
+            waiting, the request goes to its nearest open parent, or to the manager.
         """
         if self._released:
-            raise RuntimeError('Cannot acquire child resources from a released lease')
+            return await self._manager._acquire_under(self._parent, requested, timeout)
 
         requested = requested.clamp_min(1)
         scoped = requested.cap_to(self.granted)
 
         async with self._child_condition:
-            waiter = self._child_condition.wait_for(lambda: scoped.fits_in(self._child_available))
+            waiter = self._child_condition.wait_for(lambda: self._released or scoped.fits_in(self._child_available))
             if timeout is None:
                 await waiter
             else:
                 await asyncio.wait_for(waiter, timeout=timeout)
-            self._child_available = self._child_available - scoped
+            if not self._released:
+                self._child_available = self._child_available - scoped
+                child = ResourcesLease(manager=self._manager, granted=scoped, parent=self)
+                self._children.add(child)
+        if self._released:
+            return await self._manager._acquire_under(self._parent, requested, timeout)
 
-        child = ResourcesLease(manager=self._manager, granted=scoped, parent=self)
         child._token = CURRENT_LEASE.set(child)
         return child
 
-    async def _release_child(self, granted: Resources) -> None:
+    async def _release_child(self, child: 'ResourcesLease', returned: Resources) -> None:
         """
-        Release child resources back to this lease. This is called by child leases when they are released.
+        Take back resources from a child lease. This is called by child leases when they are released.
 
-        :param granted: The resources being released by the child lease.
+        :param child: The child lease.
+        :param returned: The resources it gives back.
         """
         async with self._child_condition:
-            self._child_available = self._child_available + granted
+            self._children.discard(child)
+            self._child_available = self._child_available + returned
             self._child_condition.notify_all()
 
     async def release(self) -> None:
         """
-        Release this lease and return the granted resources back to the manager or parent lease.
+        Release this lease: give back to the parent lease, or the manager, what isn't held by open child leases, which
+        from then on belong to the parent, or the manager, and give theirs back when they are released. The lease in
+        scope goes back to what it was before this lease.
         """
-        if self._released:
-            return
-        # Before anything that can raise, so that the resources are never returned twice
-        self._released = True
+        if not self._released:
+            # Before anything that can raise, so that the resources are never returned twice
+            self._released = True
+            async with self._child_condition:
+                returned = self._child_available
+                children = list(self._children)
+                self._children.clear()
+                # Requests waiting for this lease go to its parent instead
+                self._child_condition.notify_all()
 
-        if self._parent is None:
-            await self._manager._release_global(self.granted)
-        else:
-            await self._parent._release_child(self.granted)
+            for child in children:
+                child._parent = self._parent
+            if self._parent is None:
+                await self._manager._release_global(returned)
+            else:
+                self._parent._children.update(children)
+                await self._parent._release_child(self, returned)
 
         if self._token is not None:
+            # NB: Raises in another task than the one that acquired the lease; the token stays, so that a release in
+            #  that task still restores its scope
             CURRENT_LEASE.reset(self._token)
+            self._token = None
 
     async def __aenter__(self) -> 'ResourcesLease':
         return self
@@ -188,9 +222,19 @@ class ResourceManager:
         :param timeout: Optional timeout in seconds for acquiring the resources. If None, wait indefinitely.
         :return: A ResourcesLease representing the granted resources.
         """
+        return await self._acquire_under(CURRENT_LEASE.get(), requested, timeout)
+
+    async def _acquire_under(
+        self, parent: ResourcesLease | None, requested: Resources, timeout: float | None
+    ) -> ResourcesLease:
+        """
+        Acquire a lease under `parent`, or, if it is released, under its nearest open parent; from the manager if
+        there is none.
+        """
         requested = requested.clamp_min(1)
 
-        parent = CURRENT_LEASE.get()
+        # A released lease can still be in scope, e.g. in a job whose pool has exited
+        parent = _live(parent)
         if parent is not None:
             if parent._manager is not self:
                 raise RuntimeError('Nested pool uses a different ResourceManager than its parent lease')

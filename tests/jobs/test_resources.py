@@ -4,7 +4,9 @@ from typing import Any
 import pytest
 
 from xtl import settings
-from xtl.jobs.pools import BasePool
+from xtl.jobs.config import JobConfig
+from xtl.jobs.jobs import Job
+from xtl.jobs.pools import AsyncPool, BasePool
 from xtl.jobs.ipc import IPCBackend, IPCLock, IPCQueue, IPCState, IPCHandle
 from xtl.jobs.ipc.async_ import AsyncLock
 from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources, get_rc_manager, get_total_resources
@@ -12,6 +14,16 @@ from xtl.jobs.resources import CURRENT_LEASE, ResourceManager, Resources, get_rc
 
 def each(n: int) -> Resources:
     return Resources(jobs=n, threads=n, processes=n)
+
+
+class LeavesATask(Job[JobConfig]):
+    """Starts a task that outlives the job: `work()`, set by the test; the tasks are kept in `tasks`."""
+
+    work = None
+    tasks: list = []
+
+    async def _execute(self):
+        LeavesATask.tasks.append(asyncio.create_task(LeavesATask.work()))
 
 
 class _DummyIPCBackend(IPCBackend):
@@ -216,14 +228,86 @@ class TestResourcesLease:
         await root.release()
 
     @pytest.mark.asyncio
-    async def test_released_parent_cannot_acquire_child(self):
+    async def test_a_released_lease_passes_requests_on(self):
         manager = ResourceManager(each(4))
-
         root = await manager.acquire(each(2))
-        await root.release()
+        child = await manager.acquire(each(1))
+        await child.release()
 
-        with pytest.raises(RuntimeError, match='released lease'):
-            await root.acquire_child(each(1))
+        # To its parent
+        grandchild = await child.acquire_child(each(1))
+        assert grandchild._parent is root
+        await grandchild.release()
+
+        # Or to the manager
+        await root.release()
+        lease = await root.acquire_child(each(3))
+        assert lease._parent is None
+        assert lease.granted == each(3)
+        assert await manager.available() == each(1)
+        await lease.release()
+        assert await manager.available() == each(4)
+
+    @pytest.mark.asyncio
+    async def test_a_parent_released_before_its_child(self):
+        manager = ResourceManager(each(4))
+        root = await manager.acquire(each(4))
+        child = await manager.acquire(each(3))
+
+        # The parent gives back only what its open child doesn't hold: the manager can't hand out more than its total
+        await root.release()
+        assert await manager.available() == each(1)
+        assert child._parent is None
+
+        # The child gives back the rest
+        await child.release()
+        assert await manager.available() == each(4)
+
+        # The released parent is back in scope, but a new lease skips it
+        assert CURRENT_LEASE.get() is None or CURRENT_LEASE.get()._released
+        lease = await manager.acquire(each(2))
+        assert lease._parent is None
+        await lease.release()
+        assert await manager.available() == each(4)
+
+    @pytest.mark.asyncio
+    async def test_a_middle_lease_released_first(self):
+        manager = ResourceManager(each(4))
+        root = await manager.acquire(each(4))
+        middle = await manager.acquire(each(3))
+        leaf = await manager.acquire(each(2))
+
+        await middle.release()
+        # The leaf now belongs to the root, which got back the rest of the middle lease
+        assert leaf._parent is root
+        assert root._child_available == each(2)
+        await leaf.release()
+        assert root._child_available == each(4)
+        await root.release()
+        assert await manager.available() == each(4)
+
+    @pytest.mark.asyncio
+    async def test_a_request_waiting_on_a_lease_that_is_released(self):
+        manager = ResourceManager(each(4))
+        root = await manager.acquire(each(2))
+        held = await root.acquire_child(each(2))
+
+        async def acquire_and_release():
+            lease = await root.acquire_child(each(1))
+            got = lease._parent, lease.granted
+            await lease.release()
+            return got
+
+        waiting = asyncio.create_task(acquire_and_release())
+        await asyncio.sleep(0.05)
+        assert not waiting.done()
+
+        # The request goes to the manager instead of waiting for ever
+        CURRENT_LEASE.set(root)
+        await root.release()
+        assert await asyncio.wait_for(waiting, timeout=1) == (None, each(1))
+        await held.release()
+        assert await manager.available() == each(4)
 
     @pytest.mark.asyncio
     async def test_release_twice(self):
@@ -267,8 +351,10 @@ class TestResourcesLease:
             await asyncio.create_task(lease.release())
         assert await manager.available() == each(2)
 
+        # A release in its own task restores the scope
         await lease.release()
         assert await manager.available() == each(2)
+        assert CURRENT_LEASE.get() is None
 
 
 class TestGetRcManager:
@@ -355,6 +441,36 @@ class TestPoolLeases:
         await asyncio.gather(first, use('second', 0))
         assert order == ['first in', 'first out', 'second in', 'second out']
         assert await manager.available() == each(2)
+
+    @pytest.mark.asyncio
+    async def test_a_pool_that_outlives_the_pool_of_its_job(self):
+        # A task started by a job copies the lease in scope, so a pool it opens takes a child lease of the job's pool,
+        #  which can exit first
+        manager = ResourceManager(each(4))
+        inner_open, outer_closed = asyncio.Event(), asyncio.Event()
+        seen = {}
+
+        async def later():
+            async with AsyncPool(max_jobs=2, resources_manager=manager):
+                inner_open.set()
+                await outer_closed.wait()
+                seen['while open'] = await manager.available()
+            # The pool of the job that started this task is gone: a new pool leases from the manager
+            async with AsyncPool(max_jobs=3, resources_manager=manager) as pool:
+                seen['next pool'] = pool.resources.jobs
+
+        LeavesATask.work = later
+        async with AsyncPool(max_jobs=4, resources_manager=manager) as outer:
+            outer.submit(LeavesATask)
+            await outer.launch()
+            await inner_open.wait()
+        outer_closed.set()
+        await asyncio.wait_for(LeavesATask.tasks.pop(), 5)
+
+        # While the inner pool was open, the manager kept its share
+        assert seen['while open'].jobs == 2
+        assert seen['next pool'] == 3
+        assert await manager.available() == each(4)
 
     @pytest.mark.asyncio
     async def test_pool_capped_to_the_total(self):
