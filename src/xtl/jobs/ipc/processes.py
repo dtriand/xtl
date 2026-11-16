@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import multiprocessing.context
 from multiprocessing.managers import SyncManager
 import queue
 import signal
@@ -22,6 +23,78 @@ def ignore_interrupts() -> None:
     process's waits.
     """
     signal.signal(signal.SIGINT, signal.SIG_IGN if OS_WINDOWS else _on_interrupt)
+    if not OS_WINDOWS:
+        # Blocked since the process was created (see `_ShieldedStart`); a Ctrl+C meanwhile is pending,
+        #  and now goes to the handler. Programs started from here get it unblocked.
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT})
+
+
+class _ShieldedStart:
+    """
+    A process that ignores Ctrl+C from its start, until :func:`ignore_interrupts` takes over in its initializer: before
+    that, a process started with spawn imports xtl for a second or so, and Ctrl+C would kill it (which breaks a process
+    pool). On POSIX, ``SIGINT`` is blocked in the current thread while the process is created, which the child
+    inherits; a Ctrl+C for this process stays pending until the block ends. On Windows, Ctrl+C is switched off for this
+    process meanwhile (``SetConsoleCtrlHandler(NULL, TRUE)``), which the child inherits; a Ctrl+C in those few
+    milliseconds is lost.
+    """
+
+    def start(self) -> None:
+        if OS_WINDOWS:
+            import ctypes
+
+            kernel32 = ctypes.windll.kernel32
+            kernel32.SetConsoleCtrlHandler(None, True)
+            try:
+                super().start()  # type: ignore[misc]
+            finally:
+                kernel32.SetConsoleCtrlHandler(None, False)
+        else:
+            previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+            try:
+                super().start()  # type: ignore[misc]
+            finally:
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+
+# NB: Processes started with spawn are pickled for the child, so their classes are defined at module level
+class _ShieldedSpawnProcess(_ShieldedStart, multiprocessing.context.SpawnProcess):
+    pass
+
+
+class _ShieldedSpawnContext(multiprocessing.context.SpawnContext):
+    Process = _ShieldedSpawnProcess
+
+
+_SHIELDED_CONTEXTS: dict[str, type] = {'spawn': _ShieldedSpawnContext}
+
+if not OS_WINDOWS:
+
+    class _ShieldedForkProcess(_ShieldedStart, multiprocessing.context.ForkProcess):
+        pass
+
+    class _ShieldedForkContext(multiprocessing.context.ForkContext):
+        Process = _ShieldedForkProcess
+
+    _SHIELDED_CONTEXTS['fork'] = _ShieldedForkContext
+
+    if hasattr(multiprocessing.context, 'ForkServerContext'):
+
+        class _ShieldedForkServerProcess(_ShieldedStart, multiprocessing.context.ForkServerProcess):
+            pass
+
+        class _ShieldedForkServerContext(multiprocessing.context.ForkServerContext):
+            Process = _ShieldedForkServerProcess
+
+        _SHIELDED_CONTEXTS['forkserver'] = _ShieldedForkServerContext
+
+
+def shielded_context() -> multiprocessing.context.BaseContext:
+    """
+    A ``multiprocessing`` context for the processes of a pool (its workers and its manager), with the default start
+    method, whose processes ignore Ctrl+C from their start; their initializer must call :func:`ignore_interrupts`.
+    """
+    return _SHIELDED_CONTEXTS[mp.get_start_method()]()
 
 
 class ProcessLock(IPCLock):
@@ -135,7 +208,7 @@ class ProcessIPCBackend(IPCBackend):
 
     def start(self) -> None:
         # As `mp.Manager()`, but the manager process leaves Ctrl+C to the pool
-        self._manager = SyncManager(ctx=mp.get_context())
+        self._manager = SyncManager(ctx=shielded_context())
         self._manager.start(initializer=ignore_interrupts)
 
     def stop(self) -> None:

@@ -9,6 +9,8 @@ import threading
 
 import pytest
 
+from tests.conftest import skipif_not_linux
+
 from xtl.jobs.ipc import (
     AsyncIPCBackend,
     IPCBackend,
@@ -17,7 +19,7 @@ from xtl.jobs.ipc import (
     ProcessIPCBackend,
     ThreadedIPCBackend,
 )
-from xtl.jobs.ipc.processes import ProxyProcessIPCBackend, ignore_interrupts
+from xtl.jobs.ipc.processes import ProxyProcessIPCBackend, ignore_interrupts, shielded_context
 from xtl_core.system.compatibility import OS_WINDOWS
 
 BACKENDS = [AsyncIPCBackend, ThreadedIPCBackend, ProcessIPCBackend]
@@ -262,6 +264,11 @@ class TestWorkerBackend:
         assert set(handle.state) == {'s'}
 
 
+def report_blocked(queue) -> None:
+    """In a child process: whether SIGINT is blocked, as a shielded process starts."""
+    queue.put(signal.SIGINT in signal.pthread_sigmask(signal.SIG_BLOCK, set()))
+
+
 class TestProcessIPCBackend:
     @pytest.mark.parametrize('kind', ['lock', 'queue', 'state'])
     def test_must_be_started(self, kind):
@@ -291,6 +298,18 @@ class TestProcessIPCBackend:
             # A handler, not SIG_IGN, which the programs a worker starts would inherit
             assert callable(handler)
             handler(signal.SIGINT, None)
+            assert signal.SIGINT not in signal.pthread_sigmask(signal.SIG_BLOCK, set())
+
+    @skipif_not_linux
+    def test_shielded_processes_start_with_sigint_blocked(self):
+        ctx = shielded_context()
+        queue = ctx.SimpleQueue()
+        process = ctx.Process(target=report_blocked, args=(queue,))
+        process.start()
+        process.join(30)
+        assert queue.get() is True
+        # The parent's mask is back as it was
+        assert signal.SIGINT not in signal.pthread_sigmask(signal.SIG_BLOCK, set())
 
     def test_worker_backend_cannot_create_primitives(self):
         worker = ProcessIPCBackend.from_handle(IPCHandle(locks={}, queues={}, state={}))

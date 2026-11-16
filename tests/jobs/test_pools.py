@@ -23,6 +23,7 @@ from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources, SteppedJob
 from xtl.jobs.exceptions import WorkerError
 from xtl.jobs.ipc import AsyncIPCBackend, ThreadedIPCBackend
 from xtl.jobs.ipc.base import IPCHandle, IPCHandleNames
+from xtl.jobs.ipc.processes import _ShieldedStart
 from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.logging import HandlerConfig, JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import (
@@ -198,8 +199,10 @@ def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.Com
                 os.killpg(0, signal.SIGINT)
 
 
-        if os.name == 'nt':
-            ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)  # Ctrl+C may be off for children
+        # Ctrl+C may be off for children; not here in the pool's processes, which import this script again, and
+        #  ignore Ctrl+C from their start
+        if os.name == 'nt' and __name__ == '__main__':
+            ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)
         """
     )
     path = tmp_path / 'script.py'
@@ -1090,6 +1093,46 @@ class TestMultiprocessPool:
         )
         assert done.returncode == 0, done.stderr
         assert 'after: True None' in done.stdout, done.stdout + done.stderr
+
+    @pytest.mark.parametrize('delay', [0.1, 0.4])
+    def test_ctrl_c_while_the_workers_start(self, tmp_path, delay):
+        # A worker started with spawn imports xtl for a second or so before its initializer runs; Ctrl+C then used to
+        #  kill it, which broke the pool
+        done = run_ctrl_c_script(
+            tmp_path,
+            """
+            import asyncio, sys
+
+            from tests.jobs.helpers import Naps
+            from xtl.jobs.pools import MultiprocessPool
+
+
+            async def main(delay):
+                async with MultiprocessPool(max_jobs=4) as pool:
+                    pool.submit(Naps, [None] * 8, job_ids=[f'slow{i}' for i in range(8)])
+                    launch = asyncio.ensure_future(pool.launch())
+                    await asyncio.sleep(delay)
+                    ctrl_c()
+                    await launch
+
+
+            if __name__ == '__main__':
+                try:
+                    asyncio.run(main(float(sys.argv[1])))
+                except KeyboardInterrupt:
+                    print('interrupted')
+            """,
+            str(delay),
+        )
+        assert done.returncode == 0, done.stderr
+        assert 'interrupted' in done.stdout
+        assert 'Traceback' not in done.stderr, done.stderr
+
+    @pytest.mark.asyncio
+    async def test_workers_and_manager_ignore_ctrl_c_from_their_start(self):
+        async with MultiprocessPool() as pool:
+            assert issubclass(pool._executor._mp_context.Process, _ShieldedStart)
+            assert issubclass(pool._ipc._manager._ctx.Process, _ShieldedStart)
 
     def test_ctrl_c_stops_the_jobs(self, tmp_path):
         # Only the parent acts on Ctrl+C, and the workers stop their jobs

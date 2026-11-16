@@ -43,7 +43,7 @@ from xtl.jobs.ipc import (
     ThreadedIPCBackend,
     ProcessIPCBackend,
 )
-from xtl.jobs.ipc.processes import ignore_interrupts
+from xtl.jobs.ipc.processes import ignore_interrupts, shielded_context
 from xtl.jobs.resources import CURRENT_LEASE, Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.math.uuid import UUIDFactory
@@ -1289,6 +1289,8 @@ class MultiprocessPool(BasePool):
             max_workers=self._resources.jobs,  # type: ignore
             initializer=self._init_worker,
             initargs=(self._ipc._raw_queue(self._log_qname),),
+            # The workers ignore Ctrl+C from their start, not only once `_init_worker` runs
+            mp_context=shielded_context(),
         )
         return self
 
