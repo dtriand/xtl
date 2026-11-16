@@ -1,11 +1,15 @@
 import asyncio
 from dataclasses import dataclass
 import logging
+import os
+from pathlib import Path
 import subprocess
 import sys
+import time
 
 import pytest
 
+from tests.conftest import skipif_not_linux, skipif_not_windows
 from xtl import settings
 from xtl.cli.utilities import common
 from xtl.cli.utilities.common import JobOptions, PermissionsOptions
@@ -19,6 +23,38 @@ from xtl.tui.console import ConsoleIO
 from xtl_core.system.compatibility import OS_WINDOWS
 
 SLEEP_2 = 'ping -n 3 127.0.0.1 > nul' if OS_WINDOWS else 'sleep 2'
+
+
+CHILD = """
+import os, signal, sys, time
+
+pidfile, mode = sys.argv[1], sys.argv[2]
+if mode == 'ignore-sigint':
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+elif mode == 'note-sigint':
+    def noted(*args):
+        with open(pidfile + '.sigint', 'w') as f:
+            f.write('SIGINT')
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, noted)
+with open(pidfile, 'w') as f:
+    f.write(str(os.getpid()))
+time.sleep(30)
+"""
+
+
+def process_alive(pid: int) -> bool:
+    if OS_WINDOWS:
+        result = subprocess.run(['tasklist', '/FI', f'PID eq {pid}', '/NH'], capture_output=True, text=True)
+        return str(pid) in result.stdout
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    stat = Path(f'/proc/{pid}/stat')
+    # A zombie has ended, it only waits to be reaped
+    return not (stat.exists() and stat.read_text().rsplit(')', 1)[-1].split()[0] == 'Z')
 
 
 @dataclass
@@ -200,6 +236,26 @@ class TestLocalSite:
         assert LocalSite().check_dependencies(Shell_(), shell=shell) is True
 
     @pytest.mark.asyncio
+    async def test_execute_batch_without_input(self, tmp_path, monkeypatch):
+        # A program that reads its input gets none, instead of waiting for the keyboard (as cmd's "Terminate batch
+        #  job (Y/N)?" does after Ctrl+C, competing with the application's own prompts)
+        started = []
+        create = asyncio.create_subprocess_exec
+
+        async def spy(*args, **kwargs):
+            started.append(kwargs)
+            return await create(*args, **kwargs)
+
+        monkeypatch.setattr(asyncio, 'create_subprocess_exec', spy)
+        batch = BatchFile(tmp_path / 'job')
+        quote = batch.shell.sanitize_value
+        batch.add_line(f'{quote(Path(sys.executable))} -c "import sys; print(len(sys.stdin.read()))"')
+        batch.save()
+        await asyncio.wait_for(LocalSite().execute_batch(batch, stdout=tmp_path / 'stdout.log'), 30)
+        assert started[0]['stdin'] == asyncio.subprocess.DEVNULL
+        assert (tmp_path / 'stdout.log').read_text().strip() == '0'
+
+    @pytest.mark.asyncio
     async def test_execute_batch_without_log_files(self, tmp_path):
         batch = BatchFile(tmp_path / 'job')
         batch.add_line('echo discarded')
@@ -219,33 +275,129 @@ class TestLocalSite:
         assert batch.status == BatchFileStatus.FAILED
         assert batch.process.returncode is not None
 
-    @pytest.mark.asyncio
-    async def test_terminate_kills_a_process_that_does_not_stop(self, tmp_path, monkeypatch):
-        class Stubborn:
-            pid, returncode, calls = 1, None, []
+    # Stopping a batch file stops the programs it started
 
-            def terminate(self):
-                self.calls.append('terminate')
+    @staticmethod
+    def program_batch(tmp_path: Path, mode: str = 'plain', background: bool = False) -> tuple[BatchFile, Path]:
+        """A batch file that starts a Python program, which writes its pid to a file and sleeps."""
+        child, pidfile = tmp_path / 'child.py', tmp_path / 'child.pid'
+        child.write_text(CHILD, encoding='utf-8')
+        batch = BatchFile(tmp_path / 'job')
+        quote = batch.shell.sanitize_value
+        line = f'{quote(Path(sys.executable))} {quote(child)} {quote(pidfile)} {mode}'
+        batch.add_lines([f'{line} &', 'exit 0'] if background else [line])
+        batch.save()
+        return batch, pidfile
+
+    @staticmethod
+    async def started(pidfile: Path) -> int:
+        for _ in range(500):
+            if pidfile.exists() and pidfile.read_text():
+                return int(pidfile.read_text())
+            await asyncio.sleep(0.02)
+        raise TimeoutError('the program did not start')
+
+    @staticmethod
+    async def gone(pid: int) -> bool:
+        for _ in range(100):
+            if not process_alive(pid):
+                return True
+            await asyncio.sleep(0.05)
+        return False
+
+    @pytest.mark.asyncio
+    async def test_cancel_stops_the_programs_it_started(self, tmp_path):
+        batch, pidfile = self.program_batch(tmp_path)
+        start = time.monotonic()
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert batch.status == BatchFileStatus.CANCELLED
+        assert await self.gone(pid)
+        assert time.monotonic() - start < 15  # not the program's 30 s
+
+    @pytest.mark.asyncio
+    async def test_a_cancelled_task_stops_the_programs_it_started(self, tmp_path):
+        batch, pidfile = self.program_batch(tmp_path)
+        start = time.monotonic()
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        running.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(running, 60)
+        assert await self.gone(pid)
+        assert time.monotonic() - start < 15  # not the program's 30 s
+
+    @pytest.mark.asyncio
+    async def test_a_second_cancellation_doesnt_stop_the_clean_up(self, tmp_path):
+        # A pool's exit cancels its jobs again, while the first cancellation is still stopping their programs
+        batch, pidfile = self.program_batch(tmp_path)
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        running.cancel()
+        while batch.status != BatchFileStatus.CANCELLED:  # the clean-up has started
+            await asyncio.sleep(0)
+        running.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(running, 60)
+        assert batch.process.returncode is not None
+        assert await self.gone(pid)
+
+    @skipif_not_linux
+    @pytest.mark.asyncio
+    async def test_programs_get_sigint_first(self, tmp_path):
+        batch, pidfile = self.program_batch(tmp_path, mode='note-sigint')
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+        assert (tmp_path / 'child.pid.sigint').read_text() == 'SIGINT'
+
+    @skipif_not_linux
+    @pytest.mark.asyncio
+    async def test_programs_that_ignore_sigint_get_sigterm(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(LocalSite, '_TERMINATE_GRACE', 0.5)
+        batch, pidfile = self.program_batch(tmp_path, mode='ignore-sigint')
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        start = time.monotonic()
+        await batch.cancel()
+        await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+        assert time.monotonic() - start < 5
+
+    @skipif_not_linux
+    @pytest.mark.asyncio
+    async def test_a_program_left_behind_by_the_shell(self, tmp_path):
+        # The shell has ended, but the program it started in the background still holds the output streams
+        batch, pidfile = self.program_batch(tmp_path, background=True)
+        running = asyncio.create_task(LocalSite().execute_batch(batch))
+        pid = await self.started(pidfile)
+        while batch.process.returncode is None:
+            await asyncio.sleep(0.02)
+        running.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(running, 30)
+        assert await self.gone(pid)
+
+    @skipif_not_windows
+    @pytest.mark.asyncio
+    async def test_kill_tree_falls_back_to_the_shell(self, tmp_path):
+        class Shell:
+            pid, returncode, killed = 4_000_000, None, False  # no such process: taskkill fails
 
             def kill(self):
-                self.calls.append('kill')
-                self.returncode = -9
+                self.killed, self.returncode = True, 1
 
             async def wait(self):
-                while self.returncode is None:
-                    await asyncio.sleep(0.01)
                 return self.returncode
 
-        async def no_patience(awaitable, timeout):
-            awaitable.close()
-            raise asyncio.TimeoutError
-
-        monkeypatch.setattr(asyncio, 'wait_for', no_patience)
         batch = BatchFile(tmp_path / 'job')
-        batch._process = Stubborn()
+        batch._process = Shell()
         await LocalSite._terminate_batch(batch)
-        assert batch.process.calls == ['terminate', 'kill']
-        assert batch.process.returncode == -9
+        assert batch.process.killed
 
 
 class TestModulesSite:

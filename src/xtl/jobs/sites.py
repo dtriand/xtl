@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
+import contextlib
 import logging
 from enum import Enum
+import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 
@@ -14,7 +17,7 @@ import aiofiles
 if TYPE_CHECKING:
     from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
-from xtl_core.system.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility import OS_POSIX, PY310_OR_LESS
 from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
@@ -175,6 +178,25 @@ class BaseComputeSite(ABC):
         return ''
 
 
+async def _uninterrupted(coro) -> None:
+    """
+    Run a coroutine to its end, even if the task that awaits it is cancelled meanwhile; such a cancellation is raised
+    once the coroutine is done.
+    """
+    task = asyncio.ensure_future(coro)
+    cancelled = False
+    while True:
+        try:
+            await asyncio.shield(task)
+            break
+        except asyncio.CancelledError:
+            if task.done():
+                raise
+            cancelled = True
+    if cancelled:
+        raise asyncio.CancelledError
+
+
 class LocalSite(BaseComputeSite):
     """
     A compute site that represents the local machine. It assumes that all required
@@ -253,9 +275,17 @@ class LocalSite(BaseComputeSite):
         # Initialize stream logging tasks
         stdout_task, stderr_task = None, None
         try:
-            # Start batch execution
+            # Start batch execution; on POSIX in a session of its own, so that the programs it starts can be stopped
+            #  together (see `_terminate_batch`). Without input: a batch file isn't interactive, and the console's
+            #  input belongs to the application (e.g. cmd's "Terminate batch job (Y/N)?" after Ctrl+C would wait for
+            #  the keyboard, competing with the application's own prompts)
             batch._process = await asyncio.create_subprocess_exec(
-                *cmd, shell=False, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                *cmd,
+                shell=False,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=OS_POSIX,
             )
             batch._status = BatchFileStatus.RUNNING
 
@@ -285,20 +315,33 @@ class LocalSite(BaseComputeSite):
             batch._status = BatchFileStatus.FAILED
             raise SubprocessError(f'Error executing file {batch.file}', command=cmd) from e
         finally:
-            # Terminate batch if still running
-            if batch.process and batch.process.returncode is None:
-                batch.logger.debug('Terminating batch file %(file)s', {'file': batch.file})
-                await self._terminate_batch(batch)
+            # The clean-up runs to its end, even if the task is cancelled again meanwhile (a pool cancels its jobs on
+            #  exit, after a `gather()` of them has already done so), since stopping the programs takes a moment
+            await _uninterrupted(self._finish_batch(batch, stdout_task, stderr_task))
 
-            # Terminate logging tasks
-            for task in (stdout_task, stderr_task):
-                if task and not task.done():
-                    batch.logger.debug('Cancelling async task %(name)s', {'name': task.get_name()})
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
+    async def _finish_batch(
+        self, batch: BatchFile, stdout_task: asyncio.Task | None, stderr_task: asyncio.Task | None
+    ) -> None:
+        """
+        Stop what's left of a batch file after it ran: the batch itself if it still runs, or the programs it started if
+        it didn't complete (e.g. the shell ended, but a program it started still holds the output streams), then the
+        tasks that copy its output.
+        """
+        if batch.process and (batch.process.returncode is None or batch.status != BatchFileStatus.COMPLETED):
+            batch.logger.debug('Terminating batch file %(file)s', {'file': batch.file})
+            await self._terminate_batch(batch)
+
+        # Once the programs are gone, the streams end: let the logging tasks read what's left, so that the pipes close,
+        #  then cancel any that still wait
+        pending = [task for task in (stdout_task, stderr_task) if task and not task.done()]
+        if pending:
+            await asyncio.wait(pending, timeout=1)
+        for task in pending:
+            if not task.done():
+                batch.logger.debug('Cancelling async task %(name)s', {'name': task.get_name()})
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
 
     async def cancel_batch(self, batch: BatchFile, **kwargs):
         if batch.status != BatchFileStatus.RUNNING:
@@ -308,20 +351,69 @@ class LocalSite(BaseComputeSite):
         batch._status = BatchFileStatus.CANCELLED
         await self._terminate_batch(batch)
 
+    _TERMINATE_GRACE: float = 5.0
+    """Seconds that a batch file's programs get to stop after each request, before a firmer one."""
+
     @staticmethod
     async def _terminate_batch(batch: BatchFile, **kwargs):
-        if batch.process and batch.process.returncode is None:
-            # Request graceful termination of the process
-            batch.logger.debug('Sending SIGTERM to batch process PID %(pid)d', {'pid': batch.process.pid})
-            batch.process.terminate()
-            try:
-                # Wait 10 s for a graceful shutdown
-                await asyncio.wait_for(batch.process.wait(), timeout=10)
-            except asyncio.TimeoutError:
-                # Force kill the process
-                batch.logger.debug('Sending SIGKILL to batch process PID %(pid)d', {'pid': batch.process.pid})
-                batch.process.kill()
-                await batch.process.wait()
+        """
+        Stop a batch file and every program it started: on POSIX, its process group gets ``SIGINT`` (what Ctrl+C in a
+        terminal sends), then ``SIGTERM``, then ``SIGKILL``, each after a grace period if something still runs; on
+        Windows, ``taskkill /T /F`` ends the shell and its tree.
+        """
+        process = batch.process
+        if process is None:
+            return
+        if OS_POSIX:
+            await LocalSite._signal_group(batch)
+        elif process.returncode is None:
+            await LocalSite._kill_tree(batch)
+
+    @staticmethod
+    def _group_alive(pgid: int) -> bool:
+        try:
+            os.killpg(pgid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
+
+    @staticmethod
+    async def _signal_group(batch: BatchFile) -> None:
+        # The shell leads a session of its own, so its process group is its pid
+        pgid = batch.process.pid
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
+            if not LocalSite._group_alive(pgid):
+                break
+            batch.logger.debug(
+                'Sending %(signal)s to the processes of batch file %(file)s', {'signal': sig.name, 'file': batch.file}
+            )
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(pgid, sig)
+            deadline = asyncio.get_running_loop().time() + LocalSite._TERMINATE_GRACE
+            while LocalSite._group_alive(pgid) and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(0.05)
+        await batch.process.wait()
+
+    @staticmethod
+    async def _kill_tree(batch: BatchFile) -> None:
+        pid = batch.process.pid
+        batch.logger.debug('Ending the process tree of batch file %(file)s', {'file': batch.file})
+        taskkill = await asyncio.create_subprocess_exec(
+            'taskkill',
+            '/T',
+            '/F',
+            '/PID',
+            str(pid),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await taskkill.wait()
+        if taskkill.returncode != 0 and batch.process.returncode is None:
+            # E.g. the shell ended meanwhile, or taskkill isn't available: at least end the shell
+            batch.process.kill()
+        await batch.process.wait()
 
     @staticmethod
     async def _log_stream_to_file(stream: asyncio.StreamReader, file: Optional[Path] = None):
