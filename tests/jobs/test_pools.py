@@ -6,6 +6,7 @@ get, and what each type adds.
 import asyncio
 import logging
 import os
+import pickle
 import threading
 import time
 import typing
@@ -14,10 +15,11 @@ import pytest
 
 from xtl import settings
 from tests.jobs.helpers import POOLS, WORKER_POOLS, Failing, Naps, Sleeper, Talker
-from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources
+from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources, SteppedJobConfig
+from xtl.jobs.exceptions import WorkerError
 from xtl.jobs.ipc import AsyncIPCBackend, ThreadedIPCBackend
 from xtl.jobs.ipc.base import IPCHandleNames
-from xtl.jobs.jobs import BatchJob, Job
+from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.logging import HandlerConfig, JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import (
     AsyncPool,
@@ -28,9 +30,12 @@ from xtl.jobs.pools import (
     ProxyPool,
     SimplePool,
     ThreadedPool,
+    _picklable_results,
 )
 from xtl.jobs.resources import Resources, get_rc_manager
-from xtl.jobs.results import JobResults, JobStatus
+from xtl.jobs.results import JobResults, JobStatus, SteppedJobResults
+from xtl.jobs.steps import StepSpec
+from xtl.jobs.submissions import JobSubmission
 from xtl.jobs.shells import Shell
 
 
@@ -113,6 +118,31 @@ class Dies(Job[JobConfig]):
 
     async def _execute(self):
         os._exit(3)
+
+
+class Picky(Exception):
+    """Pickles, but can't be unpickled: pickling calls the class again with `args` only."""
+
+    def __init__(self, text: str, code: int):
+        self.code = code
+        super().__init__(text)
+
+
+class RaisesPicky(Job[JobConfig]):
+    async def _execute(self):
+        raise Picky('picky failure', code=7)
+
+
+class ReturnsPicky(Job[JobConfig]):
+    async def _execute(self):
+        return Picky('picky data', code=7)
+
+
+class SteppedPicky(SteppedJob[SteppedJobConfig]):
+    _steps = (
+        StepSpec(name='fine', job_cls=Naps, config_cls=JobConfig),
+        StepSpec(name='picky', job_cls=RaisesPicky, config_cls=JobConfig),
+    )
 
 
 ECHO = {Shell.BASH: 'echo "[$1] [$2]"', Shell.CMD: 'echo [%~1] [%~2]'}
@@ -739,6 +769,69 @@ class TestMultiprocessPool:
             (result,) = await pool.launch()
         assert result.error is not None
         assert pool.status == {'dies': JobStatus.FAILED}
+
+    @pytest.mark.asyncio
+    async def test_an_error_that_cannot_be_unpickled(self):
+        pool, records = recorded(MultiprocessPool, max_jobs=1)
+        async with pool:
+            pool.submit(RaisesPicky, job_ids=['picky'])
+            pool.submit(Naps, job_ids=['next'])
+            picky, following = await pool.launch()
+        # The job fails with a stand-in, and the pool goes on
+        assert isinstance(picky.error, WorkerError)
+        assert str(picky.error) == 'tests.jobs.test_pools.Picky: picky failure'
+        assert picky.error.error_type == 'tests.jobs.test_pools.Picky'
+        assert 'Picky: picky failure' in picky.error.traceback
+        assert following.success and following.data == 'next'
+        assert pool.status == {'picky': JobStatus.FAILED, 'next': JobStatus.DONE}
+        assert any("error (Picky) can't be sent back" in m for m in records.messages(logging.WARNING))
+
+    @pytest.mark.asyncio
+    async def test_data_that_cannot_be_unpickled(self):
+        pool, records = recorded(MultiprocessPool, max_jobs=1)
+        async with pool:
+            pool.submit(ReturnsPicky, job_ids=['picky'])
+            (result,) = await pool.launch()
+        assert result.data is None
+        assert isinstance(result.error, WorkerError)
+        assert "data (Picky) can't be sent back" in str(result.error)
+        assert any("data (Picky) can't be sent back" in m for m in records.messages(logging.ERROR))
+
+    @pytest.mark.asyncio
+    async def test_a_step_error_that_cannot_be_unpickled(self):
+        async with MultiprocessPool(max_jobs=1) as pool:
+            pool.submit(SteppedPicky, configs=[SteppedJobConfig()], job_ids=['s'])
+            (result,) = await pool.launch()
+        assert isinstance(result, SteppedJobResults)
+        assert result.steps['fine'].success
+        assert isinstance(result.steps['picky'].error, WorkerError)
+        assert isinstance(result.error, WorkerError)
+
+    def test_an_escaping_error_that_cannot_be_unpickled(self, monkeypatch):
+        async def escapes(submission):
+            raise Picky('escaped', code=7)
+
+        monkeypatch.setattr(MultiprocessPool, '_bootstrap_process', staticmethod(escapes))
+        payload = JobSubmission.from_job(Naps(job_id='e')).to_dict()
+        with pytest.raises(WorkerError, match='tests.jobs.test_pools.Picky: escaped'):
+            MultiprocessPool._run_in_process(payload)
+
+        async def escapes_plainly(submission):
+            raise ValueError('plain')
+
+        monkeypatch.setattr(MultiprocessPool, '_bootstrap_process', staticmethod(escapes_plainly))
+        with pytest.raises(ValueError, match='plain'):
+            MultiprocessPool._run_in_process(payload)
+
+    def test_results_that_survive_pickling_are_left_alone(self):
+        results = JobResults(job_id='a', data={'x': 1}, error=ValueError('fine'))
+        assert _picklable_results(results, logging.getLogger('guard')) is results
+        assert _picklable_results(None, logging.getLogger('guard')) is None
+
+    def test_worker_error_survives_pickling(self):
+        error = WorkerError('text', error_type='pkg.Cls', traceback='Traceback ...')
+        restored = pickle.loads(pickle.dumps(error))
+        assert (str(restored), restored.error_type, restored.traceback) == ('pkg.Cls: text', 'pkg.Cls', 'Traceback ...')
 
     @pytest.mark.asyncio
     async def test_flush_logs_gives_up_after_a_while(self):

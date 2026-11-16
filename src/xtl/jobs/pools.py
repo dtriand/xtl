@@ -3,11 +3,14 @@ from __future__ import annotations
 import abc
 import asyncio
 import contextlib
+import copy
 from enum import Enum
 import logging
 import multiprocessing
+import pickle
 import re
 import threading
+import traceback
 from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
 from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, Union, runtime_checkable
 
@@ -15,7 +18,8 @@ from xtl import settings
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
-from xtl.jobs.results import JobResults, JobStatus
+from xtl.jobs.exceptions import WorkerError
+from xtl.jobs.results import JobResults, JobStatus, SteppedJobResults
 from xtl.jobs.logging import (
     HandlerConfig,
     JobNameFilter,
@@ -120,6 +124,62 @@ def _get_job_logger(name: str) -> logging.Logger:
     :param name: The full name of the job's logger.
     """
     return logging.Logger.manager.getLogger(name)
+
+
+def _round_trips(obj: Any) -> bool:
+    """
+    Whether an object survives pickling, there and back.
+    """
+    try:
+        pickle.loads(pickle.dumps(obj))
+    except Exception:
+        return False
+    return True
+
+
+def _worker_error(error: BaseException) -> WorkerError:
+    """
+    A :class:`WorkerError` in place of an error that doesn't survive pickling, with its type, text and traceback.
+    """
+    error_type = f'{type(error).__module__}.{type(error).__qualname__}'
+    text = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+    return WorkerError(str(error), error_type=error_type, traceback=text)
+
+
+def _picklable_results(results: JobResults | None, logger: logging.Logger) -> JobResults | None:
+    """
+    The results of a job in a worker process, made fit to go back to the parent: an error that doesn't survive pickling
+    becomes a :class:`WorkerError`, and data that doesn't is dropped, which fails the job. A stepped job's steps are
+    checked the same way.
+
+    :param results: The job's results.
+    :param logger: The job's logger, for a warning about each replacement.
+    """
+    if results is None or _round_trips(results):
+        return results
+
+    fixed = copy.copy(results)
+    if isinstance(fixed, SteppedJobResults):
+        fixed.steps = {name: _picklable_results(step, logger) for name, step in fixed.steps.items()}
+    if fixed.error is not None and not _round_trips(fixed.error):
+        logger.warning(
+            "The job's error (%s) can't be sent back from its worker process; it is replaced by a %s",
+            type(fixed.error).__name__,
+            WorkerError.__name__,
+        )
+        fixed.error = _worker_error(fixed.error)
+    if not _round_trips(fixed.data):
+        message = f"The job's data ({type(fixed.data).__name__}) can't be sent back from its worker process; dropped"
+        logger.error(message)
+        fixed.data = None
+        if fixed.error is None:
+            fixed.error = WorkerError(message)
+    if not _round_trips(fixed):
+        # E.g. a field added by a subclass of the results
+        message = f"The job's results ({type(results).__name__}) can't be sent back from its worker process"
+        logger.error(message)
+        fixed = JobResults(job_id=results.job_id, error=WorkerError(message))
+    return fixed
 
 
 class BasePool(PoolProtocol, abc.ABC):
@@ -1197,7 +1257,16 @@ class MultiprocessPool(BasePool):
         #  the parent's pool, which belongs to another ResourceManager. Pools opened by the job must start a new tree.
         CURRENT_LEASE.set(None)
 
-        return asyncio.run(MultiprocessPool._bootstrap_process(submission))
+        # What goes back to the parent must survive pickling: the executor marks itself broken, for every job, if the
+        #  parent can't unpickle a result or an exception
+        logger = _get_job_logger(submission.job_logger_name)
+        try:
+            results = asyncio.run(MultiprocessPool._bootstrap_process(submission))
+        except Exception as error:
+            if _round_trips(error):
+                raise
+            raise _worker_error(error) from None
+        return _picklable_results(results, logger)
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
         # The job runs with the settings as they are when it starts, as in the other pools
