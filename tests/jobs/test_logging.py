@@ -716,7 +716,7 @@ class TestChildJobs:
             raise OSError('cannot start')
 
         monkeypatch.setattr(asyncio, 'create_subprocess_exec', cannot_start)
-        job = BatchJob.with_config(
+        job = BatchJob(
             BatchJobConfig(job_directory=tmp_path / 'b8'),
             job_id='b8',
             logger=BatchJob.get_logger('b8', capture_config('b8')),
@@ -1064,7 +1064,7 @@ class TestLoggerLifetime:
 
     @pytest.mark.asyncio
     async def test_standalone_job_keeps_its_logger(self):
-        job = Talker.with_config(JobConfig(), job_id='l4', logger=Talker.get_logger('l4', capture_config('l4')))
+        job = Talker(JobConfig(), job_id='l4', logger=Talker.get_logger('l4', capture_config('l4')))
         await job.run()
         assert registered_under('l4') == ['l4']
         assert len(job.logger.handlers) == 1

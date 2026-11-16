@@ -62,6 +62,7 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
     def get_context(self):
         context = super().get_context()
+        context['NANOBRAGG_SCRIPT'] = Path(__file__).parent / 'scripts' / 'nanobragg.py'
         context['NANOBRAGG_CONFIG'] = self.input
         context['NANOBRAGG_OUTPUT_DIR'] = self.job_directory
         context['NANOBRAGG_EXTRA_ARGS'] = self.get_extra_args()
@@ -70,10 +71,6 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
     _keep_files = True
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._batch_context |= {'NANOBRAGG_SCRIPT': str(Path(__file__).parent / 'scripts' / 'nanobragg.py')}
 
 
 class NanoBraggJobConfig(SteppedJobConfig): ...

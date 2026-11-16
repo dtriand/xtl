@@ -436,12 +436,13 @@ class TestBasePool:
             submission = next(iter(pool._submissions.values()))
             assert submission.resources == Resources(jobs=1, threads=2, processes=1).cap_to(pool.resources)
 
+    @pool_types
     @pytest.mark.asyncio
-    async def test_batch_job_in_a_path_with_spaces(self, tmp_path):
-        config = BatchJobConfig(job_directory=tmp_path / 'my dir', templates=ECHO)
-        async with AsyncPool(max_jobs=1) as pool:
-            (job,) = pool.submit(BatchJob, configs=[config])
-            job._batch_args = ['x y', "it's"]
+    async def test_batch_job_in_a_path_with_spaces(self, pool_cls, tmp_path):
+        # Its arguments are in its configuration, so they reach worker threads and processes too
+        config = BatchJobConfig(job_directory=tmp_path / 'my dir', templates=ECHO, arguments=['x y', "it's"])
+        async with pool_cls(max_jobs=1) as pool:
+            pool.submit(BatchJob, configs=[config])
             (result,) = await pool.launch()
         assert result.error is None
         assert result.data.stdout.strip() == "[x y] [it's]"

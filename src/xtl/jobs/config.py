@@ -142,6 +142,9 @@ class BatchJobConfig(JobConfig):
     templates: dict[Shell, str] = Option(
         default_factory=dict, desc='Templates for the content of the batch file for different shells'
     )
+    arguments: list[str] = Option(
+        default_factory=list, desc='Arguments of the batch file on its command line, each passed as one argument'
+    )
     site_resources: SiteResources = Option(
         default_factory=SiteResources, desc='Resources that the batch job asks of its compute site'
     )

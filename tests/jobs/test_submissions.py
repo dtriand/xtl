@@ -22,7 +22,7 @@ def restore_settings():
 def talker(job_id: str = 'job', level: int = logging.INFO) -> Talker:
     logger = logging.getLogger(f'Pool#1.{job_id}')
     logger.setLevel(level)
-    return Talker.with_config(JobConfig(), job_id=job_id, logger=logger)
+    return Talker(JobConfig(), job_id=job_id, logger=logger)
 
 
 class TestJobSubmission:

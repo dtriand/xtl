@@ -104,6 +104,13 @@ def batch_config(tmp_path: Path, *lines: str, **kwargs) -> BatchJobConfig:
     return BatchJobConfig(job_directory=tmp_path / 'job', templates={SYSTEM_SHELL: '\n'.join(lines)}, **kwargs)
 
 
+class WhoConfig(BatchJobConfig):
+    who: str = Option(default='me', desc='Who to name in the batch file')
+
+    def get_context(self) -> dict:
+        return super().get_context() | {'WHO': self.who}
+
+
 class TwoSteps(SteppedJob[SteppedJobConfig]):
     _steps = (
         StepSpec(name='one', job_cls=ReturnsValue, config_cls=ValueConfig),
@@ -211,14 +218,14 @@ class TestJob:
         with pytest.raises(TypeError, match='Expected config of type ValueConfig, got JobConfig'):
             job.configure(JobConfig())
 
-    def test_with_config(self):
+    def test_constructor(self):
         config = ValueConfig()
         logger = logging.getLogger('a4_logger')
-        job = ReturnsValue.with_config(config, job_id='a4', logger=logger)
+        job = ReturnsValue(config, job_id='a4', logger=logger)
         assert (job.job_id, job.config, job.logger) == ('a4', config, logger)
-        assert ReturnsValue.with_config().config is None
+        assert ReturnsValue().config is None
         with pytest.raises(TypeError, match='Expected config of type ValueConfig'):
-            ReturnsValue.with_config(JobConfig())
+            ReturnsValue(JobConfig())
 
     def test_pool(self):
         job, pool = ReturnsValue(job_id='a5'), SimplePool()
@@ -232,19 +239,19 @@ class TestJob:
     def test_get_resources(self):
         assert Talker(job_id='a6').get_resources() is None
         assert Limited(job_id='a6').get_resources() == Resources(jobs=2)
-        job = Limited.with_config(JobConfig(resources=Resources(jobs=3)), job_id='a6')
+        job = Limited(JobConfig(resources=Resources(jobs=3)), job_id='a6')
         assert job.get_resources() == Resources(jobs=3)
-        assert Limited.with_config(JobConfig(), job_id='a6').get_resources() == Resources(jobs=2)
+        assert Limited(JobConfig(), job_id='a6').get_resources() == Resources(jobs=2)
 
     @pytest.mark.asyncio
     async def test_run(self):
-        result = await ReturnsValue.with_config(ValueConfig(value=123), job_id='a7').run()
+        result = await ReturnsValue(ValueConfig(value=123), job_id='a7').run()
         assert isinstance(result, JobResults)
         assert (result.job_id, result.data, result.error, result.success) == ('a7', 123, None, True)
 
     @pytest.mark.asyncio
     async def test_run_failing(self):
-        job = ReturnsValue.with_config(ValueConfig(should_fail=True), job_id='a8')
+        job = ReturnsValue(ValueConfig(should_fail=True), job_id='a8')
         records = recorded(job)
         result = await job.run()
         assert not result.success
@@ -303,7 +310,7 @@ class TestJob:
     @pytest.mark.parametrize('reason, message', [(None, 'Job was cancelled'), ('stop', 'with reason: stop')])
     @pytest.mark.asyncio
     async def test_run_cancelled(self, tmp_path, reason, message):
-        job = Waits.with_config(JobConfig(job_directory=tmp_path), job_id='a14')
+        job = Waits(JobConfig(job_directory=tmp_path), job_id='a14')
         records = recorded(job)
         task = asyncio.create_task(job.run())
         while not job.is_running:
@@ -320,17 +327,17 @@ class TestJob:
     async def test_tidy_up_removes_the_directory_on_success(self, tmp_path):
         directory = tmp_path / 'job'
         directory.mkdir()
-        assert (await Talker.with_config(JobConfig(job_directory=directory), job_id='a15').run()).success
+        assert (await Talker(JobConfig(job_directory=directory), job_id='a15').run()).success
         assert not directory.exists()
 
     @pytest.mark.asyncio
     async def test_tidy_up_keeps_the_directory_on_failure(self, tmp_path):
-        assert not (await Failing.with_config(JobConfig(job_directory=tmp_path), job_id='a16').run()).success
+        assert not (await Failing(JobConfig(job_directory=tmp_path), job_id='a16').run()).success
         assert tmp_path.exists()
 
     @pytest.mark.asyncio
     async def test_tidy_up_without_a_directory(self, tmp_path):
-        assert (await Talker.with_config(JobConfig(job_directory=tmp_path / 'never'), job_id='a17').run()).success
+        assert (await Talker(JobConfig(job_directory=tmp_path / 'never'), job_id='a17').run()).success
         assert (await Talker(job_id='a17b').run()).success
 
     @pytest.mark.parametrize('kept_by', ['class', 'settings'])
@@ -340,13 +347,13 @@ class TestJob:
         if kept_by == 'settings':
             monkeypatch.setattr(settings.jobs, 'keep_temp', True)
         job_cls = KeptTalker if kept_by == 'class' else Talker
-        assert (await job_cls.with_config(JobConfig(job_directory=tmp_path), job_id='a18').run()).success
+        assert (await job_cls(JobConfig(job_directory=tmp_path), job_id='a18').run()).success
         assert tmp_path.exists()
 
     @pytest.mark.asyncio
     async def test_tidy_up_warns_about_what_it_cannot_remove(self, tmp_path, monkeypatch):
         monkeypatch.setattr(jobs_module.shutil, 'rmtree', lambda path, ignore_errors=False: None)
-        job = Talker.with_config(JobConfig(job_directory=tmp_path), job_id='a19')
+        job = Talker(JobConfig(job_directory=tmp_path), job_id='a19')
         records = recorded(job)
         assert (await job.run()).success
         assert f'Job directory {tmp_path} could not be removed completely' in records.messages(logging.WARNING)
@@ -355,7 +362,7 @@ class TestJob:
     @skipif_not_windows
     @pytest.mark.asyncio
     async def test_tidy_up_with_an_open_file(self, tmp_path):
-        job = Talker.with_config(JobConfig(job_directory=tmp_path), job_id='a20')
+        job = Talker(JobConfig(job_directory=tmp_path), job_id='a20')
         records = recorded(job)
         with open(tmp_path / 'held.txt', 'w'):
             assert (await job.run()).success
@@ -367,7 +374,7 @@ class TestJob:
         monkeypatch.setattr(jobs_module, 'OS_POSIX', True)
         monkeypatch.setattr(jobs_module, 'chmod_recursively', lambda path, **kwargs: calls.append((path, kwargs)))
         monkeypatch.setattr(settings.jobs.permissions, 'update', True)
-        assert (await KeptTalker.with_config(JobConfig(job_directory=tmp_path), job_id='a21').run()).success
+        assert (await KeptTalker(JobConfig(job_directory=tmp_path), job_id='a21').run()).success
         assert calls == [
             (
                 tmp_path,
@@ -380,7 +387,7 @@ class TestJob:
 
         calls.clear()
         monkeypatch.setattr(settings.jobs.permissions, 'update', False)
-        assert (await KeptTalker.with_config(JobConfig(job_directory=tmp_path), job_id='a22').run()).success
+        assert (await KeptTalker(JobConfig(job_directory=tmp_path), job_id='a22').run()).success
         assert calls == []
 
     @pytest.mark.asyncio
@@ -391,7 +398,7 @@ class TestJob:
         monkeypatch.setattr(jobs_module, 'OS_POSIX', True)
         monkeypatch.setattr(jobs_module, 'chmod_recursively', fails)
         monkeypatch.setattr(settings.jobs.permissions, 'update', True)
-        job = KeptTalker.with_config(JobConfig(job_directory=tmp_path), job_id='a23')
+        job = KeptTalker(JobConfig(job_directory=tmp_path), job_id='a23')
         records = recorded(job)
         assert (await job.run()).success
         assert any('Failed to update permissions' in m for m in records.messages(logging.ERROR))
@@ -429,7 +436,7 @@ class TestJob:
             ReturnsValue.get_logger('a26', config={'level': 10})
 
     def test_serialize(self):
-        job = ReturnsValue.with_config(ValueConfig(value=5), job_id='a27')
+        job = ReturnsValue(ValueConfig(value=5), job_id='a27')
         data = job.serialize(as_dict=False)
         assert isinstance(data, JobData)
         assert (data.job_cls, data.job_id) == ('tests.jobs.test_jobs.ReturnsValue', 'a27')
@@ -439,7 +446,7 @@ class TestJob:
 
     @pytest.mark.parametrize('as_dict', [True, False])
     def test_deserialize(self, as_dict):
-        job = ReturnsValue.with_config(ValueConfig(value=5), job_id='a28')
+        job = ReturnsValue(ValueConfig(value=5), job_id='a28')
         job._log_handlers = {'file': JobFileHandlerConfig()}
         job._pool_label = 'SimplePool'
         restored = Job.deserialize(job.serialize(as_dict=as_dict))
@@ -479,27 +486,23 @@ class TestJob:
 
 
 class TestBatchJob:
-    def test_with_config(self):
-        # Only the arguments that aren't the constructor's are template context
+    def test_constructor(self):
+        # Arguments and template values belong to the configuration, which is what reaches a worker
         logger = logging.getLogger('b1')
-        job = BatchJob.with_config(BatchJobConfig(), job_id='b1', logger=logger, batch_args=['a'], x=1)
-        assert (job.job_id, job.logger) == ('b1', logger)
-        assert job._batch_args == ['a']
-        assert job._batch_context == {'x': 1}
+        job = BatchJob(BatchJobConfig(arguments=['a']), job_id='b1', logger=logger)
+        assert (job.job_id, job.logger, job.config.arguments) == ('b1', logger, ['a'])
+        with pytest.raises(TypeError):
+            BatchJob(BatchJobConfig(), job_id='b1', batch_args=['a'])
 
     def test_context(self, tmp_path):
-        config = batch_config(tmp_path, 'echo __WHO__')
-        job = BatchJob.with_config(config, job_id='b2', who='me', nested={'a': 1})
-        assert job.context == {'who': 'me', 'nested': {'a': 1}}
-        # A copy: changing it leaves the job's alone
-        job.context['nested']['a'] = 2
-        assert job.context['nested'] == {'a': 1}
+        job = BatchJob(WhoConfig(job_directory=tmp_path / 'job'), job_id='b2')
+        assert job.context == {'WHO': 'me'}
         with pytest.raises(ValueError, match='Job is not configured'):
             BatchJob(job_id='b2b').context
 
     @pytest.mark.asyncio
     async def test_run(self, tmp_path):
-        job = BatchJob.with_config(batch_config(tmp_path, 'echo hello'), job_id='b3')
+        job = BatchJob(batch_config(tmp_path, 'echo hello'), job_id='b3')
         result = await job.run()
         assert result.success, result.error
         assert isinstance(result.data, BatchResults)
@@ -510,20 +513,21 @@ class TestBatchJob:
     @pytest.mark.asyncio
     async def test_run_with_arguments_and_context(self, tmp_path):
         line = 'echo [%~1] __WHO__' if OS_WINDOWS else 'echo "[$1]" __WHO__'
-        job = BatchJob.with_config(batch_config(tmp_path, line), job_id='b4', batch_args=['a b'], WHO='me')
+        config = WhoConfig(job_directory=tmp_path / 'job', templates={SYSTEM_SHELL: line}, arguments=['a b'])
+        job = BatchJob(config, job_id='b4')
         result = await job.run()
         assert result.data.stdout.strip() == '[a b] me'
 
     @pytest.mark.asyncio
     async def test_run_creates_the_directory(self, tmp_path):
         config = BatchJobConfig(job_directory=tmp_path / 'a' / 'b', templates={SYSTEM_SHELL: EXIT_3})
-        await BatchJob.with_config(config, job_id='b5').run()
+        await BatchJob(config, job_id='b5').run()
         assert config.file.exists()
         assert config.stdout.exists() and config.stderr.exists()
 
     @pytest.mark.asyncio
     async def test_run_failing_program(self, tmp_path):
-        job = BatchJob.with_config(batch_config(tmp_path, EXIT_3), job_id='b6')
+        job = BatchJob(batch_config(tmp_path, EXIT_3), job_id='b6')
         result = await job.run()
         assert isinstance(result.error, SubprocessError)
         assert 'failed with return code 3' in str(result.error)
@@ -538,7 +542,7 @@ class TestBatchJob:
     @pytest.mark.asyncio
     async def test_run_without_a_directory(self, tmp_path):
         (tmp_path / 'file').write_text('')
-        job = BatchJob.with_config(BatchJobConfig(job_directory=tmp_path / 'file' / 'job'), job_id='b8')
+        job = BatchJob(BatchJobConfig(job_directory=tmp_path / 'file' / 'job'), job_id='b8')
         records = recorded(job)
         result = await job.run()
         assert isinstance(result.error, OSError)
@@ -550,7 +554,7 @@ class TestBatchJob:
             raise PermissionError('read-only')
 
         monkeypatch.setattr(BatchFile, 'save', fails)
-        job = BatchJob.with_config(batch_config(tmp_path, 'echo'), job_id='b9')
+        job = BatchJob(batch_config(tmp_path, 'echo'), job_id='b9')
         records = recorded(job)
         result = await job.run()
         assert isinstance(result.error, PermissionError)
@@ -561,7 +565,7 @@ class TestBatchJob:
         def fails(self, exist_ok=True):
             raise PermissionError('read-only')
 
-        job = BatchJob.with_config(batch_config(tmp_path, 'echo'), job_id='b10')
+        job = BatchJob(batch_config(tmp_path, 'echo'), job_id='b10')
         records = recorded(job)
         monkeypatch.setattr(Path, 'touch', fails)
         result = await job.run()
@@ -570,7 +574,7 @@ class TestBatchJob:
 
     @pytest.mark.asyncio
     async def test_run_cancelled(self, tmp_path):
-        job = BatchJob.with_config(batch_config(tmp_path, SLEEP_5), job_id='b11')
+        job = BatchJob(batch_config(tmp_path, SLEEP_5), job_id='b11')
         records = recorded(job)
         task = asyncio.create_task(job.run())
         while job._batch is None or job._batch.status != BatchFileStatus.RUNNING:
@@ -595,17 +599,17 @@ class TestSteppedJob:
     )
     def test_configure_checks_step_overrides(self, steps, error, match):
         with pytest.raises(error, match=match):
-            TwoSteps.with_config(SteppedJobConfig(steps=steps))
+            TwoSteps(SteppedJobConfig(steps=steps))
 
     def test_configure_without_steps(self):
         class NoSteps(SteppedJob[SteppedJobConfig]):
             pass
 
         with pytest.raises(ValueError, match='the steps of NoSteps are: none'):
-            NoSteps.with_config(SteppedJobConfig(steps={'one': {}}))
+            NoSteps(SteppedJobConfig(steps={'one': {}}))
 
     def test_get_step_config(self):
-        job = TwoSteps.with_config(SteppedJobConfig(steps={'two': {'should_fail': True}}))
+        job = TwoSteps(SteppedJobConfig(steps={'two': {'should_fail': True}}))
         assert job._get_step_config('two', ctx=None).should_fail is True
         with pytest.raises(ValueError, match='Unknown job step: three'):
             job._get_step_config('three', ctx=None)
@@ -713,7 +717,7 @@ class TestSteppedJob:
 
     @pytest.mark.asyncio
     async def test_run_only_once(self):
-        job = TwoSteps.with_config(SteppedJobConfig(), job_id='s1')
+        job = TwoSteps(SteppedJobConfig(), job_id='s1')
         assert (await job.run()).success
         assert await job.run() is None
 
@@ -730,11 +734,11 @@ class TestSteppedJob:
                 return {'not': 'a tuple'}
 
         with pytest.raises(TypeError, match=r'Custom._execute\(\) must return a 2-tuple'):
-            await Custom.with_config(SteppedJobConfig(), job_id='s3').run()
+            await Custom(SteppedJobConfig(), job_id='s3').run()
 
     @pytest.mark.asyncio
     async def test_run_without_a_pool_logs_no_warnings(self):
-        job = TwoSteps.with_config(SteppedJobConfig(), job_id='s4')
+        job = TwoSteps(SteppedJobConfig(), job_id='s4')
         records = recorded(job)
         assert (await job.run()).success
         assert records.messages(logging.WARNING) == []

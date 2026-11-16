@@ -802,9 +802,7 @@ class BasePool(PoolProtocol, abc.ABC):
             pass_through(logger)
 
             # Create job instance
-            job = job_cls(job_id=job_id, logger=logger)
-            if config is not None:
-                job.configure(config)
+            job = job_cls(config, job_id=job_id, logger=logger)
             job.pool = self
             job._log_handlers = dict(self._job_handlers)
             job._pool_label = self.label

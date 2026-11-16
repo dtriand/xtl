@@ -16,7 +16,6 @@ from typing import (
     get_args,
     overload,
     Literal,
-    cast,
 )
 
 from pydantic import field_validator
@@ -129,19 +128,19 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
-    _init_kwargs: ClassVar[tuple[str, ...]] = ('job_id', 'logger', 'logger_config')
-    """The keyword arguments of `with_config()` that go to the constructor"""
-
     def __init__(
         self,
+        config: JobConfigType | None = None,
+        *,
         job_id: str | None = None,
         logger: 'logging.Logger' = None,
-        *,
         logger_config: LoggerConfig | None = None,
     ):
         """
         Abstract base class for asynchronous jobs execution.
 
+        :param config: Optional, the configuration of the job, an instance of the job's configuration class (see
+            :meth:`configure`). A job without one can be configured later.
         :param job_id: Optional, an identifier for the job, used as given. If not
             provided, a random ID is generated. A pool makes sure its jobs' IDs are
             unique; two jobs given the same ID outside a pool share a logger.
@@ -171,6 +170,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Initialize config
         self._config: JobConfigType | None = None
+        if config is not None:
+            self.configure(config)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -223,31 +224,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         Get the configuration of the job.
         """
         return self._config
-
-    @classmethod
-    def with_config(cls, config: JobConfigType = None, **kwargs) -> 'Job[JobConfigType]':
-        """
-        Get a preconfigured job instance.
-
-        :param config: Configuration of the job, or None for an unconfigured job.
-        :param kwargs: Keyword arguments passed to the constructor of the job class, e.g., `job_id`, `logger`,
-            `logger_config`, etc.
-        :raises TypeError: If `config` is not an instance of the expected configuration class for this job type.
-        :return: A preconfigured job instance.
-        """
-        if config is not None and not isinstance(config, cls._config_class):
-            raise TypeError(f'Expected config of type {cls._config_class.__name__}, got {type(config).__name__}')
-
-        # Extract init parameters
-        # NB: Subclasses that override this method and take more kwargs must pop `_init_kwargs` themselves, since
-        #  this method only sees a copy of their kwargs
-        job = cls(**{key: kwargs.pop(key) for key in cls._init_kwargs if key in kwargs})
-
-        # Set configuration if provided
-        if config is not None:
-            job.configure(config)
-
-        return job
 
     @property
     def job_id(self) -> str:
@@ -709,11 +685,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
 
-        job = job_cls.with_config(
-            config=config,
-            job_id=jdata.job_id,
-            logger=logger or job_cls.get_logger(jdata.job_id),
-        )
+        job = job_cls(config, job_id=jdata.job_id, logger=logger or job_cls.get_logger(jdata.job_id))
         job._log_handlers = {name: HandlerConfig.from_spec(spec) for name, spec in jdata.log_handlers.items()}
         job._pool_label = jdata.pool_label
         return job
@@ -726,7 +698,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         suffix: str | int,
         logger_config: LoggerConfig | None = None,
         inherit_pool: bool = True,
-        **kwargs,
     ) -> 'Job':
         """
         Spawn a child Job that inherits the configuration from the current Job.
@@ -739,7 +710,6 @@ class Job(abc.ABC, Generic[JobConfigType]):
         :param suffix: Suffix to use for the child job ID.
         :param logger_config: Optional logging configuration for the child job, instead of using this job's handlers.
         :param inherit_pool: Whether the child job should inherit the current pool.
-        :param kwargs: Additional keyword arguments to pass to the `Job.with_config` constructor
         :returns: The spawned child Job instance.
         """
         child_id = f'{self.job_id}.{suffix}'
@@ -754,12 +724,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
         # Spawn child job
         # NB: The child remembers its override or, since it uses this job's handlers, this job's config
-        child = job_cls.with_config(
-            config=config,
-            job_id=child_id,
-            logger=child_logger,
-            logger_config=logger_config or self._logger_config,
-            **kwargs,
+        child = job_cls(
+            config, job_id=child_id, logger=child_logger, logger_config=logger_config or self._logger_config
         )
 
         # Optionally propagate pool
@@ -785,8 +751,6 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
         self._config: BatchJobConfig | None
         self._batch: Optional[BatchFile] = None
-        self._batch_args: list[str] = []
-        self._batch_context: dict = {}
 
     @property
     def config(self) -> BatchJobConfig | None:
@@ -838,7 +802,7 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
         # Execute the batch file
         try:
-            await batch.execute(stdout=cfg.stdout, stderr=cfg.stderr, batch_args=self._batch_args)
+            await batch.execute(stdout=cfg.stdout, stderr=cfg.stderr, batch_args=cfg.arguments)
         except asyncio.CancelledError as e:
             # A local site stops the batch itself when it's cancelled; a batch that still runs is stopped here
             if batch.status == BatchFileStatus.RUNNING:
@@ -860,35 +824,23 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         if results.return_code != 0:
             raise SubprocessError(
                 f'Batch execution of {batch.file} failed with return code {results.return_code}',
-                command=(batch.file,) + tuple(self._batch_args),
+                command=(batch.file,) + tuple(cfg.arguments),
             )
 
         self.logger.debug('Batch execution completed successfully')
 
         return results
 
-    @classmethod
-    def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> 'BatchJob[BatchJobConfigType]':
-        init_kwargs = {key: kwargs.pop(key) for key in cls._init_kwargs if key in kwargs}
-        batch_args = kwargs.pop('batch_args', [])
-        # NB: We cast the result to the right type for type-checking reasons
-        job = cast('BatchJob[BatchJobConfigType]', super().with_config(config=config, **init_kwargs))
-        # Any other kwargs are context for rendering batch file templates
-        job._batch_args = batch_args
-        job._batch_context |= kwargs
-        return job
-
     @property
     def context(self) -> dict:
         """
-        Get the context for rendering batch file templates.
+        Get the context for rendering batch file templates: the configuration's
+        :meth:`~xtl.jobs.config.BatchJobConfig.get_context`.
         """
-        batch_context = deepcopy(self._batch_context)
         cfg = self.config
         if not cfg:
             raise ValueError('Job is not configured.')
-        cfg_context = cfg.get_context()
-        return deepmerge(batch_context, cfg_context)
+        return cfg.get_context()
 
 
 class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
