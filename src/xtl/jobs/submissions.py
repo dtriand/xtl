@@ -46,6 +46,12 @@ class JobSubmission(Options):
         '`apply_settings()`)',
     )
 
+    dependency_checks: dict | None = Option(
+        default=None,
+        desc="Optional dependency checks made by the parent, which the settings snapshot doesn't hold (see "
+        '`apply_settings()`)',
+    )
+
     @classmethod
     def from_job(cls, job: 'Job') -> 'JobSubmission':
         data = job.serialize(as_dict=False)
@@ -60,13 +66,15 @@ class JobSubmission(Options):
 
     def apply_settings(self) -> None:
         """
-        Apply the snapshot of the parent's settings, if any, to this process's ``xtl.settings``, in place.
+        Apply the snapshot of the parent's settings, if any, to this process's ``xtl.settings``, in place, and add the
+        parent's dependency checks to it.
         """
-        if self.xtl_settings is None:
-            return
-        from xtl.config.settings import XTLSettings
+        if self.xtl_settings is not None:
+            from xtl.config.settings import XTLSettings
 
-        settings.update_from(XTLSettings.from_dict(self.xtl_settings))
+            settings.update_from(XTLSettings.from_dict(self.xtl_settings))
+        if self.dependency_checks:
+            settings.dependencies.update_checks(self.dependency_checks)
 
     def to_job(self, logger: logging.Logger | None = None) -> 'Job':
         return Job.deserialize(self.data, logger=logger)

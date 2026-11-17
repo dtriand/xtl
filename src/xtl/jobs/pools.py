@@ -1404,8 +1404,10 @@ class MultiprocessPool(BasePool):
         return _picklable_results(results, logger)
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        # The job runs with the settings as they are when it starts, as in the other pools
+        # The job runs with the settings as they are when it starts, as in the other pools, and with the dependency
+        #  checks made so far, so that it doesn't check again
         submission.xtl_settings = settings.to_dict()
+        submission.dependency_checks = settings.dependencies.checks_to_dict()
 
         result = await self._send_to_worker(submission.data.job_id, self._run_in_process, submission.to_dict())
 

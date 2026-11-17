@@ -63,18 +63,24 @@ The file is organised in tables, one per area of XTL, *e.g.*:
    modules = ["gcc/12"]
 
    [dependencies.atsas]
-   path = "/opt/atsas/bin"
    modules = ["atsas/4.1.3"]
+   compute_site = "modules"
+
+   [dependencies.easybragg]
+   path = "/opt/easybragg/bin"
 
 The main tables are:
 
 - ``[units]``: physical units
 - ``[jobs]``: jobs run by :mod:`xtl.jobs`, *e.g.* compute site, permissions and
   resources
-- ``[dependencies]``: external programs used by XTL (*e.g.* ATSAS, autoPROC), with the
+- ``[dependencies]``: external programs used by XTL (*e.g.* ATSAS, autoPROC): the
   directory of their executables (``path``) or the modules that provide them
-  (``modules``); ``modules`` in ``[dependencies]`` itself lists the modules that every
-  job loads first, in that order, on a ``modules`` compute site
+  (``modules``, loaded in that order; not both), and optionally the ``compute_site``, ``shell``
+  and ``policy`` they run with. In ``[dependencies]`` itself, ``path`` is a directory
+  that every job finds executables in, ``modules`` lists the modules that every job
+  loads first on a ``modules`` compute site (these two can be set together), and ``check``
+  whether jobs check that their dependencies can be found before they run
 - ``[cli]``: options for the command line utilities
 
 All settings, with their descriptions and default values, are listed in

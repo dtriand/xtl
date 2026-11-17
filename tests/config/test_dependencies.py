@@ -11,6 +11,10 @@ from xtl.config.settings import (
     EasyBraggSettings,
     XTLSettings,
 )
+from xtl.jobs.policies import CommandPolicy
+from xtl.jobs.shells import Shell
+from xtl.jobs.sites import ComputeSite
+from xtl_core.options.exceptions import OptionsValidationError
 
 
 class TestDependencySettings:
@@ -41,16 +45,54 @@ class TestDependencySettings:
 
     def test_round_trip(self):
         s0 = XTLSettings()
-        s0.dependencies.autoproc.modules = {'autoPROC/2024'}
+        s0.dependencies.autoproc.modules = ['xds/2024', 'autoPROC/2024']
+        s0.dependencies.autoproc.compute_site = 'modules'
+        s0.dependencies.autoproc.shell = 'bash'
+        s0.dependencies.autoproc.policy = 'nice'
         s1 = XTLSettings.from_toml(s0.to_toml())
-        assert s1.dependencies.autoproc.modules == {'autoPROC/2024'}
+        # Modules keep their order
+        assert s1.dependencies.autoproc.modules == ['xds/2024', 'autoPROC/2024']
+        assert s1.dependencies.autoproc.compute_site == ComputeSite.MODULES
+        assert s1.dependencies.autoproc.shell == Shell.BASH
+        assert s1.dependencies.autoproc.policy == CommandPolicy.NICE
         assert s1.dependencies.autoproc.provides == {'process', 'process_wf'}
+
+    def test_site_shell_and_policy_are_optional(self):
+        dep = AtsasSettings()
+        assert (dep.compute_site, dep.shell, dep.policy) == (None, None, None)
+
+    def test_site_shell_and_policy_from_toml(self):
+        s = XTLSettings.from_toml('[dependencies.atsas]\ncompute_site = "modules"\nshell = "cmd"\npolicy = "default"\n')
+        assert s.dependencies.atsas.compute_site == ComputeSite.MODULES
+        assert s.dependencies.atsas.shell == Shell.CMD
+        assert s.dependencies.atsas.policy == CommandPolicy.DEFAULT
+
+    @pytest.mark.parametrize('key, value', [('compute_site', 'mars'), ('shell', 'fish'), ('policy', 'lazy')])
+    def test_unknown_site_shell_or_policy(self, key, value):
+        with pytest.raises(OptionsValidationError):
+            AtsasSettings(**{key: value})
+
+    def test_path_or_modules(self):
+        assert AtsasSettings(path='/opt/atsas/bin').modules == []
+        assert AtsasSettings(modules=['atsas/4']).path is None
+        with pytest.raises(OptionsValidationError, match='Cannot specify both `path` and `modules`'):
+            AtsasSettings(path='/opt/atsas/bin', modules=['atsas/4'])
+
+    def test_path_or_modules_on_assignment(self):
+        dep = AtsasSettings(path='/opt/atsas/bin')
+        with pytest.raises(OptionsValidationError, match='Cannot specify both `path` and `modules`'):
+            dep.modules = ['atsas/4']
+
+    def test_path_and_modules_in_a_file(self):
+        # An invalid config file is reported, and the settings fall back to the defaults
+        with pytest.raises(OptionsValidationError, match='Cannot specify both `path` and `modules`'):
+            XTLSettings.from_toml('[dependencies.atsas]\npath = "/opt/atsas/bin"\nmodules = ["atsas/4"]\n')
 
     def test_defaults_are_not_shared(self):
         # Changing one instance leaves the defaults alone
         s = XTLSettings()
-        s.dependencies.autoproc.modules = {'autoPROC/2024'}
-        assert XTLSettings().dependencies.autoproc.modules == set()
+        s.dependencies.autoproc.modules = ['autoPROC/2024']
+        assert XTLSettings().dependencies.autoproc.modules == []
         assert s.dependencies.autoproc is not XTLSettings().dependencies.autoproc
 
     def test_not_hashable(self):
@@ -75,6 +117,19 @@ class TestDependenciesSettings:
         assert s.dependencies.modules == ['gcc/12', 'openmpi/4']
         assert XTLSettings().dependencies.modules == []
         assert 'modules' not in s.dependencies
+
+    def test_common_path(self):
+        # Unlike a dependency's, the common path and modules can be set together
+        s = XTLSettings.from_toml('[dependencies]\npath = "/opt/bin"\nmodules = ["gcc/12"]\n')
+        assert (s.dependencies.path, s.dependencies.modules) == (Path('/opt/bin'), ['gcc/12'])
+        assert XTLSettings().dependencies.path is None
+        assert XTLSettings.from_toml('[dependencies]\npath = ""\n').dependencies.path is None
+        assert 'path' not in DependenciesSettings.names()
+
+    def test_check(self):
+        assert XTLSettings().dependencies.check is True
+        assert XTLSettings.from_toml('[dependencies]\ncheck = false\n').dependencies.check is False
+        assert 'check' not in DependenciesSettings.names()
 
     def test_contains(self, deps):
         assert 'atsas' in deps

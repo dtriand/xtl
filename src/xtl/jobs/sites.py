@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS, PY310_OR_LESS
 from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
+from xtl.jobs.dependencies import dependency_name
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
 from xtl.jobs.shells import Shell, ShellType
 from xtl.jobs.exceptions import SubprocessError
@@ -223,7 +224,7 @@ class LocalSite(BaseComputeSite):
     ) -> bool:
 
         for dep in self.resolve_dependencies(dependencies):
-            name = self._dependency_name(dep)
+            name = dependency_name(dep)
             # Check if the dependency executables are available
             for exe in dep.provides:
                 try:
@@ -250,17 +251,6 @@ class LocalSite(BaseComputeSite):
         else:
             logger.debug('All dependencies are met.')
             return True
-
-    @staticmethod
-    def _dependency_name(dependency: DependencySettings) -> str:
-        """
-        The name the settings know a dependency by, e.g. ``'autoproc'``, or its class name if they don't.
-        """
-        from xtl import settings
-
-        return next(
-            (name for name, known in settings.dependencies.items() if known is dependency), type(dependency).__name__
-        )
 
     async def execute_batch(self, batch: BatchFile, stdout: Path = None, stderr: Path = None, **kwargs):
         # Get command to execute the batch file

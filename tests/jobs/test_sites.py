@@ -108,7 +108,7 @@ def modules(monkeypatch):
     """Undo changes to the modules in the settings and the CLI."""
     monkeypatch.setattr(common, 'REQUIRED_DEPENDENCIES', {})
     monkeypatch.setattr(settings.dependencies, 'modules', [])
-    monkeypatch.setattr(settings.dependencies.autoproc, 'modules', set())
+    monkeypatch.setattr(settings.dependencies.autoproc, 'modules', [])
 
 
 @pytest.fixture
@@ -457,7 +457,7 @@ class TestLocalSite:
 class TestModulesSite:
     def test_common_modules_load_first(self, modules):
         settings.dependencies.modules = ['gcc/12', 'openmpi/4']
-        settings.dependencies.autoproc.modules = {'autoPROC/2024'}
+        settings.dependencies.autoproc.modules = ['autoPROC/2024']
         lines = ModulesSite().prepare_preamble(dependencies=['autoproc'], shell=BashShell()).splitlines()
         assert lines[1:] == ['module purge', 'module load gcc/12 openmpi/4', 'module load autoPROC/2024']
 
@@ -503,7 +503,7 @@ class TestModulesSite:
 
         monkeypatch.setattr(ModulesSite, 'execute_command', staticmethod(execute_command))
         settings.dependencies.modules = ['gcc/12']
-        settings.dependencies.autoproc.modules = {'autoPROC/2024'}
+        settings.dependencies.autoproc.modules = ['autoPROC/2024']
         assert ModulesSite().check_dependencies(['autoproc'], shell=BashShell()) is found
 
     @pytest.mark.parametrize('result', ['1', None], ids=['missing', 'timed out'])
@@ -555,4 +555,4 @@ class TestJobOptions:
         ConsoleIO().apply_job_options(options)
         # Modules not of a known dependency replace the common ones; a dependency's replace its own
         assert settings.dependencies.modules == ['gcc/12', 'other/1']
-        assert settings.dependencies.autoproc.modules == {'autoPROC/2024'}
+        assert settings.dependencies.autoproc.modules == ['autoPROC/2024']

@@ -7,7 +7,10 @@ from tests.jobs.helpers import Talker
 from xtl import settings
 from xtl.config.settings import XTLSettings
 from xtl.jobs.config import JobConfig
+from xtl.jobs.dependencies import DependencyCheck
 from xtl.jobs.resources import Resources
+from xtl.jobs.shells import BashShell
+from xtl.jobs.sites import LocalSite
 from xtl.jobs.submissions import JobSubmission
 
 
@@ -81,3 +84,17 @@ class TestJobSubmission:
         before = settings.to_dict()
         JobSubmission.from_job(talker()).apply_settings()
         assert settings.to_dict() == before
+
+    def test_apply_settings_adds_dependency_checks(self, restore_settings):
+        check = DependencyCheck(dependency='atsas', found=False, missing=('datcmp',))
+        settings.dependencies.atsas.remember_check(LocalSite(), BashShell(), check)
+        submission = JobSubmission.from_job(talker())
+        submission.xtl_settings = settings.to_dict()
+        submission.dependency_checks = settings.dependencies.checks_to_dict()
+        settings.dependencies.clear_checks()
+        try:
+            # As in a worker: through plain values
+            JobSubmission.from_dict(pickle.loads(pickle.dumps(submission.to_dict()))).apply_settings()
+            assert settings.dependencies.atsas.get_check(LocalSite(), BashShell()) == check
+        finally:
+            settings.dependencies.clear_checks()

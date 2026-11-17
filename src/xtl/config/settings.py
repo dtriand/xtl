@@ -8,13 +8,17 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional, Literal, get_origin
+import threading
+from typing import Any, ClassVar, Iterable, Optional, Literal, get_origin, TYPE_CHECKING
 
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, model_validator
 
 from xtl import version as current_version
 from xtl.automate import ComputeSite
+from xtl.jobs.dependencies import DependencyCheck, site_key
 from xtl.jobs.sites import ComputeSite as ComputeSite2
+from xtl.jobs.shells import Shell
+from xtl.jobs.policies import CommandPolicy
 from xtl_core.version import VersionInfo
 from xtl.shared.environment import XTL_CONFIG
 from xtl_core.system.os import FilePermissions, CPU_CORES
@@ -22,6 +26,9 @@ from xtl_core.options import Option, Options
 from xtl_core.options.serializers import PermissionOctal
 from xtl_core.options.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.options.exceptions import OptionsValidationError
+
+if TYPE_CHECKING:
+    from xtl.jobs.shells import ShellType
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +192,30 @@ class DependencySettings(Settings):
     # Model attributes
     path: Optional[Path] = Option(default=None, desc='Directory containing binaries', validator=CastAsNoneIfEmpty())
 
-    modules: set[str] = Option(default_factory=set, desc='Modules that provide the dependency')
+    modules: list[str] = Option(
+        default_factory=list, desc='Modules that provide the dependency, loaded in this order on a modules site'
+    )
+
+    compute_site: Optional[ComputeSite2] = Option(
+        default=None, desc='Compute site that runs the dependency (default: jobs.compute_site)'
+    )
+
+    shell: Optional[Shell] = Option(default=None, desc="Shell that runs the dependency (default: the compute site's)")
+
+    policy: Optional[CommandPolicy] = Option(
+        default=None, desc="Command policy for the dependency's commands (default: the compute site's)"
+    )
+
+    # Checks made in this process, or received with the settings, by (compute site, shell name), each with the
+    #  settings of the dependency when it was checked; not settings, so never written to the config file
+    _checks: dict[tuple[str, str], tuple[str, DependencyCheck]] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode='after')
+    def _path_or_modules(self) -> DependencySettings:
+        # A dependency is found one way: in a directory, or by loading modules
+        if self.path is not None and self.modules:
+            raise ValueError('Cannot specify both `path` and `modules`')
+        return self
 
     @property
     def provides(self) -> frozenset[str]:
@@ -194,6 +224,73 @@ class DependencySettings(Settings):
         dependency and cannot be changed in the config file.
         """
         return self._provides
+
+    def __eq__(self, other: object) -> bool:
+        # The checks are a record, not settings: equal settings with different checks are equal
+        if type(other) is not type(self):
+            return NotImplemented
+        return self.__dict__ == other.__dict__ and self.__pydantic_extra__ == other.__pydantic_extra__
+
+    def get_check(self, site: Any, shell: ShellType) -> Optional[DependencyCheck]:
+        """
+        The outcome of an earlier check of this dependency on a compute site, in a shell, or ``None`` if there is none,
+        or if the settings of the dependency (*e.g.* its ``modules``) have changed since.
+
+        :param site: The compute site that checked it.
+        :param shell: The shell it was checked in.
+        """
+        with _checks_lock:
+            record = self._checks.get((site_key(site), shell.name))
+        if record is None:
+            return None
+        checked_settings, check = record
+        return check if checked_settings == self.model_dump_json() else None
+
+    def remember_check(self, site: Any, shell: ShellType, check: DependencyCheck) -> None:
+        """
+        Remember the outcome of a check of this dependency on a compute site, in a shell. Missing dependencies are
+        remembered too, so that the other jobs that need them fail at once.
+
+        :param site: The compute site that checked it.
+        :param shell: The shell it was checked in.
+        :param check: Its outcome.
+        """
+        with _checks_lock:
+            self._checks[(site_key(site), shell.name)] = (self.model_dump_json(), check)
+
+    def clear_checks(self) -> None:
+        """
+        Forget every check of this dependency, *e.g.* after installing it in a running session.
+        """
+        with _checks_lock:
+            self._checks.clear()
+
+    def checks_to_list(self) -> list[dict[str, Any]]:
+        """
+        The checks of this dependency as plain values, *e.g.* to send them to another process with the settings.
+        """
+        with _checks_lock:
+            return [
+                {'site': site, 'shell': shell, 'settings': checked_settings, 'check': check.to_dict()}
+                for (site, shell), (checked_settings, check) in self._checks.items()
+            ]
+
+    def update_checks(self, checks: list[dict[str, Any]]) -> None:
+        """
+        Add checks from the output of :meth:`checks_to_list`, replacing those for the same compute site and shell.
+
+        :param checks: Checks as plain values.
+        """
+        with _checks_lock:
+            for record in checks:
+                self._checks[(record['site'], record['shell'])] = (
+                    record['settings'],
+                    DependencyCheck.from_dict(record['check']),
+                )
+
+
+# One lock for the checks of all dependencies: checks are rare, and a pool's threads may share a dependency
+_checks_lock = threading.Lock()
 
 
 class AtsasSettings(DependencySettings):
@@ -234,10 +331,21 @@ class DependenciesSettings(Settings):
         'If "loose", missing dependencies will be ignored.',
     )
 
+    path: Optional[Path] = Option(
+        default=None,
+        desc='Directory of binaries that every job finds, before the directories of its dependencies',
+        validator=CastAsNoneIfEmpty(),
+    )
+
     modules: list[str] = Option(
         default_factory=list,
         desc='Modules that every job loads on a modules compute site, in this order, before the modules of its '
         'dependencies',
+    )
+
+    check: bool = Option(
+        default=True,
+        desc='Check that the dependencies of jobs can be found before running them (once per job, pool or command)',
     )
 
     atsas: AtsasSettings = Option(default=AtsasSettings())
@@ -276,6 +384,30 @@ class DependenciesSettings(Settings):
         The known dependencies as ``(name, settings)`` pairs, in definition order.
         """
         return [(name, getattr(self, name)) for name in self.names()]
+
+    def clear_checks(self) -> None:
+        """
+        Forget every check of every known dependency.
+        """
+        for _, dependency in self.items():
+            dependency.clear_checks()
+
+    def checks_to_dict(self) -> dict[str, list[dict[str, Any]]]:
+        """
+        The checks of the known dependencies as plain values, by name, *e.g.* to send them to another process with the
+        settings. Dependencies without checks are left out.
+        """
+        return {name: checks for name, dependency in self.items() if (checks := dependency.checks_to_list())}
+
+    def update_checks(self, checks: dict[str, list[dict[str, Any]]]) -> None:
+        """
+        Add checks from the output of :meth:`checks_to_dict` to the known dependencies; unknown names are skipped.
+
+        :param checks: Checks as plain values, by name.
+        """
+        for name, records in checks.items():
+            if (dependency := self.get(name)) is not None:
+                dependency.update_checks(records)
 
     def resolve(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None
