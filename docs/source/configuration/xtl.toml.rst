@@ -59,6 +59,9 @@ The file is organised in tables, one per area of XTL, *e.g.*:
    [jobs.resources]
    max_jobs = 8
 
+   [dependencies]
+   modules = ["gcc/12"]
+
    [dependencies.atsas]
    path = "/opt/atsas/bin"
    modules = ["atsas/4.1.3"]
@@ -70,7 +73,8 @@ The main tables are:
   resources
 - ``[dependencies]``: external programs used by XTL (*e.g.* ATSAS, autoPROC), with the
   directory of their executables (``path``) or the modules that provide them
-  (``modules``)
+  (``modules``); ``modules`` in ``[dependencies]`` itself lists the modules that every
+  job loads first, in that order, on a ``modules`` compute site
 - ``[cli]``: options for the command line utilities
 
 All settings, with their descriptions and default values, are listed in

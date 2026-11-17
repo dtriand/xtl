@@ -67,6 +67,7 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
     'pydantic': ('https://docs.pydantic.dev/latest/', None),
+    'python': ('https://docs.python.org/3', None),
     'rich': ('https://rich.readthedocs.io/en/stable/', None),
 }
 
@@ -95,9 +96,13 @@ favicons = [
     'favicon-16x16.png',
 ]
 
-# Add custom JavaScript to all pages
+# Add custom JavaScript and CSS to all pages
 html_js_files = [
     'js/version-selector.js',
+    'js/checklist.js',
+]
+html_css_files = [
+    'css/checklist.css',
 ]
 
 

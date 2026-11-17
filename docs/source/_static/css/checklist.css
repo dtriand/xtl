@@ -1,0 +1,19 @@
+/* Lists marked with `.. rst-class:: checklist`: checkboxes (added by js/checklist.js) instead of bullets */
+
+ul.checklist {
+    list-style: none;
+    padding-left: 0.5em;
+}
+
+ul.checklist > li {
+    position: relative;
+    padding-left: 1.8em;
+}
+
+ul.checklist .checklist-box {
+    position: absolute;
+    left: 0;
+    top: 0.3em;
+    margin: 0;
+    cursor: pointer;
+}

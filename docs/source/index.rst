@@ -8,4 +8,5 @@ XTL: A crystallographic tools library
    configuration/index.rst
    common/index.rst
    cli/index.rst
+   dev/index.rst
    api/modules.rst
