@@ -295,10 +295,10 @@ _checks_lock = threading.Lock()
 
 class AtsasSettings(DependencySettings):
     """
-    Settings for `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_
+    Settings for `ATSAS <https://biosaxs.com/software.html>`_
     """
 
-    _provides = frozenset({'datcmp'})
+    _provides = frozenset({'datcmp', 'datop'})
 
 
 class AutoprocSettings(DependencySettings):
@@ -306,12 +306,12 @@ class AutoprocSettings(DependencySettings):
     Settings for `autoPROC <https://www.globalphasing.com/autoproc/>`_
     """
 
-    _provides = frozenset({'process', 'process_wf'})
+    _provides = frozenset({'process', 'aP_wf_process'})
 
 
 class EasyBraggSettings(DependencySettings):
     """
-    Settings for easyBragg
+    Settings for `easyBragg <https://github.com/pixel-modelers/easyBragg>`_
     """
 
     _provides = frozenset({'easyBragg.python'})

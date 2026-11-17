@@ -19,8 +19,8 @@ from xtl_core.options.exceptions import OptionsValidationError
 
 class TestDependencySettings:
     def test_provides(self):
-        assert AtsasSettings().provides == {'datcmp'}
-        assert AutoprocSettings().provides == {'process', 'process_wf'}
+        assert AtsasSettings().provides == {'datcmp', 'datop'}
+        assert AutoprocSettings().provides == {'process', 'aP_wf_process'}
         assert EasyBraggSettings().provides == {'easyBragg.python'}
         assert DependencySettings().provides == frozenset()
 
@@ -33,7 +33,7 @@ class TestDependencySettings:
         # A `provides` key in a config file is an unknown key, and doesn't change the
         #  executables of the dependency
         s = XTLSettings.from_toml('[dependencies.atsas]\nprovides = ["evil"]\n')
-        assert s.dependencies.atsas.provides == {'datcmp'}
+        assert s.dependencies.atsas.provides == {'datcmp', 'datop'}
         assert ('Found and ignored unknown keys in the config file: dependencies.atsas.provides') in s.check()
 
     def test_partial_table(self):
@@ -41,7 +41,7 @@ class TestDependencySettings:
         s = XTLSettings.from_toml('[dependencies.atsas]\npath = "/opt/atsas/bin"\n')
         assert isinstance(s.dependencies.atsas, AtsasSettings)
         assert s.dependencies.atsas.path == Path('/opt/atsas/bin')
-        assert s.dependencies.atsas.provides == {'datcmp'}
+        assert s.dependencies.atsas.provides == {'datcmp', 'datop'}
 
     def test_round_trip(self):
         s0 = XTLSettings()
@@ -55,7 +55,7 @@ class TestDependencySettings:
         assert s1.dependencies.autoproc.compute_site == ComputeSite.MODULES
         assert s1.dependencies.autoproc.shell == Shell.BASH
         assert s1.dependencies.autoproc.policy == CommandPolicy.NICE
-        assert s1.dependencies.autoproc.provides == {'process', 'process_wf'}
+        assert s1.dependencies.autoproc.provides == {'process', 'aP_wf_process'}
 
     def test_site_shell_and_policy_are_optional(self):
         dep = AtsasSettings()

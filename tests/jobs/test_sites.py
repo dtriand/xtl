@@ -1,8 +1,10 @@
 import asyncio
 from dataclasses import dataclass
+import functools
 import logging
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import time
@@ -15,10 +17,19 @@ from xtl.cli.utilities import common
 from xtl.cli.utilities.common import JobOptions, PermissionsOptions
 from xtl.config.settings import DependencySettings
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
+from xtl.jobs.dependencies import DependencyCheck
 from xtl.jobs.exceptions import SubprocessError
-from xtl.jobs.policies import BaseCommandPolicy
-from xtl.jobs.shells import BashShell, CmdShell, DefaultShell, PowerShell, Shell
-from xtl.jobs.sites import BaseComputeSite, ComputeSite, LocalSite, ModulesSite
+from xtl.jobs.policies import BaseCommandPolicy, CommandPolicy
+from xtl.jobs.shells import BashShell, CmdShell, PowerShell, Shell
+from xtl.jobs.sites import (
+    BaseComputeSite,
+    ComputeSite,
+    LocalSite,
+    ModulesSite,
+    SlurmLocalSite,
+    SlurmModulesSite,
+    SlurmSite,
+)
 from xtl.tui.console import ConsoleIO
 from xtl_core.system.compatibility import OS_WINDOWS
 
@@ -99,16 +110,49 @@ class Tool(DependencySettings):
     _provides = frozenset({'tool', 'helper'})
 
 
-def completed(command, stdout: str) -> subprocess.CompletedProcess:
-    return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr='')
+def completed(command, stdout: str, stderr: str = '') -> subprocess.CompletedProcess:
+    return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=stderr)
+
+
+class Scripts:
+    """Stands in for the scripts that checks run: records them, and answers with recorded output."""
+
+    def __init__(self, output=None):
+        self.scripts: list[str] = []
+        self.output = output if callable(output) else (lambda script: output)
+
+    # NB: Set on a site's class, an instance isn't bound to the site, so it gets only the script and the shell
+    def __call__(self, script: str, shell) -> subprocess.CompletedProcess | None:
+        self.scripts.append(script)
+        output = self.output(script)
+        if output is None:
+            return None
+        stdout, stderr = output if isinstance(output, tuple) else (output, '')
+        return completed(['script'], stdout, stderr)
+
+
+def report(*found: str, missing: tuple[str, ...] = (), kind: str = 'executable') -> str:
+    """Lines as a check prints them."""
+    lines = [f'xtl-check {kind} {name} 0' for name in found] + [f'xtl-check {kind} {name} 1' for name in missing]
+    return '\n'.join(lines) + '\n'
+
+
+@pytest.fixture(autouse=True)
+def no_checks():
+    """Start and end each test without dependency checks remembered in the settings."""
+    settings.dependencies.clear_checks()
+    yield
+    settings.dependencies.clear_checks()
 
 
 @pytest.fixture
 def modules(monkeypatch):
-    """Undo changes to the modules in the settings and the CLI."""
+    """Undo changes to the modules and paths in the settings and the CLI."""
     monkeypatch.setattr(common, 'REQUIRED_DEPENDENCIES', {})
     monkeypatch.setattr(settings.dependencies, 'modules', [])
+    monkeypatch.setattr(settings.dependencies, 'path', None)
     monkeypatch.setattr(settings.dependencies.autoproc, 'modules', [])
+    monkeypatch.setattr(settings.dependencies.autoproc, 'path', None)
 
 
 @pytest.fixture
@@ -179,6 +223,27 @@ class TestBaseComputeSite:
         assert BaseComputeSite.execute_command(['xtl-no-such-program']) is None
         assert 'could not be started' in sites_log.text
 
+    def test_shells_and_policy_as_arguments(self):
+        site = LocalSite(default_shell=Shell.CMD, shells=[CmdShell(), Shell.POWERSHELL], policy=CommandPolicy.NICE)
+        assert site.default_shell == Shell.CMD
+        assert site.supported_shells == frozenset({Shell.CMD, Shell.POWERSHELL})
+        assert site.is_valid_shell(PowerShell()) and not site.is_valid_shell(Shell.BASH)
+        assert site.policy == CommandPolicy.NICE
+        assert site != LocalSite()
+        # Without arguments, the site's own
+        assert BashOnlySite().supported_shells == frozenset({Shell.BASH})
+        assert TaggingSite(default_shell=BashShell()).policy is TaggingSite._policy
+
+    def test_policy_instance_as_argument(self):
+        policy = TaggingPolicy()
+        assert LocalSite(policy=policy).policy is policy
+
+    def test_default_shell_must_be_supported(self):
+        with pytest.raises(ValueError, match='not one of the shells'):
+            BashOnlySite(default_shell=Shell.CMD)
+        with pytest.raises(ValueError, match='not one of the shells'):
+            LocalSite(default_shell=Shell.CMD, shells=[Shell.BASH])
+
     @pytest.mark.parametrize('shell', [BashShell(), CmdShell(), PowerShell()], ids=lambda s: s.name)
     def test_prepare_shebang(self, shell):
         expected = f'{shell.shebang}{shell.new_line_char}' if shell.shebang else ''
@@ -186,64 +251,149 @@ class TestBaseComputeSite:
 
 
 class TestLocalSite:
-    def test_prepare_without_a_policy(self):
+    def test_prepare_without_a_policy(self, modules):
         site, shell = LocalSite(), BashShell()
-        assert site.prepare_preamble(dependencies=['autoproc'], shell=shell) == f'{shell.shebang}\n'
+        # A guard line per executable of the dependencies, sorted
+        assert site.prepare_preamble(dependencies=['autoproc'], shell=shell).splitlines() == [
+            shell.shebang,
+            shell.get_guard_command('aP_wf_process'),
+            shell.get_guard_command('process'),
+        ]
+        assert site.prepare_preamble(dependencies=None, shell=shell) == f'{shell.shebang}\n'
         assert site.prepare_command('echo hi') == 'echo hi'
         assert site.prepare_content('echo hi') == 'echo hi'
         assert site.prepare_postamble() == ''
 
-    def test_prepare_with_a_policy(self):
+    def test_prepare_with_a_policy(self, modules):
         site, shell = TaggingSite(), BashShell()
         assert site.prepare_preamble(dependencies=None, shell=shell) == f'{shell.shebang}\n[preamble]'
         assert site.prepare_command('echo hi') == '[echo hi]'
         assert site.prepare_content('echo hi') == '<echo hi>'
         assert site.prepare_postamble() == '[postamble]'
 
-    @pytest.mark.parametrize(
-        'stdout, found',
-        [
-            ({'tool': '0', 'helper': '0'}, True),
-            ({'tool': '0', 'helper': '1'}, False),
-            ({'tool': '0', 'helper': None}, False),  # timed out
-        ],
-    )
-    def test_check_dependencies(self, monkeypatch, stdout, found):
-        def execute_command(command, timeout=20):
-            exe = next(exe for exe in stdout if exe in ' '.join(command))
-            return None if stdout[exe] is None else completed(command, stdout[exe] + '\n')
-
-        monkeypatch.setattr(LocalSite, 'execute_command', staticmethod(execute_command))
-        assert LocalSite().check_dependencies(Tool(), shell=BashShell()) is found
-
-    def test_check_dependencies_names_the_dependency(self, monkeypatch, sites_log):
-        monkeypatch.setattr(
-            LocalSite, 'execute_command', staticmethod(lambda command, timeout: completed(command, '1'))
+    def test_setup_puts_paths_first_on_path(self, modules):
+        settings.dependencies.path = Path('/opt/common')
+        shell = BashShell()
+        # The common directory first, so that a dependency's comes before it on PATH
+        assert LocalSite().prepare_setup([Tool(path='/opt/tool'), 'autoproc'], shell=shell).splitlines() == [
+            shell.get_path_command(Path('/opt/common')),
+            shell.get_path_command(Path('/opt/tool')),
+        ]
+        assert (
+            LocalSite().prepare_setup(None, shell=CmdShell())
+            == f'{CmdShell().get_path_command(Path("/opt/common"))}\r\n'
         )
-        assert LocalSite().check_dependencies(['autoproc'], shell=BashShell()) is False
-        assert 'for dependency `autoproc`' in sites_log.text
-        assert LocalSite().check_dependencies(Tool(), shell=BashShell()) is False
-        assert 'for dependency `Tool`' in sites_log.text
 
-    def test_check_dependencies_without_any(self):
-        assert LocalSite().check_dependencies(None, shell=BashShell()) is True
+    def test_preamble_sets_up_before_the_guards(self, modules):
+        shell = CmdShell()
+        lines = LocalSite().prepare_preamble([Tool(path='C:/tool')], shell=shell).split('\r\n')
+        assert lines == [
+            shell.shebang,
+            shell.get_path_command(Path('C:/tool')),
+            shell.get_guard_command('helper'),
+            shell.get_guard_command('tool'),
+            '',
+        ]
 
-    def test_check_dependencies_with_an_unsafe_name(self, monkeypatch, sites_log):
+    def test_check_runs_the_setup_then_looks_up_each_executable(self, modules, monkeypatch):
+        scripts = Scripts(report('helper', 'tool'))
+        monkeypatch.setattr(LocalSite, '_run_script', scripts)
+        settings.dependencies.path = Path('/opt/common')
+        shell = BashShell()
+
+        (check,) = LocalSite().check_dependencies(Tool(path='/opt/tool'), shell=shell)
+        assert check == DependencyCheck(dependency='Tool', found=True)
+        assert scripts.scripts == [
+            f'{shell.shebang}\n'
+            f'{shell.get_path_command(Path("/opt/common"))}\n'
+            f'{shell.get_path_command(Path("/opt/tool"))}\n'
+            f'{shell.get_found_report_command("helper")}\n'
+            f'{shell.get_found_report_command("tool")}\n'
+        ]
+
+    @pytest.mark.parametrize(
+        'output, missing',
+        [
+            (report('tool', missing=('helper',)), ('helper',)),
+            (report('tool'), ('helper',)),  # not reported: the script stopped
+            ('', ('helper', 'tool')),
+            (None, ('helper', 'tool')),  # timed out
+        ],
+        ids=['not found', 'not reported', 'no output', 'timed out'],
+    )
+    def test_check_reports_what_is_missing(self, monkeypatch, output, missing):
+        monkeypatch.setattr(LocalSite, '_run_script', Scripts(output))
+        (check,) = LocalSite().check_dependencies(Tool(), shell=BashShell())
+        assert (check.dependency, check.found, check.missing) == ('Tool', False, missing)
+
+    def test_check_keeps_what_was_printed(self, monkeypatch):
+        output = ('Loading tool\n' + report('helper', 'tool'), 'a warning\n')
+        monkeypatch.setattr(LocalSite, '_run_script', Scripts(output))
+        (check,) = LocalSite().check_dependencies(Tool(), shell=BashShell())
+        assert check.found and check.details == 'Loading tool\na warning'
+
+    def test_check_each_dependency_alone(self, modules, monkeypatch):
+        scripts = Scripts(lambda script: report('process', 'aP_wf_process', 'helper', 'tool'))
+        monkeypatch.setattr(LocalSite, '_run_script', scripts)
+        checks = LocalSite().check_dependencies(['autoproc', Tool()], shell=BashShell())
+        assert [(check.dependency, check.found) for check in checks] == [('autoproc', True), ('Tool', True)]
+        assert len(scripts.scripts) == 2
+        assert 'helper' not in scripts.scripts[0] and 'process' not in scripts.scripts[1]
+
+    def test_check_is_remembered(self, modules, monkeypatch):
+        scripts = Scripts(report(missing=('process', 'aP_wf_process')))
+        monkeypatch.setattr(LocalSite, '_run_script', scripts)
+        (first,) = LocalSite().check_dependencies('autoproc', shell=BashShell())
+        # Once per site and shell, failures too
+        (second,) = LocalSite().check_dependencies('autoproc', shell=BashShell())
+        assert second is first and len(scripts.scripts) == 1
+        assert settings.dependencies.autoproc.get_check(LocalSite(), BashShell()) is first
+        LocalSite().check_dependencies('autoproc', shell=CmdShell())
+        ModulesSite().check_dependencies('autoproc', shell=BashShell())
+        assert len(scripts.scripts) == 3
+
+    def test_check_again_after_a_change(self, modules, monkeypatch):
+        scripts = Scripts(report('process', 'aP_wf_process'))
+        monkeypatch.setattr(LocalSite, '_run_script', scripts)
+        LocalSite().check_dependencies('autoproc', shell=BashShell())
+        settings.dependencies.autoproc.path = Path('/opt/autoproc')
+        LocalSite().check_dependencies('autoproc', shell=BashShell())
+        assert len(scripts.scripts) == 2
+
+    def test_check_without_any(self, monkeypatch):
+        monkeypatch.setattr(LocalSite, '_run_script', Scripts(lambda script: pytest.fail('ran')))
+        assert LocalSite().check_dependencies(None, shell=BashShell()) == []
+
+    def test_check_with_an_unsafe_name(self, monkeypatch, sites_log):
         class Unsafe(DependencySettings):
             _provides = frozenset({'tool; rm -rf x'})
 
-        monkeypatch.setattr(LocalSite, 'execute_command', staticmethod(lambda *a, **k: pytest.fail('ran')))
-        assert LocalSite().check_dependencies(Unsafe(), shell=BashShell()) is False
+        monkeypatch.setattr(LocalSite, '_run_script', Scripts(lambda script: pytest.fail('ran')))
+        (check,) = LocalSite().check_dependencies(Unsafe(), shell=BashShell())
+        assert (check.found, check.missing) == (False, ('tool; rm -rf x',))
+        assert 'Invalid executable name' in check.details
+        assert 'Cannot check dependency `Unsafe`' in sites_log.text
 
-    def test_check_dependencies_runs_the_shell(self):
-        # A program that exists everywhere: the shell itself
-        shell = DefaultShell()
-        exe = 'cmd' if OS_WINDOWS else 'sh'
+    @pytest.mark.parametrize('shell', [BashShell(), CmdShell(), PowerShell()], ids=lambda s: s.name)
+    def test_check_runs_in_the_shell(self, shell, tmp_path, modules):
+        if not Path(shell.executable).exists():
+            pytest.skip(f'{shell.executable} not found')
+        folder = tmp_path / 'my bin'
+        folder.mkdir()
+        if OS_WINDOWS:
+            (folder / 'xtl-tool.bat').write_text('@echo ran\r\n')
+        else:
+            (folder / 'xtl-tool').write_text('#!/bin/sh\necho ran\n')
+            (folder / 'xtl-tool').chmod(0o755)
 
-        class Shell_(DependencySettings):
-            _provides = frozenset({exe})
+        class XTLTool(DependencySettings):
+            _provides = frozenset({'xtl-tool'})
 
-        assert LocalSite().check_dependencies(Shell_(), shell=shell) is True
+        (check,) = LocalSite().check_dependencies(XTLTool(), shell=shell)
+        assert (check.found, check.missing) == (False, ('xtl-tool',))
+        # Only after its directory is put on PATH
+        (check,) = LocalSite().check_dependencies(XTLTool(path=folder), shell=shell)
+        assert check.found, check.details
 
     @pytest.mark.asyncio
     async def test_execute_batch_without_input(self, tmp_path, monkeypatch):
@@ -454,28 +604,93 @@ class TestLocalSite:
         assert batch.process.killed
 
 
+MODULE_COMMAND = shutil.which('module')
+"""Environment Modules' `module.cmd` on Windows, where a test can run it; elsewhere `module` is a shell function"""
+
+
+@functools.cache
+def has_envmodule() -> bool:
+    """Whether xtl's PowerShell has Environment Modules' `envmodule`, from its profile, as batch files run."""
+    if not (OS_WINDOWS and MODULE_COMMAND):
+        return False
+    probe = 'if (Get-Command envmodule -ErrorAction SilentlyContinue) { 0 } else { 1 }'
+    result = subprocess.run(
+        [PowerShell().executable, '-NonInteractive', '-Command', probe], capture_output=True, text=True, timeout=120
+    )
+    return result.stdout.strip().endswith('0')
+
+
+def skip_without_module_command(shell) -> None:
+    """Skip a test in PowerShell if its profile doesn't set up Environment Modules."""
+    if shell == Shell.POWERSHELL and not has_envmodule():
+        pytest.skip("PowerShell's profile doesn't set up Environment Modules")
+
+
+@pytest.fixture
+def module_tree(tmp_path, monkeypatch):
+    """A module `xtltool/1.0` that puts a program `xtl-tool` on PATH, in a module path of its own."""
+    if not (OS_WINDOWS and MODULE_COMMAND):
+        pytest.skip('Environment Modules is not installed')
+    folder = tmp_path / 'tool bin'
+    folder.mkdir()
+    (folder / 'xtl-tool.bat').write_text('@echo ran\r\n')
+    modulefile = tmp_path / 'modulefiles' / 'xtltool' / '1.0'
+    modulefile.parent.mkdir(parents=True)
+    modulefile.write_text(f'#%Module\nprepend-path PATH {{{folder.as_posix()}}}\n')
+    monkeypatch.setenv('MODULEPATH', str(tmp_path / 'modulefiles'))
+
+
+class XTLTool(DependencySettings):
+    _provides = frozenset({'xtl-tool'})
+
+
 class TestModulesSite:
     def test_common_modules_load_first(self, modules):
         settings.dependencies.modules = ['gcc/12', 'openmpi/4']
         settings.dependencies.autoproc.modules = ['autoPROC/2024']
-        lines = ModulesSite().prepare_preamble(dependencies=['autoproc'], shell=BashShell()).splitlines()
-        assert lines[1:] == ['module purge', 'module load gcc/12 openmpi/4', 'module load autoPROC/2024']
+        shell = BashShell()
+        lines = ModulesSite().prepare_preamble(dependencies=['autoproc'], shell=shell).splitlines()
+        assert lines == [
+            shell.shebang,
+            shell.module_setup,
+            'module purge',
+            'module load gcc/12 openmpi/4',
+            'module load autoPROC/2024',
+            shell.get_guard_command('aP_wf_process'),
+            shell.get_guard_command('process'),
+        ]
 
     def test_no_common_modules(self, modules):
-        lines = ModulesSite().prepare_preamble(dependencies=None, shell=BashShell()).splitlines()
-        assert lines[1:] == ['module purge']
+        lines = ModulesSite().prepare_preamble(dependencies=None, shell=CmdShell()).split('\r\n')
+        assert lines == [CmdShell().shebang, 'call module purge', '']
 
     def test_dependency_without_modules(self, modules):
-        lines = ModulesSite().prepare_preamble(dependencies=[Tool()], shell=BashShell()).splitlines()
-        assert lines[1:] == ['module purge']
+        lines = ModulesSite().prepare_preamble(dependencies=[Tool()], shell=CmdShell()).split('\r\n')
+        assert lines[1:3] == ['call module purge', CmdShell().get_guard_command('helper')]
 
-    def test_cmd_calls_module(self, modules):
+    def test_paths_after_the_modules(self, modules):
+        settings.dependencies.path = Path('C:/common')
         settings.dependencies.modules = ['gcc/12']
-        preamble = ModulesSite().prepare_preamble(dependencies=None, shell=CmdShell())
-        assert preamble.split('\r\n')[1:] == ['call module purge', 'call module load gcc/12', '']
+        shell = CmdShell()
+        lines = ModulesSite().prepare_setup([Tool(path='C:/tool')], shell=shell).split('\r\n')
+        assert lines == [
+            'call module purge',
+            'call module load gcc/12',
+            shell.get_path_command(Path('C:/common')),
+            shell.get_path_command(Path('C:/tool')),
+            '',
+        ]
 
-    def test_load_a_single_module(self):
-        assert ModulesSite._load_modules('gcc/12', shell=BashShell()) == 'module load gcc/12\n'
+    def test_powershell_uses_envmodule(self, modules):
+        # Set up by the profile, which batch files run with
+        settings.dependencies.modules = ['gcc/12']
+        lines = ModulesSite().prepare_setup(None, shell=PowerShell()).splitlines()
+        assert lines == ['envmodule purge', 'envmodule load gcc/12']
+
+    def test_unsafe_module_name(self, modules):
+        settings.dependencies.modules = ['gcc; rm -rf x']
+        with pytest.raises(ValueError, match='Invalid module name'):
+            ModulesSite().prepare_preamble(dependencies=None, shell=BashShell())
 
     def test_preamble_with_a_policy(self, modules):
         class TaggingModulesSite(ModulesSite):
@@ -483,60 +698,145 @@ class TestModulesSite:
 
         assert TaggingModulesSite().prepare_preamble(dependencies=None, shell=BashShell()).endswith('[preamble]')
 
-    @pytest.mark.parametrize(
-        'available, found',
-        [
-            (['gcc/12', 'autoPROC/2024'], True),
-            (['autoPROC/2024'], False),  # a common module is missing
-            (['gcc/12'], False),  # a dependency's module is missing
-        ],
-    )
-    def test_check_dependencies(self, modules, monkeypatch, available, found):
-        def execute_command(command, timeout=20):
-            script = command[-1]
-            if 'module avail' in script:
-                name = script.split()[-1]
-                stdout = name if name in available else ''
-            else:
-                stdout = '0'  # the `module` command exists
-            return completed(command, stdout)
-
-        monkeypatch.setattr(ModulesSite, 'execute_command', staticmethod(execute_command))
+    def test_check_loads_each_module_then_looks_up_the_executables(self, modules, monkeypatch):
+        scripts = Scripts(report('gcc/12', 'autoPROC/2024', kind='module') + report('process', 'aP_wf_process'))
+        monkeypatch.setattr(ModulesSite, '_run_script', scripts)
         settings.dependencies.modules = ['gcc/12']
         settings.dependencies.autoproc.modules = ['autoPROC/2024']
-        assert ModulesSite().check_dependencies(['autoproc'], shell=BashShell()) is found
+        shell = CmdShell()
 
-    @pytest.mark.parametrize('result', ['1', None], ids=['missing', 'timed out'])
-    def test_check_dependencies_without_the_module_command(self, modules, monkeypatch, result):
-        def execute_command(command, timeout=20):
-            assert 'module avail' not in command[-1]
-            return None if result is None else completed(command, result)
-
-        monkeypatch.setattr(ModulesSite, 'execute_command', staticmethod(execute_command))
-        assert ModulesSite().check_dependencies(None, shell=BashShell()) is False
-
-    def test_check_module_timed_out(self, monkeypatch):
-        monkeypatch.setattr(ModulesSite, 'execute_command', staticmethod(lambda *a, **k: None))
-        assert ModulesSite()._check_module('gcc/12', shell=BashShell()) is False
-
-    def test_check_module_with_an_unsafe_name(self, monkeypatch, sites_log):
-        monkeypatch.setattr(ModulesSite, 'execute_command', staticmethod(lambda *a, **k: pytest.fail('ran')))
-        assert ModulesSite()._check_module('gcc; rm -rf x', shell=BashShell()) is False
-        assert 'Invalid module name' in sites_log.text
+        (check,) = ModulesSite().check_dependencies(['autoproc'], shell=shell)
+        assert check == DependencyCheck(dependency='autoproc', found=True)
+        assert scripts.scripts[0].split('\r\n') == [
+            shell.shebang,
+            'call module purge',
+            shell.get_load_report_command('gcc/12'),
+            shell.get_load_report_command('autoPROC/2024'),
+            shell.get_found_report_command('aP_wf_process'),
+            shell.get_found_report_command('process'),
+            '',
+        ]
 
     @pytest.mark.parametrize(
-        'name',
-        ['gcc', 'gcc/12', 'gcc/12.2.0', 'python/3.11', 'openmpi/4.1.5-gcc_12', '.hidden/1', 'a/b/c', 'gcc\\12'],
+        'output, missing',
+        [
+            # A module that doesn't load, and so the executables it provides
+            (
+                (
+                    report('gcc/12', kind='module')
+                    + report(missing=('autoPROC/2024',), kind='module')
+                    + report(missing=('process', 'aP_wf_process')),
+                    "ERROR: Unable to locate a modulefile for 'autoPROC/2024'\n",
+                ),
+                ('autoPROC/2024', 'aP_wf_process', 'process'),
+            ),
+            # The modules load, but don't provide an executable
+            (
+                report('gcc/12', 'autoPROC/2024', kind='module') + report('process', missing=('aP_wf_process',)),
+                ('aP_wf_process',),
+            ),
+            # No module command: nothing loads
+            (
+                report(missing=('gcc/12', 'autoPROC/2024'), kind='module')
+                + report(missing=('process', 'aP_wf_process')),
+                ('gcc/12', 'autoPROC/2024', 'aP_wf_process', 'process'),
+            ),
+        ],
+        ids=['module missing', 'executable missing', 'no module command'],
     )
-    def test_safe_module_names(self, name):
-        assert ModulesSite._is_module_name_safe(name)
+    def test_check_reports_what_is_missing(self, modules, monkeypatch, output, missing):
+        monkeypatch.setattr(ModulesSite, '_run_script', Scripts(output))
+        settings.dependencies.modules = ['gcc/12']
+        settings.dependencies.autoproc.modules = ['autoPROC/2024']
+        (check,) = ModulesSite().check_dependencies(['autoproc'], shell=BashShell())
+        assert (check.found, check.missing) == (False, missing)
 
-    @pytest.mark.parametrize(
-        'name',
-        ['', 'a' * 256, '-x', '--help', 'gcc/-x', 'gcc/', '/gcc', 'gcc 12', 'gcc;ls', 'gcc\n', '$(ls)', 'gcc//12'],
-    )
-    def test_unsafe_module_names(self, name):
-        assert not ModulesSite._is_module_name_safe(name)
+    def test_check_keeps_the_error_of_a_module(self, modules, monkeypatch):
+        error = "ERROR: Unable to locate a modulefile for 'autoPROC/2024'"
+        output = (
+            report(missing=('autoPROC/2024',), kind='module') + report(missing=('process', 'aP_wf_process')),
+            error,
+        )
+        monkeypatch.setattr(ModulesSite, '_run_script', Scripts(output))
+        settings.dependencies.autoproc.modules = ['autoPROC/2024']
+        (check,) = ModulesSite().check_dependencies(['autoproc'], shell=BashShell())
+        assert check.details == error
+
+    def test_check_with_an_unsafe_module_name(self, modules, monkeypatch):
+        monkeypatch.setattr(ModulesSite, '_run_script', Scripts(lambda script: pytest.fail('ran')))
+        settings.dependencies.autoproc.modules = ['autoPROC; rm -rf x']
+        (check,) = ModulesSite().check_dependencies(['autoproc'], shell=BashShell())
+        assert not check.found and 'Invalid module name' in check.details
+
+    @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
+    def test_check_with_environment_modules(self, module_tree, modules, shell):
+        skip_without_module_command(shell)
+        (check,) = ModulesSite().check_dependencies(XTLTool(modules=['xtltool/1.0']), shell=shell)
+        assert check.found, check.details
+        # Not without the module
+        (check,) = ModulesSite().check_dependencies(XTLTool(), shell=shell)
+        assert (check.found, check.missing) == (False, ('xtl-tool',))
+
+    @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
+    def test_check_with_a_missing_module(self, module_tree, modules, shell):
+        skip_without_module_command(shell)
+        (check,) = ModulesSite().check_dependencies(XTLTool(modules=['xtltool/9.9']), shell=shell)
+        assert (check.found, check.missing) == (False, ('xtltool/9.9', 'xtl-tool'))
+        assert "Unable to locate a modulefile for 'xtltool/9.9'" in check.details
+
+    @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
+    def test_batch_file_with_environment_modules(self, module_tree, modules, shell, tmp_path):
+        # The preamble loads the module, and the guard lets the commands run
+        skip_without_module_command(shell)
+        dependency = XTLTool(modules=['xtltool/1.0'])
+        text = ModulesSite().prepare_preamble([dependency], shell=shell) + 'xtl-tool' + shell.new_line_char
+        batch = tmp_path / f'job{shell.batch_extension}'
+        batch.write_text(text, encoding='utf-8', newline='')
+        result = subprocess.run(shell.get_execute_batch_command(batch, as_list=True), capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert 'ran' in result.stdout
+
+    def test_powershell_without_envmodule(self, module_tree, modules):
+        # A profile without Environment Modules: the modules don't load, and the check says why
+        if has_envmodule():
+            pytest.skip("PowerShell's profile sets up Environment Modules")
+        (check,) = ModulesSite().check_dependencies(XTLTool(modules=['xtltool/1.0']), shell=PowerShell())
+        assert (check.found, check.missing) == (False, ('xtltool/1.0', 'xtl-tool'))
+        assert 'envmodule' in check.details
+
+
+class TestSlurmSites:
+    @pytest.fixture
+    def directives(self, monkeypatch):
+        monkeypatch.setattr(SlurmSite, '_prepare_slurm_preamble', staticmethod(lambda shell, config: '#SBATCH -n 1\n'))
+
+    def test_directives_before_the_setup_and_guards(self, modules, directives):
+        settings.dependencies.autoproc.modules = ['autoPROC/2024']
+        shell = BashShell()
+        lines = SlurmModulesSite().prepare_preamble(['autoproc'], shell=shell, config={'x': 1}).splitlines()
+        assert lines == [
+            shell.shebang,
+            '#SBATCH -n 1',
+            shell.module_setup,
+            'module purge',
+            'module load autoPROC/2024',
+            shell.get_guard_command('aP_wf_process'),
+            shell.get_guard_command('process'),
+        ]
+
+    def test_without_a_configuration(self, modules, directives):
+        shell = BashShell()
+        assert SlurmLocalSite().prepare_preamble(['autoproc'], shell=shell).splitlines() == [
+            shell.shebang,
+            shell.get_guard_command('aP_wf_process'),
+            shell.get_guard_command('process'),
+        ]
+
+    def test_check_on_the_submit_host(self, modules, monkeypatch):
+        scripts = Scripts(report('process', 'aP_wf_process'))
+        monkeypatch.setattr(LocalSite, '_run_script', scripts)
+        (check,) = SlurmLocalSite().check_dependencies(['autoproc'], shell=BashShell())
+        assert check.found and len(scripts.scripts) == 1
 
 
 class TestJobOptions:

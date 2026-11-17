@@ -7,9 +7,9 @@ import logging
 from enum import Enum
 import os
 from pathlib import Path
-import re
 import signal
 import subprocess
+import tempfile
 from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 
 import aiofiles
@@ -20,9 +20,9 @@ if TYPE_CHECKING:
 from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS, PY310_OR_LESS
 from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
-from xtl.jobs.dependencies import dependency_name
+from xtl.jobs.dependencies import DependencyCheck, dependency_name
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
-from xtl.jobs.shells import Shell, ShellType
+from xtl.jobs.shells import CHECK_MARKER, Shell, ShellType
 from xtl.jobs.exceptions import SubprocessError
 
 
@@ -71,8 +71,31 @@ class BaseComputeSite(ABC):
     _supported_shells: frozenset[Shell] = frozenset()
     _policy: Optional[CommandPolicyType] = None
 
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        default_shell: Optional[Shell | ShellType] = None,
+        shells: Optional[Iterable[Shell | ShellType]] = None,
+        policy: Optional[CommandPolicy | CommandPolicyType] = None,
+    ):
+        """
+        :param default_shell: The shell to prefer, instead of the site's own default
+        :param shells: The shells that the site supports, instead of its own
+        :param policy: The command policy, instead of the site's own
+        :raises ValueError: If the default shell isn't one of the supported shells
+        """
+        if shells is not None:
+            self._supported_shells = frozenset(self._as_shell(shell) for shell in shells)
+        if default_shell is not None:
+            self._default_shell = self._as_shell(default_shell)
+            if not self.is_valid_shell(self._default_shell):
+                raise ValueError(f'Shell {self._default_shell!r} is not one of the shells that the site supports')
+        if policy is not None:
+            self._policy = policy.get() if isinstance(policy, CommandPolicy) else policy
+
+    @staticmethod
+    def _as_shell(shell: Shell | ShellType) -> Shell:
+        # Shells as enum members, which hash alike in sets
+        return Shell(shell.name) if not isinstance(shell, Shell) else shell
 
     @property
     def default_shell(self) -> Optional[Shell]:
@@ -105,10 +128,10 @@ class BaseComputeSite(ABC):
             )
         return NotImplemented
 
-    def is_valid_shell(self, shell: Shell) -> bool:
+    def is_valid_shell(self, shell: Shell | ShellType) -> bool:
         if not self.supported_shells:
             return True
-        return shell in self.supported_shells
+        return self._as_shell(shell) in {self._as_shell(supported) for supported in self.supported_shells}
 
     @abstractmethod
     def prepare_preamble(
@@ -146,7 +169,7 @@ class BaseComputeSite(ABC):
     @abstractmethod
     def check_dependencies(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool: ...
+    ) -> list[DependencyCheck]: ...
 
     @staticmethod
     def execute_command(command: Sequence[str], timeout: int = 20) -> subprocess.CompletedProcess | None:
@@ -160,7 +183,10 @@ class BaseComputeSite(ABC):
             doesn't exist).
         """
         try:
-            result = subprocess.run(command, capture_output=True, text=True, shell=False, timeout=timeout)
+            # NB: Output that isn't text in the expected encoding (e.g. a program's banner) is replaced, not an error
+            result = subprocess.run(
+                command, capture_output=True, text=True, errors='replace', shell=False, timeout=timeout
+            )
         except subprocess.TimeoutExpired:
             logger.error('Command `%s` timed out', ' '.join(command))
             return None
@@ -200,14 +226,70 @@ async def _uninterrupted(coro) -> None:
 
 class LocalSite(BaseComputeSite):
     """
-    A compute site that represents the local machine. It assumes that all required
-    executables are available on PATH.
+    A compute site that represents the local machine. The executables of dependencies are found on ``PATH``, after
+    the directories of ``settings.dependencies.path`` and of each dependency's ``path`` are put first on it.
     """
 
-    def prepare_preamble(
+    _CHECK_TIMEOUT: int = 60
+    """Seconds that the check of a dependency may take, e.g. to load its modules."""
+
+    def prepare_setup(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
     ) -> str:
-        preamble = self._prepare_shebang(shell)
+        """
+        The lines that set up dependencies in a shell, each ending with the shell's line ending: on this site, the
+        common ``path`` and then each dependency's are put first on ``PATH`` (so a dependency's directory comes first).
+
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to write the lines for.
+        :raises ValueError: If a name or a directory can't be written safely in the shell.
+        """
+        lines = self._setup_lines(self.resolve_dependencies(dependencies), shell)
+        return ''.join(line + shell.new_line_char for line in lines)
+
+    def _setup_lines(self, dependencies: list[DependencySettings], shell: ShellType, report: bool = False) -> list[str]:
+        """
+        The lines of :meth:`prepare_setup`; with ``report``, as a check runs them, reporting what didn't work.
+        """
+        from xtl import settings
+
+        directories = [settings.dependencies.path, *(dep.path for dep in dependencies)]
+        return [shell.get_path_command(directory) for directory in directories if directory is not None]
+
+    @staticmethod
+    def _guard_lines(dependencies: list[DependencySettings], shell: ShellType) -> list[str]:
+        """
+        One line per executable of the dependencies, which ends the batch file if the executable isn't found.
+        """
+        executables = sorted({exe for dep in dependencies for exe in dep.provides})
+        return [shell.get_guard_command(exe) for exe in executables]
+
+    def _prepare_directives(self, shell: ShellType, **kwargs) -> str:
+        """
+        Lines that follow the shebang, before the setup, e.g. a scheduler's directives; none on this site.
+        """
+        return ''
+
+    def prepare_preamble(
+        self,
+        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
+        shell: ShellType,
+        **kwargs,
+    ) -> str:
+        """
+        The preamble of a batch file: the shebang, the site's directives (if any), the setup of the dependencies
+        (see :meth:`prepare_setup`), and a guard line for each executable they provide, which ends the batch file with
+        exit code 127 if the executable isn't found, before any command runs. Then passed through the policy, if any.
+
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to write the preamble for.
+        :param kwargs: Passed to the site's directives, e.g. ``config`` on a Slurm site.
+        :raises ValueError: If a name or a directory can't be written safely in the shell.
+        """
+        resolved = self.resolve_dependencies(dependencies)
+        lines = [*self._setup_lines(resolved, shell), *self._guard_lines(resolved, shell)]
+        preamble = self._prepare_shebang(shell) + self._prepare_directives(shell, **kwargs)
+        preamble += ''.join(line + shell.new_line_char for line in lines)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
     def prepare_command(self, command: str) -> str:
@@ -221,36 +303,80 @@ class LocalSite(BaseComputeSite):
 
     def check_dependencies(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool:
+    ) -> list[DependencyCheck]:
+        """
+        Check that dependencies can be found in a shell: for each dependency, a short script in the shell sets up the
+        common settings and the dependency's own (see :meth:`prepare_setup`), then looks up every executable that the
+        dependency provides. A dependency is found only if all of them are; a module that doesn't load is reported
+        too. Each dependency is checked on its own, and the outcome is remembered in its settings, so that it isn't
+        checked again on this site and in this shell until its settings change.
 
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to check in.
+        :return: One check per dependency, in the given order.
+        """
+        checks = []
         for dep in self.resolve_dependencies(dependencies):
-            name = dependency_name(dep)
-            # Check if the dependency executables are available
-            for exe in dep.provides:
-                try:
-                    cmd = shell.get_dependency_resolution_command(dependency=exe, as_list=True)
-                except ValueError as e:
-                    # ValueError indicates an unsafe dependency name
-                    logger.error(e)
-                    return False
+            check = dep.get_check(self, shell)
+            if check is None:
+                check = self._check_dependency(dep, shell)
+                dep.remember_check(self, shell, check)
+            checks.append(check)
+        return checks
 
-                result = self.execute_command(command=cmd, timeout=20)
-                if result is None:
-                    return False
-                if result.stdout.strip() == '0':
-                    logger.debug(
-                        'Found executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': name},
-                    )
-                else:
-                    logger.error(
-                        'Missing executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': name},
-                    )
-                    return False
+    def _check_dependency(self, dependency: DependencySettings, shell: ShellType) -> DependencyCheck:
+        name = dependency_name(dependency)
+        executables = sorted(dependency.provides)
+        try:
+            lines = [
+                *self._setup_lines([dependency], shell, report=True),
+                *(shell.get_found_report_command(exe) for exe in executables),
+            ]
+        except ValueError as e:
+            logger.error('Cannot check dependency `%(dependency)s`: %(error)s', {'dependency': name, 'error': e})
+            return DependencyCheck(dependency=name, found=False, missing=tuple(executables), details=str(e))
+
+        script = self._prepare_shebang(shell) + ''.join(line + shell.new_line_char for line in lines)
+        result = self._run_script(script, shell)
+        if result is None:
+            return DependencyCheck(
+                dependency=name, found=False, missing=tuple(executables), details='The check did not finish'
+            )
+
+        # What the lines reported, by kind (module, executable) and name; the rest is what the setup printed
+        reported, printed = {}, []
+        for line in result.stdout.splitlines():
+            words = line.split()
+            if len(words) == 4 and words[0] == CHECK_MARKER:
+                reported[(words[1], words[2])] = words[3]
+            elif line.strip():
+                printed.append(line.rstrip())
+        missing_modules = [module for (kind, module), code in reported.items() if kind == 'module' and code != '0']
+        missing_executables = [exe for exe in executables if reported.get(('executable', exe)) != '0']
+        missing = (*missing_modules, *missing_executables)
+
+        details = '\n'.join([*printed, *(line.rstrip() for line in result.stderr.splitlines() if line.strip())])
+        if missing:
+            logger.debug(
+                'Dependency `%(dependency)s` is missing %(missing)s',
+                {'dependency': name, 'missing': ', '.join(missing)},
+            )
         else:
-            logger.debug('All dependencies are met.')
-            return True
+            logger.debug('Found dependency `%(dependency)s`', {'dependency': name})
+        return DependencyCheck(dependency=name, found=not missing, missing=missing, details=details)
+
+    def _run_script(self, script: str, shell: ShellType) -> subprocess.CompletedProcess | None:
+        """
+        Run a script in a shell, as a batch file would run, from a temporary file.
+        """
+        fd, file = tempfile.mkstemp(prefix='xtl-check-', suffix=shell.batch_extension)
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8', newline='') as f:
+                f.write(script)
+            command = shell.get_execute_batch_command(file, as_list=True)
+            return self.execute_command(command=command, timeout=self._CHECK_TIMEOUT)
+        finally:
+            Path(file).unlink(missing_ok=True)
 
     async def execute_batch(self, batch: BatchFile, stdout: Path = None, stderr: Path = None, **kwargs):
         # Get command to execute the batch file
@@ -455,143 +581,24 @@ class ModulesSite(LocalSite):
     software dependencies.
     """
 
-    @staticmethod
-    def _purge_modules(shell: ShellType) -> str:
+    def _setup_lines(self, dependencies: list[DependencySettings], shell: ShellType, report: bool = False) -> list[str]:
         """
-        Prepare the command to purge all loaded modules.
-
-        :param shell: The shell type to generate the command for.
-        :return: The command string to purge modules.
+        On this site: the module command made available if the shell needs it, ``module purge``, the common modules
+        and then each dependency's, in their order (one line per dependency, or per module with ``report``), then the
+        directories put first on ``PATH`` (see :meth:`LocalSite.prepare_setup`).
         """
-        cmd = 'module purge'
-        if shell == Shell.CMD:
-            # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd + shell.new_line_char
-
-    @staticmethod
-    def _load_modules(modules: str | Iterable[str], shell: ShellType) -> str:
-        """
-        Prepare the command to load specified modules.
-
-        :param modules: An iterable of module names to load.
-        :param shell: The shell type to generate the command for.
-        :return: The command string to load the modules.
-        """
-        if isinstance(modules, str):
-            modules = [modules]
-        cmd = f'module load {" ".join(modules)}'
-        if shell == Shell.CMD:
-            # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd + shell.new_line_char
-
-    def _prepare_modules_preamble(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> str:
         from xtl import settings
 
-        preamble = self._purge_modules(shell=shell)
-        if common := settings.dependencies.modules:
-            # Modules that every job loads, before those of its dependencies
-            preamble += self._load_modules(modules=common, shell=shell)
-        for dep in self.resolve_dependencies(dependencies):
-            if dep.modules:
-                preamble += self._load_modules(modules=dep.modules, shell=shell)
-        return preamble
-
-    def prepare_preamble(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> str:
-        """
-        Prepare the preamble for loading required modules based on dependencies. The
-        preamble has the following structure:
-
-        .. code-block:: text
-            module purge
-            module load <module1> <module2> ...
-
-        :param dependencies: An iterable of dependency names (str) or DependencySettings
-            instances, or None.
-        :param shell: The shell type to generate the commands for.
-        :return: The preamble string.
-        """
-        preamble = self._prepare_shebang(shell)
-        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
-
-    def check_dependencies(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool:
-        # Check if the `module` command is available
-        cmd = shell.get_dependency_resolution_command(dependency='module', as_list=True)
-        result = self.execute_command(command=cmd, timeout=20)
-        if result is None:
-            return False
-        if result.stdout.strip() == '0':
-            logger.debug('Found `module` command for dependency resolution')
-        else:
-            logger.error('Missing `module` command for dependency resolution')
-            return False
-
-        # Check the modules that every job loads, then those of each dependency
-        from xtl import settings
-
-        modules = list(settings.dependencies.modules)
-        for dep in self.resolve_dependencies(dependencies):
-            modules.extend(dep.modules)
-        if not all(self._check_module(module, shell=shell) for module in modules):
-            return False
-        logger.debug('All dependencies are met.')
-        return True
-
-    def _check_module(self, module: str, shell: ShellType) -> bool:
-        """
-        Check that a module is available, with ``module avail -t -a <module>``.
-
-        :param module: The module name.
-        :param shell: The shell to run the command in.
-        :return: True if the module is available, False otherwise (also for an unsafe name).
-        """
-        module = str(module).strip()
-        if not self._is_module_name_safe(module):
-            logger.error(
-                'Invalid module name `%(module)s`. Module names may '
-                'only contain alphanumeric characters, hyphens, '
-                'underscores, periods and slashes.',
-                {'module': module},
-            )
-            return False
-        cmd = shell.get_execute_command(f'module avail -t -a {module}', as_list=True)
-        result = self.execute_command(command=cmd, timeout=20)
-        if result is None:
-            return False
-        if module in result.stdout:
-            logger.debug('Found module `%(module)s`', {'module': module})
-            return True
-        logger.error('Missing module `%(module)s`', {'module': module})
-        return False
-
-    @staticmethod
-    def _is_module_name_safe(module: str) -> bool:
-        """
-        Check if the module name is safe to use in shell commands. A safe module name
-        contains only alphanumeric characters, hyphens, underscores, periods and
-        slashes, and no part of it starts with a hyphen (which would read as an option).
-
-        :param module: The module name to check.
-        :return: True if the module name is safe, False otherwise.
-        """
-        # Check length constraints
-        if len(module) == 0:
-            return False
-        elif len(module) > 255:
-            # Prevent potential buffer overflow attacks
-            return False
-        # Pattern for a safe module name: slash separated segments of alphanumeric, dot, dash and underscore
-        #  characters, none starting with a dash
-        segment = r'[A-Za-z0-9_.][A-Za-z0-9_.-]*'
-        return re.fullmatch(rf'{segment}([/\\]{segment})*', module) is not None
+        lines = [shell.module_setup] if shell.module_setup else []
+        lines.append(shell.get_module_command('purge'))
+        for modules in [settings.dependencies.modules, *(dep.modules for dep in dependencies)]:
+            if not modules:
+                continue
+            if report:
+                lines.extend(shell.get_load_report_command(module) for module in modules)
+            else:
+                lines.append(shell.get_load_command(modules))
+        return lines + super()._setup_lines(dependencies, shell, report=report)
 
 
 class SchedulerSite(BaseComputeSite):
@@ -633,6 +640,10 @@ class SlurmSite(SchedulerSite, ABC):
             return nl.join(f'#SBATCH {arg}' for arg in args) + nl
         return ''
 
+    def _prepare_directives(self, shell: ShellType, config: BatchJobConfig | dict = None, **kwargs) -> str:
+        # The `#SBATCH` lines, which must come before any command
+        return self._prepare_slurm_preamble(shell=shell, config=config) if config else ''
+
     async def validate_submission(self, batch: BatchFile, **kwargs) -> bool:
         # Run `sbatch --test-only <batchfile>` to check if allocation is possible
         #  and check the exit code
@@ -654,44 +665,20 @@ class SlurmSite(SchedulerSite, ABC):
 class SlurmLocalSite(SlurmSite, LocalSite):
     """
     A compute site that utilizes the `SLURM <https://slurm.schedmd.com/>`_ job scheduler
-    and assumes that all required executables are available on PATH.
+    and finds executables on PATH, as :class:`LocalSite` does. Dependencies are checked on
+    the submit host, and the guard lines of the batch file check them again on the
+    compute node, where the job runs.
     """
-
-    def prepare_preamble(
-        self,
-        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
-        shell: ShellType,
-        config: BatchJobConfig | dict = None,
-        **kwargs,
-    ) -> str:
-        preamble = self._prepare_shebang(shell=shell)
-        # SBATCH preamble
-        if config:
-            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class SlurmModulesSite(SlurmSite, ModulesSite):
     """
     A compute site that utilizes the `SLURM <https://slurm.schedmd.com/>`_ job scheduler
     and `Environment Modules <https://modules.readthedocs.io/en/latest/>`_ to manage
-    software dependencies.
+    software dependencies, as :class:`ModulesSite` does. Dependencies are checked on the
+    submit host, and the guard lines of the batch file check them again on the compute
+    node, where the job runs.
     """
-
-    def prepare_preamble(
-        self,
-        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
-        shell: ShellType,
-        config: BatchJobConfig | dict = None,
-        **kwargs,
-    ) -> str:
-        preamble = self._prepare_shebang(shell=shell)
-        # SBATCH preamble
-        if config:
-            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
-        # Modules preamble
-        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class VirtualizationSite(BaseComputeSite, ABC): ...

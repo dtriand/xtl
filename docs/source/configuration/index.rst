@@ -8,4 +8,5 @@ XTL is configured with a config file, ``xtl.toml``, and a few environment variab
    :caption: Contents:
 
    xtl.toml.rst
+   dependencies.rst
    environment.rst

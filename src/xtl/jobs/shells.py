@@ -71,7 +71,7 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
-from typing import Iterable, Optional
+from typing import ClassVar, Iterable, Optional
 
 from xtl_core.system.compatibility import OS_WINDOWS, PY310_OR_LESS
 
@@ -82,7 +82,11 @@ else:
     from enum import StrEnum
 
 
-__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell']
+__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell', 'CHECK_MARKER']
+
+
+CHECK_MARKER = 'xtl-check'
+"""The first word of the lines that a dependency check prints, e.g. ``xtl-check executable datcmp 0`` (0 if found)"""
 
 
 class Shell(StrEnum):
@@ -368,6 +372,108 @@ class BaseShell:
             case _:
                 return value
 
+    # Dependencies: the lines that set them up, check them and guard a batch file against missing executables. Names
+    #  of executables and modules are checked before they go into a line (see `_is_dependency_name_safe()` and
+    #  `_is_module_name_safe()`)
+
+    module_setup: ClassVar[str] = ''
+    """A line that makes the module command available, if the shell may lack it (see :meth:`get_module_command`)"""
+
+    def get_path_command(self, directory: str | Path) -> str:
+        """
+        A line that puts a directory first on ``PATH``.
+
+        :param directory: The directory
+        """
+        raise NotImplementedError
+
+    def get_module_command(self, arguments: str) -> str:
+        """
+        A line that runs the module command of `Environment Modules <https://modules.readthedocs.io/en/latest/>`_,
+        e.g. ``module purge``.
+
+        :param arguments: The arguments of the command
+        """
+        raise NotImplementedError
+
+    def get_load_command(self, modules: Iterable[str]) -> str:
+        """
+        A line that loads modules, in the given order.
+
+        :param modules: Names of modules
+        :raises ValueError: If a module name is unsafe
+        """
+        return self.get_module_command(f'load {" ".join(self._safe_module_name(module) for module in modules)}')
+
+    def get_load_report_command(self, module: str) -> str:
+        """
+        A line that loads a module and reports whether it loaded: ``xtl-check module <module> 0`` if it did, ``1``
+        otherwise.
+
+        :param module: The name of the module
+        :raises ValueError: If the module name is unsafe
+        """
+        raise NotImplementedError
+
+    def get_found_report_command(self, executable: str) -> str:
+        """
+        A line that reports whether an executable is found: ``xtl-check executable <executable> 0`` if it is, ``1``
+        otherwise.
+
+        :param executable: The name of the executable
+        :raises ValueError: If the name is unsafe
+        """
+        raise NotImplementedError
+
+    def get_guard_command(self, executable: str) -> str:
+        """
+        A line that ends a batch file with exit code 127 and ``xtl: <executable> not found`` on stderr, if an
+        executable isn't found.
+
+        :param executable: The name of the executable
+        :raises ValueError: If the name is unsafe
+        """
+        raise NotImplementedError
+
+    def _safe_executable_name(self, executable: str) -> str:
+        executable = str(executable).strip()
+        if not self._is_dependency_name_safe(executable):
+            raise ValueError(
+                f'Invalid executable name: {executable!r}. Executables may only contain alphanumeric characters, '
+                f'dashes, underscores, and dots.'
+            )
+        return executable
+
+    def _safe_module_name(self, module: str) -> str:
+        module = str(module).strip()
+        if not self._is_module_name_safe(module):
+            raise ValueError(
+                f'Invalid module name: {module!r}. Module names may only contain alphanumeric characters, hyphens, '
+                f'underscores, periods and slashes.'
+            )
+        return module
+
+    @staticmethod
+    def _is_module_name_safe(module: str) -> bool:
+        """
+        Check if the module name is safe to use in shell commands. A safe module name
+        contains only alphanumeric characters, hyphens, underscores, periods and
+        slashes, and no part of it starts with a hyphen (which would read as an option).
+
+        :param module: The module name to check.
+        :return: True if the module name is safe, False otherwise.
+        """
+        # Check length constraints
+        if len(module) == 0:
+            return False
+        elif len(module) > 255:
+            # Prevent potential buffer overflow attacks
+            return False
+        # Pattern for a safe module name: slash separated segments of alphanumeric, dot, dash and underscore
+        #  characters, none starting with a dash
+        segment = r'[A-Za-z0-9_.][A-Za-z0-9_.-]*'
+        return re.fullmatch(rf'{segment}([/\\]{segment})*', module) is not None
+
 
 class BashShell(BaseShell):
     """
@@ -385,6 +491,30 @@ class BashShell(BaseShell):
     batch_command = '{executable} {batch_file} {batch_arguments}'
     dependency_command = 'command -v {dependency} > /dev/null 2>&1; echo $?'
     execute_command = '{executable} --noprofile --norc -c "{command}"'
+    # NB: `module` is a shell function, which a batch file has if the shell that started it exported it (as
+    #  Environment Modules does); otherwise the init script of the installation that `MODULESHOME` names
+    module_setup = 'type module > /dev/null 2>&1 || { [ -f "$MODULESHOME/init/bash" ] && . "$MODULESHOME/init/bash"; }'
+
+    def get_path_command(self, directory: str | Path) -> str:
+        return f'export PATH={shlex.quote(str(directory))}:"$PATH"'
+
+    def get_module_command(self, arguments: str) -> str:
+        return f'module {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return f"module load {module} && echo '{CHECK_MARKER} module {module} 0' || echo '{CHECK_MARKER} module {module} 1'"
+
+    def get_found_report_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return (
+            f"command -v {exe} > /dev/null 2>&1 && echo '{CHECK_MARKER} executable {exe} 0' "
+            f"|| echo '{CHECK_MARKER} executable {exe} 1'"
+        )
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return f"command -v {exe} > /dev/null 2>&1 || {{ echo 'xtl: {exe} not found' >&2; exit 127; }}"
 
 
 class CmdShell(BaseShell):
@@ -408,6 +538,30 @@ class CmdShell(BaseShell):
     dependency_command = 'where {dependency} > nul 2>&1 && echo 0 || echo 1'
     execute_command = '{executable} /C {command}'
 
+    def get_path_command(self, directory: str | Path) -> str:
+        # In `set "..."`, everything up to the last quote is literal, except %, which a batch file expands
+        directory = str(directory)
+        if '"' in directory:
+            raise ValueError(f'Invalid directory for PATH: {directory!r}')
+        directory = directory.replace('%', '%%')
+        return f'set "PATH={directory};%PATH%"'
+
+    def get_module_command(self, arguments: str) -> str:
+        # `module` is a batch file (`module.cmd`), which returns to this one only through `call`
+        return f'call module {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return f'call module load {module} && echo {CHECK_MARKER} module {module} 0 || echo {CHECK_MARKER} module {module} 1'
+
+    def get_found_report_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return f'where {exe} > nul 2>&1 && echo {CHECK_MARKER} executable {exe} 0 || echo {CHECK_MARKER} executable {exe} 1'
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return f'where {exe} > nul 2>&1 || (echo xtl: {exe} not found 1>&2 & exit /b 127)'
+
 
 class PowerShell(BaseShell):
     """
@@ -429,6 +583,35 @@ class PowerShell(BaseShell):
     execute_command = '{executable} -NoProfile -NonInteractive -Command "{command}"'
     # We are also running PowerShell in -NoProfile and -NonInteractive mode to avoid
     #  loading user profiles or interactive prompts.
+    # NB: Environment Modules' command is `envmodule` (`module` is PowerShell's own), which the user's profile sets up
+    #  with Environment Modules' init script; batch files run with the profile (see `batch_command`)
+
+    def get_path_command(self, directory: str | Path) -> str:
+        return f'$env:PATH = {self.sanitize_value(Path(directory))} + [IO.Path]::PathSeparator + $env:PATH'
+
+    def get_module_command(self, arguments: str) -> str:
+        return f'envmodule {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return (
+            f"envmodule load {module}; if ($?) {{ '{CHECK_MARKER} module {module} 0' }} "
+            f"else {{ '{CHECK_MARKER} module {module} 1' }}"
+        )
+
+    def get_found_report_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return (
+            f"if (Get-Command {exe} -ErrorAction SilentlyContinue) {{ '{CHECK_MARKER} executable {exe} 0' }} "
+            f"else {{ '{CHECK_MARKER} executable {exe} 1' }}"
+        )
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return (
+            f'if (-not (Get-Command {exe} -ErrorAction SilentlyContinue)) '
+            f"{{ [Console]::Error.WriteLine('xtl: {exe} not found'); exit 127 }}"
+        )
 
 
 # Set the default shell based on the OS

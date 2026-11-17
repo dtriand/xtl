@@ -80,7 +80,8 @@ The main tables are:
   and ``policy`` they run with. In ``[dependencies]`` itself, ``path`` is a directory
   that every job finds executables in, ``modules`` lists the modules that every job
   loads first on a ``modules`` compute site (these two can be set together), and ``check``
-  whether jobs check that their dependencies can be found before they run
+  whether jobs check that their dependencies can be found before they run (see
+  :doc:`dependencies`)
 - ``[cli]``: options for the command line utilities
 
 All settings, with their descriptions and default values, are listed in

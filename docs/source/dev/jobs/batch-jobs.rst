@@ -256,25 +256,32 @@ configuration.
 
 A batch file has three parts, each written by the compute site:
 
-- the **preamble**: what the shell and the site need before anything else, such as a shebang or ``module load``
-  lines;
+- the **preamble**: what the shell and the site need before anything else, such as a shebang, the setup of the job's
+  dependencies (directories put on ``PATH``, ``module load`` lines), and a guard line for each program they provide,
+  which ends the batch file with exit code 127 and ``xtl: <program> not found`` if the program isn't found, before
+  any command runs;
 - the **content**: the rendered template;
 - the **postamble**: what comes after it; empty on the built-in sites.
 
 Local
 ^^^^^
 
-``ComputeSite.LOCAL`` runs the batch file on this machine. The programs must be on ``PATH``. The preamble is only the
-shell's first line: ``#!/bin/bash`` for bash, ``chcp 65001 > nul`` for cmd, nothing for PowerShell. The batch files in
-the `Example`_ are from this site.
+``ComputeSite.LOCAL`` runs the batch file on this machine. The programs must be on ``PATH``, or in a directory given
+by ``path`` in ``xtl.toml``: ``dependencies.path`` for every job, and each dependency's own (e.g.
+``dependencies.atsas.path``), which the preamble puts first on ``PATH``, a dependency's before the common one. Without
+dependencies, the preamble is only the shell's first line: ``#!/bin/bash`` for bash, ``chcp 65001 > nul`` for cmd,
+nothing for PowerShell. The batch files in the `Example`_ are from this site.
 
 Modules
 ^^^^^^^
 
 ``ComputeSite.MODULES`` runs the batch file on this machine too, but first loads the job's programs with
-`Environment Modules <https://modules.readthedocs.io/>`_. The modules come from ``xtl.toml``: those in
-``dependencies.modules`` are loaded for every job, then those of each dependency in the configuration's
-``dependencies``. With this ``xtl.toml``:
+`Environment Modules <https://modules.readthedocs.io/>`_. The modules come
+from ``xtl.toml``: those in ``dependencies.modules`` are loaded for every job, then those of each dependency in the
+configuration's ``dependencies``, each in its order; directories in ``path`` are put on ``PATH`` after that. In
+PowerShell, Environment Modules' command is ``envmodule``, which comes from the PowerShell profile (batch files run
+with it); bash sets up ``module`` from ``$MODULESHOME`` if the shell that started the job didn't pass it on. With this
+``xtl.toml``:
 
 .. code-block:: toml
 
@@ -295,9 +302,12 @@ the example job with ``dependencies={'atsas'}`` writes:
       .. code-block:: bash
 
           #!/bin/bash
+          type module > /dev/null 2>&1 || { [ -f "$MODULESHOME/init/bash" ] && . "$MODULESHOME/init/bash"; }
           module purge
           module load gcc/12.2.0
           module load atsas/3.2.1
+          command -v datcmp > /dev/null 2>&1 || { echo 'xtl: datcmp not found' >&2; exit 127; }
+          command -v datop > /dev/null 2>&1 || { echo 'xtl: datop not found' >&2; exit 127; }
 
           echo "Hi, $USER"
 
@@ -306,9 +316,11 @@ the example job with ``dependencies={'atsas'}`` writes:
 
       .. code-block:: powershell
 
-          module purge
-          module load gcc/12.2.0
-          module load atsas/3.2.1
+          envmodule purge
+          envmodule load gcc/12.2.0
+          envmodule load atsas/3.2.1
+          if (-not (Get-Command datcmp -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine('xtl: datcmp not found'); exit 127 }
+          if (-not (Get-Command datop -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine('xtl: datop not found'); exit 127 }
 
           Write-Output "Hi, $env:USERNAME"
 
@@ -321,10 +333,34 @@ the example job with ``dependencies={'atsas'}`` writes:
           call module purge
           call module load gcc/12.2.0
           call module load atsas/3.2.1
+          where datcmp > nul 2>&1 || (echo xtl: datcmp not found 1>&2 & exit /b 127)
+          where datop > nul 2>&1 || (echo xtl: datop not found 1>&2 & exit /b 127)
 
           echo Hi, %USERNAME%
 
-The first four lines are the preamble, the last one the content.
+The lines before the blank line are the preamble (the last two, the guards for ATSAS's ``datcmp`` and ``datop``), the
+last one the content.
+
+Checking dependencies
+^^^^^^^^^^^^^^^^^^^^^
+
+A compute site also checks that dependencies can be found, before a job runs:
+:meth:`~xtl.jobs.sites.LocalSite.check_dependencies` runs, for each dependency on its own, a short script in the job's
+shell with the same setup as the preamble, loading each module and then looking up every program the dependency
+provides. It returns a :class:`~xtl.jobs.dependencies.DependencyCheck` per dependency, which says what's missing:
+modules that didn't load, programs that weren't found. The outcome is remembered in the dependency's settings, for that
+site and shell, until the dependency's settings change (``settings.dependencies.clear_checks()`` forgets them all).
+
+.. code-block:: python
+
+    from xtl.jobs.shells import Shell
+    from xtl.jobs.sites import ModulesSite
+
+    for check in ModulesSite().check_dependencies(['atsas'], shell=Shell.CMD.get()):
+        print(check.dependency, check.found, check.missing)
+
+Sites that submit jobs to a scheduler check on the machine that submits them; the guard lines check again on the node
+that runs the job.
 
 Command policies
 ----------------
