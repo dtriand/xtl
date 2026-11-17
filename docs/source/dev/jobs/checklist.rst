@@ -46,8 +46,11 @@ Batch jobs
 - Template lines end with ``__XTL_NL__``.
 - Template values come from ``get_context()``; paths are ``Path`` objects (quoted for the shell), and every other
   value is safe on a command line.
-- ``dependencies`` names the programs, as in the ``[dependencies]`` section of ``xtl.toml``, so the modules site can
-  load them.
+- The job class names its programs in ``_dependencies``, as in the ``[dependencies]`` section of ``xtl.toml``, so
+  that they are checked before the job runs, set up and guarded in the batch file; every program the job runs is one
+  that its dependencies provide.
+- Template values don't depend on the shell (the configuration doesn't know it): paths, and lists of paths, are
+  quoted by the batch file.
 - ``filename`` names the batch file after the program, so that it and its logs are easy to recognize.
 
 Stepped jobs

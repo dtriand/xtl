@@ -54,7 +54,7 @@ class GreetConfig(BatchJobConfig):
     def get_context(self) -> dict:
         return {
             'NAME': self.name,
-            'OUT': self.shell.get().sanitize_value(self.job_directory / 'greeting.txt'),
+            'OUT': self.job_directory / 'greeting.txt',
             'CODE': self.code,
             'SECONDS': self.seconds,
             'PINGS': self.seconds + 1,

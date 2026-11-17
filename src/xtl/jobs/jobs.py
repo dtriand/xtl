@@ -33,6 +33,8 @@ if TYPE_CHECKING:
         MultiprocessPool,
     )
     from xtl.jobs.batchfiles import BatchFile
+    from xtl.jobs.shells import ShellType
+    from xtl.jobs.sites import ComputeSiteType
     from xtl.jobs.steps import StepSpec, JobContext
 
 from xtl import settings
@@ -45,6 +47,7 @@ from xtl_core.system.os import chmod_recursively
 from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.batchfiles import BatchFileStatus
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
+from xtl.jobs.dependencies import ensure_dependencies, select_site_and_shell
 from xtl.jobs.logging import (
     HandlerConfig,
     JobNameFilter,
@@ -129,6 +132,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
+    _dependencies: ClassVar[frozenset[str]] = frozenset()
+    """Names of the external programs that the job needs, as in ``settings.dependencies`` (e.g. ``{'atsas'}``)"""
+
     def __init__(
         self,
         config: JobConfigType | None = None,
@@ -178,6 +184,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
+        # Dependencies as a frozenset, whichever collection the class gives them in (a string is one name)
+        dependencies = cls.__dict__.get('_dependencies')
+        if dependencies is not None:
+            cls._dependencies = frozenset({dependencies} if isinstance(dependencies, str) else dependencies)
+
         # Check if the class was defined with a generic parameter
         config_class = None
         if hasattr(cls, '__orig_bases__'):
@@ -207,6 +218,35 @@ class Job(abc.ABC, Generic[JobConfigType]):
         else:
             # Default to JobConfig if no specific type is provided
             cls._config_class = JobConfig
+
+    @classmethod
+    def dependencies(cls) -> frozenset[str]:
+        """
+        Names of the external programs that this job type needs (``_dependencies``), as in ``settings.dependencies``.
+        """
+        return cls._dependencies
+
+    def _select_site_and_shell(self) -> tuple['ComputeSiteType', 'ShellType']:
+        """
+        The compute site and shell that the job's dependencies are checked on: those they set in the settings, or the
+        defaults (see :func:`~xtl.jobs.dependencies.select_site_and_shell`).
+        """
+        return select_site_and_shell(self.dependencies())
+
+    async def _check_dependencies(self) -> None:
+        """
+        Make sure that the job's dependencies can be found, before it runs (see
+        :func:`~xtl.jobs.dependencies.ensure_dependencies`). A dependency is checked once per compute site and shell;
+        later checks use the outcome remembered in the settings.
+
+        :raises DependencyError: If a dependency is missing.
+        """
+        dependencies = self.dependencies()
+        if not dependencies or not settings.dependencies.check:
+            return
+        site, shell = self._select_site_and_shell()
+        # NB: A check runs a shell, which mustn't hold up the other jobs of the event loop
+        await asyncio.to_thread(ensure_dependencies, dependencies, site, shell)
 
     def configure(self, config: JobConfigType) -> None:
         """
@@ -434,6 +474,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         handlers = self._open_log_handlers()
         try:
             self._is_running = True
+            await self._check_dependencies()
             self._logger.debug('Launching job')
             result = await self._execute()
             self._is_complete = True
@@ -799,6 +840,15 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         """
         return self._config
 
+    def _select_site_and_shell(self) -> tuple['ComputeSiteType', 'ShellType']:
+        """
+        The compute site and shell that run the batch file, from the configuration and the job's dependencies (see
+        :meth:`~xtl.jobs.config.BatchJobConfig.select_site_and_shell`).
+        """
+        if self.config is None:
+            return super()._select_site_and_shell()
+        return self.config.select_site_and_shell(self.dependencies())
+
     async def _execute(self) -> Any | None:
         # Check if batch configuration is available
         cfg = self.config
@@ -817,9 +867,10 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
                 self.logger.error('Failed to create batch directory: %s', job_dir)
                 raise e
 
-        # Create batch file
+        # Create batch file, on the compute site and in the shell that its dependencies were checked on
         self.logger.debug('Creating batch file in %s', job_dir)
-        batch = cfg.get_batch(context=self.context)
+        site, shell = self._select_site_and_shell()
+        batch = cfg.get_batch(context=self.context, dependencies=self.dependencies(), compute_site=site, shell=shell)
         batch.logger = self.logger  # the compute site reports to this job
         self._batch = batch
 
@@ -903,6 +954,19 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         super().__init__(*args, **kwargs)
         self._progress: tuple[dict[str, JobResults | None], dict[str, Any]] = ({}, {})
         """The results and data of the steps so far, kept if a step's hook raises"""
+
+    @classmethod
+    def dependencies(cls) -> frozenset[str]:
+        """
+        Names of the external programs that this job type needs: its own (``_dependencies``) and those of its steps,
+        and of their steps, without building their configurations. The job checks them before its first step, on the
+        compute site and in the shell that they set in the settings, or the defaults; a step whose configuration picks
+        another site or shell checks them again when it starts.
+        """
+        names = set(cls._dependencies)
+        for spec in cls._steps:
+            names |= spec.job_cls.dependencies()
+        return frozenset(names)
 
     def configure(self, config: SteppedJobConfig) -> None:
         """

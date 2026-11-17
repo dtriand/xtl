@@ -22,9 +22,6 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
     filename: str = 'nanobragg'
     name: Optional[str] = 'xtl.NanoBraggBatchJob'
     description: Optional[str] = 'nanoBragg batch job'
-    dependencies: set[str] = Option(
-        default_factory=lambda: {'easybragg'}, desc='List of dependencies required for this batch job'
-    )
     templates: dict[Shell, str] = Option(
         default_factory=lambda: {
             Shell.BASH: '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
@@ -71,6 +68,7 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
     _keep_files = True
+    _dependencies = {'easybragg'}
 
 
 class NanoBraggJobConfig(SteppedJobConfig): ...

@@ -149,3 +149,9 @@ Either way, ``steps`` and ``data`` keep what the steps before it produced.
 
 Each step deletes its directory as soon as it succeeds, like any job (:doc:`jobs`). If a later step may need its files
 to debug a failure, set ``_keep_files = True`` on the step's job class.
+
+A stepped job's ``dependencies()`` are its own and those of its steps' job classes, and of their steps. The job checks
+them all before its first step, so that a missing program fails it before any step runs. Since a step's options are
+only known when the step starts, this check uses the compute site and shell that the dependencies set in ``xtl.toml``,
+or the defaults; a batch step whose options pick another site or shell checks its dependencies again when it starts
+(otherwise, the outcome is remembered and nothing runs twice).

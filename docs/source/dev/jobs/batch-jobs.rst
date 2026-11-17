@@ -107,14 +107,11 @@ Configuration
      - Arguments of the batch file on its command line (``$1``, ``%1``), each passed as one argument.
    * - ``default_shell``
      - ``None``
-     - The shell to use, if the templates offer several (see `Shells`_).
+     - The shell to use (see `Shells`_); if not set, chosen when the batch file is built.
    * - ``compute_site``
-     - ``jobs.compute_site`` in ``xtl.toml``
-     - Where and how the batch file runs (see `Compute sites`_).
-   * - ``dependencies``
-     - empty
-     - Names of the programs the job needs, as in the ``[dependencies]`` section of ``xtl.toml`` (e.g.
-       ``{'atsas'}``). The modules site loads their modules.
+     - ``None``
+     - Where and how the batch file runs (see `Compute sites`_); if not set, the one the job's dependencies set in
+       ``xtl.toml``, else ``jobs.compute_site``.
    * - ``job_directory``
      - a new temporary directory, ``xtl_batch_*``
      - Where the batch file and its logs go. Deleted after a successful run, like any job directory
@@ -128,9 +125,26 @@ Configuration
 
 It also has these properties:
 
-- ``shell``: the shell the batch file is written for (see `Shells`_);
-- ``file``: the batch file, ``<job_directory>/<filename><extension>``, e.g. ``batch_job.sh``;
 - ``stdout`` and ``stderr``: the log files, ``<job_directory>/<filename>.stdout.log`` and ``.stderr.log``.
+
+The batch file itself is ``<job_directory>/<filename><extension>``, e.g. ``batch_job.sh``, with the extension of the
+shell chosen when the job runs (``config.get_file(shell)``).
+
+Dependencies
+------------
+
+A job names the external programs it needs on its class, as in the ``[dependencies]`` section of ``xtl.toml``
+(see :doc:`../../configuration/dependencies`):
+
+.. code-block:: python
+
+    class DatcmpBatchJob(BatchJob[DatcmpBatchJobConfig]):
+        _dependencies = {'atsas'}
+
+``DatcmpBatchJob.dependencies()`` returns them. Before the job runs, its compute site checks that they can be found
+(see `Checking dependencies`_), and the batch file sets them up (modules, ``PATH``) and guards each of their programs.
+A job whose dependency is missing fails with a :class:`~xtl.jobs.exceptions.DependencyError` that says what the check
+found, before its batch file is written.
 
 Templates
 ---------
@@ -194,12 +208,14 @@ A placeholder without a value raises :class:`KeyError` when the job runs.
 .. important::
 
    Values are inserted **as they are**, except :class:`~pathlib.Path` objects, which are quoted for the shell (above,
-   ``DATA_DIR`` has a space). Pass paths as ``Path``, and make sure that other values are safe on a command line:
-   spaces, quotes or ``;`` in a value from user input can break the command, or run another one.
+   ``DATA_DIR`` has a space), and lists, whose items are each treated so and joined by spaces (*e.g.* several input
+   files, or ``['--output', path]``). Pass paths as ``Path``, and make sure that other values are safe on a command
+   line: spaces, quotes or ``;`` in a value from user input can break the command, or run another one. The
+   configuration doesn't know the shell, so it never quotes values itself.
 
-**The keys of** ``templates`` **are the shells the job supports.** A job runs only with one of them: if the shell
-picked for it has no template, creating the configuration raises :class:`RuntimeError`. A job with only a ``BASH``
-template, for example, can't be configured on Windows unless ``default_shell`` is ``Shell.BASH``.
+**The keys of** ``templates`` **are the shells the job supports.** A job runs only with one of them: without
+``default_shell``, it runs in one that has a template; if ``default_shell`` (or a dependency's ``shell``) names one
+without a template, the job fails with :class:`ValueError`.
 
 Shells
 ------
@@ -220,9 +236,17 @@ Shells
      - ``.ps1``
      - ``powershell.exe -File <file> <arguments>``
 
-The configuration picks the shell when it's created: ``default_shell`` if it's set, otherwise the system's shell,
-``CMD`` on Windows and ``BASH`` elsewhere. The built-in compute sites accept every shell; a site that accepts only some
-picks one of those that the templates have, ``default_shell`` first.
+The compute site and the shell are chosen when the job runs, before its dependencies are checked
+(:meth:`~xtl.jobs.config.BatchJobConfig.select_site_and_shell`):
+
+- the compute site: the configuration's ``compute_site``, else the one the job's dependencies set in ``xtl.toml``,
+  else ``jobs.compute_site``; its command policy is the one the dependencies set, else its own;
+- the shell: the configuration's ``default_shell``, else the one the dependencies set, else the compute site's
+  default, else the system's (``CMD`` on Windows, ``BASH`` elsewhere), among the shells that both the templates and
+  the site allow (the built-in sites allow every shell).
+
+Dependencies of one job that set different compute sites, shells or policies fail the job with a
+:class:`~xtl.jobs.exceptions.DependencyError` naming them, unless the configuration sets its own.
 
 Batch files are written in UTF-8. cmd reads a batch file in the console's code page, so a cmd batch file starts with
 ``chcp 65001 > nul``, which switches the console to UTF-8 (for paths with ``é`` or ``Δ``, for instance). The console
@@ -252,8 +276,8 @@ Compute sites
 -------------
 
 A compute site decides what goes around the template in the batch file, and how it runs. Set the default with
-``jobs.compute_site`` in ``xtl.toml``, or pick one per job with ``compute_site=ComputeSite.LOCAL`` in the
-configuration.
+``jobs.compute_site`` in ``xtl.toml``, per dependency with its ``compute_site``, or per job with
+``compute_site=ComputeSite.LOCAL`` in the configuration (see `Shells`_ for which wins).
 
 A batch file has three parts, each written by the compute site:
 
@@ -278,8 +302,8 @@ Modules
 
 ``ComputeSite.MODULES`` runs the batch file on this machine too, but first loads the job's programs with
 `Environment Modules <https://modules.readthedocs.io/>`_. The modules come
-from ``xtl.toml``: those in ``dependencies.modules`` are loaded for every job, then those of each dependency in the
-configuration's ``dependencies``, each in its order; directories in ``path`` are put on ``PATH`` after that. In
+from ``xtl.toml``: those in ``dependencies.modules`` are loaded for every job, then those of each of the job's
+dependencies, each in its order; directories in ``path`` are put on ``PATH`` after that. In
 PowerShell, Environment Modules' command is ``envmodule``, which comes from the PowerShell profile (batch files run
 with it); bash sets up ``module`` from ``$MODULESHOME`` if the shell that started the job didn't pass it on. With this
 ``xtl.toml``:
@@ -292,7 +316,7 @@ with it); bash sets up ``module`` from ``$MODULESHOME`` if the shell that starte
     [dependencies.atsas]
     modules = ['atsas/3.2.1']
 
-the example job with ``dependencies={'atsas'}`` writes:
+the example job, with ``_dependencies = {'atsas'}`` on its class, writes:
 
 .. tab-set::
    :sync-group: shell

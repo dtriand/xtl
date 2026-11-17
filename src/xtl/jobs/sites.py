@@ -48,14 +48,19 @@ class ComputeSite(StrEnum):
     if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
         BIOTIX = 'biotix'
 
-    def get(self) -> ComputeSiteType:
+    def get(self, **kwargs) -> ComputeSiteType:
+        """
+        An instance of the compute site.
+
+        :param kwargs: Passed to the site, e.g. ``policy`` (see :class:`BaseComputeSite`).
+        """
         mapping: dict[str, type] = {
             ComputeSite.LOCAL: LocalSite,
             ComputeSite.MODULES: ModulesSite,
         }
         if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
             mapping[ComputeSite.BIOTIX] = BiotixHPC
-        return mapping[self]()
+        return mapping[self](**kwargs)
 
     def __eq__(self, other):
         if isinstance(other, BaseComputeSite):

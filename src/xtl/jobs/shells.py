@@ -355,7 +355,15 @@ class BaseShell:
         return self.join(bits)
 
     def sanitize_value(self, value):
+        """
+        A value as it goes into a batch file of this shell: a path quoted, the items of a list or tuple each
+        sanitized and joined by spaces (*e.g.* several paths, or an option and its path), anything else as it is.
+
+        :param value: The value
+        """
         match value:
+            case list() | tuple():
+                return ' '.join(str(self.sanitize_value(item)) for item in value)
             case Path():
                 path_str = str(value)
                 if self.is_posix:

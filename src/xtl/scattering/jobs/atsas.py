@@ -24,9 +24,6 @@ class ATSASBatchJobConfig(BatchJobConfig, abc.ABC):
     filename: str = 'atsas'
     name: Optional[str] = 'xtl.ATSASBatchJob'
     description: Optional[str] = 'ATSAS batch job'
-    dependencies: set[str] = Option(
-        default_factory=lambda: {'atsas'}, desc='List of dependencies required for this batch job'
-    )
     templates: dict[Shell, str] = Option(
         default_factory=lambda: {
             Shell.BASH: '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
@@ -57,7 +54,8 @@ class DatcmpBatchJobConfig(ATSASBatchJobConfig):
     def get_context(self):
         context = super().get_context()
         context['ATSAS_KWARGS'] = ' '.join(self.options.get_kwargs())
-        context['INPUT_FILES'] = ' '.join(self.shell.get().sanitize_value(file) for file in self.input)
+        # A list of paths, each quoted for the shell by the batch file
+        context['INPUT_FILES'] = list(self.input)
         return context
 
 
@@ -66,7 +64,7 @@ class DatcmpBatchJob(BatchJob[DatcmpBatchJobConfig]):
     Job to compare SAXS datasets using ATSAS `datcmp`.
     """
 
-    ...
+    _dependencies = {'atsas'}
 
 
 class DatopBatchJobConfig(ATSASBatchJobConfig):
@@ -90,13 +88,12 @@ class DatopBatchJobConfig(ATSASBatchJobConfig):
 
     def get_context(self):
         context = super().get_context()
+        # Paths are quoted for the shell by the batch file: the output as an option and a path of its own
         context |= {
-            'INPUT_FILE': self.shell.get().sanitize_value(self.input),
+            'INPUT_FILE': self.input,
             'OPERATOR': self.options.operator,
             'OP_VALUE': self.options.value if self.options.value is not None else self.options.dataset,
-            'ATSAS_KWARGS': f'--output={self.shell.get().sanitize_value(self.options.output)}'
-            if self.options.output is not None
-            else '',
+            'ATSAS_KWARGS': ['--output', self.options.output] if self.options.output is not None else '',
         }
         return context
 
@@ -106,4 +103,4 @@ class DatopBatchJob(BatchJob[DatopBatchJobConfig]):
     Job to compare SAXS datasets using ATSAS `datop`.
     """
 
-    ...
+    _dependencies = {'atsas'}

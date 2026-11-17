@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 from xtl import version
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl_core.system.os import FilePermissions
-from xtl.jobs.shells import Shell, ShellType, DefaultShell
+from xtl.jobs.shells import ShellType, DefaultShell
 
 
 __all__ = ['BatchFile', 'BatchFileStatus']
@@ -346,7 +346,14 @@ class BatchFile:
             raise KeyError(f'Missing required key for {BatchFile.__name__} template: {missing_key}')
 
     @classmethod
-    def from_config(cls, config: BatchJobConfig | dict, context: dict = None) -> BatchFile:
+    def from_config(
+        cls,
+        config: BatchJobConfig | dict,
+        context: dict = None,
+        compute_site: ComputeSiteType = None,
+        shell: ShellType = None,
+        dependencies: str | DependencySettings | Iterable[str | DependencySettings] = None,
+    ) -> BatchFile:
         """
         Create a pre-configured BatchFile instance from a BatchJobConfig. If the config
         includes an appropriate template, the batch file contents will be populated and
@@ -357,22 +364,28 @@ class BatchFile:
 
         :param config: A BatchJobConfig instance or dictionary.
         :param context: A dictionary of context variables for rendering the template.
+        :param compute_site: The compute site; if it or ``shell`` isn't given, both are
+            chosen from the configuration and the dependencies (see
+            :meth:`~xtl.jobs.config.BatchJobConfig.select_site_and_shell`).
+        :param shell: The shell.
+        :param dependencies: Names or settings of the job's dependencies.
         :return: A BatchFile instance configured according to the provided config.
-        ️ :raises KeyError: If a placeholder in the template is not found in the
+        :raises KeyError: If a placeholder in the template is not found in the
             context.
         :raises ValueError: If the template contains invalid placeholders.
         """
         from xtl.jobs.config import BatchJobConfig
-        from xtl.jobs.sites import ComputeSite
 
         if isinstance(config, dict):
             config = BatchJobConfig(**config)
+        if compute_site is None or shell is None:
+            compute_site, shell = config.select_site_and_shell(dependencies)
 
         batch = cls(
-            filename=config.file,
-            compute_site=ComputeSite(config.compute_site).get(),
-            shell=Shell(config.shell).get(),
-            dependencies=config.dependencies,
+            filename=config.get_file(shell),
+            compute_site=compute_site,
+            shell=shell,
+            dependencies=dependencies,
             permissions=config.permissions,
         )
 
@@ -380,7 +393,7 @@ class BatchFile:
         batch._config = config
 
         # Render template if provided
-        if template := config.get_template():
+        if template := config.get_template(shell):
             content = batch._render_template(template, context or {})
             batch.add_lines(content.splitlines())
 

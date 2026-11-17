@@ -146,6 +146,11 @@ Class attributes
    * - ``_resources``
      - ``None``
      - The job type's resource limit, used when its configuration has none (see :doc:`pools`).
+   * - ``_dependencies``
+     - empty
+     - Names of the external programs the job needs, as in the ``[dependencies]`` section of ``xtl.toml`` (e.g.
+       ``{'atsas'}``); ``dependencies()`` returns them. They are checked before the job runs, and a missing one fails
+       the job with a :class:`~xtl.jobs.exceptions.DependencyError` (see :doc:`batch-jobs`).
 
 Jobs and pools
 --------------

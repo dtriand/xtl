@@ -8,10 +8,12 @@ from tests.conftest import skipif_not_windows
 from xtl import settings
 from xtl.jobs.batchfiles import BatchFile
 from xtl.jobs.config import BatchJobConfig, JobConfig, SiteResources, SteppedJobConfig
+from xtl.jobs.exceptions import DependencyError
 from xtl.jobs.logging import StreamHandlerConfig
+from xtl.jobs.policies import CommandPolicy
 from xtl.jobs.resources import Resources
-from xtl.jobs.shells import DefaultShell, Shell
-from xtl.jobs.sites import ComputeSite, ModulesSite
+from xtl.jobs.shells import BashShell, DefaultShell, PowerShell, Shell
+from xtl.jobs.sites import ComputeSite, LocalSite, ModulesSite
 from xtl_core.system.os import FilePermissions
 
 SYSTEM_SHELL = Shell(DefaultShell().name)
@@ -61,9 +63,10 @@ class TestBatchJobConfig:
 
     def test_paths(self, tmp_path):
         config = BatchJobConfig(job_directory=str(tmp_path), filename='run')
-        extension = config.shell.get().batch_extension
         assert config.job_directory == tmp_path
-        assert config.file == tmp_path / f'run{extension}'
+        # The batch file's extension is the shell's, chosen when the batch file is built
+        assert config.get_file(PowerShell()) == tmp_path / 'run.ps1'
+        assert config.get_file(BashShell()) == tmp_path / 'run.sh'
         assert config.stdout == tmp_path / 'run.stdout.log'
         assert config.stderr == tmp_path / 'run.stderr.log'
 
@@ -77,32 +80,43 @@ class TestBatchJobConfig:
 
     def test_compute_site(self, monkeypatch):
         assert BatchJobConfig(compute_site='modules').compute_site == ComputeSite.MODULES
-        monkeypatch.setattr(settings.jobs, 'compute_site', 'modules')
-        assert BatchJobConfig().compute_site == ComputeSite.MODULES
+        # Not set: chosen when the batch file is built
+        assert BatchJobConfig().compute_site is None
 
     def test_templates(self, tmp_path):
         config = BatchJobConfig(job_directory=tmp_path, templates={SYSTEM_SHELL: 'echo __WHO__'})
         assert config.compatible_shells == {SYSTEM_SHELL}
-        assert config.get_template() == 'echo __WHO__'
+        assert config.get_template(DefaultShell()) == 'echo __WHO__'
+        assert config.get_template(SYSTEM_SHELL) == 'echo __WHO__'
         assert config.get_context() == {}
-        assert BatchJobConfig(job_directory=tmp_path).get_template() is None
+        assert BatchJobConfig(job_directory=tmp_path).get_template(DefaultShell()) is None
 
     def test_get_batch(self, tmp_path):
         config = BatchJobConfig(job_directory=tmp_path, templates={SYSTEM_SHELL: 'echo __WHO__'})
         batch = config.get_batch(context={'WHO': 'me'})
         assert isinstance(batch, BatchFile)
-        assert batch.file == config.file
+        assert batch.file == config.get_file(DefaultShell())
         assert batch.get_content() == 'echo me'
+
+    def test_get_batch_with_a_site_and_shell(self, tmp_path):
+        config = BatchJobConfig(job_directory=tmp_path, templates={Shell.POWERSHELL: 'Write-Output __WHO__'})
+        batch = config.get_batch(context={'WHO': 'me'}, compute_site=ModulesSite(), shell=PowerShell())
+        assert (type(batch.compute_site), batch.shell, batch.file) == (
+            ModulesSite,
+            PowerShell(),
+            tmp_path / 'batch_job.ps1',
+        )
+        assert batch.get_content() == 'Write-Output me'
 
     def test_round_trip(self, tmp_path):
         config = BatchJobConfig(
             job_directory=tmp_path, default_shell=Shell.POWERSHELL, templates={Shell.POWERSHELL: 'x'}
         )
         data = config.to_dict()
-        assert data['shell'] == 'powershell'
+        assert 'shell' not in data and 'file' not in data
         restored = BatchJobConfig.from_dict(data)
-        assert restored.shell == Shell.POWERSHELL
-        assert restored.file == config.file
+        assert (restored.default_shell, restored.compute_site) == (Shell.POWERSHELL, None)
+        assert restored.select_site_and_shell()[1] == PowerShell()
 
     def test_to_slurm_names_and_logs(self, tmp_path):
         config = BatchJobConfig(job_directory=tmp_path, name='fit', description='a fit')
@@ -112,19 +126,70 @@ class TestBatchJobConfig:
         assert BatchJobConfig(job_directory=tmp_path).to_slurm()[0].startswith('--cpus=')
 
 
-class TestShellChoice:
-    """The shell is chosen when the configuration is created, from the compute site and the templates."""
+class TestSiteAndShellChoice:
+    """
+    The compute site and shell are chosen when the batch file is built, from the configuration, the settings of the
+    job's dependencies, the compute site and the templates.
+    """
 
-    def test_site_without_restrictions_uses_default_shell(self):
-        config = BatchJobConfig(compute_site='local', default_shell=Shell.POWERSHELL)
-        assert config.shell == Shell.POWERSHELL
+    @pytest.fixture(autouse=True)
+    def dependencies(self, monkeypatch):
+        """Dependencies without a site, shell or policy of their own, and `local` as the default site."""
+        monkeypatch.setattr(settings.jobs, 'compute_site', 'local')
+        for _, dep in settings.dependencies.items():
+            for field in ('compute_site', 'shell', 'policy'):
+                monkeypatch.setattr(dep, field, None)
 
-    def test_otherwise_the_systems_shell(self):
-        assert BatchJobConfig(compute_site='local').shell == SYSTEM_SHELL
+    @staticmethod
+    def choose(dependencies=None, **config):
+        site, shell = BatchJobConfig(**config).select_site_and_shell(dependencies)
+        return type(site), Shell(shell.name)
+
+    def test_defaults(self, monkeypatch):
+        assert self.choose() == (LocalSite, SYSTEM_SHELL)
+        monkeypatch.setattr(settings.jobs, 'compute_site', 'modules')
+        assert self.choose() == (ModulesSite, SYSTEM_SHELL)
+
+    def test_configuration(self):
+        assert self.choose(compute_site='modules', default_shell=Shell.POWERSHELL) == (ModulesSite, Shell.POWERSHELL)
+
+    def test_dependencies(self):
+        settings.dependencies.atsas.compute_site = 'modules'
+        settings.dependencies.atsas.shell = 'powershell'
+        assert self.choose(['atsas']) == (ModulesSite, Shell.POWERSHELL)
+        # The configuration first
+        assert self.choose(['atsas'], compute_site='local', default_shell=Shell.CMD) == (LocalSite, Shell.CMD)
+
+    def test_dependency_policy(self):
+        settings.dependencies.atsas.policy = 'nice'
+        site, _ = BatchJobConfig().select_site_and_shell(['atsas'])
+        assert site.policy == CommandPolicy.NICE
+        assert BatchJobConfig().select_site_and_shell()[0].policy is None
+
+    @pytest.mark.parametrize('field, values', [('compute_site', ('local', 'modules')), ('shell', ('cmd', 'bash'))])
+    def test_dependencies_that_disagree(self, field, values):
+        setattr(settings.dependencies.atsas, field, values[0])
+        setattr(settings.dependencies.easybragg, field, values[1])
+        with pytest.raises(DependencyError, match=f'different values of `{field}`') as error:
+            self.choose(['atsas', 'easybragg'])
+        assert error.value.dependencies == ('atsas', 'easybragg')
+        # One that doesn't set it agrees with any
+        assert self.choose(['atsas', 'autoproc'])
+
+    def test_disagreement_overridden_by_the_configuration(self):
+        settings.dependencies.atsas.compute_site = 'local'
+        settings.dependencies.easybragg.compute_site = 'modules'
+        assert self.choose(['atsas', 'easybragg'], compute_site='modules')[0] == ModulesSite
 
     def test_shell_without_a_template_raises(self):
-        with pytest.raises(RuntimeError, match='Incompatible shell'):
-            BatchJobConfig(compute_site='local', default_shell=Shell.CMD, templates={Shell.BASH: 'x'})
+        with pytest.raises(ValueError, match='Shell cmd is not one'):
+            self.choose(default_shell=Shell.CMD, templates={Shell.BASH: 'x'})
+
+    def test_a_template_of_the_shell(self):
+        # The system's shell has no template: one that has
+        other = Shell.BASH if SYSTEM_SHELL != Shell.BASH else Shell.CMD
+        assert self.choose(templates={other: 'x'}) == (LocalSite, other)
+        assert self.choose(templates={other: 'x', SYSTEM_SHELL: 'y'}) == (LocalSite, SYSTEM_SHELL)
 
     @pytest.fixture
     def bash_only_site(self, monkeypatch):
@@ -132,25 +197,24 @@ class TestShellChoice:
         monkeypatch.setattr(ModulesSite, '_default_shell', Shell.BASH)
         return 'modules'
 
-    def test_restricting_site_without_templates_uses_its_shell(self, bash_only_site):
-        assert BatchJobConfig(compute_site=bash_only_site, default_shell=Shell.CMD).shell == Shell.BASH
+    def test_restricting_site_uses_its_shell(self, bash_only_site):
+        assert self.choose(compute_site=bash_only_site) == (ModulesSite, Shell.BASH)
+        assert self.choose(compute_site=bash_only_site, templates={Shell.BASH: 'x', Shell.CMD: 'y'})[1] == Shell.BASH
 
-    def test_restricting_site_takes_a_shared_shell(self, bash_only_site):
-        templates = {Shell.BASH: 'x', Shell.CMD: 'y'}
-        config = BatchJobConfig(compute_site=bash_only_site, default_shell=Shell.CMD, templates=templates)
-        assert config.shell == Shell.BASH
+    def test_restricting_site_refuses_another_shell(self, bash_only_site):
+        with pytest.raises(ValueError, match='Shell cmd is not one'):
+            self.choose(compute_site=bash_only_site, default_shell=Shell.CMD)
 
     @skipif_not_windows
     def test_no_shared_shell_falls_back_to_the_system_with_a_warning(self, bash_only_site, caplog):
         # A cmd template only: nothing in common with a bash-only site, so the system's shell, with a warning
-        config_logger = logging.getLogger('xtl.jobs.config')
-        config_logger.addHandler(caplog.handler)
+        dependencies_logger = logging.getLogger('xtl.jobs.dependencies')
+        dependencies_logger.addHandler(caplog.handler)
         try:
-            config = BatchJobConfig(compute_site=bash_only_site, templates={Shell.CMD: 'x'})
+            assert self.choose(compute_site=bash_only_site, templates={Shell.CMD: 'x'}) == (ModulesSite, Shell.CMD)
         finally:
-            config_logger.removeHandler(caplog.handler)
-        assert config.shell == Shell.CMD
-        assert 'is not supported by compute site' in caplog.text
+            dependencies_logger.removeHandler(caplog.handler)
+        assert 'No shell that both compute site ModulesSite and the job allow' in caplog.text
 
 
 def test_stepped_job_config():

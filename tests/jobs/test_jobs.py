@@ -537,7 +537,7 @@ class TestBatchJob:
     async def test_run_creates_the_directory(self, tmp_path):
         config = BatchJobConfig(job_directory=tmp_path / 'a' / 'b', templates={SYSTEM_SHELL: EXIT_3})
         await BatchJob(config, job_id='b5').run()
-        assert config.file.exists()
+        assert config.get_file(DefaultShell()).exists()
         assert config.stdout.exists() and config.stderr.exists()
 
     @pytest.mark.asyncio
