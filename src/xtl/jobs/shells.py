@@ -157,6 +157,8 @@ class BaseShell:
     """The line ending of the shell's batch files"""
     batch_extension: str = field(init=False, repr=False)
     """The file extension for scripts"""
+    file_encoding: ClassVar[str] = 'utf-8'
+    """The encoding of the shell's batch files, as Python names it"""
 
     # Commands
     batch_command: str = field(init=False, repr=False)
@@ -576,6 +578,9 @@ class PowerShell(BaseShell):
     comment_char = '#'
     new_line_char = '\n'
     batch_extension = '.ps1'
+    # Windows PowerShell 5.1 reads a script without a byte order mark in the ANSI code page, so that e.g. `données`
+    #  becomes `donnÃ©es`; with one, as UTF-8
+    file_encoding = 'utf-8-sig'
     batch_command = '{executable} -File {batch_file} {batch_arguments}'
     dependency_command = 'Get-Command {dependency} -ErrorAction SilentlyContinue | Out-Null; [int](-not $?)'
     # NB: PowerShell returns True/1 if the command is found, so we negate it to match

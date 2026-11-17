@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from tests.conftest import skipif_not_linux
+from tests.conftest import skipif_not_linux, skipif_not_windows
 from xtl.config.settings import DependencySettings
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus, BatchTemplate
 from xtl.jobs.config import BatchJobConfig
@@ -104,6 +104,13 @@ class TestContent:
         batch.add_lines(['echo a', 'echo b'])
         batch.save()
         assert batch.file.read_bytes() == b'chcp 65001 > nul\r\n\r\necho a\r\necho b\r\n'
+
+    def test_save_powershell(self, tmp_path):
+        # UTF-8 with a byte order mark, which Windows PowerShell 5.1 needs to read it as UTF-8
+        batch = BatchFile(tmp_path / 'job', shell=PowerShell())
+        batch.add_line("Write-Output 'é'")
+        batch.save()
+        assert batch.file.read_bytes() == "﻿Write-Output 'é'\n".encode('utf-8')
 
     def test_blank_lines_kept(self, tmp_path):
         batch = BatchFile(tmp_path / 'job', shell=BashShell(), compute_site=NiceSite())
@@ -227,6 +234,21 @@ class TestExecute:
         await batch.execute(stdout=tmp_path / 'out.log', stderr=tmp_path / 'err.log')
         assert batch.status == BatchFileStatus.COMPLETED, (tmp_path / 'err.log').read_text(errors='replace')
         assert (tmp_path / 'out.log').read_text(encoding='utf-8').split() == ['ok', name]
+
+    @skipif_not_windows
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('name', ['café', 'Δοκιμή'])
+    async def test_non_ascii_path_in_powershell(self, tmp_path, name):
+        # Read in the ANSI code page, the path in the script would be another one
+        folder = tmp_path / name
+        folder.mkdir()
+        batch = BatchFile(tmp_path / 'job', shell=PowerShell())
+        path = batch.shell.sanitize_value(folder)
+        batch.add_line(f"if (Test-Path -LiteralPath {path}) {{ 'found' }} else {{ 'missing' }}")
+        batch.save()
+        await batch.execute(stdout=tmp_path / 'out.log', stderr=tmp_path / 'err.log')
+        assert batch.status == BatchFileStatus.COMPLETED, (tmp_path / 'err.log').read_text(errors='replace')
+        assert (tmp_path / 'out.log').read_text().strip() == 'found'
 
     @pytest.mark.asyncio
     async def test_arguments(self, tmp_path):

@@ -371,7 +371,7 @@ class LocalSite(BaseComputeSite):
         """
         fd, file = tempfile.mkstemp(prefix='xtl-check-', suffix=shell.batch_extension)
         try:
-            with os.fdopen(fd, 'w', encoding='utf-8', newline='') as f:
+            with os.fdopen(fd, 'w', encoding=shell.file_encoding, newline='') as f:
                 f.write(script)
             command = shell.get_execute_batch_command(file, as_list=True)
             return self.execute_command(command=command, timeout=self._CHECK_TIMEOUT)

@@ -272,7 +272,7 @@ class BatchFile:
             text += postamble + self.shell.new_line_char
 
         # Write contents to file, as they are: the lines already end with the shell's line ending
-        self.file.write_text(data=text, encoding='utf-8', newline='')
+        self.file.write_text(data=text, encoding=self.shell.file_encoding, newline='')
 
         # Update file permissions
         if update_permissions:

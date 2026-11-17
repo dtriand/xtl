@@ -226,7 +226,8 @@ picks one of those that the templates have, ``default_shell`` first.
 
 Batch files are written in UTF-8. cmd reads a batch file in the console's code page, so a cmd batch file starts with
 ``chcp 65001 > nul``, which switches the console to UTF-8 (for paths with ``é`` or ``Δ``, for instance). The console
-keeps that code page after the batch file ends.
+keeps that code page after the batch file ends. Windows PowerShell 5.1 reads a script as UTF-8 only if it starts with
+a byte order mark, so PowerShell batch files have one.
 
 Running a batch job
 -------------------
