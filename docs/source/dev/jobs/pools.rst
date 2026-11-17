@@ -76,6 +76,13 @@ Running jobs in a pool takes three steps: open the pool, submit the jobs, and la
    You can submit and launch again within the same ``async with``; each launch runs only the jobs submitted since the
    previous one.
 
+**Dependencies:** before a launch runs its jobs, the pool checks the external programs they need (``_dependencies``,
+see :doc:`batch-jobs`), once for all of them: each dependency is checked once per compute site and shell, and the
+outcome is remembered, so the jobs don't check again when they start (in a process pool, the workers receive it with
+the settings). A job whose dependency is missing doesn't run: its result has a
+:class:`~xtl.jobs.exceptions.DependencyError`, its status is ``FAILED``, and the other jobs run as usual. Nothing is
+checked if ``dependencies.check`` is off in ``xtl.toml``.
+
 **When something fails:** a failing job doesn't stop the others; its exception is in its result (above, the empty list
 in ``StatsJob-3``). An exception in your own code inside the ``async with`` block, ``Ctrl+C`` or a cancellation is
 different: the pool stops the running jobs (see `Cancellation`_), and the exception propagates.

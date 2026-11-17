@@ -18,7 +18,8 @@ from xtl import settings
 from xtl_core.system.compatibility import PY310_OR_LESS
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
-from xtl.jobs.exceptions import WorkerError
+from xtl.jobs.dependencies import ensure_dependencies
+from xtl.jobs.exceptions import DependencyError, WorkerError
 from xtl.jobs.results import JobResults, JobStatus, SteppedJobResults
 from xtl.jobs.logging import (
     HandlerConfig,
@@ -72,6 +73,26 @@ __all__ = [
 
 
 uuid = UUIDFactory()
+
+
+def _dependency_errors(jobs: list[Job]) -> dict[str, Exception]:
+    """
+    Check the dependencies of jobs, each on the compute site and in the shell that it would run them (see
+    :meth:`BasePool._check_dependencies`).
+
+    :return: The errors of the jobs that can't run, by job id.
+    """
+    errors = {}
+    for job in jobs:
+        dependencies = job.dependencies()
+        if not dependencies:
+            continue
+        try:
+            site, shell = job._select_site_and_shell()
+            ensure_dependencies(dependencies, site, shell)
+        except (DependencyError, ValueError) as error:
+            errors[job.job_id] = error
+    return errors
 
 
 class JobPool(StrEnum):
@@ -929,10 +950,10 @@ class BasePool(PoolProtocol, abc.ABC):
             return self._launch_stream()
         raise ValueError(f"Invalid mode: {mode!r}. Expected 'all' or 'stream'.")
 
-    def _start_tasks(self) -> list[asyncio.Task]:
+    async def _start_tasks(self) -> list[asyncio.Task]:
         """
-        Start a task for each job submitted since the last launch, in submission order. Jobs launched before don't run
-        again.
+        Start a task for each job submitted since the last launch, in submission order, after checking their
+        dependencies (see :meth:`_check_dependencies`). Jobs launched before don't run again.
 
         :return: The new tasks, in submission order.
         """
@@ -945,19 +966,60 @@ class BasePool(PoolProtocol, abc.ABC):
             return []
 
         self.logger.debug('Launching %d jobs', len(pending))
-        tasks = []
         for submission in pending:
             self._set_status(submission.data.job_id, JobStatus.QUEUED)
-            task = asyncio.create_task(self._process_submission(submission))
+        try:
+            errors = await self._check_dependencies([self._jobs[s.data.job_id] for s in pending])
+        except asyncio.CancelledError:
+            # Cancelled while checking: none of the jobs started
+            for submission in pending:
+                self._set_status(submission.data.job_id, JobStatus.CANCELLED)
+            raise
+
+        tasks = []
+        for submission in pending:
+            error = errors.get(submission.data.job_id)
+            if error is None:
+                task = asyncio.create_task(self._process_submission(submission))
+            else:
+                task = asyncio.create_task(self._fail_submission(submission, error))
             self._tasks[submission.submission_id] = task
             tasks.append(task)
         return tasks
+
+    async def _check_dependencies(self, jobs: list[Job]) -> dict[str, Exception]:
+        """
+        Check the dependencies of jobs about to launch, once for the pool: each dependency is checked once per
+        compute site and shell, and the outcome is remembered in its settings, where the jobs find it when they start
+        (workers of a process pool receive it with the settings), so that they don't check again. Nothing is checked if
+        ``settings.dependencies.check`` is off.
+
+        :param jobs: The jobs.
+        :return: The errors of the jobs that can't run, by job id: a missing dependency, or dependencies that ask for
+            different compute sites or shells.
+        """
+        if not settings.dependencies.check or not any(job.dependencies() for job in jobs):
+            return {}
+        # NB: In a thread, since checks run shells; one job after the other, so that each dependency is checked once
+        return await asyncio.to_thread(_dependency_errors, jobs)
+
+    async def _fail_submission(self, submission: JobSubmission, error: Exception) -> JobResults:
+        """
+        Fail a job without running it, e.g. for a missing dependency.
+
+        :param submission: The job's submission.
+        :param error: Why it can't run.
+        """
+        job_id = submission.data.job_id
+        self.logger.error('Job %s not run: %s', job_id, error)
+        self._set_status(job_id, JobStatus.FAILED)
+        return JobResults(job_id=job_id, data=None, error=error)
 
     async def _launch_all(self) -> list[JobResults]:
         """
         Launch the jobs submitted since the last launch and return their results, in submission order.
         """
-        tasks = self._start_tasks()
+        tasks = await self._start_tasks()
         if not tasks:
             return []
 
@@ -970,7 +1032,7 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         Launch the jobs submitted since the last launch and yield their results as each job completes.
         """
-        tasks = self._start_tasks()
+        tasks = await self._start_tasks()
         if not tasks:
             return
 
