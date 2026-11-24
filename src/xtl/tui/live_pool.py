@@ -14,17 +14,12 @@ from typer import BadParameter
 from xtl.jobs.logging import JobFileHandlerConfig, LoggerConfig
 from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, PoolType
 from xtl.jobs.results import JobStatus
-from xtl_core.system.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import Self
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
 from xtl.tui.logging.handlers import BufferingHandler
 from xtl.tui.renderers import LogRenderer
 from xtl.tui.progress import ProgressBar
 from xtl.tui.styles import JOB_STYLES
-
-if PY310_OR_LESS:
-    from typing_extensions import Self
-else:
-    from typing import Self
 
 if TYPE_CHECKING:
     from xtl.jobs import Job, JobConfig

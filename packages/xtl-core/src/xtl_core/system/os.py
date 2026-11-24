@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from enum import Enum
 import os
 from pathlib import Path
 import platform
@@ -7,13 +6,7 @@ import tempfile
 from types import NoneType
 from typing import Optional
 
-from xtl_core.system.compatibility import PY311_OR_LESS
-
-if PY311_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
 CPU_CORES: int | None = os.cpu_count()

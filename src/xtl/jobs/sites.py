@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 import asyncio
 import contextlib
 import logging
-from enum import Enum
 import os
 from pathlib import Path
 import signal
@@ -18,6 +17,7 @@ if TYPE_CHECKING:
     from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
 from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS, PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
 from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.dependencies import DependencyCheck, dependency_name
@@ -30,13 +30,6 @@ __all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite', 'Mo
 
 
 logger = logging.getLogger(__name__)
-
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
 
 
 class ComputeSite(StrEnum):

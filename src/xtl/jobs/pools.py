@@ -4,7 +4,6 @@ import abc
 import asyncio
 import contextlib
 import copy
-from enum import Enum
 import logging
 import multiprocessing
 import pickle
@@ -15,7 +14,7 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor, ProcessPool
 from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, Union, runtime_checkable
 
 from xtl import settings
-from xtl_core.system.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import Self, StrEnum
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
 from xtl.jobs.dependencies import ensure_dependencies
@@ -48,16 +47,6 @@ from xtl.jobs.ipc.processes import ignore_interrupts, shielded_context
 from xtl.jobs.resources import CURRENT_LEASE, Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
 from xtl.math.uuid import UUIDFactory
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum):
-        pass
-
-    from typing_extensions import Self
-else:
-    from enum import StrEnum
-    from typing import Self
 
 
 __all__ = [

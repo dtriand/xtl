@@ -1,5 +1,6 @@
 """
-Central location for various compatibility checks.
+Central location for various compatibility checks. Stand-ins for what older Python versions lack are in a module per
+version, *e.g.* :mod:`xtl_core.system.compatibility.py310`, which goes once that version is no longer supported.
 """
 
 import sys
@@ -14,9 +15,9 @@ PY_VERS: tuple[int, int, int] = sys.version_info[:3]
 # TODO: Remove when dropping support for Python 3.10 (EOL: 10/2026)
 PY310_OR_LESS: bool = PY_VERS < (3, 11)
 """Python version is 3.10 or less"""
-# Features missing in Python 3.10:
+# Features missing in Python 3.10 (stand-ins in `py310`):
 # - ``enum.StrEnum``
-# - ``asyncio.TaskGroup``
+# - ``asyncio.TaskGroup`` (no stand-in)
 # - ``from typing import Self``
 
 # TODO: Remove when dropping support for Python 3.11 (EOL: 10/2027)

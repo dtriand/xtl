@@ -66,20 +66,14 @@ the default class variables to match the desired shell's properties.
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 import re
 import shlex
 import subprocess
 from typing import ClassVar, Iterable, Optional
 
-from xtl_core.system.compatibility import OS_WINDOWS, PY310_OR_LESS
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+from xtl_core.system.compatibility import OS_WINDOWS
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
 __all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell', 'CHECK_MARKER']

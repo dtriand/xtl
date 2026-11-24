@@ -3,7 +3,8 @@ import pytest
 from pathlib import Path
 from typing import List, Dict, Type
 
-from xtl.files.meta import FileContainer, FileReaderMeta, StrEnum
+from xtl.files.meta import FileContainer, FileReaderMeta
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
 # Test data setup

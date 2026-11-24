@@ -1,21 +1,13 @@
 import logging
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 from pydantic import computed_field, PrivateAttr, model_validator
 
-from xtl_core.system.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
 from xtl_core.options import Option, Options
 from xtl_core.options.typed_vars import TypedList
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum):
-        pass
-else:
-    from enum import StrEnum
 
 
 logger = logging.getLogger(__name__)

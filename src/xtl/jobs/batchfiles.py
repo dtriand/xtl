@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 import logging
-from enum import Enum
 from pathlib import Path
 from string import Template
 from typing import Callable, Iterable, TYPE_CHECKING
@@ -13,19 +12,12 @@ if TYPE_CHECKING:
     from xtl.jobs.sites import ComputeSiteType
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
-from xtl_core.system.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
 from xtl_core.system.os import FilePermissions
 from xtl.jobs.shells import ShellType, DefaultShell
 
 
 __all__ = ['BatchFile', 'BatchFileStatus']
-
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
 
 
 class BatchFileStatus(StrEnum):

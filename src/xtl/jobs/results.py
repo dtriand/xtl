@@ -1,14 +1,7 @@
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
-from xtl_core.system.compatibility import PY310_OR_LESS
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
 __all__ = ['JobStatus', 'JobResults', 'SteppedJobResults', 'BatchResults']

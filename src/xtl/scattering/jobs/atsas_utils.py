@@ -1,19 +1,9 @@
-from enum import Enum
 from pathlib import Path
 
 from pydantic import PrivateAttr, model_validator
 
 from xtl_core.options import Option, Options
-from xtl_core.system.compatibility import PY310_OR_LESS
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-
-    from typing_extensions import Self
-else:
-    from enum import StrEnum
-    from typing import Self
+from xtl_core.system.compatibility.py310 import Self, StrEnum
 
 
 class ATSASOptions(Options):
