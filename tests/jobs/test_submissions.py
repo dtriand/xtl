@@ -86,7 +86,7 @@ class TestJobSubmission:
         assert settings.to_dict() == before
 
     def test_apply_settings_adds_dependency_checks(self, restore_settings):
-        check = DependencyCheck(dependency='atsas', found=False, missing=('datcmp',))
+        check = DependencyCheck(dependency='atsas', found=False, missing_executables=('datcmp',))
         settings.dependencies.atsas.remember_check(LocalSite(), BashShell(), check)
         submission = JobSubmission.from_job(talker())
         submission.xtl_settings = settings.to_dict()

@@ -70,6 +70,14 @@ Pools and shared state
 - Locks, queues and states the jobs use are created on the pool before launching (the default lock always exists).
 - A job that opens pools of its own has a resource request (``_resources`` or ``config.resources``).
 
+Command line tools
+------------------
+
+.. rst-class:: checklist
+
+- The command declares its dependencies with ``@requires(...)``, the same names as its jobs' ``_dependencies``.
+- It calls ``console.check_dependencies()`` after ``console.apply_job_options()``, before it starts any jobs.
+
 Tests
 -----
 

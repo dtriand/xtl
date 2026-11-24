@@ -339,16 +339,18 @@ class LocalSite(BaseComputeSite):
             ]
         except ValueError as e:
             logger.error('Cannot check dependency `%(dependency)s`: %(error)s', {'dependency': name, 'error': e})
-            return DependencyCheck(dependency=name, found=False, missing=tuple(executables), details=str(e))
+            return DependencyCheck(dependency=name, found=False, error=str(e))
 
         script = self._prepare_shebang(shell) + ''.join(line + shell.new_line_char for line in lines)
         result = self._run_script(script, shell)
         if result is None:
             return DependencyCheck(
-                dependency=name, found=False, missing=tuple(executables), details='The check did not finish'
+                dependency=name,
+                found=False,
+                error=f'the check in {shell.name} did not finish within {self._CHECK_TIMEOUT} s, or could not start',
             )
 
-        # What the lines reported, by kind (module, executable) and name; the rest is what the setup printed
+        # What the lines reported, by kind (command, module, executable) and name; the rest is what the setup printed
         reported, printed = {}, []
         for line in result.stdout.splitlines():
             words = line.split()
@@ -356,19 +358,29 @@ class LocalSite(BaseComputeSite):
                 reported[(words[1], words[2])] = words[3]
             elif line.strip():
                 printed.append(line.rstrip())
-        missing_modules = [module for (kind, module), code in reported.items() if kind == 'module' and code != '0']
-        missing_executables = [exe for exe in executables if reported.get(('executable', exe)) != '0']
-        missing = (*missing_modules, *missing_executables)
+        missing_command = next(
+            (command for (kind, command), code in reported.items() if kind == 'command' and code != '0'), ''
+        )
+        missing_modules = tuple(m for (kind, m), code in reported.items() if kind == 'module' and code != '0')
+        missing_executables = tuple(exe for exe in executables if reported.get(('executable', exe)) != '0')
+        found = not (missing_command or missing_modules or missing_executables)
 
         details = '\n'.join([*printed, *(line.rstrip() for line in result.stderr.splitlines() if line.strip())])
-        if missing:
-            logger.debug(
-                'Dependency `%(dependency)s` is missing %(missing)s',
-                {'dependency': name, 'missing': ', '.join(missing)},
-            )
-        else:
+        check = DependencyCheck(
+            dependency=name,
+            found=found,
+            missing_executables=missing_executables,
+            missing_modules=missing_modules,
+            missing_command=missing_command,
+            details=details,
+        )
+        if found:
             logger.debug('Found dependency `%(dependency)s`', {'dependency': name})
-        return DependencyCheck(dependency=name, found=not missing, missing=missing, details=details)
+        else:
+            logger.debug(
+                'Dependency `%(dependency)s`: %(problems)s', {'dependency': name, 'problems': check.problems()}
+            )
+        return check
 
     def _run_script(self, script: str, shell: ShellType) -> subprocess.CompletedProcess | None:
         """
@@ -595,8 +607,12 @@ class ModulesSite(LocalSite):
         from xtl import settings
 
         lines = [shell.module_setup] if shell.module_setup else []
+        groups = [settings.dependencies.modules, *(dep.modules for dep in dependencies)]
+        if report and any(groups):
+            # Whether the shell has the module command, so that a missing one is told apart from missing modules
+            lines.append(shell.get_found_report_command(shell.module_command, kind='command'))
         lines.append(shell.get_module_command('purge'))
-        for modules in [settings.dependencies.modules, *(dep.modules for dep in dependencies)]:
+        for modules in groups:
             if not modules:
                 continue
             if report:

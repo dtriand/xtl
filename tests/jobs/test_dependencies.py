@@ -1,13 +1,25 @@
 import importlib
+import inspect
+from pathlib import Path
 import pickle
 import pkgutil
 import subprocess
 
 import pytest
+import typer
+from typer.testing import CliRunner
 
 from tests.jobs.helpers import POOLS
 import xtl
 from xtl import settings
+from xtl.cli.utilities.common import (
+    ConsoleOptions,
+    JobOptions,
+    PermissionsOptions,
+    get_console_options,
+    get_job_options,
+)
+from xtl.cli.utilities.decorators import CLI_DEPENDENCIES, attach_hook, requires, typer_async
 from xtl.config.settings import AtsasSettings, XTLSettings
 from xtl.jobs.config import BatchJobConfig, JobConfig, SteppedJobConfig
 from xtl.jobs.dependencies import DependencyCheck, dependency_name, site_key, unknown_dependencies
@@ -16,14 +28,15 @@ from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.pools import AsyncPool
 from xtl.jobs.results import JobStatus
 from xtl.jobs.shells import BashShell, CmdShell, DefaultShell, Shell
-from xtl.jobs.sites import LocalSite, ModulesSite
+from xtl.jobs.sites import ComputeSite, LocalSite, ModulesSite
 from xtl.jobs.steps import StepSpec
+from xtl.tui.console import ConsoleIO
 from xtl_core.options import Option
 from xtl_core.system.compatibility import OS_WINDOWS
 
 SYSTEM_SHELL = Shell(DefaultShell().name)
 
-MISSING = DependencyCheck(dependency='atsas', found=False, missing=('datcmp',), details='datcmp: not found')
+MISSING = DependencyCheck(dependency='atsas', found=False, missing_executables=('datcmp',), details='datcmp: not found')
 FOUND = DependencyCheck(dependency='atsas', found=True)
 
 
@@ -296,7 +309,7 @@ class TestChecksBeforeRunning:
         result = await Echo(echo_config(tmp_path), job_id='e2').run()
         assert isinstance(result.error, DependencyError)
         assert result.error.dependencies == ('atsas',)
-        assert 'atsas: datcmp, datop' in str(result.error)
+        assert 'executables datcmp, datop not found (required for atsas)' in str(result.error)
         assert 'not here' in str(result.error)
         # Before the batch file was written
         assert not (tmp_path / 'job').exists()
@@ -442,3 +455,152 @@ class TestPools:
             pool.submit(Echo, echo_config(tmp_path / 'c'), job_ids=['c'])
             await pool.launch()
         assert len(scripts.scripts) == 2
+
+
+# Command line tools: a command written like xtl's, which declares its dependencies and checks them once
+
+cli = typer.Typer()
+
+
+@cli.command()
+@requires('atsas')
+@attach_hook(func=get_console_options, hook_output='console_options')
+@attach_hook(func=get_job_options, hook_output='job_options')
+@typer_async
+async def echo(
+    root: Path = typer.Option(..., '--root', help='Where the job works'),
+    job_options: JobOptions = typer.Option(),
+    console_options: ConsoleOptions = typer.Option(),
+):
+    console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
+    console.apply_job_options(job_options)
+    console.check_dependencies()
+    async with AsyncPool() as pool:
+        pool.submit(Echo, echo_config(root), job_ids=['a'])
+        (result,) = await pool.launch()
+    console.print(f'success: {result.success}')
+
+
+@pytest.fixture
+def restore_settings():
+    """Put back the settings that a command changes."""
+    before = settings.to_dict()
+    yield
+    settings.update_from(XTLSettings.from_dict(before))
+
+
+def run(*args: str):
+    # NB: The default of `--compute-site` is read when the command is defined, so it is always given
+    return CliRunner().invoke(cli, ['--compute-site', 'local', *args], env={'COLUMNS': '200'})
+
+
+class TestRequires:
+    def test_names(self):
+        assert echo.dependencies == ('atsas',)
+        assert requires('atsas', 'easybragg', 'atsas')(lambda: None).dependencies == ('atsas', 'easybragg')
+
+    @pytest.mark.parametrize('names, match', [((), 'at least one'), (('atsas', 'nope'), 'Unknown dependencies: nope')])
+    def test_invalid(self, names, match):
+        with pytest.raises(ValueError, match=match):
+            requires(*names)
+
+    def test_only_while_the_command_runs(self):
+        @requires('easybragg')
+        def command():
+            return CLI_DEPENDENCIES.get()
+
+        assert command() == ('easybragg',)
+        assert CLI_DEPENDENCIES.get() == ()
+
+
+class TestCommandLine:
+    def test_checked_once_for_the_command(self, tmp_path, monkeypatch, fake_atsas, restore_settings):
+        scripts = checks(monkeypatch, found=True)
+        result = run('--root', str(tmp_path))
+        assert result.exit_code == 0, result.output
+        assert 'success: True' in result.output
+        # The command's check; the pool and the job found its outcome
+        assert len(scripts.scripts) == 1
+
+    def test_missing_exits(self, tmp_path, monkeypatch, restore_settings):
+        checks(monkeypatch, found=False)
+        result = run('--root', str(tmp_path))
+        assert result.exit_code == 1
+        assert 'Missing dependencies' in result.output
+        assert '- executables datcmp, datop not found (required for atsas)' in result.output
+        assert 'not here' not in result.output
+        assert 'Run with -v to see what the checks printed' in result.output
+        # No job ran
+        assert 'success' not in result.output and not (tmp_path / 'job').exists()
+
+    def test_missing_with_details(self, tmp_path, monkeypatch, restore_settings):
+        checks(monkeypatch, found=False)
+        result = run('--root', str(tmp_path), '-v')
+        assert result.exit_code == 1
+        assert 'Checking dependency: atsas (LocalSite' in result.output
+        assert 'What the check of atsas (LocalSite' in result.output
+        assert 'not here' in result.output
+
+    def test_switched_off(self, tmp_path, monkeypatch, fake_atsas, restore_settings):
+        scripts = checks(monkeypatch, found=False)
+        monkeypatch.setattr(settings.dependencies, 'check', False)
+        result = run('--root', str(tmp_path))
+        assert result.exit_code == 0, result.output
+        assert scripts.scripts == []
+
+    def test_dependencies_given(self, monkeypatch):
+        checks(monkeypatch, found=False)
+        with pytest.raises(typer.Exit):
+            ConsoleIO().check_dependencies(['atsas'])
+        # None declared, none given: nothing to check
+        ConsoleIO().check_dependencies()
+
+    def test_unknown_name(self, monkeypatch, capsys):
+        scripts = checks(monkeypatch, found=True)
+        with pytest.raises(typer.Exit):
+            ConsoleIO(width=200).check_dependencies(['nope'])
+        assert '- unknown dependency nope (not in the [dependencies] of xtl.toml)' in capsys.readouterr().out
+        assert scripts.scripts == []
+
+    def test_a_check_that_could_not_run(self, monkeypatch, capsys):
+        monkeypatch.setattr(LocalSite, '_run_script', lambda site, script, shell: None)
+        with pytest.raises(typer.Exit):
+            ConsoleIO(width=200).check_dependencies(['atsas'])
+        out = capsys.readouterr().out
+        assert '- atsas could not be checked: the check in' in out
+        assert 'not found' not in out
+
+
+class TestModulesOption:
+    def test_parse(self):
+        assert JobOptions.parse_module_names(None) == {'extra': []}
+        assert JobOptions.parse_module_names('gcc/12,atsas=atsas/4,atsas=x/1') == {
+            'extra': ['gcc/12'],
+            'atsas': ['atsas/4', 'x/1'],
+        }
+        with pytest.raises(typer.BadParameter):
+            JobOptions.parse_module_names('a=b=c')
+
+    def test_into_the_settings(self, monkeypatch, restore_settings):
+        monkeypatch.setattr(settings.dependencies, 'modules', ['from/config'])
+        monkeypatch.setattr(settings.dependencies.atsas, 'path', Path('/opt/atsas'))
+        options = JobOptions(
+            compute_site=ComputeSite.MODULES,
+            permissions=PermissionsOptions(
+                update=settings.jobs.permissions.update,
+                files=settings.jobs.permissions.files,
+                directories=settings.jobs.permissions.directories,
+            ),
+            modules=JobOptions.parse_module_names('gcc/12,atsas=atsas/4,unknown=other/1'),
+            keep_temp=settings.jobs.keep_temp,
+        )
+        ConsoleIO().apply_job_options(options)
+        # Modules not of a known dependency replace the common ones; a dependency's replace its own, and its path
+        assert settings.dependencies.modules == ['gcc/12', 'other/1']
+        assert (settings.dependencies.atsas.modules, settings.dependencies.atsas.path) == (['atsas/4'], None)
+        assert settings.jobs.compute_site == ComputeSite.MODULES
+
+    def test_no_default(self):
+        # The default of `--modules` doesn't depend on the settings, or on which commands were imported
+        option = inspect.signature(get_job_options).parameters['modules'].default
+        assert option.default is None

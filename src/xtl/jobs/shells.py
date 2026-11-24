@@ -389,6 +389,9 @@ class BaseShell:
     module_setup: ClassVar[str] = ''
     """A line that makes the module command available, if the shell may lack it (see :meth:`get_module_command`)"""
 
+    module_command: ClassVar[str] = 'module'
+    """The name of the module command in the shell (see :meth:`get_module_command`)"""
+
     def get_path_command(self, directory: str | Path) -> str:
         """
         A line that puts a directory first on ``PATH``.
@@ -425,12 +428,13 @@ class BaseShell:
         """
         raise NotImplementedError
 
-    def get_found_report_command(self, executable: str) -> str:
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
         """
-        A line that reports whether an executable is found: ``xtl-check executable <executable> 0`` if it is, ``1``
-        otherwise.
+        A line that reports whether an executable (or a command, e.g. the module command) is found:
+        ``xtl-check <kind> <executable> 0`` if it is, ``1`` otherwise.
 
         :param executable: The name of the executable
+        :param kind: What it is, for the report: ``'executable'`` or ``'command'``
         :raises ValueError: If the name is unsafe
         """
         raise NotImplementedError
@@ -515,11 +519,12 @@ class BashShell(BaseShell):
         module = self._safe_module_name(module)
         return f"module load {module} && echo '{CHECK_MARKER} module {module} 0' || echo '{CHECK_MARKER} module {module} 1'"
 
-    def get_found_report_command(self, executable: str) -> str:
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
+        # NB: `command -v` finds shell functions too, e.g. `module`
         exe = self._safe_executable_name(executable)
         return (
-            f"command -v {exe} > /dev/null 2>&1 && echo '{CHECK_MARKER} executable {exe} 0' "
-            f"|| echo '{CHECK_MARKER} executable {exe} 1'"
+            f"command -v {exe} > /dev/null 2>&1 && echo '{CHECK_MARKER} {kind} {exe} 0' "
+            f"|| echo '{CHECK_MARKER} {kind} {exe} 1'"
         )
 
     def get_guard_command(self, executable: str) -> str:
@@ -564,9 +569,9 @@ class CmdShell(BaseShell):
         module = self._safe_module_name(module)
         return f'call module load {module} && echo {CHECK_MARKER} module {module} 0 || echo {CHECK_MARKER} module {module} 1'
 
-    def get_found_report_command(self, executable: str) -> str:
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
         exe = self._safe_executable_name(executable)
-        return f'where {exe} > nul 2>&1 && echo {CHECK_MARKER} executable {exe} 0 || echo {CHECK_MARKER} executable {exe} 1'
+        return f'where {exe} > nul 2>&1 && echo {CHECK_MARKER} {kind} {exe} 0 || echo {CHECK_MARKER} {kind} {exe} 1'
 
     def get_guard_command(self, executable: str) -> str:
         exe = self._safe_executable_name(executable)
@@ -598,6 +603,7 @@ class PowerShell(BaseShell):
     #  loading user profiles or interactive prompts.
     # NB: Environment Modules' command is `envmodule` (`module` is PowerShell's own), which the user's profile sets up
     #  with Environment Modules' init script; batch files run with the profile (see `batch_command`)
+    module_command = 'envmodule'
 
     def get_path_command(self, directory: str | Path) -> str:
         return f'$env:PATH = {self.sanitize_value(Path(directory))} + [IO.Path]::PathSeparator + $env:PATH'
@@ -612,11 +618,11 @@ class PowerShell(BaseShell):
             f"else {{ '{CHECK_MARKER} module {module} 1' }}"
         )
 
-    def get_found_report_command(self, executable: str) -> str:
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
         exe = self._safe_executable_name(executable)
         return (
-            f"if (Get-Command {exe} -ErrorAction SilentlyContinue) {{ '{CHECK_MARKER} executable {exe} 0' }} "
-            f"else {{ '{CHECK_MARKER} executable {exe} 1' }}"
+            f"if (Get-Command {exe} -ErrorAction SilentlyContinue) {{ '{CHECK_MARKER} {kind} {exe} 0' }} "
+            f"else {{ '{CHECK_MARKER} {kind} {exe} 1' }}"
         )
 
     def get_guard_command(self, executable: str) -> str:

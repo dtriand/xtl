@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 
-from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
+from xtl.cli.utilities.decorators import typer_async, attach_hook, requires
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 from xtl.cli.utilities import epilog
 from xtl.cli.utilities.io import resolve_paths_or_glob
@@ -12,7 +12,7 @@ app = typer.Typer()
 
 
 @app.command('subtract', short_help='Perform background subtractions', epilog=epilog)
-@jobs_depend_on('atsas')
+@requires('atsas')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
@@ -56,6 +56,7 @@ async def cli_saxs_subtract(
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
+    console.check_dependencies()
 
     if len(backgrounds) == 1:
         backgrounds = [backgrounds[0]] * len(datafiles)

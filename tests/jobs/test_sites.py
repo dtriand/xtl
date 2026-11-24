@@ -13,8 +13,6 @@ import pytest
 
 from tests.conftest import skipif_not_linux, skipif_not_windows
 from xtl import settings
-from xtl.cli.utilities import common
-from xtl.cli.utilities.common import JobOptions, PermissionsOptions
 from xtl.config.settings import DependencySettings
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
 from xtl.jobs.dependencies import DependencyCheck
@@ -30,7 +28,6 @@ from xtl.jobs.sites import (
     SlurmModulesSite,
     SlurmSite,
 )
-from xtl.tui.console import ConsoleIO
 from xtl_core.system.compatibility import OS_WINDOWS
 
 SLEEP_2 = 'ping -n 3 127.0.0.1 > nul' if OS_WINDOWS else 'sleep 2'
@@ -147,8 +144,7 @@ def no_checks():
 
 @pytest.fixture
 def modules(monkeypatch):
-    """Undo changes to the modules and paths in the settings and the CLI."""
-    monkeypatch.setattr(common, 'REQUIRED_DEPENDENCIES', {})
+    """Undo changes to the modules and paths in the settings."""
     monkeypatch.setattr(settings.dependencies, 'modules', [])
     monkeypatch.setattr(settings.dependencies, 'path', None)
     monkeypatch.setattr(settings.dependencies.autoproc, 'modules', [])
@@ -317,14 +313,25 @@ class TestLocalSite:
             (report('tool', missing=('helper',)), ('helper',)),
             (report('tool'), ('helper',)),  # not reported: the script stopped
             ('', ('helper', 'tool')),
-            (None, ('helper', 'tool')),  # timed out
         ],
-        ids=['not found', 'not reported', 'no output', 'timed out'],
+        ids=['not found', 'not reported', 'no output'],
     )
     def test_check_reports_what_is_missing(self, monkeypatch, output, missing):
         monkeypatch.setattr(LocalSite, '_run_script', Scripts(output))
         (check,) = LocalSite().check_dependencies(Tool(), shell=BashShell())
-        assert (check.dependency, check.found, check.missing) == ('Tool', False, missing)
+        assert (check.dependency, check.found, check.missing_executables) == ('Tool', False, missing)
+        assert check.problems() == [
+            f'executable{"s" if len(missing) > 1 else ""} {", ".join(missing)} not found (required for Tool)'
+        ]
+
+    def test_check_that_did_not_finish(self, monkeypatch):
+        monkeypatch.setattr(LocalSite, '_run_script', Scripts(None))
+        (check,) = LocalSite().check_dependencies(Tool(), shell=BashShell())
+        # Not reported as missing: it couldn't be checked
+        assert (check.found, check.missing) == (False, ())
+        assert check.problems() == [
+            'Tool could not be checked: the check in bash did not finish within 60 s, or could not start'
+        ]
 
     def test_check_keeps_what_was_printed(self, monkeypatch):
         output = ('Loading tool\n' + report('helper', 'tool'), 'a warning\n')
@@ -370,8 +377,9 @@ class TestLocalSite:
 
         monkeypatch.setattr(LocalSite, '_run_script', Scripts(lambda script: pytest.fail('ran')))
         (check,) = LocalSite().check_dependencies(Unsafe(), shell=BashShell())
-        assert (check.found, check.missing) == (False, ('tool; rm -rf x',))
-        assert 'Invalid executable name' in check.details
+        assert (check.found, check.missing) == (False, ())
+        assert check.error.startswith('Invalid executable name')
+        assert check.problems()[0].startswith('Unsafe could not be checked: Invalid executable name')
         assert 'Cannot check dependency `Unsafe`' in sites_log.text
 
     @pytest.mark.parametrize('shell', [BashShell(), CmdShell(), PowerShell()], ids=lambda s: s.name)
@@ -390,7 +398,7 @@ class TestLocalSite:
             _provides = frozenset({'xtl-tool'})
 
         (check,) = LocalSite().check_dependencies(XTLTool(), shell=shell)
-        assert (check.found, check.missing) == (False, ('xtl-tool',))
+        assert (check.found, check.missing_executables) == (False, ('xtl-tool',))
         # Only after its directory is put on PATH
         (check,) = LocalSite().check_dependencies(XTLTool(path=folder), shell=shell)
         assert check.found, check.details
@@ -709,6 +717,7 @@ class TestModulesSite:
         assert check == DependencyCheck(dependency='autoproc', found=True)
         assert scripts.scripts[0].split('\r\n') == [
             shell.shebang,
+            shell.get_found_report_command('module', kind='command'),
             'call module purge',
             shell.get_load_report_command('gcc/12'),
             shell.get_load_report_command('autoPROC/2024'),
@@ -718,38 +727,57 @@ class TestModulesSite:
         ]
 
     @pytest.mark.parametrize(
-        'output, missing',
+        'output, problems',
         [
             # A module that doesn't load, and so the executables it provides
             (
                 (
-                    report('gcc/12', kind='module')
+                    report('module', kind='command')
+                    + report('gcc/12', kind='module')
                     + report(missing=('autoPROC/2024',), kind='module')
                     + report(missing=('process', 'aP_wf_process')),
                     "ERROR: Unable to locate a modulefile for 'autoPROC/2024'\n",
                 ),
-                ('autoPROC/2024', 'aP_wf_process', 'process'),
+                [
+                    'module autoPROC/2024 not found (required for autoproc)',
+                    'executables aP_wf_process, process not found (required for autoproc)',
+                ],
+            ),
+            # A module that every job loads
+            (
+                report('module', kind='command')
+                + report(missing=('gcc/12',), kind='module')
+                + report('autoPROC/2024', kind='module')
+                + report('process', 'aP_wf_process'),
+                ['module gcc/12 not found (loaded for every job)'],
             ),
             # The modules load, but don't provide an executable
             (
-                report('gcc/12', 'autoPROC/2024', kind='module') + report('process', missing=('aP_wf_process',)),
-                ('aP_wf_process',),
+                report('module', kind='command')
+                + report('gcc/12', 'autoPROC/2024', kind='module')
+                + report('process', missing=('aP_wf_process',)),
+                ['executable aP_wf_process not found (required for autoproc)'],
             ),
             # No module command: nothing loads
             (
-                report(missing=('gcc/12', 'autoPROC/2024'), kind='module')
+                report(missing=('module',), kind='command')
+                + report(missing=('gcc/12', 'autoPROC/2024'), kind='module')
                 + report(missing=('process', 'aP_wf_process')),
-                ('gcc/12', 'autoPROC/2024', 'aP_wf_process', 'process'),
+                [
+                    'module command `module` not found (required for autoproc, to load gcc/12, autoPROC/2024)',
+                    'executables aP_wf_process, process not found (required for autoproc)',
+                ],
             ),
         ],
-        ids=['module missing', 'executable missing', 'no module command'],
+        ids=['module missing', 'common module missing', 'executable missing', 'no module command'],
     )
-    def test_check_reports_what_is_missing(self, modules, monkeypatch, output, missing):
+    def test_check_reports_what_is_missing(self, modules, monkeypatch, output, problems):
         monkeypatch.setattr(ModulesSite, '_run_script', Scripts(output))
         settings.dependencies.modules = ['gcc/12']
         settings.dependencies.autoproc.modules = ['autoPROC/2024']
         (check,) = ModulesSite().check_dependencies(['autoproc'], shell=BashShell())
-        assert (check.found, check.missing) == (False, missing)
+        assert not check.found
+        assert check.problems() == problems
 
     def test_check_keeps_the_error_of_a_module(self, modules, monkeypatch):
         error = "ERROR: Unable to locate a modulefile for 'autoPROC/2024'"
@@ -766,7 +794,8 @@ class TestModulesSite:
         monkeypatch.setattr(ModulesSite, '_run_script', Scripts(lambda script: pytest.fail('ran')))
         settings.dependencies.autoproc.modules = ['autoPROC; rm -rf x']
         (check,) = ModulesSite().check_dependencies(['autoproc'], shell=BashShell())
-        assert not check.found and 'Invalid module name' in check.details
+        assert not check.found and check.error.startswith('Invalid module name')
+        assert check.problems()[0].startswith("autoproc could not be checked: Invalid module name: 'autoPROC; rm")
 
     @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
     def test_check_with_environment_modules(self, module_tree, modules, shell):
@@ -776,12 +805,17 @@ class TestModulesSite:
         # Not without the module
         (check,) = ModulesSite().check_dependencies(XTLTool(), shell=shell)
         assert (check.found, check.missing) == (False, ('xtl-tool',))
+        assert check.problems() == ['executable xtl-tool not found (required for XTLTool)']
 
     @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
     def test_check_with_a_missing_module(self, module_tree, modules, shell):
         skip_without_module_command(shell)
         (check,) = ModulesSite().check_dependencies(XTLTool(modules=['xtltool/9.9']), shell=shell)
         assert (check.found, check.missing) == (False, ('xtltool/9.9', 'xtl-tool'))
+        assert check.problems() == [
+            'module xtltool/9.9 not found (required for XTLTool)',
+            'executable xtl-tool not found (required for XTLTool)',
+        ]
         assert "Unable to locate a modulefile for 'xtltool/9.9'" in check.details
 
     @pytest.mark.parametrize('shell', [CmdShell(), PowerShell()], ids=lambda s: s.name)
@@ -801,7 +835,11 @@ class TestModulesSite:
         if has_envmodule():
             pytest.skip("PowerShell's profile sets up Environment Modules")
         (check,) = ModulesSite().check_dependencies(XTLTool(modules=['xtltool/1.0']), shell=PowerShell())
-        assert (check.found, check.missing) == (False, ('xtltool/1.0', 'xtl-tool'))
+        assert (check.found, check.missing_command) == (False, 'envmodule')
+        assert check.problems() == [
+            'module command `envmodule` not found (required for XTLTool, to load xtltool/1.0)',
+            'executable xtl-tool not found (required for XTLTool)',
+        ]
         assert 'envmodule' in check.details
 
 
@@ -837,22 +875,3 @@ class TestSlurmSites:
         monkeypatch.setattr(LocalSite, '_run_script', scripts)
         (check,) = SlurmLocalSite().check_dependencies(['autoproc'], shell=BashShell())
         assert check.found and len(scripts.scripts) == 1
-
-
-class TestJobOptions:
-    def test_cli_modules_go_to_the_settings(self, modules):
-        settings.dependencies.modules = ['from/config']
-        options = JobOptions(
-            compute_site=ComputeSite(settings.jobs.compute_site),
-            permissions=PermissionsOptions(
-                update=settings.jobs.permissions.update,
-                files=settings.jobs.permissions.files,
-                directories=settings.jobs.permissions.directories,
-            ),
-            modules=JobOptions.parse_module_names('gcc/12,autoproc=autoPROC/2024,unknown=other/1'),
-            keep_temp=settings.jobs.keep_temp,
-        )
-        ConsoleIO().apply_job_options(options)
-        # Modules not of a known dependency replace the common ones; a dependency's replace its own
-        assert settings.dependencies.modules == ['gcc/12', 'other/1']
-        assert settings.dependencies.autoproc.modules == ['autoPROC/2024']

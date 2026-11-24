@@ -192,3 +192,38 @@ latest log lines on the console:
 It has the same ``submit()``, ``launch()`` and shared-state methods. In addition, every job writes ``xtl.log`` in its
 job directory (unless ``cli.job_log_files = false`` in ``xtl.toml``), and if a job fails, it offers to print all the
 jobs' logs once the pool has exited.
+
+A command line tool declares the external programs its jobs need with ``@requires``, and checks them once, before it
+starts any jobs, with ``console.check_dependencies()``; its pools and jobs then find the outcome and don't check again.
+If one is missing, the tool prints what's missing (and what the check printed, with ``-v``) and exits with code 1:
+
+.. code-block:: python
+
+    from xtl.cli.utilities.decorators import attach_hook, requires, typer_async
+
+
+    @app.command('compare')
+    @requires('atsas')
+    @attach_hook(func=get_console_options, hook_output='console_options')
+    @attach_hook(func=get_job_options, hook_output='job_options')
+    @typer_async
+    async def cli_saxs_compare(..., job_options: JobOptions = typer.Option(), console_options: ...):
+        console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
+        console.apply_job_options(job_options)  # --compute-site and --modules, into the settings
+        console.check_dependencies()            # after the options, which may change where they're found
+        async with console.get_pool('async', max_jobs=4) as pool:
+            ...
+
+Each problem gets a line of its own, which says what is missing and what needs it, *e.g.*:
+
+.. code-block:: text
+
+    Missing dependencies:
+    - module atsas/9.9 not found (required for atsas)
+    - executables datcmp, datop not found (required for atsas)
+    Run with -v to see what the checks printed.
+
+Other lines read ``module command `envmodule` not found (required for atsas, to load atsas/4.1.3)``, ``module gcc/12
+not found (loaded for every job)``, ``atsas could not be checked: <reason>`` (*e.g.* the check didn't finish, or an
+unsafe module name) or ``unknown dependency <name>``. A job's :class:`~xtl.jobs.exceptions.DependencyError` uses the
+same lines.

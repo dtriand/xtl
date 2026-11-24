@@ -1,4 +1,5 @@
 import asyncio
+from contextvars import ContextVar
 from functools import wraps
 import inspect
 import logging
@@ -6,8 +7,7 @@ import typing
 from typing import Any, Callable, TypeVar
 from typing_extensions import Concatenate, ParamSpec
 
-from xtl import settings
-import xtl.cli.utilities.common
+from xtl.jobs.dependencies import unknown_dependencies
 
 logger = logging.getLogger(__name__)
 
@@ -150,27 +150,46 @@ def attach_hook(func: Callable[ParamsHook, RHook], hook_output: str = None) -> C
     return decorator
 
 
-def jobs_depend_on(*dependencies: str):
-    if len(dependencies) == 0:
-        raise ValueError('Job dependencies cannot be empty')
-    if dependencies:
-        for dep in dependencies:
-            if dep in settings.dependencies:
-                if dep not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES:
-                    xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep] = []
-                modules = settings.dependencies.get(dep).modules
-                for module in modules:
-                    if module not in xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep]:
-                        xtl.cli.utilities.common.REQUIRED_DEPENDENCIES[dep].append(module)
-                        xtl.cli.utilities.common.REQUIRED_MODULES.append(module)
-            else:
-                logger.warning('Dependency %s is not defined in xtl.settings.dependencies', dep)
+CLI_DEPENDENCIES: ContextVar[tuple[str, ...]] = ContextVar('CLI_DEPENDENCIES', default=())
+"""The dependencies of the command that runs, as declared with :func:`requires`."""
+
+
+def requires(*dependencies: str):
+    """
+    Declare the external programs that a command needs, by their names in ``settings.dependencies``. While the
+    command runs, :meth:`ConsoleIO.check_dependencies() <xtl.tui.console.ConsoleIO.check_dependencies>` checks them;
+    the command calls it once, before it starts any jobs.
+
+    .. code-block:: python
+
+        @app.command('compare')
+        @requires('atsas')
+        @attach_hook(func=get_console_options, hook_output='console_options')
+        @typer_async
+        async def cli_saxs_compare(...):
+            console = ConsoleIO(...)
+            console.check_dependencies()
+
+    :param dependencies: Names of dependencies.
+    :raises ValueError: If no name is given, or a name isn't in ``settings.dependencies``.
+    """
+    if not dependencies:
+        raise ValueError('`requires()` needs at least one dependency')
+    if unknown := unknown_dependencies(dependencies):
+        raise ValueError(f'Unknown dependencies: {", ".join(unknown)} (not in `settings.dependencies`)')
+    names = tuple(dict.fromkeys(dependencies))
 
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
+            # NB: A context variable, so that commands don't share it; the event loop of `typer_async` gets a copy
+            token = CLI_DEPENDENCIES.set(names)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                CLI_DEPENDENCIES.reset(token)
 
+        wrapper.dependencies = names
         return wrapper
 
     return decorator

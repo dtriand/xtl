@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 
-from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
+from xtl.cli.utilities.decorators import typer_async, attach_hook, requires
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 from xtl.cli.utilities import epilog
 
@@ -11,7 +11,7 @@ app = typer.Typer()
 
 
 @app.command('compare', short_help='Compare two or more datasets', epilog=epilog)
-@jobs_depend_on('atsas')
+@requires('atsas')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
@@ -42,6 +42,7 @@ async def cli_saxs_compare(
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
+    console.check_dependencies()
 
     job_directory = Path(tempfile.mkdtemp(prefix='xtl_saxs_compare_'))
     config = SAXSCompareJobConfig(

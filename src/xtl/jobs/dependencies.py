@@ -44,11 +44,57 @@ class DependencyCheck:
     found: bool
     """Whether everything the dependency provides was found"""
 
-    missing: tuple[str, ...] = ()
-    """What wasn't found: modules that didn't load, executables that weren't there"""
+    missing_executables: tuple[str, ...] = ()
+    """Executables of the dependency that weren't found after the setup"""
+
+    missing_modules: tuple[str, ...] = ()
+    """Modules that didn't load: the dependency's, or those that every job loads"""
+
+    missing_command: str = ''
+    """The module command (e.g. ``envmodule``), if the shell doesn't have it"""
+
+    error: str = ''
+    """Why the dependency couldn't be checked, e.g. the check didn't finish, or an unsafe module name"""
 
     details: str = ''
     """What the check printed, to show how it looked"""
+
+    @property
+    def missing(self) -> tuple[str, ...]:
+        """Everything that wasn't found: the module command, modules, executables"""
+        command = (self.missing_command,) if self.missing_command else ()
+        return command + self.missing_modules + self.missing_executables
+
+    def problems(self) -> list[str]:
+        """
+        What went wrong, one line each, e.g. ``module atsas/9.9 not found (required for atsas)``; empty if the
+        dependency was found.
+        """
+        if self.found:
+            return []
+        name = self.dependency
+        if self.error:
+            return [f'{name} could not be checked: {self.error}']
+        lines = []
+        if self.missing_command:
+            modules = ', '.join(self.missing_modules)
+            lines.append(
+                f'module command `{self.missing_command}` not found (required for {name}'
+                + (f', to load {modules})' if modules else ')')
+            )
+        else:
+            from xtl import settings
+
+            dependency = settings.dependencies.get(name)
+            own = set(dependency.modules) if dependency is not None else set()
+            common = set(settings.dependencies.modules)
+            for module in self.missing_modules:
+                needed = 'loaded for every job' if module in common and module not in own else f'required for {name}'
+                lines.append(f'module {module} not found ({needed})')
+        if self.missing_executables:
+            s = 's' if len(self.missing_executables) > 1 else ''
+            lines.append(f'executable{s} {", ".join(self.missing_executables)} not found (required for {name})')
+        return lines or [f'{name} not found']
 
     def to_dict(self) -> dict[str, Any]:
         """
@@ -57,7 +103,10 @@ class DependencyCheck:
         return {
             'dependency': self.dependency,
             'found': self.found,
-            'missing': list(self.missing),
+            'missing_executables': list(self.missing_executables),
+            'missing_modules': list(self.missing_modules),
+            'missing_command': self.missing_command,
+            'error': self.error,
             'details': self.details,
         }
 
@@ -71,7 +120,10 @@ class DependencyCheck:
         return cls(
             dependency=data['dependency'],
             found=data['found'],
-            missing=tuple(data.get('missing', ())),
+            missing_executables=tuple(data.get('missing_executables', ())),
+            missing_modules=tuple(data.get('missing_modules', ())),
+            missing_command=data.get('missing_command', ''),
+            error=data.get('error', ''),
             details=data.get('details', ''),
         )
 
@@ -218,9 +270,9 @@ def ensure_dependencies(
         return
     lines = [
         f'Missing dependenc{"y" if len(missing) == 1 else "ies"} on {type(site).__name__} in {shell.name}:',
-        *(f'- {check.dependency}: {", ".join(check.missing) or "not found"}' for check in missing),
+        *(f'- {problem}' for check in missing for problem in check.problems()),
     ]
-    details = '\n'.join(check.details for check in missing if check.details)
-    if details:
-        lines += ['What the check printed:', details]
+    for check in missing:
+        if check.details:
+            lines += [f'What the check of {check.dependency} printed:', check.details]
     raise DependencyError('\n'.join(lines), dependencies=tuple(check.dependency for check in missing))
