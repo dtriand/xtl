@@ -21,7 +21,8 @@ from xtl.jobs.shells import Shell
 from xtl.jobs.policies import CommandPolicy
 from xtl_core.version import VersionInfo
 from xtl.shared.environment import XTL_CONFIG
-from xtl_core.system.os import FilePermissions, CPU_CORES
+from xtl_core.system.os import CPU_CORES
+from xtl_core.system.os.permissions import FilePermissions
 from xtl_core.options import Option, Options
 from xtl_core.options.serializers import PermissionOctal
 from xtl_core.options.validators import CastAsNoneIfEmpty, CastAsPathOrNone

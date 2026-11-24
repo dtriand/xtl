@@ -12,3 +12,4 @@ Submodules
 
    xtl_core.system.compatibility
    xtl_core.system.environment
+   xtl_core.system.os

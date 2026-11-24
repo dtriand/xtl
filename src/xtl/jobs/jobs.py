@@ -43,7 +43,7 @@ from xtl_core.system.compatibility import OS_POSIX
 from xtl_core.utils.imports import import_object, import_path
 from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
-from xtl_core.system.os import chmod_recursively
+from xtl_core.system.os.permissions import chmod_recursively
 from xtl.jobs.exceptions import SubprocessError
 from xtl.jobs.batchfiles import BatchFileStatus
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig

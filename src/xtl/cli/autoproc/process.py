@@ -18,7 +18,8 @@ from xtl.cli.autoproc.cli_utils import stringify
 from xtl.cli.cliio import Console, epilog
 from xtl.cli.utils import Catcher, typer_async, parser_permissions
 import xtl.cli.autoproc.cli_utils as apu
-from xtl_core.system.os import get_permissions_in_decimal, FilePermissions, get_username
+from xtl_core.system.os import get_username
+from xtl_core.system.os.permissions import get_permissions_in_decimal, FilePermissions
 from xtl.diffraction.automate.autoproc import AutoPROCJob
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig
 from xtl.diffraction.images.datasets import DiffractionDataset

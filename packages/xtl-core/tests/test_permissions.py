@@ -1,6 +1,14 @@
 import pytest
 
-from xtl_core.system.os import get_permissions_in_decimal, FilePermissionsBit, FilePermissions
+from xtl_core.system import os as xtl_os
+from xtl_core.system.os import permissions
+from xtl_core.system.os.permissions import get_permissions_in_decimal, FilePermissionsBit, FilePermissions
+
+
+@pytest.mark.parametrize('name', permissions.__all__)
+def test_reexported_from_os(name):
+    assert getattr(xtl_os, name) is getattr(permissions, name)
+    assert name in xtl_os.__all__
 
 
 class TestPermissions:

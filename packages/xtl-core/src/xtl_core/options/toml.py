@@ -4,7 +4,7 @@ from types import NoneType
 
 import toml
 
-from xtl_core.system.os import FilePermissions
+from xtl_core.system.os.permissions import FilePermissions
 
 
 class ExtendedTomlEncoder(toml.TomlPreserveCommentEncoder):

@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import atexit
+import builtins
 import importlib
 import inspect
 import os
@@ -10,6 +11,8 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+
+from sphinx import addnodes
 
 sys.path.insert(0, os.path.abspath('.'))  # for custom lexers and extensions
 sys.path.insert(0, os.path.abspath('../../src'))  # for xtl
@@ -107,13 +110,29 @@ html_css_files = [
 ]
 
 
+_BUILTIN_TYPES = {name for name, obj in vars(builtins).items() if isinstance(obj, type)}
+
+
+def _link_builtins_to_python(app, doctree):
+    """
+    Link builtin types in annotations (e.g. ``tuple``) to Python's docs. Sphinx otherwise
+    looks for them among our objects too, and finds members of the same name (e.g.
+    ``FilePermissions.tuple``).
+    """
+    for node in doctree.findall(addnodes.pending_xref):
+        if node.get('refdomain') == 'py' and node.get('reftype') == 'class' and node['reftarget'] in _BUILTIN_TYPES:
+            for attribute in ('refspecific', 'py:module', 'py:class'):
+                node.attributes.pop(attribute, None)
+
+
 def setup(sphinx):
     """
-    Register custom lexers
+    Register custom lexers, and link builtin types to Python's docs
     """
     import lexers
 
     sphinx.add_lexer('csv', lexers.CsvLexer)
+    sphinx.connect('doctree-read', _link_builtins_to_python)
 
 
 # -- Options for linkcode extension ----------------------------------------

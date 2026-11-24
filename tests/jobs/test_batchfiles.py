@@ -12,7 +12,7 @@ from xtl.jobs.config import BatchJobConfig
 from xtl.jobs.policies import NiceCommandPolicy
 from xtl.jobs.shells import BashShell, CmdShell, DefaultShell, PowerShell, Shell
 from xtl.jobs.sites import LocalSite
-from xtl_core.system.os import FilePermissions
+from xtl_core.system.os.permissions import FilePermissions
 from xtl_core.system.compatibility import OS_WINDOWS
 
 

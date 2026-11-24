@@ -9,7 +9,7 @@ from pydantic import computed_field, field_serializer, field_validator
 
 from xtl import settings
 from xtl_core.options import Option, Options
-from xtl_core.system.os import FilePermissions
+from xtl_core.system.os.permissions import FilePermissions
 from xtl_core.options.serializers import PermissionOctal
 from xtl_core.options.validators import cast_as_temp_dir_if_none
 from xtl.jobs.shells import Shell

@@ -14,7 +14,7 @@ from xtl.jobs.policies import CommandPolicy
 from xtl.jobs.resources import Resources
 from xtl.jobs.shells import BashShell, DefaultShell, PowerShell, Shell
 from xtl.jobs.sites import ComputeSite, LocalSite, ModulesSite
-from xtl_core.system.os import FilePermissions
+from xtl_core.system.os.permissions import FilePermissions
 
 SYSTEM_SHELL = Shell(DefaultShell().name)
 

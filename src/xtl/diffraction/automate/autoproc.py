@@ -15,7 +15,8 @@ from xtl.automate.batchfile import BatchFile
 from xtl.automate.shells import Shell, BashShell
 from xtl.automate.sites import ComputeSite
 from xtl.automate.jobs import Job, limited_concurrency
-from xtl_core.system.os import get_os_name_and_version, chmod_recursively, get_username
+from xtl_core.system.os import get_os_name_and_version, get_username
+from xtl_core.system.os.permissions import chmod_recursively
 from xtl.diffraction.images.datasets import DiffractionDataset
 from xtl.diffraction.automate.autoproc_utils import AutoPROCConfig, AutoPROCJobResults
 from xtl.cli.utils import Catcher
