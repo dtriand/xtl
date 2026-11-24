@@ -21,7 +21,7 @@ class ConsoleIO(rich.console.Console):
 
     def apply_job_options(self, options: 'JobOptions') -> None:
         """
-        Update job related options globally and report the settings used.
+        Update job related options globally and report the settings used, with ``-v``.
 
         :param options: Job options overrides.
         """
@@ -79,8 +79,9 @@ class ConsoleIO(rich.console.Console):
         :meth:`apply_job_options`, which may change the compute site and modules. Nothing is checked if
         ``settings.dependencies.check`` is off.
 
-        If a dependency is missing, prints what is missing (and what the check printed, with ``-v``) and exits with
-        code 1.
+        While a dependency is checked, a transient line says where and how (site, shell, modules or path). If a
+        dependency is missing, these lines stay, followed by what is missing (and what the check printed, with
+        ``-v``), and it exits with code 1.
 
         :param dependencies: Names of dependencies (default: those the command declares with
             :func:`~xtl.cli.utilities.decorators.requires`).
@@ -90,7 +91,7 @@ class ConsoleIO(rich.console.Console):
 
         from xtl import settings
         from xtl.cli.utilities.decorators import CLI_DEPENDENCIES
-        from xtl.jobs.dependencies import select_site_and_shell, unknown_dependencies
+        from xtl.jobs.dependencies import describe_setup, select_site_and_shell, unknown_dependencies
         from xtl.jobs.exceptions import DependencyError
 
         names = tuple(dependencies) if dependencies is not None else CLI_DEPENDENCIES.get()
@@ -102,23 +103,34 @@ class ConsoleIO(rich.console.Console):
             f'unknown dependency {name} (not in the [dependencies] of xtl.toml)' for name in unknown_dependencies(names)
         ]
         details: list[tuple[str, str]] = []
+        # Where and how each dependency is checked, shown while it runs and kept only if a dependency is missing
+        checked: list[str] = []
         for name in (name for name in names if name in settings.dependencies):
             try:
                 site, shell = select_site_and_shell([name])
             except (DependencyError, ValueError) as error:
                 problems.append(f'{name} could not be checked: {error}')
                 continue
-            if self.verbose >= 1:
-                self.print(
-                    f'Checking dependency: [dim]{name} ({type(site).__name__}, {shell.name})[/]', highlight=False
-                )
-            for check in site.check_dependencies([name], shell=shell):
-                problems.extend(check.problems())
-                if not check.found and check.details:
-                    details.append((f'{name} ({type(site).__name__}, {shell.name})', check.details))
+            setup = describe_setup(settings.dependencies.get(name), site)
+            checked.append(
+                f'Checking dependency: [dim]{name} ({type(site).__name__}, {shell.name}, {escape(setup)})[/]'
+            )
+            with self.status(checked[-1]):
+                for check in site.check_dependencies([name], shell=shell):
+                    problems.extend(check.problems())
+                    if not check.found and check.details:
+                        details.append((f'{name} ({type(site).__name__}, {shell.name})', check.details))
 
         if not problems:
             return
+        for line in checked:
+            self.print(line, highlight=False)
+        common = [
+            *([f'path {settings.dependencies.path}'] if settings.dependencies.path is not None else []),
+            *([f'modules {", ".join(settings.dependencies.modules)}'] if settings.dependencies.modules else []),
+        ]
+        if checked and common:
+            self.print(f'Set up for every job: [dim]{escape("; ".join(common))}[/]', highlight=False)
         self.print('Missing dependencies:', style='bold red')
         for problem in problems:
             self.print(f'- {escape(problem)}', style='red', highlight=False)

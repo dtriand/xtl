@@ -22,7 +22,13 @@ from xtl.cli.utilities.common import (
 from xtl.cli.utilities.decorators import CLI_DEPENDENCIES, attach_hook, requires, typer_async
 from xtl.config.settings import AtsasSettings, XTLSettings
 from xtl.jobs.config import BatchJobConfig, JobConfig, SteppedJobConfig
-from xtl.jobs.dependencies import DependencyCheck, dependency_name, site_key, unknown_dependencies
+from xtl.jobs.dependencies import (
+    DependencyCheck,
+    dependency_name,
+    describe_setup,
+    site_key,
+    unknown_dependencies,
+)
 from xtl.jobs.exceptions import DependencyError
 from xtl.jobs.jobs import BatchJob, Job, SteppedJob
 from xtl.jobs.pools import AsyncPool
@@ -93,6 +99,16 @@ class TestNames:
         assert dependency_name(settings.dependencies.atsas) == 'atsas'
         # Not in the settings: the class name
         assert dependency_name(AtsasSettings()) == 'AtsasSettings'
+
+    def test_describe_setup(self, monkeypatch):
+        atsas = settings.dependencies.atsas
+        assert describe_setup(atsas, LocalSite()) == 'PATH'
+        monkeypatch.setattr(atsas, 'path', Path('/opt/atsas'))
+        assert describe_setup(atsas, ModulesSite()) == f'path {Path("/opt/atsas")}'
+        monkeypatch.setattr(atsas, 'path', None)
+        monkeypatch.setattr(atsas, 'modules', ['atsas/4', 'x/1'])
+        assert describe_setup(atsas, ModulesSite()) == 'modules atsas/4, x/1'
+        assert describe_setup(atsas, LocalSite()) == 'PATH (modules not loaded on this site)'
 
     def test_unknown_dependencies(self):
         assert unknown_dependencies([]) == []
@@ -521,12 +537,31 @@ class TestCommandLine:
         assert 'success: True' in result.output
         # The command's check; the pool and the job found its outcome
         assert len(scripts.scripts) == 1
+        # Shown only while it ran
+        assert 'Checking dependency' not in result.output
+
+    def test_found_with_details(self, tmp_path, monkeypatch, fake_atsas, restore_settings):
+        checks(monkeypatch, found=True)
+        result = run('--root', str(tmp_path), '-v')
+        assert result.exit_code == 0, result.output
+        assert 'Checking dependency' not in result.output
+        # The job settings, with -v
+        assert 'Using compute site: local' in result.output
+
+    def test_common_setup_kept(self, tmp_path, monkeypatch, restore_settings):
+        checks(monkeypatch, found=False)
+        monkeypatch.setattr(settings.dependencies, 'modules', ['gcc/12'])
+        result = run('--root', str(tmp_path))
+        assert result.exit_code == 1
+        assert 'Set up for every job: modules gcc/12' in result.output
 
     def test_missing_exits(self, tmp_path, monkeypatch, restore_settings):
         checks(monkeypatch, found=False)
         result = run('--root', str(tmp_path))
         assert result.exit_code == 1
         assert 'Missing dependencies' in result.output
+        # Where and how it was checked, kept since it failed
+        assert f'Checking dependency: atsas (LocalSite, {SYSTEM_SHELL.value}, PATH)' in result.output
         assert '- executables datcmp, datop not found (required for atsas)' in result.output
         assert 'not here' not in result.output
         assert 'Run with -v to see what the checks printed' in result.output

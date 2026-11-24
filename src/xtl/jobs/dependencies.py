@@ -25,6 +25,7 @@ __all__ = [
     'dependency_name',
     'unknown_dependencies',
     'site_key',
+    'describe_setup',
     'select_site_and_shell',
     'ensure_dependencies',
 ]
@@ -162,6 +163,25 @@ def site_key(site: Any) -> str:
     shells = ','.join(sorted(str(shell) for shell in site.supported_shells))
     policy = type(site.policy).__name__ if site.policy is not None else ''
     return f'{type(site).__qualname__}[{shells}][{policy}]'
+
+
+def describe_setup(dependency: DependencySettings, site: ComputeSiteType) -> str:
+    """
+    How a compute site sets up a dependency, in a few words: its modules (on a modules site), its directory, or
+    neither (found on ``PATH``), e.g. ``'modules atsas/4.1.3'``.
+
+    :param dependency: The settings of the dependency.
+    :param site: The compute site.
+    """
+    from xtl.jobs.sites import ModulesSite
+
+    if dependency.modules:
+        if isinstance(site, ModulesSite):
+            return f'modules {", ".join(dependency.modules)}'
+        return 'PATH (modules not loaded on this site)'
+    if dependency.path is not None:
+        return f'path {dependency.path}'
+    return 'PATH'
 
 
 def _agreed(dependencies: list[DependencySettings], field: str) -> Any:

@@ -10,19 +10,6 @@ from xtl.jobs.sites import ComputeSite
 app = typer.Typer()
 
 
-def _setup(dependency, site) -> str:
-    """How a site sets up a dependency: its modules (on a modules site), its directory, or neither (found on ``PATH``)."""
-    from xtl.jobs.sites import ModulesSite
-
-    if dependency.modules:
-        if isinstance(site, ModulesSite):
-            return f'modules {", ".join(dependency.modules)}'
-        return 'PATH (modules not loaded on this site)'
-    if dependency.path is not None:
-        return f'path {dependency.path}'
-    return 'PATH'
-
-
 @app.command(name='deps', short_help='Check the shells and dependencies that jobs run with', epilog=epilog)
 def cli_config_deps(
     names: Optional[list[str]] = typer.Argument(
@@ -47,7 +34,7 @@ def cli_config_deps(
     from rich.table import Table
 
     from xtl import settings
-    from xtl.jobs.dependencies import select_site_and_shell, unknown_dependencies
+    from xtl.jobs.dependencies import describe_setup, select_site_and_shell, unknown_dependencies
     from xtl.jobs.exceptions import DependencyError
     from xtl.jobs.shells import DefaultShell
 
@@ -101,7 +88,7 @@ def cli_config_deps(
         if not check.found and check.details:
             details.append((f'{name} ({site_name}, {chosen.name})', check.details))
         found = '[green]Yes[/]' if check.found else '[yellow]Not checked[/]' if check.error else '[red]No[/]'
-        table.add_row(name, str(site_name), chosen.name, escape(_setup(dependency, site)), found)
+        table.add_row(name, str(site_name), chosen.name, escape(describe_setup(dependency, site)), found)
 
     if table.rows:
         console.print(table)
