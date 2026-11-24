@@ -232,8 +232,15 @@ class TestFilePermissions:
             (0o644, 0o644),
             (0o010, 0o010),
             (0o776, 0o776),
+            (0o777, 0o777),
+            # A lone int is always the whole mode, small ones too
+            (0o000, 0o000),
+            (0o005, 0o005),
+            (0o007, 0o007),
             ('750', 0o750),
             ('000', 0o000),
+            ('0750', 0o750),
+            ('0000', 0o000),
             ('0o750', 0o750),
             ('0o777', 0o777),
             ('rwxr-x---', 0o750),
@@ -249,23 +256,54 @@ class TestFilePermissions:
     def test_one_value(self, value, expected):
         assert FilePermissions(value).decimal == expected
 
-    @pytest.mark.xfail(strict=True, reason='the range check excludes 0o777')
-    def test_777(self):
-        assert FilePermissions(0o777).decimal == 0o777
+    def test_owner_keyword_alone(self):
+        # Can't be told apart from a single positional value
+        assert FilePermissions(owner=7).decimal == 0o007
+        assert FilePermissions(7, 0, 0).decimal == 0o700
 
-    @pytest.mark.xfail(strict=True, reason='a lone int up to 7 is read as the owner digit')
-    @pytest.mark.parametrize('value', [0o1, 0o5, 0o7])
-    def test_lone_small_int(self, value):
-        assert FilePermissions(value).decimal == value
-
-    @pytest.mark.xfail(strict=True, reason='4-digit octal strings are rejected')
-    def test_leading_zero(self):
-        assert FilePermissions('0755').decimal == 0o755
-
-    @pytest.mark.parametrize('value', [0o1000, -0o10, '999', 'rwxr-x', 'rwxr-x---x', 'rwzr-x---', 'abc'])
+    @pytest.mark.parametrize(
+        'value',
+        [
+            0o1000,
+            -0o10,
+            '999',
+            '7',
+            '75',
+            '07',
+            '0o75',
+            '0o0750',
+            '00750',
+            'rwxr-x',
+            'rwxr-x---x',
+            'rwzr-x---',
+            'zrwxr-x---',
+            'Drwxr-x---',
+            'abc',
+            # What `isnumeric()` or `int(s, 8)` would accept
+            '７５０',  # Fullwidth digits
+            ' 750',
+            '750\n',
+            '7_50',
+            '0O750',
+            # What a pattern ending in `$` would accept
+            'rwxr-x---\n',
+        ],
+    )
     def test_one_value_invalid(self, value):
         with pytest.raises(ValueError):
             FilePermissions(value)
+
+    def test_one_value_bool(self):
+        with pytest.raises(TypeError):
+            FilePermissions(True)
+
+    @pytest.mark.parametrize('value', [0o750, '750', '0o750', 'rwxr-x---', FilePermissions(0o750)])
+    def test_whole_with_parts(self, value):
+        # Permissions as a whole in `owner` are an error when other parts are given
+        with pytest.raises((ValueError, TypeError), match="'owner' must be"):
+            FilePermissions(value, 'rwx', 'rwx')
+        with pytest.raises((ValueError, TypeError), match="'owner' must be"):
+            FilePermissions(value, group=0)
 
     @pytest.mark.parametrize(
         'parts, expected',
@@ -307,6 +345,21 @@ class TestFilePermissions:
         assert q.string == 'drwxr-x---'
         assert q.file_type is FileType.DIRECTORY
 
+    def test_copies_permissions(self):
+        p = FilePermissions(0o750)
+        q = FilePermissions(p)
+        q.owner.can_write = False
+        assert p.decimal == 0o750
+        assert q.decimal == 0o550
+
+    def test_copies_bits(self):
+        bit = FilePermissionsBit(7)
+        p = FilePermissions(bit, 0, 0)
+        assert p.owner == bit
+        assert p.owner is not bit
+        bit.can_read = False
+        assert p.decimal == 0o700
+
     @pytest.mark.parametrize(
         'file_type, expected', [('d', FileType.DIRECTORY), ('-', FileType.FILE), (FileType.FIFO, FileType.FIFO)]
     )
@@ -320,16 +373,31 @@ class TestFilePermissions:
         assert FilePermissions('lrwxrwxrwx').file_type is FileType.SYMLINK
         assert FilePermissions('rw-r-----').file_type is None
 
-    def test_file_type_invalid(self):
-        with pytest.raises(TypeError):
-            FilePermissions(0o750, file_type='z')
-        with pytest.raises(TypeError):
+    def test_file_type_from_permissions(self):
+        assert FilePermissions(FilePermissions(0o750), file_type='d').file_type is FileType.DIRECTORY
+        assert FilePermissions(FilePermissions('drwxr-x---')).file_type is FileType.DIRECTORY
+
+    @pytest.mark.parametrize('value', ['z', 'D', 'dd', '', 'd' * 10**6])
+    def test_file_type_invalid(self, value):
+        with pytest.raises(ValueError, match="'file_type' must be one of '-', 'd'") as e:
+            FilePermissions(0o750, file_type=value)
+        assert len(str(e.value)) < 200
+
+    def test_file_type_invalid_type(self):
+        with pytest.raises(TypeError, match="'file_type' must be a str or FileType, not int"):
             FilePermissions(0o750, file_type=4)
 
-    @pytest.mark.xfail(strict=True, reason="the error names the enum's metaclass")
-    def test_file_type_invalid_message(self):
-        with pytest.raises(TypeError, match='FileType'):
-            FilePermissions(0o750, file_type=4)
+    @pytest.mark.parametrize(
+        'value, file_type',
+        [('drwxr-x---', '-'), ('drwxr-x---', FileType.FILE), (FilePermissions('drwxr-x---'), 'l')],
+    )
+    def test_file_type_conflict(self, value, file_type):
+        with pytest.raises(ValueError, match="'file_type' is '.', but the permissions give 'd'"):
+            FilePermissions(value, file_type=file_type)
+
+    def test_file_type_agrees(self):
+        assert FilePermissions('drwxr-x---', file_type='d').file_type is FileType.DIRECTORY
+        assert FilePermissions('rwxr-x---', file_type='d').file_type is FileType.DIRECTORY
 
     @pytest.mark.parametrize(
         'value, octal, string',
@@ -395,15 +463,7 @@ class TestFromPath:
     @posix_only
     @pytest.mark.parametrize(
         'value',
-        [
-            0o640,
-            0o600,
-            0o755,
-            *(
-                pytest.param(v, marks=pytest.mark.xfail(strict=True, reason='the mode is split by its octal digits'))
-                for v in (0o000, 0o077, 0o055)
-            ),
-        ],
+        [0o640, 0o600, 0o755, 0o000, 0o077, 0o055],
     )
     def test_file(self, tmp_path, value):
         f = tmp_path / 'file'
@@ -465,7 +525,6 @@ class TestGetPermissionsInDecimal:
         with pytest.raises(TypeError):
             get_permissions_in_decimal(value)
 
-    @pytest.mark.xfail(strict=True, reason="the error names `type`, FilePermissions' metaclass")
     def test_invalid_type_message(self):
         with pytest.raises(TypeError, match='FilePermissions'):
             get_permissions_in_decimal(755.0)

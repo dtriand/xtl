@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import re
-from types import NoneType
+import stat
 from typing import Optional
 
 from xtl_core.system.compatibility.py310 import StrEnum
@@ -30,17 +30,6 @@ class FileType(StrEnum):
     FIFO = 'p'
 
 
-_file_type_mappings: dict[str, FileType] = {
-    '-': FileType.FILE,
-    'd': FileType.DIRECTORY,
-    'l': FileType.SYMLINK,
-    'c': FileType.CHARACTER_DEVICE,
-    'b': FileType.BLOCK_DEVICE,
-    's': FileType.SOCKET,
-    'p': FileType.FIFO,
-}
-"""Mappings of POSIX file types to the respective `FileType` enum"""
-
 _BITS: tuple[tuple[str, int], ...] = (('r', 0o4), ('w', 0o2), ('x', 0o1))
 """Letter and value of each permission bit, in the order they are written"""
 
@@ -53,10 +42,22 @@ _BIT_OCTAL = re.compile(r'0o([0-7])')
 _BIT_SYMBOLIC = re.compile(r'[r-][w-][x-]|r?w?x?|-')
 """Canonical (`'r-x'`) or short (`'rx'`, `''`, `'-'`) permission letters"""
 
+_MODE_MAX_LENGTH = 10
+"""Longest permission string for owner, group and other, e.g. `'drwxr-x---'`"""
+
+_MODE_OCTAL = re.compile(r'(?:0o|0)?([0-7]{3})')
+"""Three octal digits, optionally with a prefix, e.g. `'750'`, `'0750'` or `'0o750'`"""
+
+_MODE_SYMBOLIC = re.compile(
+    rf'([{re.escape("".join(t.value for t in FileType))}])?([r-][w-][x-])([r-][w-][x-])([r-][w-][x-])'
+)
+"""Canonical permission letters, optionally with the file type, e.g. `'drwxr-x---'`"""
+
 # NB: The patterns are only used with `fullmatch()`, on strings no longer than
-#  `_BIT_MAX_LENGTH`: no trailing newline slips through (as with `$`), and the
-#  matching time is bounded whatever the input. They are also stricter than
-#  `int(s, 8)`, which accepts whitespace, underscores and non-ASCII digits.
+#  `_BIT_MAX_LENGTH` or `_MODE_MAX_LENGTH`: no trailing newline slips through (as
+#  with `$`), and the matching time is bounded whatever the input. They are also
+#  stricter than `int(s, 8)` and `str.isnumeric()`, which accept whitespace,
+#  underscores and non-ASCII digits.
 
 
 def _shorten(value: object, limit: int = 30) -> str:
@@ -223,73 +224,99 @@ class FilePermissionsBit:
 class FilePermissions:
     """
     Representation of POSIX file permissions for owner, group, and other.
+
+    Created from the three parts, each as for :class:`FilePermissionsBit` (e.g.
+    ``FilePermissions(7, 'r-x', 0)``), or from a single value for all of them: an int
+    (``0o750``), three octal digits (``'750'``, ``'0750'`` or ``'0o750'``), canonical
+    letters with or without the file type (``'rwxr-x---'``, ``'drwxr-x---'``) or another
+    ``FilePermissions``. A single value that is none of these is the owner's part
+    (``'rwx'`` is ``0o700``). The parts are always copies: changing a
+    :class:`FilePermissionsBit` passed in doesn't change the permissions.
     """
 
-    owner: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
-    group: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
-    other: int | str | FilePermissionsBit = field(default_factory=lambda: FilePermissionsBit(0o0))
+    owner: int | str | FilePermissionsBit | None = None
+    group: int | str | FilePermissionsBit | None = None
+    other: int | str | FilePermissionsBit | None = None
     file_type: Optional[str | FileType] = field(default=None, compare=False)
 
     def __post_init__(self):
-        # Check if a single value is provided that contains all permissions
-        value = getattr(self, 'owner')
-        if isinstance(value, FilePermissions):
-            self.owner = value.owner
-            self.group = value.group
-            self.other = value.other
-            self.file_type = value.file_type
-        elif isinstance(value, int):
-            if value <= 0o7:
-                # Single digit octal
-                pass
-            elif 0o7 < value < 0o777:
-                self.owner, self.group, self.other = self._split_octal(value)
-            else:
-                raise ValueError(f'Permissions must be a 3-digit octal, not {value:#o}')
-        elif isinstance(value, str):
-            if (len(value) == 3 and value.isnumeric()) or (len(value) == 5 and value.startswith('0o')):
-                # e.g. '760' or '0o760'
-                self.owner, self.group, self.other = self._split_octal(int(value, 8))
-            elif len(value) == 9:
-                # e.g. 'rwxrw----'
-                self.owner = value[0:3]
-                self.group = value[3:6]
-                self.other = value[6:9]
-            elif len(value) == 10:
-                # e.g. 'drwxrw----' (includes file type)
-                self.file_type = value[0]
-                self.owner = value[1:4]
-                self.group = value[4:7]
-                self.other = value[7:10]
+        if self.group is None and self.other is None:
+            parts, file_type = self._parse_whole(self.owner)
+        else:
+            parts, file_type = (self.owner, self.group, self.other), None
 
-        # Validate and cast the values
-        for name in ['owner', 'group', 'other']:
-            value = getattr(self, name)
-            if isinstance(value, (int, str, NoneType)):
-                try:
-                    value = FilePermissionsBit(value)
-                    setattr(self, name, value)
-                except ValueError as e:
-                    raise ValueError(f"'{name}' must be a valid permission string, not {_shorten(value)}") from e
-            elif not isinstance(value, FilePermissionsBit):
-                raise TypeError(
-                    f"'{name}' must be an int, str or {FilePermissionsBit.__name__}, not {type(value).__name__}"
-                )
-        if self.file_type is not None:
-            if isinstance(self.file_type, str) and self.file_type in _file_type_mappings:
-                self.file_type = _file_type_mappings[self.file_type]
-            elif not isinstance(self.file_type, FileType):
-                raise TypeError(
-                    f"'file_type' must be a str or {FileType.__class__.__name__}, not {type(self.file_type)}"
-                )
+        explicit_type = self._parse_file_type(self.file_type)
+        if explicit_type is not None and file_type is not None and explicit_type is not file_type:
+            raise ValueError(f"'file_type' is {explicit_type.value!r}, but the permissions give {file_type.value!r}")
+        self.file_type = explicit_type if explicit_type is not None else file_type
+
+        for name, part in zip(('owner', 'group', 'other'), parts):
+            setattr(self, name, self._parse_part(name, part))
+
+    @classmethod
+    def _parse_whole(cls, value: object) -> tuple[tuple[object, object, object], FileType | None]:
+        """
+        Split a single value into the owner, group and other parts, and the file type if
+        it gives one. A value that isn't permissions as a whole is the owner's part.
+
+        :raises ValueError: If the value is an int out of range.
+        """
+        if isinstance(value, FilePermissions):
+            return (value.owner, value.group, value.other), value.file_type
+        if isinstance(value, int) and not isinstance(value, bool):
+            if not 0o000 <= value <= 0o777:
+                raise ValueError(f'Permissions must be from 0o000 to 0o777, not {value:#o}')
+            return cls._split_octal(value), None
+        if isinstance(value, str) and len(value) <= _MODE_MAX_LENGTH:
+            if match := _MODE_OCTAL.fullmatch(value):
+                return cls._split_octal(int(match.group(1), 8)), None
+            if match := _MODE_SYMBOLIC.fullmatch(value):
+                file_type = match.group(1)
+                return match.group(2, 3, 4), FileType(file_type) if file_type else None
+        return (value, None, None), None
+
+    @staticmethod
+    def _parse_part(name: str, part: object) -> FilePermissionsBit:
+        """
+        Cast one part to a new :class:`FilePermissionsBit`.
+
+        :raises TypeError: If the part has the wrong type.
+        :raises ValueError: If the part isn't valid permissions.
+        """
+        if isinstance(part, FilePermissionsBit):
+            return FilePermissionsBit(part.value)
+        if part is None or isinstance(part, (int, str)):
+            try:
+                return FilePermissionsBit(part)
+            except ValueError as e:
+                raise ValueError(f"'{name}' must be a valid permission string, not {_shorten(part)}") from e
+        raise TypeError(f"'{name}' must be an int, str or {FilePermissionsBit.__name__}, not {type(part).__name__}")
+
+    @staticmethod
+    def _parse_file_type(value: object) -> FileType | None:
+        """
+        Cast the file type to a :class:`FileType`.
+
+        :raises TypeError: If it isn't a str or :class:`FileType`.
+        :raises ValueError: If it isn't one of the file type letters.
+        """
+        if value is None or isinstance(value, FileType):
+            return value
+        if isinstance(value, str):
+            try:
+                return FileType(value)
+            except ValueError:
+                letters = ', '.join(repr(t.value) for t in FileType)
+                raise ValueError(f"'file_type' must be one of {letters}, not {_shorten(value)}") from None
+        raise TypeError(f"'file_type' must be a str or {FileType.__name__}, not {type(value).__name__}")
 
     @staticmethod
     def _split_octal(value: int) -> tuple[int, int, int]:
         """
         Split a 3-digit octal value into owner, group, and other permission digits.
 
-        :param value: The octal value in integer representation (e.g., `0o760` or `496`
-            for
+        :param value: The octal value in integer representation (e.g., `0o760`, or `496`
+            for the same).
         :return: A tuple containing the owner, group, and other permission digits.
         """
         owner = (value >> 6) & 0o7
@@ -304,7 +331,7 @@ class FilePermissions:
 
         :return: The octal representation of the file permissions.
         """
-        return f'0o{self.owner.octal[2:]}{self.group.octal[2:]}{self.other.octal[2:]}'
+        return f'0o{self.decimal:03o}'
 
     @property
     def decimal(self) -> int:
@@ -313,7 +340,7 @@ class FilePermissions:
 
         :return: The decimal representation of the file permissions.
         """
-        return int(self.octal, 8)
+        return self.owner.value << 6 | self.group.value << 3 | self.other.value
 
     @property
     def string(self) -> str:
@@ -324,7 +351,7 @@ class FilePermissions:
 
         :return: The string representation of the file permissions.
         """
-        s = f'{self.owner.string_canonical}{self.group.string_canonical}{self.other.string_canonical}'
+        s = ''.join(part.string_canonical for part in (self.owner, self.group, self.other))
         if self.file_type is not None:
             s = f'{self.file_type.value}{s}'
         return s
@@ -358,33 +385,11 @@ class FilePermissions:
         if not p.exists():
             raise FileNotFoundError(f'File does not exist: {p}')
 
-        file_type = None
-        if p.is_file():
-            file_type = FileType.FILE
-        elif p.is_dir():
-            file_type = FileType.DIRECTORY
-        elif p.is_symlink():
-            file_type = FileType.SYMLINK
-        elif p.is_char_device():
-            file_type = FileType.CHARACTER_DEVICE
-        elif p.is_block_device():
-            file_type = FileType.BLOCK_DEVICE
-        elif p.is_socket():
-            file_type = FileType.SOCKET
-        elif p.is_fifo():
-            file_type = FileType.FIFO
-
-        permissions = p.stat().st_mode & 0o777  # integer representation
-        permissions = oct(permissions)[2:]  # octal string
-        owner = int(f'0o{permissions[0]}', 8)
-        group = int(f'0o{permissions[1]}', 8)
-        other = int(f'0o{permissions[2]}', 8)
-        return cls(
-            owner=owner,
-            group=group,
-            other=other,
-            file_type=file_type,
-        )
+        # Follows symbolic links, so their target's type and permissions
+        mode = p.stat().st_mode
+        letter = stat.filemode(mode)[0]  # '?' for an unknown type
+        file_type = next((t for t in FileType if t.value == letter), None)
+        return cls(mode & 0o777, file_type=file_type)
 
     @classmethod
     def from_string(cls, s: str) -> 'FilePermissions':
@@ -403,7 +408,7 @@ def get_permissions_in_decimal(value: int | str | FilePermissions) -> int:
     Convert an octal permission value to its decimal representation.
     """
     if not isinstance(value, (int, str, FilePermissions)):
-        raise TypeError(f"'value' must be an int, str or {FilePermissions.__class__.__name__}, not {type(value)}")
+        raise TypeError(f"'value' must be an int, str or {FilePermissions.__name__}, not {type(value)}")
 
     value = FilePermissions(value)
     return value.decimal
