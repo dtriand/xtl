@@ -1,5 +1,6 @@
 import dataclasses
 import os
+import time
 
 import pytest
 
@@ -85,10 +86,80 @@ class TestFilePermissionsBit:
         with pytest.raises(TypeError, match='must be an int or str'):
             FilePermissionsBit(value)
 
-    @pytest.mark.xfail(strict=True, reason='bool is accepted as an int')
-    def test_bool(self):
-        with pytest.raises(TypeError):
-            FilePermissionsBit(True)
+    @pytest.mark.parametrize('value', [True, False])
+    def test_bool(self, value):
+        with pytest.raises(TypeError, match="not <class 'bool'>"):
+            FilePermissionsBit(value)
+
+    @pytest.mark.parametrize(
+        'value',
+        [
+            # What `int(s, 8)` would accept
+            '0o5 ',
+            ' 0o5',
+            '0o_5',
+            '0O5',
+            '0o05',
+            '0o５',  # Fullwidth digit five
+            '0o٥',  # Arabic-Indic digit five
+            # What a pattern ending in `$` would accept
+            'rwx\n',
+            'rx\n',
+            # Look-alikes and control characters
+            '\nrwx',
+            'RWX',
+            'ｒwx',  # Fullwidth small r
+            'r\x00',
+            'r\tx',
+        ],
+    )
+    def test_lenient_forms(self, value):
+        with pytest.raises(ValueError, match='must be a valid permission string'):
+            FilePermissionsBit(value)
+
+
+class TestUntrustedStrings:
+    """
+    Permissions come from config files and the command line: huge or crafted strings
+    must fail fast, and without ending up in full in the error message.
+    """
+
+    HUGE = 10**7
+
+    @pytest.mark.parametrize(
+        'value',
+        [
+            pytest.param('r' * HUGE, id='letters'),
+            pytest.param('rwx' * (HUGE // 3), id='repeated-group'),
+            pytest.param('-' * HUGE, id='dashes'),
+            pytest.param('0o' + '7' * HUGE, id='octal'),
+            pytest.param('7' * HUGE, id='digits'),
+            pytest.param('r' * HUGE + '!', id='backtracking'),
+        ],
+    )
+    @pytest.mark.parametrize('parse', [FilePermissionsBit, FilePermissions, get_permissions_in_decimal])
+    def test_huge(self, parse, value):
+        start = time.perf_counter()
+        with pytest.raises(ValueError) as e:
+            parse(value)
+        assert time.perf_counter() - start < 1  # Generous: takes microseconds
+        for error in (e.value, e.value.__cause__):
+            if error is not None:
+                assert len(str(error)) < 200
+
+    def test_message_cut(self):
+        with pytest.raises(ValueError, match=r"'group' must be a valid permission string, not 'aaaa.*\.\.\.$"):
+            FilePermissions(7, 'a' * 1000, 0)
+
+    def test_message_length(self):
+        with pytest.raises(ValueError, match='not one of 1000 characters'):
+            FilePermissionsBit('a' * 1000)
+
+    @pytest.mark.xfail(strict=True, reason="`cast_as`'s error repeats the whole input")
+    def test_in_options(self):
+        with pytest.raises(ValueError) as e:
+            _WithPermissions.from_toml(f'permissions = "{"r" * 10**6}"')
+        assert len(str(e.value)) < 1000
 
     @pytest.mark.parametrize(
         'value, short, canonical, as_tuple',

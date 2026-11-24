@@ -6,6 +6,7 @@ recursively.
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+import re
 from types import NoneType
 from typing import Optional
 
@@ -40,50 +41,31 @@ _file_type_mappings: dict[str, FileType] = {
 }
 """Mappings of POSIX file types to the respective `FileType` enum"""
 
-_permission_mappings: dict[int, str] = {
-    0o0: '---',
-    0o1: '--x',
-    0o2: '-w-',
-    0o3: '-wx',
-    0o4: 'r--',
-    0o5: 'r-x',
-    0o6: 'rw-',
-    0o7: 'rwx',
-}
-""""Mappings of POSIX permissions from octal to string representation"""
+_BITS: tuple[tuple[str, int], ...] = (('r', 0o4), ('w', 0o2), ('x', 0o1))
+"""Letter and value of each permission bit, in the order they are written"""
 
-_permission_mappings_short: dict[int, str] = {
-    0o0: '-',
-    0o1: 'x',
-    0o2: 'w',
-    0o3: 'wx',
-    0o4: 'r',
-    0o5: 'rx',
-    0o6: 'rw',
-    0o7: 'rwx',
-}
-"""Mappings of POSIX permissions from octal to shorthand string representation"""
+_BIT_MAX_LENGTH = 3
+"""Longest permission string for a single group, e.g. `'r-x'` or `'0o5'`"""
 
-_valid_permission_strings: dict[str | None, int] = {
-    '': 0o0,
-    '-': 0o0,
-    '---': 0o0,
-    None: 0o0,
-    'x': 0o1,
-    '--x': 0o1,
-    'w': 0o2,
-    '-w-': 0o2,
-    'wx': 0o3,
-    '-wx': 0o3,
-    'r': 0o4,
-    'r--': 0o4,
-    'rx': 0o5,
-    'r-x': 0o5,
-    'rw': 0o6,
-    'rw-': 0o6,
-    'rwx': 0o7,
-}
-"""Mapping of valid POSIX permission strings to their octal representation"""
+_BIT_OCTAL = re.compile(r'0o([0-7])')
+"""A single octal digit with its prefix, e.g. `'0o5'`"""
+
+_BIT_SYMBOLIC = re.compile(r'[r-][w-][x-]|r?w?x?|-')
+"""Canonical (`'r-x'`) or short (`'rx'`, `''`, `'-'`) permission letters"""
+
+# NB: The patterns are only used with `fullmatch()`, on strings no longer than
+#  `_BIT_MAX_LENGTH`: no trailing newline slips through (as with `$`), and the
+#  matching time is bounded whatever the input. They are also stricter than
+#  `int(s, 8)`, which accepts whitespace, underscores and non-ASCII digits.
+
+
+def _shorten(value: object, limit: int = 30) -> str:
+    """
+    The ``repr()`` of a value for error messages, cut to ``limit`` characters, so that a
+    huge input doesn't end up in full in messages and logs.
+    """
+    r = repr(value)
+    return r if len(r) <= limit else f'{r[: limit - 3]}...'
 
 
 @dataclass(eq=True, order=True)
@@ -94,31 +76,47 @@ class FilePermissionsBit:
     """
 
     value: int | str | None
-    """Permission value in octal format"""
+    """Permission value in octal format: an int from 0 to 7, once initialized. Created
+    from such an int, an octal string (`'0o5'`), canonical (`'r-x'`) or short (`'rx'`)
+    permission letters, or `''`, `'-'` or `None` for no permissions."""
 
     def __post_init__(self):
-        self._parse_value()
+        self.value = self._parse(self.value)
 
-    def _parse_value(self):
+    @staticmethod
+    def _parse(value: int | str | None) -> int:
         """
-        Parse the value to ensure it is a valid octal representation.
+        Convert any of the accepted forms to an int from 0 to 7.
+
+        :raises TypeError: If the value is not an int, str or None (bools included).
+        :raises ValueError: If the value is not a valid permission.
         """
-        value = self.value
-        if isinstance(value, int):
-            if value < 0o0:
-                raise ValueError("'value' must be a non-negative integer")
-            if value > 0o7:
-                raise ValueError("'value' must be a less than 8")
-        elif isinstance(value, str) or value is None:
-            if value in _valid_permission_strings:
-                self.value = _valid_permission_strings[value]
-            elif value.startswith('0o'):
-                self.value = int(value, 8)
-                self._parse_value()
-            else:
-                raise ValueError(f"'value' must be a valid permission string, not {value!r}")
-        else:
+        if value is None:
+            return 0o0
+        if isinstance(value, str):
+            if len(value) > _BIT_MAX_LENGTH:
+                raise ValueError(f"'value' must be a valid permission string, not one of {len(value)} characters")
+            if match := _BIT_OCTAL.fullmatch(value):
+                return int(match.group(1), 8)
+            if _BIT_SYMBOLIC.fullmatch(value):
+                return sum(bit for letter, bit in _BITS if letter in value)
+            raise ValueError(f"'value' must be a valid permission string, not {_shorten(value)}")
+        if isinstance(value, bool) or not isinstance(value, int):
             raise TypeError(f"'value' must be an int or str, not {type(value)}")
+        if not 0o0 <= value <= 0o7:
+            raise ValueError(f"'value' must be an integer from 0 to 7, not {value}")
+        return value
+
+    def _set(self, bit: int, allowed: bool):
+        """
+        Set or clear one permission bit.
+        """
+        if not isinstance(allowed, bool):
+            raise TypeError(f"'value' must be a bool, not {type(allowed)}")
+        if allowed:
+            self.value |= bit
+        else:
+            self.value &= ~bit
 
     @property
     def string(self) -> str:
@@ -127,7 +125,7 @@ class FilePermissionsBit:
 
         :return: The shorthand string representation of the permission bit.
         """
-        return _permission_mappings_short[self.value]
+        return ''.join(letter for letter, bit in _BITS if self.value & bit) or '-'
 
     @property
     def string_canonical(self) -> str:
@@ -136,7 +134,7 @@ class FilePermissionsBit:
 
         :return: The canonical string representation of the permission bit.
         """
-        return _permission_mappings[self.value]
+        return ''.join(letter if self.value & bit else '-' for letter, bit in _BITS)
 
     @property
     def octal(self) -> str:
@@ -170,10 +168,7 @@ class FilePermissionsBit:
         """
         Set the permission bit to allow or disallow reading.
         """
-        if not isinstance(value, bool):
-            raise TypeError(f"'value' must be a bool, not {type(value)}")
-        if value != self.can_read:
-            self.value ^= 0o4  # Toggle the read permission bit
+        self._set(0o4, value)
 
     @property
     def can_write(self) -> bool:
@@ -189,10 +184,7 @@ class FilePermissionsBit:
         """
         Set the permission bit to allow or disallow writing.
         """
-        if not isinstance(value, bool):
-            raise TypeError(f"'value' must be a bool, not {type(value)}")
-        if value != self.can_write:
-            self.value ^= 0o2  # Toggle the write permission bit
+        self._set(0o2, value)
 
     @property
     def can_execute(self) -> bool:
@@ -208,10 +200,7 @@ class FilePermissionsBit:
         """
         Set the permission bit to allow or disallow executing.
         """
-        if not isinstance(value, bool):
-            raise TypeError(f"'value' must be a bool, not {type(value)}")
-        if value != self.can_execute:
-            self.value ^= 0o1  # Toggle the execute permission bit
+        self._set(0o1, value)
 
     @property
     def tuple(self) -> tuple[bool, bool, bool]:
@@ -281,7 +270,7 @@ class FilePermissions:
                     value = FilePermissionsBit(value)
                     setattr(self, name, value)
                 except ValueError as e:
-                    raise ValueError(f"'{name}' must be a valid permission string, not {value!r}") from e
+                    raise ValueError(f"'{name}' must be a valid permission string, not {_shorten(value)}") from e
             elif not isinstance(value, FilePermissionsBit):
                 raise TypeError(
                     f"'{name}' must be an int, str or {FilePermissionsBit.__name__}, not {type(value).__name__}"
@@ -391,9 +380,9 @@ class FilePermissions:
         group = int(f'0o{permissions[1]}', 8)
         other = int(f'0o{permissions[2]}', 8)
         return cls(
-            owner=_permission_mappings[owner],
-            group=_permission_mappings[group],
-            other=_permission_mappings[other],
+            owner=owner,
+            group=group,
+            other=other,
             file_type=file_type,
         )
 
