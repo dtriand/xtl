@@ -598,7 +598,6 @@ class TestChmodRecursively:
         assert mode(f) == 0o644
 
     @posix_only
-    @pytest.mark.xfail(strict=True, reason='the missing permissions are converted too')
     def test_files_only(self, tree):
         for d in self.directories(tree):
             d.chmod(0o750)
@@ -607,9 +606,40 @@ class TestChmodRecursively:
         assert [mode(d) for d in self.directories(tree)] == [0o750] * 3
 
     @posix_only
+    def test_directories_only(self, tree):
+        for f in self.files(tree):
+            f.chmod(0o640)
+        chmod_recursively(tree, directories_permissions='750')
+        assert [mode(f) for f in self.files(tree)] == [0o640] * 3
+        assert [mode(d) for d in self.directories(tree)] == [0o750] * 3
+
+    @posix_only
+    def test_no_permissions(self, tree):
+        # 0 is a mode, not a missing value
+        chmod_recursively(tree, files_permissions=0, directories_permissions='700')
+        assert [mode(f) for f in self.files(tree)] == [0o000] * 3
+
+    @posix_only
+    def test_file_without_files_permissions(self, tree):
+        f = tree / 'a.txt'
+        f.chmod(0o600)
+        chmod_recursively(f, directories_permissions='755')
+        assert mode(f) == 0o600
+
+    @posix_only
+    def test_dangling_symlink_root(self, tmp_path):
+        link = tmp_path / 'link'
+        link.symlink_to(tmp_path / 'missing')
+        chmod_recursively(link, files_permissions='600', directories_permissions='700')
+
+    @pytest.mark.parametrize('kwargs', [{'files_permissions': 'abc'}, {'directories_permissions': 0o1000}])
+    def test_invalid_permissions(self, tree, kwargs):
+        with pytest.raises(ValueError):
+            chmod_recursively(tree, **kwargs)
+
+    @posix_only
     @not_as_root
-    @pytest.mark.xfail(strict=True, reason='"more permissive" compares the modes as numbers')
-    def test_order_by_bits(self, tree):
+    def test_taking_away_execute(self, tree):
         # 0o600 > 0o500 as a number, but it takes the execute bit away: changing the root
         #  first would leave its contents unreachable
         for d in self.directories(tree):
@@ -620,6 +650,40 @@ class TestChmodRecursively:
             for d in self.directories(tree):
                 d.chmod(0o700)
         assert [mode(f) for f in self.files(tree)] == [0o600] * 3
+
+    @posix_only
+    @not_as_root
+    def test_unlistable_subdirectory(self, tree):
+        # The root can be entered, a subdirectory can't be listed: it is changed before
+        #  it is entered
+        sub = tree / 'sub'
+        sub.chmod(0o300)
+        try:
+            chmod_recursively(tree, files_permissions='600', directories_permissions='700')
+        finally:
+            sub.chmod(0o700)
+        assert [mode(f) for f in self.files(tree)] == [0o600] * 3
+        assert [mode(d) for d in self.directories(tree)] == [0o700] * 3
+
+    @posix_only
+    @not_as_root
+    def test_listing_error(self, tree):
+        # Raised, not skipped silently
+        sub = tree / 'sub'
+        sub.chmod(0o300)
+        try:
+            with pytest.raises(PermissionError):
+                chmod_recursively(tree, files_permissions='600')
+        finally:
+            sub.chmod(0o700)
+
+    @pytest.mark.skipif(not OS_WINDOWS, reason='Windows modes')
+    def test_windows(self, tree):
+        # Only the read-only flag changes on Windows
+        chmod_recursively(tree, files_permissions='400')
+        assert [mode(f) for f in self.files(tree)] == [0o444] * 3
+        chmod_recursively(tree, files_permissions='600')
+        assert [mode(f) for f in self.files(tree)] == [0o666] * 3
 
 
 class _WithPermissions(Options):

@@ -420,47 +420,50 @@ def chmod_recursively(
     directories_permissions: Optional[int | str | FilePermissions] = None,
 ):
     """
-    Change the permissions of all files and subdirectories within a directory. If symbolic links are encountered, they
-    are skipped. Permissions are provided as 3-digit decimal integers.
-    :param path: The path to the directory
-    :param files_permissions: The desired permissions for files
-    :param directories_permissions: The desired permissions for directories
-    """
-    if not files_permissions and not directories_permissions:
-        raise ValueError("At least one of 'file_permissions' or 'directories_permissions' must be provided")
-    files_permissions = get_permissions_in_decimal(value=files_permissions)
-    directories_permissions = get_permissions_in_decimal(value=directories_permissions)
+    Change the permissions of a directory and of all files and subdirectories within it,
+    or of a single file. Symbolic links are skipped, and never followed.
 
-    # Check if path exists and skip if it is a symlink
+    :param path: The path to the directory or file
+    :param files_permissions: The desired permissions for files; ``None`` leaves them
+        unchanged
+    :param directories_permissions: The desired permissions for directories; ``None``
+        leaves them unchanged
+    :raises ValueError: If neither permissions are given, or one isn't valid.
+    :raises FileNotFoundError: If the path doesn't exist.
+    :raises OSError: If a permission can't be changed, or a directory can't be listed.
+    """
+    if files_permissions is None and directories_permissions is None:
+        raise ValueError("At least one of 'files_permissions' or 'directories_permissions' must be provided")
+    files_mode = None if files_permissions is None else get_permissions_in_decimal(files_permissions)
+    directories_mode = None if directories_permissions is None else get_permissions_in_decimal(directories_permissions)
+
     path = Path(path)
+    if path.is_symlink():
+        return
     if not path.exists():
         raise FileNotFoundError(f"'{path}' does not exist")
-    if path.is_symlink():  # Skip symbolic links
+    if not path.is_dir():
+        if files_mode is not None:
+            path.chmod(files_mode)
         return
 
-    # Check if the desired permissions are more permissive than the current ones
-    more_permissive = directories_permissions >= int(path.stat().st_mode & 0o777)
-    if more_permissive:  # update the root first
-        if path.is_file():
-            path.chmod(mode=files_permissions) if files_permissions else None
-            return
-        path.chmod(mode=directories_permissions) if directories_permissions else None
-    # Walk through the directory top-down when increasing the permissions, bottom-up otherwise
-    for root, dirs, files in os.walk(path, topdown=more_permissive):
-        if files_permissions:
-            for file in files:
-                file = Path(root) / file
-                if file.is_symlink():
-                    continue
-                file.chmod(mode=files_permissions)
-        if directories_permissions:
-            for directory in dirs:
-                directory = Path(root) / directory
-                if directory.is_symlink():
-                    continue
-                directory.chmod(mode=directories_permissions)
-    if not more_permissive:  # update the root last
-        if path.is_file():
-            path.chmod(mode=files_permissions) if files_permissions else None
-            return
-        path.chmod(mode=directories_permissions) if directories_permissions else None
+    # Top-down when the new permissions let the owner list and enter directories: each
+    #  directory is changed before it is entered. Otherwise bottom-up, so that no
+    #  directory becomes unreachable before its contents are changed.
+    top_down = directories_mode is None or directories_mode & 0o500 == 0o500
+
+    def _raise(error: OSError):
+        raise error
+
+    if top_down and directories_mode is not None:
+        path.chmod(directories_mode)
+    for root, dirs, files in os.walk(path, topdown=top_down, onerror=_raise):
+        for names, mode in ((files, files_mode), (dirs, directories_mode)):
+            if mode is None:
+                continue
+            for name in names:
+                p = Path(root) / name
+                if not p.is_symlink():
+                    p.chmod(mode)
+    if not top_down:
+        path.chmod(directories_mode)
