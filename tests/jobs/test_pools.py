@@ -207,7 +207,12 @@ def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.Com
     )
     path = tmp_path / 'script.py'
     path.write_text(ctrl_c + textwrap.dedent(script))
-    options = {'creationflags': subprocess.CREATE_NEW_CONSOLE} if os.name == 'nt' else {'start_new_session': True}
+    if os.name == 'nt':
+        # A console of its own (Ctrl+C reaches every process of a console), with its window hidden
+        startupinfo = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=subprocess.SW_HIDE)
+        options = {'creationflags': subprocess.CREATE_NEW_CONSOLE, 'startupinfo': startupinfo}
+    else:
+        options = {'start_new_session': True}
     root = str(Path(__file__).parents[2])
     return subprocess.run(
         [sys.executable, str(path), *args],
