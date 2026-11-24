@@ -39,6 +39,17 @@ Commands
       $ xtl.config validate
       $ xtl.config validate path/to/xtl.toml
 
+``deps``
+   Check which shells are installed, and whether each dependency (*e.g.* ATSAS) can be found with the compute site
+   and shell that a job needing it would use. Exits with code 1 if a dependency is missing; ``-v`` shows what each
+   check printed. See :doc:`/configuration/dependencies`.
+
+   .. code-block:: console
+
+      $ xtl.config deps
+      $ xtl.config deps atsas -v
+      $ xtl.config deps atsas --compute-site modules --shell powershell
+
 ``create``
    Create a config file in the current directory (default), or in another location with
    ``--env``, ``--user``, ``--global`` or ``--path``. The new file is a copy of the active

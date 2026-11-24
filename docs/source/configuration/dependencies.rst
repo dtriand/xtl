@@ -13,6 +13,33 @@ Checks can be switched off with:
    [dependencies]
    check = false
 
+Checking your setup
+-------------------
+``xtl.config deps`` checks your setup without running a job: which shells are installed, and, for each dependency (or
+only those you name), whether it is found with the compute site and shell that a job needing it would use. Each check
+runs afresh, also when ``check = false``. ``--compute-site`` and ``--shell`` try others:
+
+.. code-block:: console
+
+   $ xtl.config deps atsas autoproc
+   Shells
+   Shell          Executable                                                 Found
+   bash           /bin/bash                                                  No
+   cmd (default)  C:\Windows\System32\cmd.exe                                Yes
+   powershell     C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe  Yes
+
+   Dependencies
+   Name      Compute site  Shell  Setup                Found
+   atsas     modules       cmd    modules atsas/4.1.3  Yes
+   autoproc  modules       cmd    PATH                 No
+
+   Missing dependencies:
+   - executables aP_wf_process, process not found (required for autoproc)
+   Check dependencies in xtl.toml (see xtl.config where), or name only the dependencies you use.
+
+The command exits with code 1 if a dependency is missing; ``-v`` shows what each check printed, *e.g.* the error of a
+module that didn't load.
+
 Shells
 ------
 .. list-table::

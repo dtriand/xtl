@@ -128,7 +128,9 @@ class ConsoleIO(rich.console.Console):
                 self.print(escape(text), style='dim', highlight=False)
         elif details:
             self.print('Run with -v to see what the checks printed.', highlight=False)
-        self.print('Check [b]dependencies[/] in xtl.toml (xtl.config where), or use --compute-site/--modules.')
+        self.print(
+            'Check [b]dependencies[/] in xtl.toml (xtl.config where, xtl.config deps), or use --compute-site/--modules.'
+        )
 
         import typer
 
