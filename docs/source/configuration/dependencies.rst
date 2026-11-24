@@ -42,22 +42,10 @@ module that didn't load.
 
 Shells
 ------
-.. list-table::
-   :header-rows: 1
-   :widths: 15 35 50
-
-   * - Shell
-     - Executable
-     - Notes
-   * - ``bash``
-     - ``/bin/bash``
-     - The default on Linux and macOS. Batch files run without reading a profile.
-   * - ``cmd``
-     - ``C:\Windows\System32\cmd.exe``
-     - The default on Windows.
-   * - ``powershell``
-     - ``C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`` (Windows PowerShell 5.1)
-     - Batch files run with your PowerShell profile.
+.. shells::
+   :bash: The default on Linux and macOS. Batch files run without reading a profile.
+   :cmd: The default on Windows.
+   :powershell: Windows PowerShell 5.1. Batch files run with your PowerShell profile.
 
 Compute sites
 -------------
@@ -114,42 +102,11 @@ Dependencies
 ------------
 Each dependency has a table in ``xtl.toml``, with these keys:
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 80
-
-   * - Key
-     - Description
-   * - ``path``
-     - Directory of the dependency's programs, put first on ``PATH``
-   * - ``modules``
-     - Modules that provide the dependency, loaded in this order on a ``modules`` site; not together with ``path``
-   * - ``compute_site``
-     - Compute site that runs the dependency (default: ``jobs.compute_site``)
-   * - ``shell``
-     - Shell that runs the dependency (default: the compute site's)
-   * - ``policy``
-     - Command policy for the dependency's commands (default: the compute site's)
+.. dependency-keys::
 
 The programs that XTL looks for are fixed for each dependency:
 
-.. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
-
-   * - Dependency
-     - Programs
-     - Used by
-   * - ``atsas``
-     - ``datcmp``, ``datop``
-     - `ATSAS <https://biosaxs.com/software.html>`_: ``xtl.saxs compare`` (``datcmp``) and
-       ``xtl.saxs subtract`` (``datop``)
-   * - ``autoproc``
-     - ``process``, ``aP_wf_process``
-     - `autoPROC <https://www.globalphasing.com/autoproc/>`_: ``xtl.autoproc``
-   * - ``easybragg``
-     - ``easyBragg.python``
-     - `easyBragg <https://github.com/pixel-modelers/easyBragg>`_: ``xtl.nanobragg``
+.. dependency-programs::
 
 For example, ATSAS from a module and easyBragg from a directory:
 

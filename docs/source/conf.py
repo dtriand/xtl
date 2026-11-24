@@ -49,6 +49,7 @@ extensions = [
     'sphinxcontrib.autodoc_pydantic',  # Pydantic models autodoc
     'sphinx_design',  # Tabs, cards, ...
     'shell_tabs',  # Shell-specific commands as tabs (local)
+    'settings_tables',  # Tables generated from the settings (local)
 ]
 
 templates_path = ['_templates']

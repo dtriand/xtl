@@ -190,10 +190,15 @@ class DependencySettings(Settings):
     _provides: ClassVar[frozenset[str]] = frozenset()
 
     # Model attributes
-    path: Optional[Path] = Option(default=None, desc='Directory containing binaries', validator=CastAsNoneIfEmpty())
+    path: Optional[Path] = Option(
+        default=None,
+        desc="Directory of the dependency's programs, put first on PATH (mutually exclusive with ``modules``)",
+        validator=CastAsNoneIfEmpty(),
+    )
 
     modules: list[str] = Option(
-        default_factory=list, desc='Modules that provide the dependency, loaded in this order on a modules site'
+        default_factory=list,
+        desc='Modules that provide the dependency, loaded in this order on a modules site (mutually exclusive with ``path``)',
     )
 
     compute_site: Optional[ComputeSite2] = Option(
