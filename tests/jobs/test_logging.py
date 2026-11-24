@@ -948,7 +948,7 @@ class TestJobHandlers:
             pool.submit(Failing, configs=[JobConfig(job_directory=failed)], job_ids=[f'{key}_f'])
             pool.submit(Talker, configs=[JobConfig(job_directory=succeeded)], job_ids=[f'{key}_s'])
             results = await pool.launch()
-        assert [r.success for r in results] == [False, True]
+        assert [r.success for r in results] == [False, True], [r.error for r in results]
         assert 'Job failed due to an exception: boom' in (failed / 'xtl.log').read_text(encoding='utf-8')
         # The file was closed before the directory was deleted (on Windows, an open file blocks it)
         assert not succeeded.exists()
