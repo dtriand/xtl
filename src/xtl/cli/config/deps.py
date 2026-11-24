@@ -73,12 +73,13 @@ def cli_config_deps(
     table.add_column('Found')
     for name in (name for name in names if name in settings.dependencies):
         dependency = settings.dependencies.get(name)
-        site_name = compute_site or dependency.compute_site or settings.jobs.compute_site
+        # NB: The value, as `str()` of an enum member gives its name on Python 3.10
+        site_name = ComputeSite(compute_site or dependency.compute_site or settings.jobs.compute_site).value
         try:
             site, chosen = select_site_and_shell([name], compute_site=compute_site, default_shell=shell)
         except (DependencyError, ValueError) as error:
             problems.append(f'{name} could not be checked: {error}')
-            table.add_row(name, str(site_name), '', '', '[yellow]Not checked[/]')
+            table.add_row(name, site_name, '', '', '[yellow]Not checked[/]')
             continue
 
         # A fresh check, not one remembered from earlier
@@ -88,7 +89,7 @@ def cli_config_deps(
         if not check.found and check.details:
             details.append((f'{name} ({site_name}, {chosen.name})', check.details))
         found = '[green]Yes[/]' if check.found else '[yellow]Not checked[/]' if check.error else '[red]No[/]'
-        table.add_row(name, str(site_name), chosen.name, escape(describe_setup(dependency, site)), found)
+        table.add_row(name, site_name, chosen.name, escape(describe_setup(dependency, site)), found)
 
     if table.rows:
         console.print(table)
