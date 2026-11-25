@@ -1,452 +1,560 @@
+import locale
+import math
 import sys
 
+from hypothesis import given, strategies as st
 import pytest
-from xtl_core.containers.tables import MissingValue, MissingValueConfig, Table, XTLUndefined
+
+from xtl_core.containers.tables import MissingValue, MissingValueConfig, Table
+
+# Files are read and written in the locale's encoding, so the default encoding only shows where it isn't UTF-8
+_LOCALE_IS_UTF8 = locale.getpreferredencoding(False).lower().replace('-', '') == 'utf8'
+
+
+@pytest.fixture
+def sample_table():
+    """Five rows with missing values in the last column."""
+    return Table(
+        data=[
+            [1, 'Alpha', 10.5, True, 'Red'],
+            [2, 'Beta', 20.3, False, 'N/A'],
+            [3, 'Gamma', 30.7, True, None],
+            [4, 'Delta', 40.2, False, 'Blue'],
+            [5, 'Epsilon', 50.9, True, ''],
+        ],
+        headers=['ID', 'Name', 'Value', 'Active', 'Color'],
+        missing_values=['N/A', None, ''],
+        missing_value_repr='MISSING',
+    )
+
+
+@pytest.fixture
+def fmt_table():
+    """Formatted columns and a missing value."""
+    return Table(
+        data=[[1, 'Alpha', 10.5, 1234567], [22, 'B', None, 3], [3, 'Gamma', 3.14159, 'x']],
+        headers=['ID', 'Name', 'Value', 'Count'],
+        missing_values=[None],
+        missing_value_repr='-',
+        formats={'Value': '.2f', 'Count': '>8,d'},
+    )
+
+
+@pytest.fixture
+def small_table():
+    return Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
+
+
+class TestMissingValue:
+    def test_repr(self):
+        assert repr(MissingValue('N/A')) == "MissingValue('N/A')"
+
+    def test_eq(self):
+        assert MissingValue(None) == MissingValue(None)
+        assert MissingValue(None) != MissingValue('')
+
+    @pytest.mark.xfail(strict=True, reason='str() calls a to_repr() that MissingValue lacks')
+    def test_str(self):
+        assert str(MissingValue(1)) == '1'
 
 
 class TestMissingValueConfig:
-    """Tests for the MissingValueConfig class."""
+    class TestInit:
+        @pytest.mark.parametrize(
+            'values,        repr_value, expected_values',
+            [
+                ('N/A', '-', {'N/A'}),
+                ([None, 'N/A'], 'MISSING', {None, 'N/A'}),
+                ([], None, set()),
+                ((), None, set()),
+                ({'x', 'y'}, 'MISSING', {'x', 'y'}),
+            ],
+            ids=['single', 'list', 'empty-list', 'empty-tuple', 'set'],
+        )
+        def test_values(self, values, repr_value, expected_values):
+            missing = MissingValueConfig(values=values, repr=repr_value)
+            assert missing.values == expected_values
+            assert missing.repr == repr_value
+            assert missing.checker is None
 
-    @pytest.mark.parametrize(
-        'values,        repr_value, expected_values',
-        [
-            ('N/A', '-', {'N/A'}),
-            ([None, 'N/A'], 'MISSING', {None, 'N/A'}),
-            ([], None, set()),
-            (XTLUndefined, None, set()),
-            ({'x', 'y'}, 'MISSING', {'x', 'y'}),
-        ],
-    )
-    def test_initialization(self, values, repr_value, expected_values):
-        """Test MissingValueConfig initialization with different values."""
-        missing = MissingValueConfig(values=values, repr=repr_value)
-        assert missing.values == expected_values
-        assert missing.repr == repr_value
-        assert missing.checker is None
+        def test_repr_default(self):
+            assert MissingValueConfig(values=['N/A']).repr is None
 
-    def test_contains_method(self):
-        """Test __contains__ method for checking missing values."""
-        missing = MissingValueConfig(values=['N/A', None], repr='-')
-        assert 'N/A' in missing
-        assert None in missing
-        assert 'XYZ' not in missing
-        assert '' not in missing
+    class TestContains:
+        def test_values(self):
+            missing = MissingValueConfig(values=['N/A', None], repr='-')
+            assert 'N/A' in missing
+            assert None in missing
+            assert 'XYZ' not in missing
+            assert '' not in missing
 
-    def test_custom_checker(self):
-        """Test custom checker function for determining missing values."""
+        def test_checker(self):
+            missing = MissingValueConfig(values=['N/A', None], repr='-', checker=lambda v: v == '' or v == 0)
+            assert 'N/A' in missing
+            assert None in missing
+            assert '' in missing
+            assert 0 in missing
+            assert 'XYZ' not in missing
+            assert 1 not in missing
 
-        # Checker that considers empty strings and zero as missing
-        def is_empty_or_zero(val):
-            return val == '' or val == 0
+        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
+        def test_unhashable(self):
+            missing = MissingValueConfig(values=[None])
+            assert [1, 2] not in missing
+            assert {'a': 1} not in missing
 
-        missing = MissingValueConfig(values=['N/A', None], repr='-', checker=is_empty_or_zero)
+        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
+        def test_unhashable_checker(self):
+            missing = MissingValueConfig(values=[None], checker=lambda v: v == [])
+            assert [] in missing
 
-        assert 'N/A' in missing  # Is explicitly defined as missing
-        assert None in missing
-        assert '' in missing  # Should be considered missing due to checker
-        assert 0 in missing
-        assert 'XYZ' not in missing  # Not defined as missing
-        assert 1 not in missing
+        @pytest.mark.xfail(strict=True, reason='NaN is only found when it is the same object')
+        def test_nan(self):
+            assert float('nan') in MissingValueConfig(values=[math.nan])
+
+    class TestToRepr:
+        def test_missing(self):
+            missing = MissingValueConfig(values=['N/A'], repr='-')
+            assert missing.to_repr('N/A') == '-'
+            assert missing.to_repr(MissingValue('anything')) == '-'
+
+        def test_not_missing(self):
+            assert MissingValueConfig(values=['N/A'], repr='-').to_repr('x') == 'x'
 
 
 class TestTable:
-    """Tests for Table class."""
+    class TestInit:
+        def test_empty(self):
+            table = Table()
+            assert table.shape == (0, 0)
+            assert table.headers == []
 
-    @pytest.fixture
-    def sample_table(self):
-        """Create a sample table for testing with some missing values."""
-        return Table(
-            data=[
-                [1, 'Alpha', 10.5, True, 'Red'],
-                [2, 'Beta', 20.3, False, 'N/A'],
-                [3, 'Gamma', 30.7, True, None],
-                [4, 'Delta', 40.2, False, 'Blue'],
-                [5, 'Epsilon', 50.9, True, ''],
-            ],
-            headers=['ID', 'Name', 'Value', 'Active', 'Color'],
-            missing_values=['N/A', None, ''],
-            missing_value_repr='MISSING',
-        )
+        def test_data(self):
+            table = Table(data=[[1, 2], [3, 4]], headers=['a', 'b'])
+            assert table.data == [[1, 2], [3, 4]]
+            assert table.headers == ['a', 'b']
 
-    class TestMissingValues:
-        """Tests for Table class with missing values."""
+        def test_headers_only(self):
+            assert Table(headers=['a', 'b']).shape == (0, 2)
 
-        def test_table_with_missing_values(self):
-            """Test creating a table with missing values."""
+        def test_missing_values(self):
             table = Table(
                 data=[['A', 1, 'x'], ['B', 'N/A', 'y'], ['C', 3, None]],
                 headers=['Col1', 'Col2', 'Col3'],
                 missing_values=['N/A', None],
                 missing_value_repr='-',
             )
+            assert table.get_col('Col2') == [1, '-', 3]
+            assert table.get_col('Col3') == ['x', 'y', '-']
+            assert table.get_col('Col1') == ['A', 'B', 'C']
 
-            # Check that missing values are properly represented
-            assert table.get_col('Col2')[1] == '-'  # 'N/A' should be represented as '-'
-            assert table.get_col('Col3')[2] == '-'  # None should be represented as '-'
+        def test_missing_value_config(self):
+            table = Table(data=[[1, 'N/A']], missing_values=MissingValueConfig(values=['N/A'], repr='-'))
+            assert table.data == [[1, '-']]
 
-            # Non-missing values should remain unchanged
-            assert table.get_col('Col1')[0] == 'A'
-            assert table.get_col('Col2')[0] == 1
+        def test_formats(self):
+            assert Table(headers=['A'], formats={'A': '.2f'}).formats == {'A': '.2f'}
 
-        def test_changing_missing_values(self):
-            """Test changing missing value configuration after table creation."""
+        def test_formats_unknown_column(self):
+            with pytest.raises(KeyError):
+                Table(headers=['A'], formats={'B': '.2f'})
+
+        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
+        def test_unhashable_cells(self):
+            table = Table(data=[[[1, 2], {'a': 1}]], missing_values=[None])
+            assert table.data == [[[1, 2], {'a': 1}]]
+
+        @pytest.mark.xfail(strict=True, reason='`if data:` on an array is ambiguous')
+        def test_numpy_rows(self):
+            np = pytest.importorskip('numpy')
+            assert Table(data=np.array([[1, 2], [3, 4]])).data == [[1, 2], [3, 4]]
+
+    class TestMissing:
+        def test_get(self):
+            config = MissingValueConfig(values=['N/A'], repr='-')
+            assert Table(missing_values=config).missing is config
+
+        def test_set_values_keeps_repr(self):
             table = Table(
                 data=[['A', 1, 'x'], ['B', 'N/A', 'y'], ['C', 3, None]],
                 headers=['Col1', 'Col2', 'Col3'],
                 missing_values=['N/A'],
                 missing_value_repr='-',
             )
+            assert table.get_col('Col3')[2] is None
 
-            # Initially only 'N/A' is considered missing
-            assert table.get_col('Col2')[1] == '-'  # 'N/A' should be represented as '-'
-            assert table.get_col('Col3')[2] is None  # None is not considered missing yet
-
-            # Add None to missing values
             table.missing = ['N/A', None]
+            assert table.get_col('Col2')[1] == '-'
+            assert table.get_col('Col3')[2] == '-'
 
-            # Now None should also be represented as '-'
-            assert table.get_col('Col2')[1] == '-'  # 'N/A' should still be represented as '-'
-            assert table.get_col('Col3')[2] == '-'  # None should now be represented as '-'
-
-            # Change the representation to 'MISSING'
+        def test_set_config(self):
+            table = Table(data=[['N/A', None]], missing_values=['N/A'], missing_value_repr='-')
             table.missing = MissingValueConfig(values=['N/A', None], repr='MISSING')
+            assert table.data == [['MISSING', 'MISSING']]
 
-            # Check that the representation has changed
-            assert table.get_col('Col2')[1] == 'MISSING'
-            assert table.get_col('Col3')[2] == 'MISSING'
+        def test_set_fewer_values(self):
+            table = Table(data=[['N/A', None]], missing_values=['N/A', None], missing_value_repr='-')
+            table.missing = ['N/A']
+            assert table.data == [['-', None]]
 
-        def test_slicing_preserves_missing_config(self):
-            """Test that slicing operations preserve the missing value configuration."""
+        def test_slices_keep_their_own(self):
             table = Table(
                 data=[['A', 1, 'x'], ['B', 'N/A', 'y'], ['C', 3, None]],
                 headers=['Col1', 'Col2', 'Col3'],
                 missing_values=['N/A', None],
                 missing_value_repr='-',
             )
-
-            # Slice the table
             subtable = table['Col2':'Col3']
-
-            # Check that missing values are still properly represented in the slice
-            assert subtable.get_col('Col2')[1] == '-'  # 'N/A' should be represented as '-'
-            assert subtable.get_col('Col3')[2] == '-'  # None should be represented as '-'
-
-            # Change missing value representation in the original table
-            table.missing = MissingValueConfig(values=['N/A', None], repr='MISSING')
-
-            # The subtable should still have the original representation
             assert subtable.get_col('Col2')[1] == '-'
             assert subtable.get_col('Col3')[2] == '-'
 
-            # Whereas the original table should have the new representation
+            table.missing = MissingValueConfig(values=['N/A', None], repr='MISSING')
+            assert subtable.get_col('Col2')[1] == '-'
+            assert subtable.get_col('Col3')[2] == '-'
             assert table.get_col('Col2')[1] == 'MISSING'
             assert table.get_col('Col3')[2] == 'MISSING'
 
-    class TestSlicing:
-        """Tests for slicing operations on the Table class."""
+    class TestSetFormat:
+        def test_set_get_clear(self, fmt_table):
+            fmt_table.set_format('ID', '03d')
+            assert fmt_table.get_format('ID') == '03d'
+            fmt_table.set_format(0, None)
+            assert fmt_table.get_format('ID') is None
 
-        def test_single_column_by_name(self, sample_table):
-            """Test accessing a single column by name."""
-            # Create a sliced table for testing
-            sliced_table = sample_table['ID':'Value', :]
+        def test_index_keyed_by_name(self, fmt_table):
+            fmt_table.set_format(-1, ',d')
+            assert fmt_table.formats['Count'] == ',d'
 
-            result = sliced_table['Name']
-
-            # Verify result is a Table instance with the correct data
-            assert isinstance(result, Table)
-            assert result.headers == ['Name']
-            assert len(result) == 5
-            assert result.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-
-        def test_single_column_by_index(self, sample_table):
-            """Test accessing a single column by index."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[1]  # Should be the 'Name' column
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Name']
-            assert len(result) == 5
-            assert result.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-
-        def test_column_slice_by_indices(self, sample_table):
-            """Test slicing multiple columns by indices."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[1:3]  # Should be 'Name' and 'Value' columns
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Name', 'Value']
-            assert len(result) == 5
-            assert result.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-            assert result.get_col('Value') == [10.5, 20.3, 30.7, 40.2, 50.9]
-
-        def test_column_slice_by_names(self, sample_table):
-            """Test slicing columns using string names."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table['ID':'Value']  # Should include 'ID', 'Name', 'Value'
-
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Name', 'Value']
-            assert len(result) == 5
-            assert result.get_col('ID') == [1, 2, 3, 4, 5]
-            assert result.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-            assert result.get_col('Value') == [10.5, 20.3, 30.7, 40.2, 50.9]
-
-        def test_single_cell_by_name_and_index(self, sample_table):
-            """Test accessing a single cell using column name and row index."""
-            sliced_table = sample_table['ID':'Value', :]
-            result = sliced_table['Name', 2]
-            assert result == 'Gamma'  # Third row, 'Name' column
-
-        def test_single_cell_by_indices(self, sample_table):
-            """Test accessing a single cell using column and row indices."""
-            sliced_table = sample_table['ID':'Value', :]
-            result = sliced_table[1, 2]
-            assert result == 'Gamma'  # Third row, second column ('Name')
-
-        def test_partial_column_by_name_and_slice(self, sample_table):
-            """Test slicing part of a column using column name and row slice."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table['Value', 1:4]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Value']
-            assert len(result) == 3
-            assert result.get_col('Value') == [20.3, 30.7, 40.2]
-
-        def test_partial_column_by_index_and_slice(self, sample_table):
-            """Test slicing part of a column using column index and row slice."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[2, 1:4]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Value']
-            assert len(result) == 3
-            assert result.get_col('Value') == [20.3, 30.7, 40.2]
-
-        def test_table_subset_by_column_and_row_slices(self, sample_table):
-            """Test slicing a rectangular subset of the table."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[1:3, 1:4]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Name', 'Value']
-            assert len(result) == 3
-            assert result.get_col('Name') == ['Beta', 'Gamma', 'Delta']
-            assert result.get_col('Value') == [20.3, 30.7, 40.2]
-
-        def test_single_row_slice(self, sample_table):
-            """Test getting a single row as a table."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[:, 2]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Name', 'Value']
-            assert len(result) == 1
-            assert result.get_row(0) == [3, 'Gamma', 30.7]
-
-        def test_negative_indices(self, sample_table):
-            """Test slicing with negative indices."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            # Last column, second-to-last row
-            result = sliced_table[-1, -2]
-            assert result == 40.2  # Value column, Delta row
-
-            # Last two columns, last two rows
-            result = sliced_table[-2:, -2:]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['Name', 'Value']
-            assert len(result) == 2
-            assert result.get_col('Name') == ['Delta', 'Epsilon']
-            assert result.get_col('Value') == [40.2, 50.9]
-
-        def test_step_in_slicing(self, sample_table):
-            """Test slicing with a step value."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            # Every other column
-            result = sliced_table[::2]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Value']
-            assert len(result) == 5
-
-            # Every other row
-            result = sliced_table[:, ::2]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Name', 'Value']
-            assert len(result) == 3
-            assert result.get_col('ID') == [1, 3, 5]
-
-            # Every other column and every other row
-            result = sliced_table[::2, ::2]
-
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Value']
-            assert len(result) == 3
-            assert result.get_col('ID') == [1, 3, 5]
-            assert result.get_col('Value') == [10.5, 30.7, 50.9]
-
-        def test_empty_slice(self, sample_table):
-            """Test empty slices."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            result = sliced_table[2:2]  # Empty column slice
-            assert isinstance(result, Table)
-            assert result.headers == []
-            assert len(result) == 0
-
-            result = sliced_table[:, 2:2]  # Empty row slice
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Name', 'Value']
-            assert len(result) == 0
-
-        def test_setting_cell_value(self, sample_table):
-            """Test setting a single cell value."""
-            sliced_table = sample_table['ID':'Value', :]
-            sliced_table['Value', 2] = 35.5
-            assert sliced_table.get_col('Value')[2] == 35.5
-
-        def test_setting_cell_by_indices(self, sample_table):
-            """Test setting a cell value using indices."""
-            sliced_table = sample_table['ID':'Value', :]
-            sliced_table[2, 1] = 25.0
-            assert sliced_table.get_col('Value')[1] == 25.0
-
-        def test_setting_partial_column(self, sample_table):
-            """Test setting a part of a column."""
-            sliced_table = sample_table['ID':'Value', :]
-            sliced_table['Value', 1:3] = [25.0, 35.0]
-            assert sliced_table.get_col('Value') == [10.5, 25.0, 35.0, 40.2, 50.9]
-
-        def test_setting_entire_column(self, sample_table):
-            """Test setting an entire column."""
-            sliced_table = sample_table['ID':'Value', :]
-            sliced_table['ID'] = [10, 20, 30, 40, 50]
-            assert sliced_table.get_col('ID') == [10, 20, 30, 40, 50]
-
-        def test_column_slice_with_string_boundaries(self, sample_table):
-            """Test column slicing with string boundaries."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            # From 'Name' to 'Value'
-            result = sliced_table['Name':'Value']
-            assert isinstance(result, Table)
-            assert result.headers == ['Name', 'Value']
-            assert len(result) == 5
-
-            # From beginning to 'Name'
-            result = sliced_table[:'Name']
-            assert isinstance(result, Table)
-            assert result.headers == ['ID', 'Name']
-            assert len(result) == 5
-
-            # From 'Value' to end
-            result = sliced_table['Value':]
-            assert isinstance(result, Table)
-            assert result.headers == ['Value']
-            assert len(result) == 5
-
-        def test_row_slice_with_open_boundaries(self, sample_table):
-            """Test row slicing with open boundaries."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            # From beginning to row 3
-            result = sliced_table[:, :3]
-            assert isinstance(result, Table)
-            assert len(result) == 3
-            assert result.get_col('ID') == [1, 2, 3]
-
-            # From row 2 to end
-            result = sliced_table[:, 2:]
-            assert isinstance(result, Table)
-            assert len(result) == 3
-            assert result.get_col('ID') == [3, 4, 5]
-
-        def test_setting_unsupported_operations(self, sample_table):
-            """Test operations that are not supported for setting values."""
-            sliced_table = sample_table['ID':'Value', :]
-            with pytest.raises(NotImplementedError):
-                sliced_table[1:3] = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
-
-        def test_invalid_slice_indices(self, sample_table):
-            """Test slicing with invalid indices."""
-            sliced_table = sample_table['ID':'Value', :]
-
-            with pytest.raises(IndexError):
-                sliced_table[10]  # Column index out of range
-
-            with pytest.raises(IndexError):
-                sliced_table[:, 10]  # Row index out of range
-
+        def test_unknown_column(self, fmt_table):
             with pytest.raises(KeyError):
-                sliced_table['NonExistent']  # Non-existent column name
+                fmt_table.set_format('Missing', '.2f')
 
+        def test_out_of_bounds(self, fmt_table):
+            with pytest.raises(IndexError):
+                fmt_table.set_format(10, '.2f')
+
+        @pytest.mark.parametrize('col', [1.0, None], ids=['float', 'none'])
+        def test_column_type(self, fmt_table, col):
+            with pytest.raises(TypeError):
+                fmt_table.set_format(col, '.2f')
+
+        def test_format_type(self, fmt_table):
+            with pytest.raises(TypeError):
+                fmt_table.set_format('ID', 2)
+
+    class TestFormats:
+        def test_copy(self, fmt_table):
+            fmt_table.formats['ID'] = 'd'
+            assert fmt_table.get_format('ID') is None
+
+    class TestFormatCell:
+        @pytest.mark.parametrize(
+            'fmt,           value,      expected',
+            [
+                ('.2f', 3.14159, '3.14'),
+                ('.3e', 1234.5, '1.234e+03'),
+                (',d', 1234567, '1,234,567'),
+                ('{:.1f} keV', 12.345, '12.3 keV'),
+                ('.2f', 'abc', 'abc'),
+                ('{0} {1}', 1, '1'),
+            ],
+            ids=['spec', 'exponent', 'thousands', 'format-string', 'wrong-type', 'invalid-format'],
+        )
+        def test_format(self, fmt, value, expected):
+            table = Table(data=[[value]], headers=['A'], formats={'A': fmt})
+            assert table._format_cell(0, table._data[0][0]) == expected
+
+        def test_missing_not_formatted(self, fmt_table):
+            assert fmt_table._format_cell(2, fmt_table._data[1][2]) == '-'
+
+    class TestColAlign:
+        @pytest.mark.parametrize(
+            'fmt,           expected',
+            [
+                ('<.2f', '<'),
+                ('*^10', '^'),
+                ('=+8', '>'),
+                ('{:>6.1f} A', '>'),
+                ('.2f', '>'),
+            ],
+            ids=['left', 'fill-center', 'sign', 'format-string', 'numeric-default'],
+        )
+        def test_from_format(self, fmt, expected):
+            table = Table(data=[[1.0], [2.0]], headers=['A'], formats={'A': fmt})
+            assert table._col_align(0) == expected
+
+        def test_defaults(self):
+            table = Table(data=[[1, 'a', 'b']], headers=['A', 'B', 'C'], formats={'B': '5'})
+            assert table._col_align(0) == '<'  # unformatted
+            assert table._col_align(1) == '<'  # formatted, not numbers
+
+    class TestHeaders:
+        def test_get(self, small_table):
+            assert small_table.headers == ['ID', 'Name']
+
+        @pytest.mark.xfail(strict=True, reason='The internal list is returned')
+        def test_get_copy(self, small_table):
+            small_table.headers.append('x')
+            assert small_table.headers == ['ID', 'Name']
+            assert small_table.shape == (2, 2)
+
+        def test_set(self, small_table):
+            small_table.headers = ['a', 'b']
+            assert small_table.get_col('a') == [1, 2]
+
+        def test_set_wrong_length(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.headers = ['a']
+
+        def test_set_rekeys_formats(self, fmt_table):
+            fmt_table.headers = ['a', 'b', 'c', 'd']
+            assert fmt_table.formats == {'c': '.2f', 'd': '>8,d'}
+
+        def test_set_on_table_without_headers(self):
+            table = Table(data=[[1.0, 2.0], [3.0, 4.0]], formats={1: '.1e'})
+            table.headers = ['A', 'B']
+            assert table.formats == {'B': '.1e'}
+
+    class TestShape:
+        @pytest.mark.parametrize(
+            'table, shape',
+            [
+                (Table(), (0, 0)),
+                (Table(headers=['a', 'b']), (0, 2)),
+                (Table(data=[[1, 2, 3]]), (1, 3)),
+                (Table(data=[[1, 2], [3, 4]], headers=['a', 'b']), (2, 2)),
+            ],
+            ids=['empty', 'headers', 'no-headers', 'full'],
+        )
+        def test_shape(self, table, shape):
+            assert table.shape == shape
+            assert (table.no_rows, table.no_cols) == shape
+            assert table.size == shape[0] * shape[1]
+            assert len(table) == shape[0]
+
+    class TestHasMissing:
+        def test_has_missing(self, sample_table, small_table):
+            assert sample_table.has_missing
+            assert not small_table.has_missing
+
+    class TestAddRow:
+        def test_list(self, small_table):
+            small_table.add_row([3, 'Gamma'])
+            assert small_table.get_row(2) == [3, 'Gamma']
+
+        def test_dict_names(self, small_table):
+            small_table.add_row({'Name': 'Gamma', 'ID': 3})
+            assert small_table.get_row(2) == [3, 'Gamma']
+
+        def test_dict_indices(self, small_table):
+            small_table.add_row({0: 4, -1: 'Delta'})
+            assert small_table.get_row(2) == [4, 'Delta']
+
+        def test_missing_values(self):
+            table = Table(data=[[1, 'Alpha']], headers=['ID', 'Name'], missing_values=[None], missing_value_repr='-')
+            table.add_row([3, None])
+            table.add_row({'ID': 4})
+            assert table.get_row(1) == [3, '-']
+            assert table.get_row(2) == [4, '-']
+            assert isinstance(table._data[2][1], MissingValue)
+
+        def test_wrong_length(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.add_row([1, 2, 3])
+            assert small_table.shape == (2, 2)
+
+        def test_unknown_name(self, small_table):
             with pytest.raises(KeyError):
-                sliced_table['NonExistent':'Value']  # Non-existent column name in slice
+                small_table.add_row({'Other': 1})
+            assert small_table.no_rows == 2
 
-    class TestConversions:
-        """Tests for Table conversion methods."""
+        @pytest.mark.parametrize('key', [2, -3], ids=['past-end', 'before-start'])
+        def test_index_out_of_range(self, small_table, key):
+            with pytest.raises(IndexError):
+                small_table.add_row({key: 1})
+            assert small_table.no_rows == 2
 
-        def test_data_property(self, sample_table):
-            """Test the data property returns the correct 2D list representation."""
-            # Test with regular data and missing values
+        def test_first_row_sets_width(self):
+            table = Table()
+            table.add_row([1, 2, 3])
+            assert table.shape == (1, 3)
+
+        @pytest.mark.xfail(strict=True, reason='The length is only checked against existing rows')
+        def test_wrong_length_without_rows(self):
+            table = Table(headers=['a'])
+            with pytest.raises(ValueError):
+                table.add_row([1, 2, 3])
+            assert table.shape == (0, 1)
+
+        @pytest.mark.xfail(strict=True, reason='Empty cells are marked with a string')
+        def test_dict_value_equal_to_marker(self):
+            table = Table(headers=['a', 'b'], missing_value_repr='-')
+            table.add_row({'a': 'XTLDummyMissingValue'})
+            assert table.get_row(0) == ['XTLDummyMissingValue', '-']
+
+        @pytest.mark.xfail(strict=True, reason='Cells are compared with the marker string by `!=`')
+        def test_dict_array_value(self):
+            np = pytest.importorskip('numpy')
+            table = Table(headers=['a', 'b'])
+            table.add_row({'a': np.array([1, 2])})
+            assert table.get_row(0)[0].tolist() == [1, 2]
+
+    class TestAddCol:
+        def test_list(self, small_table):
+            small_table.add_col([True, False], col_name='Active')
+            assert small_table.headers == ['ID', 'Name', 'Active']
+            assert small_table.get_col('Active') == [True, False]
+
+        def test_dict(self, small_table):
+            small_table.add_col({'Active': [True, False]})
+            assert small_table.get_col('Active') == [True, False]
+
+        def test_dict_several_columns(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.add_col({'a': [1, 2], 'b': [3, 4]})
+
+        def test_name_only(self):
+            table = Table(data=[[1], [2]], headers=['ID'], missing_values=[None], missing_value_repr='-')
+            table.add_col('Notes')
+            assert table.headers == ['ID', 'Notes']
+            assert table.get_col('Notes') == ['-', '-']
+
+        def test_name_required_with_headers(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.add_col([1, 2])
+
+        def test_without_headers(self):
+            table = Table(data=[[1], [2]])
+            table.add_col([3, 4])
+            assert table.data == [[1, 3], [2, 4]]
+
+        def test_format(self, fmt_table):
+            fmt_table.add_col([1.0, 2.0, 3.0], col_name='E', fmt='{:.1f} keV')
+            assert fmt_table.get_format('E') == '{:.1f} keV'
+            assert fmt_table._format_cell(4, fmt_table._data[0][4]) == '1.0 keV'
+
+        @pytest.mark.xfail(strict=True, reason='The values are appended to rows that do not exist')
+        def test_to_table_without_rows(self):
+            table = Table()
+            table.add_col([1, 2], col_name='a')
+            assert table.headers == ['a']
+            assert table.data == [[1], [2]]
+
+        @pytest.mark.xfail(strict=True, reason='The header is added before the length is checked')
+        def test_wrong_length(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.add_col([1, 2, 3], col_name='x')
+            assert small_table.headers == ['ID', 'Name']
+            assert small_table.shape == (2, 2)
+
+    class TestGetRow:
+        def test_index(self, sample_table):
+            assert sample_table.get_row(0) == [1, 'Alpha', 10.5, True, 'Red']
+            assert sample_table.get_row(-1) == [5, 'Epsilon', 50.9, True, 'MISSING']
+
+        def test_out_of_range(self, sample_table):
+            with pytest.raises(IndexError):
+                sample_table.get_row(5)
+
+    class TestGetCol:
+        def test_name(self, sample_table):
+            assert sample_table.get_col('Color') == ['Red', 'MISSING', 'MISSING', 'Blue', 'MISSING']
+
+        @pytest.mark.parametrize('idx', [1, -4], ids=['index', 'negative'])
+        def test_index(self, sample_table, idx):
+            assert sample_table.get_col(idx) == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
+
+        def test_unknown_name(self, sample_table):
+            with pytest.raises(KeyError):
+                sample_table.get_col('Other')
+
+        @pytest.mark.parametrize('idx', [5, -6], ids=['past-end', 'before-start'])
+        def test_out_of_range(self, sample_table, idx):
+            with pytest.raises(IndexError):
+                sample_table.get_col(idx)
+
+        @pytest.mark.xfail(strict=True, reason='Without rows, every index but 0 is out of range')
+        def test_without_rows(self):
+            assert Table(headers=['a', 'b']).get_col(1) == []
+
+        @pytest.mark.xfail(strict=True, reason='Without rows, index 0 is always in range')
+        def test_without_columns(self):
+            with pytest.raises(IndexError):
+                Table().get_col(0)
+
+    class TestSetRow:
+        def test_index(self, small_table):
+            small_table.set_row(1, [9, 'Nine'])
+            assert small_table.get_row(1) == [9, 'Nine']
+
+        def test_missing_values(self):
+            table = Table(data=[[1, 2]], headers=['a', 'b'], missing_values=[None], missing_value_repr='-')
+            table.set_row(0, [None, 3])
+            assert table.get_row(0) == ['-', 3]
+
+        def test_wrong_length(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.set_row(0, [1])
+
+        @pytest.mark.xfail(strict=True, reason='The length is compared with the headers')
+        def test_without_headers(self):
+            table = Table(data=[[1, 2]])
+            table.set_row(0, [3, 4])
+            assert table.data == [[3, 4]]
+
+    class TestSetCol:
+        def test_name(self, small_table):
+            small_table.set_col('ID', [10, 20])
+            assert small_table.get_col('ID') == [10, 20]
+
+        def test_index(self, small_table):
+            small_table.set_col(1, ['a', 'b'])
+            assert small_table.get_col('Name') == ['a', 'b']
+
+        def test_wrong_length(self, small_table):
+            with pytest.raises(ValueError):
+                small_table.set_col('ID', [1])
+
+        def test_unknown_name(self, small_table):
+            with pytest.raises(KeyError):
+                small_table.set_col('Other', [1, 2])
+
+        def test_out_of_range(self, small_table):
+            with pytest.raises(IndexError):
+                small_table.set_col(2, [1, 2])
+
+        @pytest.mark.xfail(strict=True, reason='Negative indices are rejected')
+        def test_negative_index(self, small_table):
+            small_table.set_col(-1, ['a', 'b'])
+            assert small_table.get_col('Name') == ['a', 'b']
+
+    class TestData:
+        def test_data(self, sample_table):
             data = sample_table.data
-            assert isinstance(data, list)
-            assert len(data) == 5  # 5 rows
-            assert len(data[0]) == 5  # 5 columns
+            assert len(data) == 5
             assert data[0] == [1, 'Alpha', 10.5, True, 'Red']
-            assert data[2][1] == 'Gamma'
+            assert [row[4] for row in data[1:3]] == ['MISSING', 'MISSING']
+            assert data[4][4] == 'MISSING'
 
-            # Check missing values are properly represented
-            assert data[1][4] == 'MISSING'  # 'N/A' is represented as 'MISSING'
-            assert data[2][4] == 'MISSING'  # None is represented as 'MISSING'
-            assert data[4][4] == 'MISSING'  # Empty string is represented as 'MISSING'
+        def test_without_headers(self):
+            assert Table(data=[[1, 2, 3], [4, 5, 6]]).data == [[1, 2, 3], [4, 5, 6]]
 
-        def test_to_list(self, sample_table):
-            """Test the to_list method returns a flattened list of all values."""
-            flat_list = sample_table.to_list()
-            assert flat_list == [
-                1,
-                'Alpha',
-                10.5,
-                True,
-                'Red',
-                2,
-                'Beta',
-                20.3,
-                False,
-                'MISSING',
-                3,
-                'Gamma',
-                30.7,
-                True,
-                'MISSING',
-                4,
-                'Delta',
-                40.2,
-                False,
-                'Blue',
-                5,
-                'Epsilon',
-                50.9,
-                True,
-                'MISSING',
-            ]
+        def test_empty(self):
+            assert Table(headers=['A', 'B']).data == []
 
-        def test_to_dict(self, sample_table):
-            """Test the to_dict method returns a dictionary with column names as keys."""
-            data_dict = sample_table.to_dict()
-            assert data_dict == {
+    class TestToList:
+        def test_flat(self, sample_table):
+            flat = sample_table.to_list()
+            assert len(flat) == 25
+            assert flat[:5] == [1, 'Alpha', 10.5, True, 'Red']
+            assert flat[9] == 'MISSING'
+
+        def test_empty(self):
+            assert Table(headers=['A']).to_list() == []
+
+    class TestToDict:
+        def test_headers(self, sample_table):
+            assert sample_table.to_dict() == {
                 'ID': [1, 2, 3, 4, 5],
                 'Name': ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
                 'Value': [10.5, 20.3, 30.7, 40.2, 50.9],
@@ -454,14 +562,37 @@ class TestTable:
                 'Color': ['Red', 'MISSING', 'MISSING', 'Blue', 'MISSING'],
             }
 
-        def test_to_pandas(self, sample_table):
-            """Test the to_pandas method converts to a pandas DataFrame."""
-            # Skip test if pandas is not installed
-            pd = pytest.importorskip('pandas')
+        def test_without_headers(self):
+            assert Table(data=[[1, 2, 3], [4, 5, 6]]).to_dict() == {0: [1, 4], 1: [2, 5], 2: [3, 6]}
 
-            df = sample_table.to_pandas()
+        def test_without_rows(self):
+            assert Table(headers=['A', 'B']).to_dict() == {'A': [], 'B': []}
+
+        def test_duplicate_headers(self):
+            # The first column of a name is kept
+            assert Table(data=[[1, 2]], headers=['a', 'a']).to_dict() == {'a': [1]}
+
+        @pytest.mark.xfail(strict=True, reason='The width is read from the first row')
+        def test_empty(self):
+            assert Table().to_dict() == {}
+
+    class TestToNumpy:
+        def test_mixed(self, sample_table):
+            pytest.importorskip('numpy')
+            arr = sample_table.to_numpy()
+            assert arr.shape == (5, 5)
+            assert arr[1, 4] == 'MISSING'
+
+        def test_numbers(self):
+            np = pytest.importorskip('numpy')
+            data = [[1, 10.5, 100], [2, 20.3, 200]]
+            assert (Table(data=data, headers=['A', 'B', 'C']).to_numpy() == np.array(data)).all()
+
+    class TestToPandas:
+        def test_headers(self, sample_table):
+            pd = pytest.importorskip('pandas')
             pd.testing.assert_frame_equal(
-                df,
+                sample_table.to_pandas(),
                 pd.DataFrame(
                     {
                         'ID': [1, 2, 3, 4, 5],
@@ -473,891 +604,304 @@ class TestTable:
                 ),
             )
 
-        def test_to_numpy(self, sample_table):
-            """Test the to_numpy method converts to a numpy array."""
-            # Skip test if numpy is not installed
-            np = pytest.importorskip('numpy')
+        def test_without_headers(self):
+            pytest.importorskip('pandas')
+            assert Table(data=[[1, 2]]).to_pandas().columns.tolist() == [0, 1]
 
-            # Convert to numpy array
-            arr = sample_table.to_numpy()
-            assert (
-                arr
-                == np.array(
-                    [
-                        [1, 'Alpha', 10.5, True, 'Red'],
-                        [2, 'Beta', 20.3, False, 'MISSING'],
-                        [3, 'Gamma', 30.7, True, 'MISSING'],
-                        [4, 'Delta', 40.2, False, 'Blue'],
-                        [5, 'Epsilon', 50.9, True, 'MISSING'],
-                    ]
-                )
-            ).all()
-
-            # Test with a table containing only numeric data
-            numeric_data = [[1, 10.5, 100], [2, 20.3, 200], [3, 30.7, 300]]
-            numeric_table = Table(data=numeric_data, headers=['A', 'B', 'C'])
-
-            numeric_arr = numeric_table.to_numpy()
-            assert (numeric_arr == np.array(numeric_data)).all()
-
-        def test_to_rich(self, sample_table):
-            """Test the to_rich method converts to a rich Table."""
-            # Skip test if rich is not installed
+    class TestToRich:
+        def test_columns(self, sample_table):
             rich = pytest.importorskip('rich')
-
-            # Test with regular data and missing values
             rich_table = sample_table.to_rich()
             assert isinstance(rich_table, rich.table.Table)
-            assert len(rich_table.columns) == 5
             assert [col.header for col in rich_table.columns] == ['ID', 'Name', 'Value', 'Active', 'Color']
 
-            # Test with custom cast_as function
-            def cast_as_str(val):
-                return f'STR:{val}'
-
-            sample_table.to_rich(cast_as=cast_as_str)
-
-        def test_table_without_headers(self):
-            """Test conversions with a table that has no headers."""
-            # Create table without headers
-            table_no_headers = Table(data=[[1, 2, 3], [4, 5, 6]])
-
-            # Test data property
-            assert table_no_headers.data == [[1, 2, 3], [4, 5, 6]]
-
-            # Test to_list
-            assert table_no_headers.to_list() == [1, 2, 3, 4, 5, 6]
-
-            # Test to_dict - should use numeric indices as keys
-            dict_result = table_no_headers.to_dict()
-            assert len(dict_result) == 3
-            assert dict_result[0] == [1, 4]
-            assert dict_result[1] == [2, 5]
-            assert dict_result[2] == [3, 6]
-
-        def test_empty_table(self):
-            """Test conversions with an empty table."""
-            # Create empty table with headers
-            empty_table = Table(headers=['A', 'B', 'C'])
-
-            # Test data property
-            assert empty_table.data == []
-
-            # Test to_list
-            assert empty_table.to_list() == []
-
-            # Test to_dict - should return empty lists for each header
-            dict_result = empty_table.to_dict()
-            assert len(dict_result) == 3
-            assert dict_result['A'] == []
-            assert dict_result['B'] == []
-            assert dict_result['C'] == []
-
-        def test_to_csv_as_string(self, sample_table):
-            """Test the to_csv method returns a valid CSV string when no filename is provided."""
-            csv_str = sample_table.to_csv()
-
-            assert (
-                csv_str == 'ID,Name,Value,Active,Color\n'
-                '1,Alpha,10.5,True,Red\n'
-                '2,Beta,20.3,False,MISSING\n'
-                '3,Gamma,30.7,True,MISSING\n'
-                '4,Delta,40.2,False,Blue\n'
-                '5,Epsilon,50.9,True,MISSING\n'
-            )
-
-        def test_to_csv_with_custom_params(self, sample_table):
-            """Test the to_csv method with custom parameters."""
-            csv_str = sample_table.to_csv(delimiter=';', header_char='#', new_line='\r\n')
-
-            assert (
-                csv_str == '#ID;Name;Value;Active;Color\r\n'
-                '1;Alpha;10.5;True;Red\r\n'
-                '2;Beta;20.3;False;MISSING\r\n'
-                '3;Gamma;30.7;True;MISSING\r\n'
-                '4;Delta;40.2;False;Blue\r\n'
-                '5;Epsilon;50.9;True;MISSING\r\n'
-            )
-
-        def test_to_csv_to_file(self, sample_table, tmp_path):
-            """Test the to_csv method writes to a file correctly."""
-            filepath = tmp_path / 'test_table.csv'
-
-            # Export to CSV file
-            result_path = sample_table.to_csv(filename=filepath)
-
-            # Check the returned path is correct
-            assert result_path == filepath.with_suffix('.csv')
-
-            # Check the file exists
-            assert filepath.with_suffix('.csv').exists()
-
-            # Check the file contents
-            content = filepath.with_suffix('.csv').read_text()
-            assert (
-                content == 'ID,Name,Value,Active,Color\n'
-                '1,Alpha,10.5,True,Red\n'
-                '2,Beta,20.3,False,MISSING\n'
-                '3,Gamma,30.7,True,MISSING\n'
-                '4,Delta,40.2,False,Blue\n'
-                '5,Epsilon,50.9,True,MISSING\n'
-            )
-
-            # Test overwrite parameter
-            with pytest.raises(FileExistsError):
-                sample_table.to_csv(filename=filepath, overwrite=False)
-
-            # Should succeed with overwrite=True
-            sample_table.to_csv(filename=filepath, overwrite=True)
-
-            # Test keep_file_ext parameter
-            ext_path = tmp_path / 'test_table.txt'
-            result_path = sample_table.to_csv(filename=ext_path, keep_file_ext=True)
-            assert result_path == ext_path
-            assert ext_path.exists()
-
-            # Without keep_file_ext, should add .csv extension
-            ext_path = tmp_path / 'test_table2.txt'
-            result_path = sample_table.to_csv(filename=ext_path, keep_file_ext=False)
-            assert result_path == ext_path.with_suffix('.csv')
-            assert ext_path.with_suffix('.csv').exists()
-
-    class TestConstructors:
-        """Tests for the Table class constructors."""
-
-        def test_from_dict(self):
-            """Test creating a Table from a dictionary."""
-            # Create a dictionary
-            data_dict = {
-                'ID': [1, 2, 3, 4, 5],
-                'Name': ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
-                'Value': [10.5, 20.3, 30.7, 40.2, 50.9],
-                'Active': [True, False, True, False, True],
-            }
-
-            # Create table from dict
-            table = Table.from_dict(data_dict)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 5
-            assert table.get_col('ID') == [1, 2, 3, 4, 5]
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-            assert table.get_col('Value') == [10.5, 20.3, 30.7, 40.2, 50.9]
-            assert table.get_col('Active') == [True, False, True, False, True]
-
-        def test_from_dict_with_missing_values(self):
-            """Test creating a Table from a dictionary with missing values."""
-            # Create a dictionary with missing values
-            data_dict = {
-                'Fruit': ['Apple', 'Banana', 'Orange', 'Grape'],
-                'Quantity': [10, 'N/A', 12, 5],
-                'Color': ['Red', 'Yellow', None, ''],
-            }
-
-            # Create table from dict with missing values
-            table = Table.from_dict(data_dict, missing_values=['N/A', None, ''], missing_value_repr='MISSING')
-
-            # Verify the table
-            assert table.headers == ['Fruit', 'Quantity', 'Color']
-            assert len(table) == 4
-            assert table.get_col('Fruit') == ['Apple', 'Banana', 'Orange', 'Grape']
-            assert table.get_col('Quantity') == [10, 'MISSING', 12, 5]
-            assert table.get_col('Color') == ['Red', 'Yellow', 'MISSING', 'MISSING']
-
-        def test_from_dict_empty(self):
-            """Test creating a Table from an empty dictionary."""
-            table = Table.from_dict({})
-            assert table.headers == []
-            assert len(table) == 0
-
-        def test_from_dict_unequal_lengths(self):
-            """Test that creating a Table from a dictionary with unequal column lengths raises ValueError."""
-            data_dict = {
-                'A': [1, 2, 3],
-                'B': [4, 5],  # One element short
-            }
-            with pytest.raises(ValueError):
-                Table.from_dict(data_dict)
-
-        def test_from_numpy(self):
-            """Test creating a Table from a numpy array."""
-            # Skip test if numpy is not installed
-            np = pytest.importorskip('numpy')
-
-            # Create a numpy array
-            array = np.array(
-                [
-                    [1, 'Alpha', 10.5, True],
-                    [2, 'Beta', 20.3, False],
-                    [3, 'Gamma', 30.7, True],
-                    [4, 'Delta', 40.2, False],
-                    [5, 'Epsilon', 50.9, True],
-                ]
-            )
-
-            # Create table from numpy array with headers
-            headers = ['ID', 'Name', 'Value', 'Active']
-            table = Table.from_numpy(array, headers=headers)
-
-            # Verify the table
-            assert table.headers == headers
-            assert len(table) == 5
-            assert table.get_col('ID') == ['1', '2', '3', '4', '5']  # Note: NumPy converts to strings
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7', '40.2', '50.9']
-            assert table.get_col('Active') == ['True', 'False', 'True', 'False', 'True']
-
-        def test_from_numpy_without_headers(self):
-            """Test creating a Table from a numpy array without specifying headers."""
-            # Skip test if numpy is not installed
-            np = pytest.importorskip('numpy')
-
-            # Create a numpy array
-            array = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-
-            # Create table from numpy array without headers
-            table = Table.from_numpy(array)
-
-            # Verify the table
-            assert table.headers == []
-            assert len(table) == 3
-            assert table.get_col(0) == [1, 4, 7]
-            assert table.get_col(1) == [2, 5, 8]
-            assert table.get_col(2) == [3, 6, 9]
-
-        def test_from_numpy_non_2d(self):
-            """Test that creating a Table from a non-2D numpy array raises ValueError."""
-            # Skip test if numpy is not installed
-            np = pytest.importorskip('numpy')
-
-            # Create a 1D numpy array
-            array_1d = np.array([1, 2, 3, 4, 5])
-
-            # Create a 3D numpy array
-            array_3d = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
-
-            # Both should raise ValueError
-            with pytest.raises(ValueError):
-                Table.from_numpy(array_1d)
-
-            with pytest.raises(ValueError):
-                Table.from_numpy(array_3d)
-
-        def test_from_pandas(self):
-            """Test creating a Table from a pandas DataFrame."""
-            # Skip test if pandas is not installed
-            pd = pytest.importorskip('pandas')
-
-            # Create a pandas DataFrame
-            df = pd.DataFrame(
-                {
-                    'ID': [1, 2, 3, 4, 5],
-                    'Name': ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
-                    'Value': [10.5, 20.3, 30.7, 40.2, 50.9],
-                    'Active': [True, False, True, False, True],
-                }
-            )
-
-            # Create table from DataFrame
-            table = Table.from_pandas(df)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 5
-            assert table.get_col('ID') == [1, 2, 3, 4, 5]
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
-            assert table.get_col('Value') == [10.5, 20.3, 30.7, 40.2, 50.9]
-            assert table.get_col('Active') == [True, False, True, False, True]
-
-        def test_from_pandas_with_missing_values(self):
-            """Test creating a Table from a pandas DataFrame with missing values."""
-            # Skip test if pandas is not installed
-            pd = pytest.importorskip('pandas')
-            np = pytest.importorskip('numpy')
-
-            # Create a pandas DataFrame with missing values
-            df = pd.DataFrame(
-                {
-                    'Fruit': ['Apple', 'Banana', 'Orange', 'Grape'],
-                    'Quantity': [10, np.nan, 12, 5],
-                    'Color': ['Red', 'Yellow', None, ''],
-                }
-            )
-
-            # Create table from DataFrame with missing values
-            table = Table.from_pandas(df, missing_values=[np.nan, None, ''], missing_value_repr='MISSING')
-
-            # Verify the table
-            assert table.headers == ['Fruit', 'Quantity', 'Color']
-            assert len(table) == 4
-            assert table.get_col('Fruit') == ['Apple', 'Banana', 'Orange', 'Grape']
-
-            # Check the missing values are handled correctly
-            quantity_col = table.get_col('Quantity')
-            assert quantity_col[0] == 10
-            assert quantity_col[1] == 'MISSING'
-            assert quantity_col[2] == 12
-            assert quantity_col[3] == 5
-
-            assert table.get_col('Color') == ['Red', 'Yellow', 'MISSING', 'MISSING']
-
-        def test_from_csv_string(self):
-            """Test creating a Table from a CSV string."""
-            csv_content = 'ID,Name,Value,Active\n1,Alpha,10.5,True\n2,Beta,20.3,False\n3,Gamma,30.7,True\n'
-
-            # Create table from CSV string
-            table = Table.from_csv(csv_content, header_line=0)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 3
-            assert table.get_col('ID') == ['1', '2', '3']
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7']
-            assert table.get_col('Active') == ['True', 'False', 'True']
-
-        def test_from_csv_file(self, tmp_path):
-            """Test creating a Table from a CSV file."""
-            # Create a temporary CSV file
-            csv_path = tmp_path / 'test.csv'
-            csv_content = 'ID,Name,Value,Active\n1,Alpha,10.5,True\n2,Beta,20.3,False\n3,Gamma,30.7,True'
-            csv_path.write_text(csv_content)
-
-            # Create table from CSV file
-            table = Table.from_csv(csv_path, header_line=0)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 3
-            assert table.get_col('ID') == ['1', '2', '3']
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7']
-            assert table.get_col('Active') == ['True', 'False', 'True']
-
-        def test_from_csv_no_headers(self):
-            """Test creating a Table from a CSV without headers."""
-            csv_content = 'ID,Name,Value,Active\n1,Alpha,10.5,True\n2,Beta,20.3,False\n3,Gamma,30.7,True'
-
-            # Create table from CSV string without headers
-            table = Table.from_csv(csv_content)  # header_line=None by default
-
-            # Verify the table
-            assert table.headers == []
-            assert len(table) == 4
-            assert table.get_col(0) == ['ID', '1', '2', '3']
-            assert table.get_col(1) == ['Name', 'Alpha', 'Beta', 'Gamma']
-            assert table.get_col(2) == ['Value', '10.5', '20.3', '30.7']
-            assert table.get_col(3) == ['Active', 'True', 'False', 'True']
-
-        def test_from_csv_custom_delimiter(self):
-            """Test creating a Table from a CSV with a custom delimiter."""
-            csv_content = 'ID;Name;Value;Active\n1;Alpha;10.5;True\n2;Beta;20.3;False\n3;Gamma;30.7;True'
-
-            # Create table from CSV string with semicolon delimiter
-            table = Table.from_csv(csv_content, delimiter=';', header_line=0)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 3
-            assert table.get_col('ID') == ['1', '2', '3']
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7']
-            assert table.get_col('Active') == ['True', 'False', 'True']
-
-        def test_from_csv_with_header_char(self):
-            """Test creating a Table from a CSV with a header character."""
-            csv_content = '# ID,Name,Value,Active\n1,Alpha,10.5,True\n2,Beta,20.3,False\n3,Gamma,30.7,True'
-
-            # Create table from CSV string with # as header character
-            table = Table.from_csv(csv_content, header_char='# ', header_line=0)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 3
-            assert table.get_col('ID') == ['1', '2', '3']
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7']
-            assert table.get_col('Active') == ['True', 'False', 'True']
-
-        def test_from_csv_with_custom_newline(self):
-            """Test creating a Table from a CSV with custom newline character."""
-            csv_content = 'ID,Name,Value,Active\r\n1,Alpha,10.5,True\r\n2,Beta,20.3,False\r\n3,Gamma,30.7,True'
-
-            # Create table from CSV string with \r\n newlines
-            table = Table.from_csv(csv_content, new_line='\r\n', header_line=0)
-
-            # Verify the table
-            assert table.headers == ['ID', 'Name', 'Value', 'Active']
-            assert len(table) == 3
-            assert table.get_col('ID') == ['1', '2', '3']
-            assert table.get_col('Name') == ['Alpha', 'Beta', 'Gamma']
-            assert table.get_col('Value') == ['10.5', '20.3', '30.7']
-            assert table.get_col('Active') == ['True', 'False', 'True']
-
-        def test_from_csv_empty(self):
-            """Test creating a Table from an empty CSV."""
-            # Create table from empty CSV string
-            table = Table.from_csv('')
-
-            # Verify the table
-            assert table.headers == []
-            assert len(table) == 0
-
-    class TestOperations:
-        """Tests for table operations like adding rows and columns."""
-
-        def test_add_row_with_list(self):
-            """Test adding a new row using add_row with a list."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Add a new row with a list
-            table.add_row([3, 'Gamma'])
-
-            # Verify the row was added
-            assert len(table) == 3
-            assert table.get_row(2) == [3, 'Gamma']
-
-        def test_add_row_with_dict(self):
-            """Test adding a new row using add_row with a dictionary."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Add a new row with a dictionary using column names
-            table.add_row({'Name': 'Gamma', 'ID': 3})
-
-            # Verify the row was added
-            assert len(table) == 3
-            assert table.get_row(2) == [3, 'Gamma']
-
-            # Add a row with a dictionary using column indices
-            table.add_row({0: 4, 1: 'Delta'})
-
-            # Verify the row was added
-            assert len(table) == 4
-            assert table.get_row(3) == [4, 'Delta']
-
-        def test_add_row_with_missing_values(self):
-            """Test adding a row with missing values."""
+        def test_formats_and_alignment(self):
+            pytest.importorskip('rich')
             table = Table(
-                data=[[1, 'Alpha'], [2, 'Beta']],
-                headers=['ID', 'Name'],
-                missing_values=[None],
-                missing_value_repr='MISSING',
+                data=[[0, 0.0, False, None]], headers=['A', 'B', 'C', 'D'], missing_values=[None], formats={'B': '.2f'}
             )
-
-            # Add a row with a missing value
-            table.add_row([3, None])
-
-            # Verify the row was added with the missing value properly represented
-            assert len(table) == 3
-            assert table.get_row(2) == [3, 'MISSING']
-
-            # Add a partial row with a dictionary
-            table.add_row({'ID': 4})  # No Name provided
-
-            # Verify the row was added with missing value for Name
-            assert len(table) == 4
-            assert table.get_row(3) == [4, 'MISSING']
-
-        def test_add_column_with_list(self):
-            """Test adding a new column using add_col with a list."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Add a new column with values
-            table.add_col([True, False], col_name='Active')
-
-            # Verify the column was added
-            assert table.headers == ['ID', 'Name', 'Active']
-            assert table.get_col('Active') == [True, False]
-
-        def test_add_column_with_dict(self):
-            """Test adding a new column using add_col with a dictionary."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Add a new column with a dictionary
-            table.add_col({'Active': [True, False]})
-
-            # Verify the column was added
-            assert table.headers == ['ID', 'Name', 'Active']
-            assert table.get_col('Active') == [True, False]
-
-        def test_add_empty_column(self):
-            """Test adding an empty column (filled with missing values)."""
-            table = Table(
-                data=[[1, 'Alpha'], [2, 'Beta']],
-                headers=['ID', 'Name'],
-                missing_values=[None],
-                missing_value_repr='MISSING',
-            )
-
-            # Add an empty column
-            table.add_col('Notes')
-
-            # Verify the column was added with missing values
-            assert table.headers == ['ID', 'Name', 'Notes']
-            assert table.get_col('Notes') == ['MISSING', 'MISSING']
-
-        def test_add_operator_tables(self):
-            """Test the __add__ operator for combining two tables row-wise."""
-            table1 = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[3, 'Gamma'], [4, 'Delta']], headers=['ID', 'Name'])
-
-            # Combine tables with + operator
-            combined = table1 + table2
-
-            # Verify the tables were combined correctly
-            assert len(combined) == 4
-            assert combined.headers == ['ID', 'Name']
-            assert combined.get_col('ID') == [1, 2, 3, 4]
-            assert combined.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta']
-
-            # Ensure original tables weren't modified
-            assert len(table1) == 2
-            assert len(table2) == 2
-
-        def test_iadd_operator_with_table(self):
-            """Test the __iadd__ operator with another table for in-place row concatenation."""
-            table1 = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[3, 'Gamma'], [4, 'Delta']], headers=['ID', 'Name'])
-
-            # Append table2 to table1 using +=
-            table1 += table2
-
-            # Verify the rows were appended
-            assert len(table1) == 4
-            assert table1.get_col('ID') == [1, 2, 3, 4]
-            assert table1.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta']
-
-        def test_iadd_operator_with_row(self):
-            """Test the __iadd__ operator with a row (list or dict) for appending a row."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Append a row using +=
-            table += [3, 'Gamma']
-
-            # Verify the row was appended
-            assert len(table) == 3
-            assert table.get_row(2) == [3, 'Gamma']
-
-            # Append a row using += with a dictionary
-            table += {'ID': 4, 'Name': 'Delta'}
-
-            # Verify the row was appended
-            assert len(table) == 4
-            assert table.get_row(3) == [4, 'Delta']
-
-        def test_or_operator_tables(self):
-            """Test the __or__ operator for combining two tables column-wise."""
-            table1 = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[True, 10], [False, 20]], headers=['Active', 'Value'])
-
-            # Combine tables with | operator
-            combined = table1 | table2
-
-            # Verify the tables were combined correctly
-            assert len(combined) == 2
-            assert combined.headers == ['ID', 'Name', 'Active', 'Value']
-            assert combined.get_row(0) == [1, 'Alpha', True, 10]
-            assert combined.get_row(1) == [2, 'Beta', False, 20]
-
-            # Ensure original tables weren't modified
-            assert len(table1.headers) == 2
-            assert len(table2.headers) == 2
-
-        def test_ior_operator_with_table(self):
-            """Test the __ior__ operator with another table for in-place column concatenation."""
-            table1 = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[True, 10], [False, 20]], headers=['Active', 'Value'])
-
-            # Append columns from table2 to table1 using |=
-            table1 |= table2
-
-            # Verify the columns were appended
-            assert table1.headers == ['ID', 'Name', 'Active', 'Value']
-            assert table1.get_row(0) == [1, 'Alpha', True, 10]
-            assert table1.get_row(1) == [2, 'Beta', False, 20]
-
-        def test_ior_operator_with_column(self):
-            """Test the __ior__ operator with a column (list, dict, or string) for adding a column."""
-            table = Table(data=[[1, 'Alpha'], [2, 'Beta']], headers=['ID', 'Name'])
-
-            # Add a column using |= with a dictionary
-            table |= {'Active': [True, False]}
-
-            # Verify the column was added
-            assert table.headers == ['ID', 'Name', 'Active']
-            assert table.get_col('Active') == [True, False]
-
-            # Add a column using |= with a string (empty column)
-            table |= 'Notes'
-
-            # Verify the empty column was added
-            assert table.headers == ['ID', 'Name', 'Active', 'Notes']
-            assert len(table.get_col('Notes')) == 2
-
-        def test_add_with_different_headers(self):
-            """Test that adding tables with different headers raises an error."""
-            table1 = Table(data=[[1, 'Alpha']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[True, 10]], headers=['Active', 'Value'])
-
-            # Attempt to add tables with different headers
-            with pytest.raises(ValueError):
-                table1 + table2
-
-        def test_or_with_different_row_counts(self):
-            """Test that column-wise combining tables with different row counts raises an error."""
-            table1 = Table(data=[[1, 'Alpha']], headers=['ID', 'Name'])
-
-            table2 = Table(data=[[True, 10], [False, 20]], headers=['Active', 'Value'])
-
-            # Attempt to combine tables with different row counts
-            with pytest.raises(ValueError):
-                table1 | table2
-
-    class TestDeletion:
-        """Tests for deleting rows and columns from a Table."""
-
-        def test_del_row(self, sample_table):
-            """Test deleting a row by index."""
-            # Delete the middle row (Gamma)
-            sample_table.del_row(2)
-
-            # Check that the row was deleted
-            assert len(sample_table) == 4
-            assert sample_table.get_col('Name') == ['Alpha', 'Beta', 'Delta', 'Epsilon']
-
-            # Delete the first row
-            sample_table.del_row(0)
-            assert len(sample_table) == 3
-            assert sample_table.get_col('Name') == ['Beta', 'Delta', 'Epsilon']
-
-            # Delete the last row using negative index
-            sample_table.del_row(-1)
-            assert len(sample_table) == 2
-            assert sample_table.get_col('Name') == ['Beta', 'Delta']
-
-        def test_del_row_out_of_bounds(self, sample_table):
-            """Test that deleting a row with an out-of-bounds index raises an error."""
-            with pytest.raises(IndexError):
-                sample_table.del_row(10)  # Beyond the end
-
-            with pytest.raises(IndexError):
-                sample_table.del_row(-10)  # Too far negative
-
-        def test_del_col_by_name(self, sample_table):
-            """Test deleting a column by name."""
-            # Delete the 'Value' column
-            sample_table.del_col('Value')
-
-            # Check that the column was deleted
-            assert sample_table.headers == ['ID', 'Name', 'Active', 'Color']
-            assert sample_table.no_cols == 4
-
-            # Check that the data was properly adjusted
-            assert sample_table.get_row(0) == [1, 'Alpha', True, 'Red']
-            assert sample_table.get_row(2) == [3, 'Gamma', True, 'MISSING']
-
-        def test_del_col_by_index(self, sample_table):
-            """Test deleting a column by index."""
-            # Delete the second column (Name)
-            sample_table.del_col(1)
-
-            # Check that the column was deleted
-            assert sample_table.headers == ['ID', 'Value', 'Active', 'Color']
-            assert sample_table.no_cols == 4
-
-            # Delete the last column using negative index
-            sample_table.del_col(-1)
-            assert sample_table.headers == ['ID', 'Value', 'Active']
-            assert sample_table.no_cols == 3
-
-        def test_del_col_out_of_bounds(self, sample_table):
-            """Test that deleting a column with an out-of-bounds index raises an error."""
-            with pytest.raises(IndexError):
-                sample_table.del_col(10)  # Beyond the end
-
-            with pytest.raises(IndexError):
-                sample_table.del_col(-10)  # Too far negative
-
-            with pytest.raises(KeyError):
-                sample_table.del_col('NonExistent')  # Non-existent column name
-
-        def test_subtraction_column_by_name(self, sample_table):
-            """Test removing a column using the subtraction operator."""
-            # Remove a single column by name
-            result = sample_table - 'Value'
-
-            # Check that a new table was returned with the column removed
-            assert result is not sample_table  # Should be a new table
-            assert result.headers == ['ID', 'Name', 'Active', 'Color']
-            assert result.no_cols == 4
-            assert result.no_rows == 5
-
-            # Check that the original table is unchanged
-            assert sample_table.headers == ['ID', 'Name', 'Value', 'Active', 'Color']
-            assert sample_table.no_cols == 5
-
-        def test_subtraction_multiple_columns(self, sample_table):
-            """Test removing multiple columns using the subtraction operator."""
-            # Remove multiple columns
-            result = sample_table - ['ID', 'Active']
-
-            # Check that a new table was returned with the columns removed
-            assert result.headers == ['Name', 'Value', 'Color']
-            assert result.no_cols == 3
-            assert result.no_rows == 5
-
-            # Check data integrity
-            assert result.get_row(0) == ['Alpha', 10.5, 'Red']
-            assert result.get_row(2) == ['Gamma', 30.7, 'MISSING']
-
-        def test_subtraction_table_difference(self, sample_table):
-            """Test computing the column-wise difference between tables."""
-            # Create another table with some common columns
-            other_table = Table(data=[[1, 'One'], [2, 'Two']], headers=['ID', 'Label'])
-
-            # Compute the difference (columns in sample_table but not in other_table)
-            result = sample_table - other_table
-
-            # Check that only non-common columns remain
-            assert 'ID' not in result.headers  # This column is in both tables
-            assert 'Label' not in result.headers  # This column is only in other_table
-            assert result.headers == ['Name', 'Value', 'Active', 'Color']  # These are unique to sample_table
-
-            # Create a table with no common columns
-            unrelated_table = Table(data=[[1, 2], [3, 4]], headers=['A', 'B'])
-
-            # Compute the difference
-            result = sample_table - unrelated_table
-
-            # Should return the original table's columns since there are no common columns
-            assert result.headers == ['ID', 'Name', 'Value', 'Active', 'Color']
-
-            # Create a table with all common columns
-            identical_headers_table = Table(
-                data=[[1, 'a', 10.0, True, 'red']], headers=['ID', 'Name', 'Value', 'Active', 'Color']
-            )
-
-            # Compute the difference
-            result = sample_table - identical_headers_table
-
-            # Should return an empty table since all columns are common
-            assert result.headers == []
-            assert result.no_rows == 0
-
-        def test_isub_column_by_name(self, sample_table):
-            """Test in-place removal of a column using the -= operator."""
-            # Remove a single column by name
-            original = sample_table
-            sample_table -= 'Value'
-
-            # Check that the column was removed in-place
-            assert sample_table is original  # Should be the same table (modified in-place)
-            assert sample_table.headers == ['ID', 'Name', 'Active', 'Color']
-            assert sample_table.no_cols == 4
-
-            # Check data integrity
-            assert sample_table.get_row(0) == [1, 'Alpha', True, 'Red']
-            assert sample_table.get_row(2) == [3, 'Gamma', True, 'MISSING']
-
-        def test_isub_multiple_columns(self, sample_table):
-            """Test in-place removal of multiple columns using the -= operator."""
-            # Remove multiple columns
-            original = sample_table
-            sample_table -= ['ID', 'Active']
-
-            # Check that the columns were removed in-place
-            assert sample_table is original  # Should be the same table (modified in-place)
-            assert sample_table.headers == ['Name', 'Value', 'Color']
-            assert sample_table.no_cols == 3
-
-            # Check data integrity
-            assert sample_table.get_row(0) == ['Alpha', 10.5, 'Red']
-            assert sample_table.get_row(2) == ['Gamma', 30.7, 'MISSING']
-
-        def test_isub_table_difference(self, sample_table):
-            """Test in-place computation of the column-wise difference between tables."""
-            # Create another table with some common columns
-            other_table = Table(data=[[1, 'One'], [2, 'Two']], headers=['ID', 'Label'])
-
-            # Compute the difference in-place
-            original = sample_table
-            sample_table -= other_table
-
-            # Check that common columns were removed in-place
-            assert sample_table is original  # Should be the same table (modified in-place)
-            assert 'ID' not in sample_table.headers  # This column should be removed
-            assert sample_table.headers == ['Name', 'Value', 'Active', 'Color']  # These should remain
-
-            # Create a table with no common columns
-            unrelated_table = Table(data=[[1, 2], [3, 4]], headers=['A', 'B'])
-
-            # Current state after first subtraction
-            current_headers = list(sample_table.headers)
-
-            # Compute the difference
-            sample_table -= unrelated_table
-
-            # Should remain unchanged since there are no common columns
-            assert sample_table.headers == current_headers
-
-            # Create a table with all remaining common columns
-            remaining_table = Table(data=[['Alpha', 10.5, True, 'Red']], headers=['Name', 'Value', 'Active', 'Color'])
-
-            # Compute the difference
-            sample_table -= remaining_table
-
-            # Should remove all columns
-            assert sample_table.headers == []
-            assert sample_table.no_cols == 0
-            assert sample_table.no_rows == 5  # Rows remain, just with no columns
-
-    class TestFormats:
-        """Tests for column formats of the Table class."""
-
-        @pytest.fixture
-        def fmt_table(self):
-            """Create a table with formatted columns."""
-            return Table(
-                data=[[1, 'Alpha', 10.5, 1234567], [22, 'B', None, 3], [3, 'Gamma', 3.14159, 'x']],
-                headers=['ID', 'Name', 'Value', 'Count'],
-                missing_values=[None],
-                missing_value_repr='-',
-                formats={'Value': '.2f', 'Count': '>8,d'},
-            )
-
-        @pytest.mark.parametrize(
-            'fmt,           value,      expected',
-            [
-                ('.2f', 3.14159, '3.14'),
-                ('.3e', 1234.5, '1.234e+03'),
-                (',d', 1234567, '1,234,567'),
-                ('{:.1f} keV', 12.345, '12.3 keV'),
-                ('.2f', 'abc', 'abc'),  # fallback on incompatible type
-                ('{0} {1}', 1, '1'),  # fallback on invalid format string
-            ],
+            rich_table = table.to_rich()
+            assert [col.justify for col in rich_table.columns] == ['left', 'right', 'left', 'left']
+            assert [list(col.cells)[0] for col in rich_table.columns] == ['0', '0.00', 'False', '']
+
+        def test_cast_as(self, small_table):
+            pytest.importorskip('rich')
+            rich_table = small_table.to_rich(cast_as=lambda v: f'<{v}>')
+            assert list(rich_table.columns[0].cells) == ['<1>', '<2>']
+
+    class TestToCsv:
+        _SAMPLE_CSV = (
+            'ID,Name,Value,Active,Color\n'
+            '1,Alpha,10.5,True,Red\n'
+            '2,Beta,20.3,False,MISSING\n'
+            '3,Gamma,30.7,True,MISSING\n'
+            '4,Delta,40.2,False,Blue\n'
+            '5,Epsilon,50.9,True,MISSING\n'
         )
-        def test_format_cell(self, fmt, value, expected):
-            """Test that format specs and format strings are applied to values."""
-            table = Table(data=[[value]], headers=['A'], formats={'A': fmt})
-            assert table._format_cell(0, table._data[0][0]) == expected
 
-        def test_raw_data_unchanged(self, fmt_table):
-            """Test that formats do not affect the stored data."""
-            assert fmt_table.get_col('Value') == [10.5, '-', 3.14159]
-            assert fmt_table.data[0] == [1, 'Alpha', 10.5, 1234567]
+        def test_string(self, sample_table):
+            assert sample_table.to_csv() == self._SAMPLE_CSV
 
-        def test_missing_values_not_formatted(self, fmt_table):
-            """Test that missing values are rendered with their representation."""
-            assert fmt_table._format_cell(2, fmt_table._data[1][2]) == '-'
+        def test_options(self, sample_table):
+            assert sample_table.to_csv(delimiter=';', header_char='#', new_line='\r\n') == (
+                self._SAMPLE_CSV.replace(',', ';').replace('\n', '\r\n').replace('ID', '#ID', 1)
+            )
 
-        def test_str(self, fmt_table):
-            """Test the string representation with formats and alignment."""
+        def test_without_headers(self):
+            assert Table(data=[[1, 2], [3, 4]]).to_csv() == '1,2\n3,4\n'
+
+        def test_formatted(self, fmt_table):
+            assert fmt_table.to_csv(delimiter=';') == (
+                'ID;Name;Value;Count\n1;Alpha;10.50;1,234,567\n22;B;-;3\n3;Gamma;3.14;x\n'
+            )
+
+        def test_not_formatted(self, fmt_table):
+            assert fmt_table.to_csv(delimiter=';', formatted=False) == (
+                'ID;Name;Value;Count\n1;Alpha;10.5;1234567\n22;B;-;3\n3;Gamma;3.14159;x\n'
+            )
+
+        def test_file(self, sample_table, tmp_path):
+            path = sample_table.to_csv(filename=tmp_path / 'table.csv')
+            assert path == tmp_path / 'table.csv'
+            assert path.read_text() == self._SAMPLE_CSV
+
+        def test_file_parents(self, sample_table, tmp_path):
+            path = sample_table.to_csv(filename=tmp_path / 'a' / 'b' / 'table.csv')
+            assert path.is_file()
+
+        def test_file_exists(self, sample_table, tmp_path):
+            path = tmp_path / 'table.csv'
+            path.write_text('precious')
+            with pytest.raises(FileExistsError):
+                sample_table.to_csv(filename=path)
+            assert path.read_text() == 'precious'
+
+        def test_file_overwrite(self, sample_table, tmp_path):
+            path = tmp_path / 'table.csv'
+            path.write_text('old')
+            sample_table.to_csv(filename=path, overwrite=True)
+            assert path.read_text() == self._SAMPLE_CSV
+
+        @pytest.mark.parametrize('name', ['table.txt', 'table'], ids=['other', 'none'])
+        def test_file_suffix(self, sample_table, tmp_path, name):
+            assert sample_table.to_csv(filename=tmp_path / name) == tmp_path / 'table.csv'
+
+        def test_file_keep_suffix(self, sample_table, tmp_path):
+            assert sample_table.to_csv(filename=tmp_path / 'table.txt', keep_file_ext=True) == tmp_path / 'table.txt'
+
+        @pytest.mark.xfail(strict=True, reason='Only the given name is checked, then the .csv file is written')
+        def test_file_suffix_exists(self, sample_table, tmp_path):
+            (tmp_path / 'table.csv').write_text('precious')
+            with pytest.raises(FileExistsError):
+                sample_table.to_csv(filename=tmp_path / 'table.txt')
+            assert (tmp_path / 'table.csv').read_text() == 'precious'
+
+        @pytest.mark.xfail(strict=True, reason='Values are not quoted')
+        def test_quoting(self):
+            table = Table(data=[['a,b', 'say "hi"', 'x\ny']], headers=['h,1', 'h2', 'h3'])
+            assert table.to_csv() == '"h,1",h2,h3\n"a,b","say ""hi""","x\ny"\n'
+
+        @pytest.mark.xfail(strict=True, reason='The trailing delimiter is cut from rows without cells too')
+        def test_rows_without_cells(self):
+            assert Table(data=[[], []]).to_csv() == '\n\n'
+
+        @pytest.mark.xfail(strict=True, reason='Values are stripped in unformatted columns too')
+        def test_formatted_keeps_whitespace(self):
+            table = Table(data=[[' a ', 1.0]], headers=['A', 'B'], formats={'B': '>6.1f'})
+            assert table.to_csv() == 'A,B\n a ,1.0\n'
+
+        @pytest.mark.xfail(strict=True, reason='No encoding parameter')
+        def test_file_encoding(self, tmp_path):
+            path = Table(data=[['é']]).to_csv(filename=tmp_path / 'table.csv', encoding='utf-16')
+            assert path.read_text(encoding='utf-16') == 'é\n'
+
+        @pytest.mark.xfail(not _LOCALE_IS_UTF8, strict=True, reason="Files are written in the locale's encoding")
+        def test_file_utf8(self, tmp_path):
+            path = Table(data=[['é', 'λ']]).to_csv(filename=tmp_path / 'table.csv')
+            assert path.read_bytes().decode('utf-8') == 'é,λ\n'
+
+        @given(
+            headers=st.lists(st.text(alphabet=st.characters(exclude_characters='\x00')), min_size=1, max_size=4),
+            data=st.data(),
+            delimiter=st.sampled_from([',', ';', '\t', '|']),
+            header_char=st.sampled_from(['', '#', '# ']),
+            new_line=st.sampled_from(['\n', '\r\n']),
+        )
+        @pytest.mark.xfail(strict=True, reason='Values are not quoted and quotes are not parsed')
+        def test_round_trip(self, headers, data, delimiter, header_char, new_line):
+            # NUL is excluded: Python 3.10's csv reader rejects it
+            cell = st.text(alphabet=st.characters(exclude_characters='\x00'))
+            rows = data.draw(st.lists(st.lists(cell, min_size=len(headers), max_size=len(headers)), max_size=5))
+            text = Table(data=rows, headers=headers).to_csv(
+                delimiter=delimiter, header_char=header_char, new_line=new_line
+            )
+            table = Table.from_csv(text, delimiter=delimiter, header_char=header_char, new_line=new_line, header_line=0)
+            assert table.headers == headers
+            assert table.data == rows
+
+    class TestFromDict:
+        def test_columns(self):
+            table = Table.from_dict({'ID': [1, 2], 'Name': ['Alpha', 'Beta']})
+            assert table.headers == ['ID', 'Name']
+            assert table.data == [[1, 'Alpha'], [2, 'Beta']]
+
+        def test_missing_values(self):
+            table = Table.from_dict(
+                {'Quantity': [10, 'N/A'], 'Color': [None, '']},
+                missing_values=['N/A', None, ''],
+                missing_value_repr='MISSING',
+            )
+            assert table.data == [[10, 'MISSING'], ['MISSING', 'MISSING']]
+
+        def test_formats(self):
+            assert str(Table.from_dict({'A': [1.234]}, formats={'A': '.1f'})) == '  A\n---\n1.2'
+
+        def test_empty(self):
+            assert Table.from_dict({}).shape == (0, 0)
+
+        def test_unequal_lengths(self):
+            with pytest.raises(ValueError):
+                Table.from_dict({'A': [1, 2, 3], 'B': [4, 5]})
+
+    class TestFromNumpy:
+        def test_headers(self):
+            np = pytest.importorskip('numpy')
+            table = Table.from_numpy(np.array([[1, 'Alpha'], [2, 'Beta']]), headers=['ID', 'Name'])
+            assert table.headers == ['ID', 'Name']
+            assert table.get_col('ID') == ['1', '2']  # numpy makes them all strings
+
+        def test_without_headers(self):
+            np = pytest.importorskip('numpy')
+            table = Table.from_numpy(np.array([[1, 2, 3], [4, 5, 6]]))
+            assert table.headers == []
+            assert table.get_col(2) == [3, 6]
+
+        @pytest.mark.parametrize('shape', [(5,), (2, 2, 2)], ids=['1d', '3d'])
+        def test_not_2d(self, shape):
+            np = pytest.importorskip('numpy')
+            with pytest.raises(ValueError):
+                Table.from_numpy(np.zeros(shape))
+
+        def test_missing_values(self):
+            np = pytest.importorskip('numpy')
+            table = Table.from_numpy(np.array([[1.0, -1.0]]), missing_values=[-1.0], missing_value_repr='-')
+            assert table.data == [[1.0, '-']]
+
+        @pytest.mark.xfail(strict=True, reason='NaN is checked by identity with np.nan, after tolist()')
+        def test_nan(self):
+            np = pytest.importorskip('numpy')
+            assert Table.from_numpy(np.array([[1.0, np.nan]]), missing_value_repr='-').data == [[1.0, '-']]
+
+        @pytest.mark.xfail(strict=True, reason='A MissingValueConfig is taken as a missing value')
+        def test_missing_value_config(self):
+            np = pytest.importorskip('numpy')
+            config = MissingValueConfig(values=[2.0], repr='-')
+            assert Table.from_numpy(np.array([[1.0, 2.0]]), missing_values=config).data == [[1.0, '-']]
+
+    class TestFromPandas:
+        def test_columns(self):
+            pd = pytest.importorskip('pandas')
+            table = Table.from_pandas(pd.DataFrame({'ID': [1, 2], 'Name': ['Alpha', 'Beta']}))
+            assert table.headers == ['ID', 'Name']
+            assert table.data == [[1, 'Alpha'], [2, 'Beta']]
+
+        def test_missing_values(self):
+            pd = pytest.importorskip('pandas')
+            np = pytest.importorskip('numpy')
+            df = pd.DataFrame({'Quantity': [10, np.nan, 12], 'Color': ['Red', None, '']})
+            table = Table.from_pandas(df, missing_values=[''], missing_value_repr='MISSING')
+            assert table.get_col('Quantity') == [10, 'MISSING', 12]
+            assert table.get_col('Color') == ['Red', 'MISSING', 'MISSING']
+
+        @pytest.mark.xfail(strict=True, reason='A MissingValueConfig is taken as a missing value')
+        def test_missing_value_config(self):
+            pd = pytest.importorskip('pandas')
+            config = MissingValueConfig(values=['N/A'], repr='-')
+            table = Table.from_pandas(pd.DataFrame({'A': ['x', 'N/A']}), missing_values=config)
+            assert table.get_col('A') == ['x', '-']
+
+    class TestFromCsv:
+        _CSV = 'ID,Name,Value\n1,Alpha,10.5\n2,Beta,20.3\n'
+
+        def test_string(self):
+            table = Table.from_csv(self._CSV, header_line=0)
+            assert table.headers == ['ID', 'Name', 'Value']
+            assert table.data == [['1', 'Alpha', '10.5'], ['2', 'Beta', '20.3']]
+
+        @pytest.mark.parametrize('as_path', [True, False], ids=['path', 'str'])
+        def test_file(self, tmp_path, as_path):
+            path = tmp_path / 'test.csv'
+            path.write_text(self._CSV.rstrip())
+            table = Table.from_csv(path if as_path else str(path), header_line=0)
+            assert table.headers == ['ID', 'Name', 'Value']
+            assert table.no_rows == 2
+
+        def test_without_headers(self):
+            table = Table.from_csv(self._CSV)
+            assert table.headers == []
+            assert table.get_col(0) == ['ID', '1', '2']
+
+        def test_header_line(self):
+            table = Table.from_csv('title\nID,Name\n1,Alpha\n', header_line=1)
+            assert table.headers == ['ID', 'Name']
+            assert table.data == [['1', 'Alpha']]
+
+        def test_delimiter(self):
+            table = Table.from_csv(self._CSV.replace(',', ';'), delimiter=';', header_line=0)
+            assert table.headers == ['ID', 'Name', 'Value']
+
+        def test_header_char(self):
+            table = Table.from_csv('# ' + self._CSV, header_char='# ', header_line=0)
+            assert table.headers == ['ID', 'Name', 'Value']
+
+        def test_new_line(self):
+            table = Table.from_csv(self._CSV.replace('\n', '\r\n'), new_line='\r\n', header_line=0)
+            assert table.data == [['1', 'Alpha', '10.5'], ['2', 'Beta', '20.3']]
+
+        def test_skips_empty_lines(self):
+            assert Table.from_csv('1,2\n\n3,4\n').data == [['1', '2'], ['3', '4']]
+
+        def test_formats(self):
+            assert Table.from_csv(self._CSV, header_line=0, formats={'Value': '>8'}).formats == {'Value': '>8'}
+
+        def test_empty(self):
+            assert Table.from_csv('').shape == (0, 0)
+
+        @pytest.mark.xfail(strict=True, reason='Quotes are not parsed')
+        def test_quoted(self):
+            table = Table.from_csv('"h,1",h2\n"a,b","say ""hi"""\n"x\ny",z\n', header_line=0)
+            assert table.headers == ['h,1', 'h2']
+            assert table.data == [['a,b', 'say "hi"'], ['x\ny', 'z']]
+
+        @pytest.mark.xfail(
+            sys.platform != 'win32' and sys.version_info < (3, 13),
+            strict=True,
+            reason='Path.exists() raises for names that are too long',
+        )
+        def test_long_line(self):
+            assert Table.from_csv(','.join(['a'] * 300)).shape == (1, 300)
+
+        @pytest.mark.xfail(strict=True, reason='No encoding parameter')
+        def test_file_encoding(self, tmp_path):
+            path = tmp_path / 'test.csv'
+            path.write_text('é\n', encoding='utf-16')
+            assert Table.from_csv(path, encoding='utf-16').data == [['é']]
+
+        @pytest.mark.xfail(not _LOCALE_IS_UTF8, strict=True, reason="Files are read in the locale's encoding")
+        def test_file_utf8(self, tmp_path):
+            path = tmp_path / 'test.csv'
+            path.write_bytes('é,λ\n'.encode('utf-8'))
+            assert Table.from_csv(path).data == [['é', 'λ']]
+
+    class TestStr:
+        def test_empty(self):
+            assert str(Table(headers=['A'])) == '(Empty table)'
+
+        def test_without_headers(self):
+            table = Table(data=[[1.0, 2.0], [3.0, 4.0]], formats={1: '.1e'})
+            assert str(table) == '1.0 | 2.0e+00\n3.0 | 4.0e+00'
+
+        def test_formats_and_alignment(self, fmt_table):
             assert str(fmt_table) == '\n'.join(
                 [
                     'ID | Name  | Value |     Count',
@@ -1368,95 +912,100 @@ class TestTable:
                 ]
             )
 
+    class TestGetItem:
+        def test_column_by_name(self, sample_table):
+            result = sample_table['Name']
+            assert isinstance(result, Table)
+            assert result.headers == ['Name']
+            assert result.get_col('Name') == ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']
+
+        @pytest.mark.parametrize('key', [1, -4], ids=['index', 'negative'])
+        def test_column_by_index(self, sample_table, key):
+            assert sample_table[key].headers == ['Name']
+
+        def test_column_slice_by_indices(self, sample_table):
+            result = sample_table[1:3]
+            assert result.headers == ['Name', 'Value']
+            assert result.get_col('Value') == [10.5, 20.3, 30.7, 40.2, 50.9]
+
+        def test_column_slice_by_names(self, sample_table):
+            # Both names are included
+            assert sample_table['ID':'Value'].headers == ['ID', 'Name', 'Value']
+            assert sample_table[:'Name'].headers == ['ID', 'Name']
+            assert sample_table['Active':].headers == ['Active', 'Color']
+
+        def test_column_slice_step(self, sample_table):
+            assert sample_table[::2].headers == ['ID', 'Value', 'Color']
+
+        def test_column_slice_negative(self, sample_table):
+            assert sample_table[-2:].headers == ['Active', 'Color']
+
+        def test_column_slice_empty(self, sample_table):
+            result = sample_table[2:2]
+            assert result.headers == []
+            assert len(result) == 0
+
+        @pytest.mark.parametrize('key', [(1, 2), ('Name', 2), (-4, -3)], ids=['indices', 'name', 'negative'])
+        def test_cell(self, sample_table, key):
+            assert sample_table[key] == 'Gamma'
+
+        def test_cell_missing_repr(self, fmt_table):
+            assert fmt_table['Value', 1] == '-'
+
+        @pytest.mark.parametrize('key', [('Value', slice(1, 4)), (2, slice(1, 4))], ids=['name', 'index'])
+        def test_column_rows(self, sample_table, key):
+            result = sample_table[key]
+            assert result.headers == ['Value']
+            assert result.get_col('Value') == [20.3, 30.7, 40.2]
+
+        def test_slices(self, sample_table):
+            result = sample_table[1:3, 1:4]
+            assert result.headers == ['Name', 'Value']
+            assert result.get_col('Name') == ['Beta', 'Gamma', 'Delta']
+
+        def test_slices_negative(self, sample_table):
+            result = sample_table[-2:, -2:]
+            assert result.headers == ['Active', 'Color']
+            assert result.data == [[False, 'Blue'], [True, 'MISSING']]
+
+        def test_slices_step(self, sample_table):
+            result = sample_table[::2, ::2]
+            assert result.headers == ['ID', 'Value', 'Color']
+            assert result.get_col('ID') == [1, 3, 5]
+
+        def test_row(self, sample_table):
+            result = sample_table[:, 2]
+            assert result.no_rows == 1
+            assert result.get_row(0) == [3, 'Gamma', 30.7, True, 'MISSING']
+
+        def test_row_slice_open(self, sample_table):
+            assert sample_table[:, :3].get_col('ID') == [1, 2, 3]
+            assert sample_table[:, 2:].get_col('ID') == [3, 4, 5]
+
+        def test_row_slice_empty(self, sample_table):
+            result = sample_table[:, 2:2]
+            assert result.headers == ['ID', 'Name', 'Value', 'Active', 'Color']
+            assert len(result) == 0
+
         @pytest.mark.parametrize(
-            'fmt,           expected',
+            'key, error',
             [
-                ('<.2f', '<'),
-                ('*^10', '^'),
-                ('=+8', '>'),
-                ('{:>6.1f} A', '>'),
-                ('.2f', '>'),  # numeric default
+                (10, IndexError),
+                ((slice(None), 10), IndexError),
+                ((0, 10), IndexError),
+                ('Other', KeyError),
+                (slice('Other', 'Value'), KeyError),
+                (slice(0, 10), IndexError),
+                ((0, 'a'), TypeError),
+                (1.0, TypeError),
             ],
+            ids=['column', 'row', 'cell-row', 'name', 'slice-name', 'slice', 'row-type', 'key-type'],
         )
-        def test_col_align(self, fmt, expected):
-            """Test that the column alignment is extracted from the format."""
-            table = Table(data=[[1.0], [2.0]], headers=['A'], formats={'A': fmt})
-            assert table._col_align(0) == expected
+        def test_invalid(self, sample_table, key, error):
+            with pytest.raises(error):
+                sample_table[key]
 
-        def test_col_align_defaults(self):
-            """Test the default alignment of formatted and unformatted columns."""
-            table = Table(data=[[1, 'a', 'b']], headers=['A', 'B', 'C'], formats={'B': '5'})
-            assert table._col_align(0) == '<'  # unformatted
-            assert table._col_align(1) == '<'  # formatted, non-numeric
-
-        def test_set_format(self, fmt_table):
-            """Test setting, getting and clearing column formats."""
-            fmt_table.set_format('ID', '03d')
-            assert fmt_table.get_format('ID') == '03d'
-            fmt_table.set_format(0, None)
-            assert fmt_table.get_format('ID') is None
-            fmt_table.set_format(-1, ',d')  # index keys are converted to names
-            assert fmt_table.formats['Count'] == ',d'
-
-            with pytest.raises(KeyError):
-                fmt_table.set_format('Missing', '.2f')
-            with pytest.raises(TypeError):
-                fmt_table.set_format('ID', 2)
-            with pytest.raises(KeyError):
-                Table(headers=['A'], formats={'B': '.2f'})
-
-        def test_formats_without_headers(self):
-            """Test index-keyed formats on tables without headers."""
-            table = Table(data=[[1.0, 2.0], [3.0, 4.0]], formats={1: '.1e'})
-            assert str(table) == '1.0 | 2.0e+00\n3.0 | 4.0e+00'
-            table.del_col(0)
-            assert table.formats == {0: '.1e'}
-            table.headers = ['B']
-            assert table.formats == {'B': '.1e'}
-
-        def test_headers_setter_rekeys_formats(self, fmt_table):
-            """Test that renaming headers keeps the formats by position."""
-            fmt_table.headers = ['a', 'b', 'c', 'd']
-            assert fmt_table.formats == {'c': '.2f', 'd': '>8,d'}
-
-        def test_add_col_with_format(self, fmt_table):
-            """Test adding a column with a format."""
-            fmt_table.add_col([1.0, 2.0, 3.0], col_name='E', fmt='{:.1f} keV')
-            assert fmt_table.get_format('E') == '{:.1f} keV'
-            assert fmt_table._format_cell(4, fmt_table._data[0][4]) == '1.0 keV'
-
-        def test_del_col_removes_format(self, fmt_table):
-            """Test that deleting a column removes its format."""
-            fmt_table.del_col('Value')
-            assert fmt_table.formats == {'Count': '>8,d'}
-
-        def test_to_csv(self, fmt_table):
-            """Test CSV output with and without formats."""
-            assert (
-                fmt_table.to_csv(delimiter=';') == 'ID;Name;Value;Count\n'
-                '1;Alpha;10.50;1,234,567\n'
-                '22;B;-;3\n'
-                '3;Gamma;3.14;x\n'
-            )
-            assert (
-                fmt_table.to_csv(delimiter=';', formatted=False) == 'ID;Name;Value;Count\n'
-                '1;Alpha;10.5;1234567\n'
-                '22;B;-;3\n'
-                '3;Gamma;3.14159;x\n'
-            )
-
-        def test_to_rich(self):
-            """Test that rich output uses formats and alignment."""
-            pytest.importorskip('rich')
-            table = Table(
-                data=[[0, 0.0, False, None]], headers=['A', 'B', 'C', 'D'], missing_values=[None], formats={'B': '.2f'}
-            )
-            rich_table = table.to_rich()
-            assert [col.justify for col in rich_table.columns] == ['left', 'right', 'left', 'left']
-            assert [list(col.cells)[0] for col in rich_table.columns] == ['0', '0.00', 'False', '']
-
-        def test_formats_preserved_by_slicing(self, fmt_table):
-            """Test that formats are carried over to sliced tables."""
+        def test_formats(self, fmt_table):
             assert fmt_table['Value':'Count'].formats == {'Value': '.2f', 'Count': '>8,d'}
             assert fmt_table['Value'].formats == {'Value': '.2f'}
             assert fmt_table[2, 0:2].formats == {'Value': '.2f'}
@@ -1471,53 +1020,324 @@ class TestTable:
                 (slice('Name', 'Value'), slice(0, 3)),
                 (slice('Name', 'Value'), 1),
             ],
+            ids=['column', 'columns', 'column-rows', 'slices', 'row'],
         )
-        def test_slicing_preserves_missing_values(self, fmt_table, key):
-            """Test that missing values remain missing in sliced tables."""
+        def test_missing_values(self, fmt_table, key):
             sliced = fmt_table[key]
             assert sliced.has_missing
             assert isinstance(sliced._data[1 if sliced.no_rows > 1 else 0][-1], MissingValue)
 
-            # Changing the representation of the slice should affect the missing values
+            # The slice's own representation applies
             sliced.missing = MissingValueConfig(values=[None], repr='N/A')
             assert 'N/A' in sliced.get_col('Value')
 
-        def test_slicing_single_cell_returns_repr(self, fmt_table):
-            """Test that indexing a single missing cell returns its representation."""
-            assert fmt_table['Value', 1] == '-'
+        def test_copies_rows(self, small_table):
+            sliced = small_table[:]
+            sliced['ID', 0] = 99
+            assert small_table.get_col('ID') == [1, 2]
 
-        def test_setitem_preserves_missing_values(self, fmt_table):
-            """Test that setting a cell does not convert other missing values in the
-            column to their representation."""
+        @pytest.mark.xfail(strict=True, reason='The headers of the new table are looked up by index')
+        def test_column_without_headers(self):
+            result = Table(data=[[1, 2], [3, 4]])[1]
+            assert result.headers == []
+            assert result.data == [[2], [4]]
+
+        @pytest.mark.xfail(strict=True, reason='Column slices are bounded by the number of headers')
+        def test_column_slice_without_headers(self):
+            assert Table(data=[[1, 2, 3]])[0:2].data == [[1, 2]]
+
+        @pytest.mark.xfail(strict=True, reason='Column slices are bounded by the number of headers')
+        def test_row_without_headers(self):
+            assert Table(data=[[1, 2], [3, 4]])[:, 1].data == [[3, 4]]
+
+        @pytest.mark.xfail(strict=True, reason='The headers of the new table are looked up by index')
+        def test_cell_without_headers(self):
+            assert Table(data=[[1, 2], [3, 4]])[1, 0] == 2
+
+    class TestSetItem:
+        @pytest.mark.parametrize('key', [('Value', 2), (2, 2), (2, -3)], ids=['name', 'index', 'negative-row'])
+        def test_cell(self, sample_table, key):
+            sample_table[key] = 35.5
+            assert sample_table.get_col('Value')[2] == 35.5
+
+        def test_column_rows(self, sample_table):
+            sample_table['Value', 1:3] = [25.0, 35.0]
+            assert sample_table.get_col('Value') == [10.5, 25.0, 35.0, 40.2, 50.9]
+
+        def test_column_rows_scalar(self, sample_table):
+            sample_table['Value', 1:3] = 0.0
+            assert sample_table.get_col('Value') == [10.5, 0.0, 0.0, 40.2, 50.9]
+
+        def test_column_rows_wrong_length(self, sample_table):
+            with pytest.raises(ValueError):
+                sample_table['Value', 1:3] = [1.0]
+
+        def test_column(self, sample_table):
+            sample_table['ID'] = [10, 20, 30, 40, 50]
+            assert sample_table.get_col('ID') == [10, 20, 30, 40, 50]
+
+        def test_missing_value(self, sample_table):
+            sample_table['Name', 0] = None
+            assert sample_table.get_col('Name')[0] == 'MISSING'
+
+        def test_keeps_other_missing_values(self, fmt_table):
             fmt_table['Value', 0] = 1.0
             assert isinstance(fmt_table._data[1][2], MissingValue)
             fmt_table['Value', 0:1] = [2.0]
             assert isinstance(fmt_table._data[1][2], MissingValue)
             assert fmt_table.get_col('Value') == [2.0, '-', 3.14159]
 
-        def test_formats_preserved_by_operations(self, fmt_table):
-            """Test that formats are carried over by table operations."""
-            assert (fmt_table + fmt_table).formats == fmt_table.formats
-            assert (fmt_table - 'Value').formats == {'Count': '>8,d'}
+        @pytest.mark.parametrize('key', [slice(1, 3), (slice(1, 3), 0)], ids=['columns', 'columns-row'])
+        def test_column_slice_unsupported(self, sample_table, key):
+            with pytest.raises(NotImplementedError):
+                sample_table[key] = [1, 2]
 
+        @pytest.mark.parametrize(
+            'key, error',
+            [
+                (('Other', 0), KeyError),
+                ((0, 10), IndexError),
+                ((0, 'a'), TypeError),
+                (1.0, TypeError),
+            ],
+            ids=['name', 'row', 'row-type', 'key-type'],
+        )
+        def test_invalid(self, sample_table, key, error):
+            with pytest.raises(error):
+                sample_table[key] = 1
+
+        @pytest.mark.xfail(strict=True, reason='Negative column indices are rejected')
+        def test_negative_column(self, sample_table):
+            sample_table[-1, 0] = 'Green'
+            assert sample_table.get_col('Color')[0] == 'Green'
+
+        @pytest.mark.xfail(strict=True, reason='A string counts as a sequence of values')
+        def test_column_rows_string(self, sample_table):
+            sample_table['Name', 0:3] = 'xyz'
+            assert sample_table.get_col('Name')[:3] == ['xyz', 'xyz', 'xyz']
+
+    class TestIter:
+        def test_rows(self, sample_table):
+            rows = list(sample_table)
+            assert len(rows) == 5
+            assert rows[1] == [2, 'Beta', 20.3, False, 'MISSING']
+
+    class TestItems:
+        def test_columns(self, small_table):
+            assert list(small_table.items()) == [('ID', [1, 2]), ('Name', ['Alpha', 'Beta'])]
+
+    class TestAdd:
+        def test_tables(self, small_table):
+            other = Table(data=[[3, 'Gamma']], headers=['ID', 'Name'])
+            combined = small_table + other
+            assert combined.get_col('ID') == [1, 2, 3]
+            assert len(small_table) == 2
+            assert len(other) == 1
+
+        def test_different_headers(self, small_table):
+            with pytest.raises(ValueError):
+                small_table + Table(data=[[True, 10]], headers=['Active', 'Value'])
+
+        def test_other_type(self, small_table):
+            with pytest.raises(TypeError):
+                small_table + [3, 'Gamma']
+
+        def test_formats(self, fmt_table):
+            assert (fmt_table + fmt_table).formats == fmt_table.formats
+
+        def test_copies_rows(self, small_table):
+            other = Table(data=[[3, 'Gamma']], headers=['ID', 'Name'])
+            combined = small_table + other
+            combined['ID', 2] = 99
+            assert other.get_col('ID') == [3]
+
+    class TestIAdd:
+        def test_table(self, small_table):
+            small_table += Table(data=[[3, 'Gamma']], headers=['ID', 'Name'])
+            assert small_table.get_col('ID') == [1, 2, 3]
+
+        def test_self(self, small_table):
+            small_table += small_table
+            assert small_table.get_col('ID') == [1, 2, 1, 2]
+
+        def test_row(self, small_table):
+            small_table += [3, 'Gamma']
+            small_table += {'ID': 4, 'Name': 'Delta'}
+            assert small_table.get_col('ID') == [1, 2, 3, 4]
+
+        def test_different_headers(self, small_table):
+            with pytest.raises(ValueError):
+                small_table += Table(data=[[True, 10]], headers=['Active', 'Value'])
+
+        @pytest.mark.xfail(strict=True, reason="The other table's rows are appended, not copied")
+        def test_copies_rows(self, small_table):
+            other = Table(data=[[3, 'Gamma']], headers=['ID', 'Name'])
+            small_table += other
+            small_table['ID', 2] = 99
+            assert other.get_col('ID') == [3]
+
+    class TestOr:
+        def test_tables(self, small_table):
+            combined = small_table | Table(data=[[True], [False]], headers=['Active'])
+            assert combined.headers == ['ID', 'Name', 'Active']
+            assert combined.get_row(1) == [2, 'Beta', False]
+            assert small_table.headers == ['ID', 'Name']
+
+        def test_different_row_counts(self, small_table):
+            with pytest.raises(ValueError):
+                small_table | Table(data=[[True]], headers=['Active'])
+
+        def test_other_type(self, small_table):
+            with pytest.raises(TypeError):
+                small_table | [True, False]
+
+        def test_formats(self, fmt_table):
             other = Table(data=[[1], [2], [3]], headers=['E'], formats={'E': '.1f'})
             assert (fmt_table | other).formats == {'Value': '.2f', 'Count': '>8,d', 'E': '.1f'}
 
-            fmt_table |= other
-            assert fmt_table.formats == {'Value': '.2f', 'Count': '>8,d', 'E': '.1f'}
-
-        def test_formats_or_without_headers(self):
-            """Test that index-keyed formats are shifted when concatenating columns."""
+        def test_formats_without_headers(self):
             t1 = Table(data=[[1.0]], formats={0: '.1f'})
             t2 = Table(data=[[2.0]], formats={0: '.2f'})
             assert (t1 | t2).formats == {0: '.1f', 1: '.2f'}
-            t1 |= t2
+
+    class TestIOr:
+        def test_table(self, small_table):
+            small_table |= Table(data=[[True], [False]], headers=['Active'])
+            assert small_table.headers == ['ID', 'Name', 'Active']
+            assert small_table.get_row(0) == [1, 'Alpha', True]
+
+        def test_self(self, small_table):
+            small_table |= small_table
+            assert small_table.get_row(0) == [1, 'Alpha', 1, 'Alpha']
+
+        def test_column(self, small_table):
+            small_table |= {'Active': [True, False]}
+            small_table |= 'Notes'
+            assert small_table.headers == ['ID', 'Name', 'Active', 'Notes']
+            assert len(small_table.get_col('Notes')) == 2
+
+        def test_different_row_counts(self, small_table):
+            with pytest.raises(ValueError):
+                small_table |= Table(data=[[True]], headers=['Active'])
+
+        def test_formats(self, fmt_table):
+            fmt_table |= Table(data=[[1], [2], [3]], headers=['E'], formats={'E': '.1f'})
+            assert fmt_table.formats == {'Value': '.2f', 'Count': '>8,d', 'E': '.1f'}
+
+        def test_formats_without_headers(self):
+            t1 = Table(data=[[1.0]], formats={0: '.1f'})
+            t1 |= Table(data=[[2.0]], formats={0: '.2f'})
             assert t1.formats == {0: '.1f', 1: '.2f'}
 
-        def test_from_dict_with_formats(self):
-            """Test passing formats to alternative constructors."""
-            table = Table.from_dict({'A': [1.234]}, formats={'A': '.1f'})
-            assert str(table) == '  A\n---\n1.2'
+    class TestDelRow:
+        def test_index(self, sample_table):
+            sample_table.del_row(2)
+            sample_table.del_row(0)
+            sample_table.del_row(-1)
+            assert sample_table.get_col('Name') == ['Beta', 'Delta']
+
+        @pytest.mark.parametrize('idx', [10, -10], ids=['past-end', 'before-start'])
+        def test_out_of_range(self, sample_table, idx):
+            with pytest.raises(IndexError):
+                sample_table.del_row(idx)
+
+    class TestDelCol:
+        def test_name(self, sample_table):
+            sample_table.del_col('Value')
+            assert sample_table.headers == ['ID', 'Name', 'Active', 'Color']
+            assert sample_table.get_row(2) == [3, 'Gamma', True, 'MISSING']
+
+        def test_index(self, sample_table):
+            sample_table.del_col(1)
+            sample_table.del_col(-1)
+            assert sample_table.headers == ['ID', 'Value', 'Active']
+
+        @pytest.mark.parametrize(
+            'idx, error',
+            [(10, IndexError), (-10, IndexError), ('Other', KeyError)],
+            ids=['past-end', 'before-start', 'name'],
+        )
+        def test_invalid(self, sample_table, idx, error):
+            with pytest.raises(error):
+                sample_table.del_col(idx)
+
+        def test_format(self, fmt_table):
+            fmt_table.del_col('Value')
+            assert fmt_table.formats == {'Count': '>8,d'}
+
+        def test_format_without_headers(self):
+            table = Table(data=[[1.0, 2.0]], formats={1: '.1e'})
+            table.del_col(0)
+            assert table.formats == {0: '.1e'}
+
+    class TestSub:
+        def test_name(self, sample_table):
+            result = sample_table - 'Value'
+            assert result.headers == ['ID', 'Name', 'Active', 'Color']
+            assert result.no_rows == 5
+            assert sample_table.no_cols == 5
+
+        @pytest.mark.parametrize('cols', [['ID', 'Active'], ('ID', 'Active')], ids=['list', 'tuple'])
+        def test_names(self, sample_table, cols):
+            result = sample_table - cols
+            assert result.headers == ['Name', 'Value', 'Color']
+            assert result.get_row(2) == ['Gamma', 30.7, 'MISSING']
+
+        def test_unknown_name(self, sample_table):
+            with pytest.raises(KeyError):
+                sample_table - 'Other'
+
+        def test_table(self, sample_table):
+            result = sample_table - Table(headers=['ID', 'Label'])
+            assert result.headers == ['Name', 'Value', 'Active', 'Color']
+
+        def test_table_no_common_columns(self, sample_table):
+            assert (sample_table - Table(headers=['A'])).headers == sample_table.headers
+
+        def test_table_all_columns(self, sample_table):
+            result = sample_table - Table(headers=sample_table.headers)
+            assert result.shape == (0, 0)
+
+        def test_other_type(self, sample_table):
+            with pytest.raises(TypeError):
+                sample_table - 1
+
+        def test_formats(self, fmt_table):
+            assert (fmt_table - 'Value').formats == {'Count': '>8,d'}
+
+    class TestISub:
+        def test_name(self, sample_table):
+            original = sample_table
+            sample_table -= 'Value'
+            assert sample_table is original
+            assert sample_table.headers == ['ID', 'Name', 'Active', 'Color']
+            assert sample_table.get_row(2) == [3, 'Gamma', True, 'MISSING']
+
+        def test_names(self, sample_table):
+            sample_table -= ['ID', 'Active']
+            assert sample_table.headers == ['Name', 'Value', 'Color']
+            assert sample_table.get_row(0) == ['Alpha', 10.5, 'Red']
+
+        def test_table(self, sample_table):
+            sample_table -= Table(headers=['ID', 'Label'])
+            assert sample_table.headers == ['Name', 'Value', 'Active', 'Color']
+            sample_table -= Table(headers=['A'])
+            assert sample_table.headers == ['Name', 'Value', 'Active', 'Color']
+
+        def test_table_all_columns(self, sample_table):
+            # The rows stay, without cells
+            sample_table -= Table(headers=sample_table.headers)
+            assert sample_table.headers == []
+            assert sample_table.no_rows == 5
+
+        def test_other_type(self, sample_table):
+            with pytest.raises(TypeError):
+                sample_table -= 1
+
+        @pytest.mark.xfail(strict=True, reason='An unknown name raises ValueError from list.index()')
+        def test_unknown_name(self, sample_table):
+            with pytest.raises(KeyError):
+                sample_table -= 'Other'
 
 
 class TestOptionalDependencies:
@@ -1527,7 +1347,10 @@ class TestOptionalDependencies:
             ('numpy', lambda t: t.to_numpy()),
             ('pandas', lambda t: t.to_pandas()),
             ('rich', lambda t: t.to_rich()),
+            ('numpy', lambda t: Table.from_numpy([[1]])),
+            ('pandas', lambda t: Table.from_pandas([[1]])),
         ],
+        ids=['to-numpy', 'to-pandas', 'to-rich', 'from-numpy', 'from-pandas'],
     )
     def test_missing_names_the_extra(self, monkeypatch, lib, call):
         # A `None` entry in `sys.modules` makes the import fail

@@ -52,7 +52,7 @@ class MissingValueConfig:
             # Create an empty set if no values are provided
             self.values = set()
         elif isinstance(values, (list, tuple, set)):
-            # Convert interables to set
+            # Convert iterables to set
             self.values = set(values)
         else:
             # Single value
