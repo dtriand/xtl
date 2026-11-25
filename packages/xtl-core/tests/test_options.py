@@ -24,6 +24,39 @@ class TestOption:
         Option()
         Option(...)
 
+    @pytest.mark.parametrize(
+        'option, field',
+        [
+            (Option(), Field(json_schema_extra={})),
+            (Option(...), Field(..., json_schema_extra={})),
+            (Option(default=1), Field(default=1, json_schema_extra={})),
+            (Option(default_factory=list), Field(default_factory=list, json_schema_extra={})),
+        ],
+        ids=['nothing', 'required', 'default', 'default_factory'],
+    )
+    def test_arguments_not_given_are_pydantic_defaults(self, option, field):
+        assert repr(option) == repr(field)
+        for name in field.__slots__:
+            assert getattr(option, name, None) == getattr(field, name, None), name
+
+    def test_arguments_given_reach_pydantic(self):
+        o = Option(default=1, name='Number', desc='A number', alias='num', repr=False, exclude=True, gt=0)
+        assert o.title == 'Number'
+        assert o.description == 'A number'
+        assert o.serialization_alias == 'num'
+        assert o.repr is False
+        assert o.exclude is True
+        assert [m.gt for m in o.metadata] == [0]
+
+    def test_in_a_model(self):
+        class Model(Options):
+            shown: int = Option(default=1)
+            hidden: int = Option(default=2, repr=False)
+            optional: str | None = Option(default=None, desc='Not given')
+
+        assert repr(Model()) == 'Model(shown=1, optional=None)'
+        assert Model().to_dict() == {'shown': 1, 'hidden': 2, 'optional': None}
+
     def test_validators(self):
         o = Option(default=1)
         assert not o.json_schema_extra

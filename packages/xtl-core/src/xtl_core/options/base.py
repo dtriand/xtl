@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 from annotated_types import SupportsGe, SupportsGt, SupportsLe, SupportsLt
-from functools import partial
 import json
 import inspect
 import os
@@ -34,7 +33,7 @@ from pydantic import (
 )
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict, ExtraValues
-from pydantic.fields import _Unset, Deprecated, FieldInfo, ComputedFieldInfo
+from pydantic.fields import Deprecated, FieldInfo, ComputedFieldInfo
 import toml
 from toml.decoder import CommentValue
 
@@ -42,10 +41,14 @@ from xtl_core.options.validators import *
 from xtl_core.options.toml import ExtendedTomlEncoder
 from xtl_core.options.typed_vars import TypedIterable
 from xtl_core.options.exceptions import OptionsValidationError
+from xtl_core.system.compatibility.py314 import sentinel
 
 
 _Validator = Union[BeforeValidator, AfterValidator]
 _T = TypeVar('_T')
+
+_Unset: Any = sentinel('_Unset')
+"""Default of the arguments of :func:`Option` that weren't given (typed as ``Any``, so that it fits every one)."""
 
 
 # Overload signatures for different initialization scenarios
@@ -360,36 +363,35 @@ def Option(
             raise TypeError("'formatter' must be a callable")
         extra['serializer'] = formatter
 
-    partial_field = partial(
-        Field,
-        serialization_alias=alias,
-        title=name,
-        description=desc,
-        examples=examples,
-        exclude=exclude,
-        deprecated=deprecated,
-        json_schema_extra=extra,
-        validate_default=validate_default,
-        repr=repr,
-        pattern=regex,
-        strict=strict,
-        gt=gt,
-        ge=ge,
-        lt=lt,
-        le=le,
-        multiple_of=multiple_of,
-        allow_inf_nan=allow_inf_nan,
-        max_digits=max_digits,
-        decimal_places=decimal_places,
-        min_length=min_length,
-        max_length=max_length,
-    )
+    field_kwargs = {
+        'serialization_alias': alias,
+        'title': name,
+        'description': desc,
+        'examples': examples,
+        'exclude': exclude,
+        'deprecated': deprecated,
+        'json_schema_extra': extra,
+        'validate_default': validate_default,
+        'repr': repr,
+        'pattern': regex,
+        'strict': strict,
+        'gt': gt,
+        'ge': ge,
+        'lt': lt,
+        'le': le,
+        'multiple_of': multiple_of,
+        'allow_inf_nan': allow_inf_nan,
+        'max_digits': max_digits,
+        'decimal_places': decimal_places,
+        'min_length': min_length,
+        'max_length': max_length,
+    }
+    # Pass only what was given, so that pydantic applies its own defaults for the rest
+    field_kwargs = {key: value for key, value in field_kwargs.items() if value is not _Unset}
 
     if default_factory is not _Unset:
-        f = partial_field(default_factory=default_factory)
-    else:
-        f = partial_field(default=default)
-    return f
+        return Field(default_factory=default_factory, **field_kwargs)
+    return Field(default=default, **field_kwargs)
 
 
 _TOML_SKIP = object()
