@@ -394,7 +394,7 @@ def Option(
     return Field(default=default, **field_kwargs)
 
 
-_TOML_SKIP = object()
+_TOML_SKIP = sentinel('_TOML_SKIP')
 """Marks values that are left out of a TOML file (None, since TOML has no null)."""
 
 

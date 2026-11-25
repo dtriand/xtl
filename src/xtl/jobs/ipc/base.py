@@ -5,13 +5,15 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterator
 
+from xtl_core.system.compatibility.py314 import sentinel
+
 POLL_FIRST = 0.001
 """Seconds before the first retry of :func:`poll`."""
 
 POLL_MAX = 0.05
 """Longest time between two retries of :func:`poll`."""
 
-NOT_YET = object()
+NOT_YET = sentinel('NOT_YET')
 """What an attempt passed to :func:`poll` returns when it should be retried."""
 
 

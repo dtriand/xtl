@@ -5,13 +5,14 @@ from pathlib import Path, PurePath
 from typing import Any, Optional
 
 import typer
+from xtl_core.system.compatibility.py314 import sentinel
 
 from xtl.cli.utilities import epilog
 
 
 app = typer.Typer()
 
-_MISSING = object()
+_MISSING = sentinel('_MISSING')
 
 
 def _plain(data: Any) -> Any:
