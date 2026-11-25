@@ -37,6 +37,8 @@ PY313_OR_LESS: bool = PY_VERS < (3, 14)
 # TODO: Remove when dropping support for Python 3.14 (EOL: 10/2030)
 PY314_OR_LESS: bool = PY_VERS < (3, 15)
 """Python version is 3.14 or less"""
+# Features missing in Python 3.14 (stand-ins in `py314`):
+# - built-in ``sentinel``
 
 
 #############
