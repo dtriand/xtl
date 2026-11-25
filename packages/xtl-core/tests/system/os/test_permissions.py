@@ -223,8 +223,8 @@ class TestUntrustedStrings:
         with pytest.raises(ValueError, match='not one of 1000 characters'):
             FilePermissionsBit('a' * 1000)
 
-    @pytest.mark.xfail(strict=True, reason="`cast_as`'s error repeats the whole input")
     def test_in_options(self):
+        """Regression: ``cast_as``'s error repeated the whole input."""
         with pytest.raises(ValueError) as e:
             _WithPermissions.from_toml(f'permissions = "{"r" * 10**6}"')
         assert len(str(e.value)) < 1000

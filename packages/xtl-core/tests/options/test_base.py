@@ -65,13 +65,13 @@ _SEGMENT = st.from_regex(r'[A-Za-z0-9_-]{1,8}', fullmatch=True)
 
 # What the `toml` library writes and reads back unchanged (see `TestFromToml.test_strings_the_toml_library_breaks`):
 #  values without control characters, no-break space or soft hyphen, and not only double quotes; keys only of assigned,
-#  printable characters, with no space other than ' '
+#  printable characters, with no space other than ' ', and not both '.' and '"'
 _TOML_TEXT = st.text(st.characters(exclude_categories=('Cc', 'Cs'), exclude_characters='\xa0\xad')).filter(
     lambda s: not s or s.strip('"')
 )
 _TOML_KEYS = st.text(
     st.characters(exclude_categories=('Cc', 'Cs', 'Cf', 'Cn', 'Co', 'Zs', 'Zl', 'Zp'), include_characters=' ')
-)
+).filter(lambda s: not ('.' in s and '"' in s))
 
 
 def everything(
@@ -209,8 +209,8 @@ class TestInit:
         with pytest.raises(OptionsValidationError, match='Cast.n'):
             Cast(n=value)
 
-    @pytest.mark.xfail(strict=True, reason="`cast_as`'s error repeats the whole input")
     def test_huge_input_message(self):
+        """Regression: ``cast_as``'s error repeated the whole input."""
         with pytest.raises(OptionsValidationError) as e:
             Cast(n='x' * 10**6)
         assert len(str(e.value)) < 1000
@@ -658,6 +658,11 @@ class TestFromToml:
     @pytest.mark.xfail(strict=True, reason='The `toml` library drops, changes or fails on these keys')
     @pytest.mark.parametrize('key', ['a\x00', 'a\xa0b', 'a b', '', '\U000e0001'])
     def test_keys_the_toml_library_breaks(self, key):
+        assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
+
+    @pytest.mark.xfail(strict=True, reason="The `toml` library splits a key with '.' and an escaped '\"' at the dot")
+    @pytest.mark.parametrize('key', ['."', 'a."b'], ids=['dot-quote', 'dot-quote-b'])
+    def test_keys_with_dot_and_quote(self, key):
         assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
 
     @pytest.mark.xfail(strict=True, reason='The `toml` library writes -0.0 as 0.0')

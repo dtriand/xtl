@@ -11,6 +11,7 @@ import stat
 from typing import Optional
 
 from xtl_core.system.compatibility.py310 import StrEnum
+from xtl_core.utils.strings import shorten
 
 
 __all__ = ['FileType', 'FilePermissionsBit', 'FilePermissions', 'get_permissions_in_decimal', 'chmod_recursively']
@@ -59,14 +60,8 @@ _MODE_SYMBOLIC = re.compile(
 #  stricter than `int(s, 8)` and `str.isnumeric()`, which accept whitespace,
 #  underscores and non-ASCII digits.
 
-
-def _shorten(value: object, limit: int = 30) -> str:
-    """
-    The ``repr()`` of a value for error messages, cut to ``limit`` characters, so that a
-    huge input doesn't end up in full in messages and logs.
-    """
-    r = repr(value)
-    return r if len(r) <= limit else f'{r[: limit - 3]}...'
+_MESSAGE_LIMIT = 30
+"""Longest input shown in error messages: valid permission strings are much shorter"""
 
 
 @dataclass(eq=True, order=True)
@@ -101,7 +96,7 @@ class FilePermissionsBit:
                 return int(match.group(1), 8)
             if _BIT_SYMBOLIC.fullmatch(value):
                 return sum(bit for letter, bit in _BITS if letter in value)
-            raise ValueError(f"'value' must be a valid permission string, not {_shorten(value)}")
+            raise ValueError(f"'value' must be a valid permission string, not {shorten(repr(value), _MESSAGE_LIMIT)}")
         if isinstance(value, bool) or not isinstance(value, int):
             raise TypeError(f"'value' must be an int or str, not {type(value)}")
         if not 0o0 <= value <= 0o7:
@@ -289,7 +284,9 @@ class FilePermissions:
             try:
                 return FilePermissionsBit(part)
             except ValueError as e:
-                raise ValueError(f"'{name}' must be a valid permission string, not {_shorten(part)}") from e
+                raise ValueError(
+                    f"'{name}' must be a valid permission string, not {shorten(repr(part), _MESSAGE_LIMIT)}"
+                ) from e
         raise TypeError(f"'{name}' must be an int, str or {FilePermissionsBit.__name__}, not {type(part).__name__}")
 
     @staticmethod
@@ -307,7 +304,9 @@ class FilePermissions:
                 return FileType(value)
             except ValueError:
                 letters = ', '.join(repr(t.value) for t in FileType)
-                raise ValueError(f"'file_type' must be one of {letters}, not {_shorten(value)}") from None
+                raise ValueError(
+                    f"'file_type' must be one of {letters}, not {shorten(repr(value), _MESSAGE_LIMIT)}"
+                ) from None
         raise TypeError(f"'file_type' must be a str or {FileType.__name__}, not {type(value).__name__}")
 
     @staticmethod

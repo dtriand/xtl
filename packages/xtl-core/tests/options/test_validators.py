@@ -67,6 +67,11 @@ class TestValidatePathExists:
         with pytest.raises(ValueError, match=r'Path\[1\] does not exist'):
             validate_path_exists([file, missing])
 
+    def test_huge_path(self):
+        with pytest.raises(ValueError, match=r'Path does not exist: .*\.\.\.$') as e:
+            validate_path_exists(Path('x' * 10**5))
+        assert len(str(e.value)) < 300
+
 
 class TestValidatePathIsFile:
     def test_none(self):
@@ -149,6 +154,11 @@ class TestCastAs:
         """Regression: a TypeError went through as it was."""
         with pytest.raises(ValueError, match='Cannot cast .* as int'):
             cast_as(value, int)
+
+    def test_huge_input(self):
+        with pytest.raises(ValueError) as e:
+            cast_as('x' * 10**6, int)
+        assert len(str(e.value)) < 300
 
     def test_callable_without_name(self):
         with pytest.raises(ValueError, match=r'Cannot cast None as functools\.partial'):

@@ -21,6 +21,8 @@ from typing import Any, Callable, Iterable, Optional
 
 from pydantic import AfterValidator, BeforeValidator
 
+from xtl_core.utils.strings import shorten
+
 
 # Custom validator functions
 def validate_length(value: Any, length: int) -> Any:
@@ -51,10 +53,10 @@ def validate_path_exists(value: None | Path | Iterable[Path]) -> None | Path | I
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
             if not v.exists():
-                raise ValueError(f'Path[{i}] does not exist: {v!r}') from None
+                raise ValueError(f'Path[{i}] does not exist: {shorten(repr(v))}') from None
     else:
         if not value.exists():
-            raise ValueError(f'Path does not exist: {value!r}') from None
+            raise ValueError(f'Path does not exist: {shorten(repr(value))}') from None
     return value
 
 
@@ -67,10 +69,10 @@ def validate_path_is_file(value: None | Path | Iterable[Path]) -> None | Path | 
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
             if not v.is_file():
-                raise ValueError(f'Path[{i}] is not a file: {v!r}') from None
+                raise ValueError(f'Path[{i}] is not a file: {shorten(repr(v))}') from None
     else:
         if not value.is_file():
-            raise ValueError(f'Path is not a file: {value!r}') from None
+            raise ValueError(f'Path is not a file: {shorten(repr(value))}') from None
     return value
 
 
@@ -83,10 +85,10 @@ def validate_path_is_dir(value: None | Path | Iterable[Path]) -> None | Path | I
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
             if not v.is_dir():
-                raise ValueError(f'Path[{i}] is not a directory: {v!r}') from None
+                raise ValueError(f'Path[{i}] is not a directory: {shorten(repr(v))}') from None
     else:
         if not value.is_dir():
-            raise ValueError(f'Path is not a directory: {value!r}') from None
+            raise ValueError(f'Path is not a directory: {shorten(repr(value))}') from None
     return value
 
 
@@ -99,10 +101,10 @@ def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> None | Pat
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
             if not v.is_absolute():
-                raise ValueError(f'Path[{i}] is not absolute: {v!r}') from None
+                raise ValueError(f'Path[{i}] is not absolute: {shorten(repr(v))}') from None
     else:
         if not value.is_absolute():
-            raise ValueError(f'Path is not absolute: {value!r}') from None
+            raise ValueError(f'Path is not absolute: {shorten(repr(value))}') from None
     return value
 
 
@@ -118,7 +120,9 @@ def cast_as(value: Any, type_: type | Callable) -> Any:
     except (ValueError, TypeError):
         # e.g. int('a') raises a ValueError, int(None) a TypeError
         # Callables like functools.partial have no __name__
-        raise ValueError(f'Cannot cast {value!r} as {getattr(type_, "__name__", repr(type_))}') from None
+        raise ValueError(
+            f'Cannot cast {shorten(repr(value))} as {shorten(getattr(type_, "__name__", repr(type_)))}'
+        ) from None
 
 
 def cast_as_none_if_empty(value: Any) -> Optional[Any]:

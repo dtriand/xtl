@@ -85,9 +85,15 @@ class TestStr:
     def test_errors_counted(self):
         assert str(error(count='abc', points=[{'x': 'a'}])).startswith('2 validation errors for Model')
 
-    @pytest.mark.xfail(strict=True, reason='The message repeats the whole input')
     def test_huge_input(self):
-        assert len(str(error(count='x' * 10**6))) < 1000
+        """Regression: the message repeated the whole input."""
+        message = str(error(count='x' * 10**6))
+        assert len(message) < 1000
+        assert 'input_value=xxx' in message
+
+    def test_input_kept(self):
+        # Only the message is cut, the errors keep the input
+        assert error(count='x' * 10**6).errors[0]['input'] == 'x' * 10**6
 
 
 class TestRepr:

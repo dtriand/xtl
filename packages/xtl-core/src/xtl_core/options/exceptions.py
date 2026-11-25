@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from xtl_core.errors import XTLCoreError
+from xtl_core.utils.strings import shorten
 
 
 class OptionsValidationError(XTLCoreError, ValueError):
@@ -65,7 +66,10 @@ class OptionsValidationError(XTLCoreError, ValueError):
         for e in self.errors:
             lines.append(f'  {e["loc"]}')
             lines.append(f'    {e["msg"]}')
-            lines.append(f'    [type={e["type"]}, input_value={e["input"]}, input_type={type(e["input"]).__name__}]')
+            lines.append(
+                f'    [type={e["type"]}, input_value={shorten(str(e["input"]))}, '
+                f'input_type={type(e["input"]).__name__}]'
+            )
         return '\n'.join(lines)
 
     def __repr__(self) -> str:
