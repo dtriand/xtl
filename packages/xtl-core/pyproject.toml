@@ -28,7 +28,7 @@ dependencies = [
     "annotated-types>=0.6.0",
     "distro>=1.9.0",
     "pydantic>=2.13.4",
-    "toml>=0.10.2",
+    "tomlkit>=0.15.3",
     "typing-extensions>=4.12.2",
 ]
 

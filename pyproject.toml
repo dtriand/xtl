@@ -52,7 +52,6 @@ dependencies = [
     "requests>=2.34.2",
     "rich>=15.0.0",
     "tabulate>=0.10.0",
-    "toml>=0.10.2",
     "typer>=0.26.7",
     "xlsxwriter>=3.2.9",
     "xtl-core[extra]>=0.1.0.dev0,<0.2",

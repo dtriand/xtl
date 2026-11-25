@@ -4922,15 +4922,6 @@ wheels = [
 ]
 
 [[package]]
-name = "toml"
-version = "0.10.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
-]
-
-[[package]]
 name = "tomli"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -5000,6 +4991,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1c/b8/63a75cfb27a17c38550e44025d3a6e7be64516fd8608a3b75703bf37d81b/tomli-2.5.0-cp315-cp315t-win_amd64.whl", hash = "sha256:f3fcbc57b1791fa6cbe5d8434179d51de12be1a4811469529f47f6e7487a2571", size = 117281, upload-time = "2026-10-07T12:23:34.648Z" },
     { url = "https://files.pythonhosted.org/packages/72/01/e8c1debb2173973372934c68fc8e46170ab60ef23ed4592dff4dec6e8993/tomli-2.5.0-cp315-cp315t-win_arm64.whl", hash = "sha256:d2ba24db8a9376921b5e87b4762b9adb0f3f1deaea68f2b8b0bb2c11efb9c3e7", size = 115069, upload-time = "2026-10-07T12:23:35.77Z" },
     { url = "https://files.pythonhosted.org/packages/60/3f/3e3f8fd0919249b0200c80fbc4f9a1e70be19f9883da71dfb7f8b9ab8aca/tomli-2.5.0-py3-none-any.whl", hash = "sha256:32a7b79ac57a2e83670ce329ccf675798bc5a2094783a63676866b70503f2e2b", size = 14765, upload-time = "2026-10-07T12:23:36.875Z" },
+]
+
+[[package]]
+name = "tomlkit"
+version = "0.15.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/85/4a7c68111c057a6498f5bc721ef93b388b420bb31d7020759f18a5f0c2ec/tomlkit-0.15.3.tar.gz", hash = "sha256:b3c3020ec1a4bd469d12e31fb4da938e7f6ba758cdbec3fd9047db63120eaf81", size = 204435, upload-time = "2026-11-24T07:21:10.422Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c3/49/6b0a22e69c844c0b18cb66c206bdd791693d0cf845badc5f84e6448f2192/tomlkit-0.15.3-py3-none-any.whl", hash = "sha256:a83ce6de3b648e68dd9b50aabadad749ba823eb58b1d026f3c0a283c4767a9c1", size = 55467, upload-time = "2026-11-24T07:21:11.239Z" },
 ]
 
 [[package]]
@@ -5128,7 +5128,6 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
     { name = "tabulate" },
-    { name = "toml" },
     { name = "typer" },
     { name = "xlsxwriter" },
     { name = "xtl-core", extra = ["extra"] },
@@ -5206,7 +5205,6 @@ requires-dist = [
     { name = "requests", specifier = ">=2.34.2" },
     { name = "rich", specifier = ">=15.0.0" },
     { name = "tabulate", specifier = ">=0.10.0" },
-    { name = "toml", specifier = ">=0.10.2" },
     { name = "typer", specifier = ">=0.26.7" },
     { name = "xlsxwriter", specifier = ">=3.2.9" },
     { name = "xtl-core", extras = ["extra"], editable = "packages/xtl-core" },
@@ -5255,7 +5253,7 @@ dependencies = [
     { name = "annotated-types" },
     { name = "distro" },
     { name = "pydantic" },
-    { name = "toml" },
+    { name = "tomlkit" },
     { name = "typing-extensions" },
 ]
 
@@ -5288,7 +5286,7 @@ requires-dist = [
     { name = "pandas", marker = "extra == 'extra'", specifier = ">=2.3.3" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "rich", marker = "extra == 'extra'", specifier = ">=15.0.0" },
-    { name = "toml", specifier = ">=0.10.2" },
+    { name = "tomlkit", specifier = ">=0.15.3" },
     { name = "typing-extensions", specifier = ">=4.12.2" },
 ]
 provides-extras = ["extra"]

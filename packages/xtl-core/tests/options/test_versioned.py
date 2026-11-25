@@ -9,7 +9,7 @@ import uuid
 from hypothesis import given, strategies as st
 from pydantic import ConfigDict
 import pytest
-import toml
+import tomlkit
 
 from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.options.exceptions import OptionsValidationError
@@ -595,7 +595,7 @@ class TestLoad:
         if how == 'dict':
             return Model.from_dict(data, **kwargs)
         fmt, source = how.split('-')
-        text = json.dumps(data) if fmt == 'json' else toml.dumps(data)
+        text = json.dumps(data) if fmt == 'json' else tomlkit.dumps(data)
         loader = Model.from_json if fmt == 'json' else Model.from_toml
         if source == 'file':
             path = tmp_path / f'data.{fmt}'
@@ -621,7 +621,7 @@ class TestLoad:
 
     @pytest.mark.parametrize('fmt', ['json', 'toml'])
     def test_encoding(self, Model, tmp_path, fmt):
-        text = json.dumps(self.old) if fmt == 'json' else toml.dumps(self.old)
+        text = json.dumps(self.old) if fmt == 'json' else tomlkit.dumps(self.old)
         path = tmp_path / f'data.{fmt}'
         path.write_text(text, encoding='utf-16')
         m = getattr(Model, f'from_{fmt}')(path, encoding='utf-16')
@@ -649,7 +649,7 @@ class TestLoad:
         assert (m.version, m.units) == ('2.0.0', 'B')
 
     @pytest.mark.parametrize('fmt', ['dict', 'json', 'toml'])
-    @given(units=st.text(st.characters(codec='ascii', exclude_categories=('Cc',))).filter(lambda s: s.strip('"')))
+    @given(units=st.text())
     def test_current_data_round_trips(self, fmt, units):
         Model = make_parent()
         m = Model(job_dir=units)

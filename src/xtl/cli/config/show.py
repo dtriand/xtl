@@ -17,12 +17,14 @@ _MISSING = sentinel('_MISSING')
 
 def _plain(data: Any) -> Any:
     """
-    Strip the comments from TOML data, *e.g.* ``CommentValue(16) -> 16``.
+    Strip the comments from TOML data, *e.g.* a ``tomlkit`` integer with a comment
+    ``-> 16``.
     """
-    from toml.decoder import CommentValue
+    from tomlkit.container import Container
+    from tomlkit.items import Item
 
-    if isinstance(data, CommentValue):
-        return _plain(data.val)
+    if isinstance(data, (Item, Container)):
+        return data.unwrap()
     if isinstance(data, dict):
         return {key: _plain(value) for key, value in data.items()}
     if isinstance(data, list):
@@ -97,6 +99,23 @@ def _resolve(settings, parts: tuple[str, ...]) -> Any:
     return value
 
 
+def _toml_value(value: Any) -> str:
+    """
+    A value of TOML data as written in TOML, on one line, *e.g.* ``'"K"'`` or
+    ``'{ path = "/opt" }'``.
+    """
+    import tomlkit
+
+    from xtl_core.options.toml import toml_item
+
+    plain = _plain(value)
+    if isinstance(plain, dict):
+        table = tomlkit.inline_table()
+        table.update(plain)
+        return table.as_string().strip()
+    return toml_item(plain).as_string().strip()
+
+
 def _json_default(value: Any) -> Any:
     if isinstance(value, Enum):
         return value.value
@@ -130,13 +149,12 @@ def cli_config_show(
     Show the settings that XTL runs with, as TOML. These are read from the active
     config file, or are the default settings if there is none (or if it is invalid).
     """
-    import toml
     from rich.console import Console
     from rich.markup import escape
-    from toml.decoder import CommentValue
+    import tomlkit
 
     from xtl.config.settings import XTLSettings
-    from xtl_core.options.toml import ExtendedTomlEncoder
+    from xtl_core.options.toml import toml_item
 
     stderr = Console(stderr=True, highlight=False)
 
@@ -190,20 +208,17 @@ def cli_config_show(
         output = {}
     elif diff:
         output = {}
-        encoder = ExtendedTomlEncoder()
         for path in _diff(_plain(data), _plain(default_data)):
             if path[: len(parts)] != parts:
                 continue
             item = _get(data, path)
             default = _get(default_data, path)
-            default_str = (
-                'not set' if default is _MISSING else str(encoder.dump_value(default)).strip()
-            )  # ints are not converted
+            default_str = 'not set' if default is _MISSING else _toml_value(default)
             if item is _MISSING:
                 notes.append(f'{".".join(path)} is not set (default: {default_str})')
                 continue
             if comments and not isinstance(item, dict):
-                item = CommentValue(val=_plain(item), comment=f'# default: {default_str}', beginline=False, _dict=dict)
+                item = toml_item(_plain(item), comment=f'default: {default_str}')
             _set(output, path, item)
     else:
         item = _get(data, parts) if parts else data
@@ -236,7 +251,7 @@ def cli_config_show(
         if is_leaf:
             # A single key is shown without its parent tables
             leaf = {parts[-1]: _get(output, parts)}
-            lines.append(toml.dumps(leaf, encoder=ExtendedTomlEncoder()).rstrip())
+            lines.append(tomlkit.dumps(leaf).rstrip())
         else:
-            lines.append(toml.dumps(output, encoder=ExtendedTomlEncoder()).rstrip())
+            lines.append(tomlkit.dumps(output).rstrip())
     typer.echo('\n'.join(lines))

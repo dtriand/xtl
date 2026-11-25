@@ -35,11 +35,11 @@ from pydantic import (
 from pydantic_core import PydanticUndefined, InitErrorDetails, ValidationError
 from pydantic.config import JsonDict, ExtraValues
 from pydantic.fields import Deprecated, FieldInfo, ComputedFieldInfo
-import toml
-from toml.decoder import CommentValue
+import tomlkit
+from tomlkit.exceptions import ParseError as TomlParseError
 
 from xtl_core.options.validators import *
-from xtl_core.options.toml import ExtendedTomlEncoder
+from xtl_core.options.toml import toml_item, with_comment
 from xtl_core.options.typed_vars import TypedIterable
 from xtl_core.options.exceptions import OptionsValidationError
 from xtl_core.system.compatibility.py314 import sentinel
@@ -824,11 +824,13 @@ class Options(BaseModel):
         :raises FileNotFoundError: If ``s`` is a :class:`~pathlib.Path` that doesn't exist.
         :raises json.JSONDecodeError: If the JSON is invalid: a string that isn't valid
             JSON nor an existing file, or a file with invalid contents.
-        :raises toml.TomlDecodeError: If the TOML is invalid, likewise.
+        :raises tomlkit.exceptions.ParseError: If the TOML is invalid, likewise (also a
+            :class:`ValueError`).
         """
         loaders = {
             'json': json.loads,
-            'toml': toml.loads,
+            # Plain Python data, without tomlkit's formatting and comments
+            'toml': lambda text: tomlkit.parse(text).unwrap(),
         }
         if mode not in loaders:
             raise ValueError(f'Invalid read mode: {mode!r}. Must be one of: {", ".join(loaders.keys())}')
@@ -838,7 +840,7 @@ class Options(BaseModel):
             # Try parsing as a string first
             try:
                 return loads(s)
-            except (json.JSONDecodeError, toml.TomlDecodeError):
+            except (json.JSONDecodeError, TomlParseError):
                 # Not a valid string — check if it is a file
                 if not Path(s).exists():
                     # It was probably an invalid string
@@ -982,18 +984,21 @@ class Options(BaseModel):
         cls, value: Any, field: FieldInfo | ComputedFieldInfo | None = None, keep_comments: bool = False, path: str = ''
     ) -> Any:
         """
-        Convert a value to TOML data: nested |Options| and dictionaries to tables, iterables to lists (element-wise),
-        and anything else to a ``toml.CommentValue`` with the field's description as comment (or the plain value, if
-        there is no comment). Fields with ``exclude=True`` are left out. Since TOML has no null, ``None`` fields are
-        returned as ``_TOML_SKIP``, so that they are left out (they then load as the default of the field), while
-        ``None`` inside dictionaries and iterables raises an error, since leaving it out would change the data.
+        Convert a value to ``tomlkit`` items: the |Options| itself to a document, nested |Options| and mappings to
+        tables, iterables to arrays (lists of tables to arrays of tables), and anything else to a value (see
+        :func:`~xtl_core.options.toml.toml_item`). With ``keep_comments``, a field's description becomes the inline
+        comment of its value, or of its table's header line. Fields with ``exclude=True`` are left out. Since TOML
+        has no null, ``None`` fields are returned as ``_TOML_SKIP``, so that they are left out (they then load as
+        the default of the field), while ``None`` inside dictionaries and iterables raises an error, since leaving
+        it out would change the data.
 
         :param value: The value to convert.
         :param field: The field of the value, for its serializer and description, or None for values inside
-            dictionaries and iterables.
+            dictionaries and iterables (and for the |Options| itself).
         :param keep_comments: Whether to include comments in the output.
-        :param path: Location of the value in the TOML data (e.g. ``table.key[0]``), for error messages.
-        :return: The TOML data, or ``_TOML_SKIP``.
+        :param path: Location of the value in the TOML data (e.g. ``table.key[0]``), for error messages; empty for
+            the |Options| itself, which then becomes a document.
+        :return: A ``tomlkit`` document or item, or ``_TOML_SKIP``.
         :raises ValueError: If a dictionary or iterable contains ``None``.
         """
         # Apply serialization function
@@ -1008,9 +1013,11 @@ class Options(BaseModel):
                 )
             return _TOML_SKIP
 
+        comment = field.description if keep_comments and field is not None else None
+
         # Nested Options: a table with one entry per field
         if isinstance(value, Options):
-            table = {}
+            table = tomlkit.document() if field is None and not path else tomlkit.table()
             for name, vfield in {**value.__pydantic_fields__, **value.__pydantic_computed_fields__}.items():
                 # Fields excluded from serialization are left out, as in `to_dict()`
                 if getattr(vfield, 'exclude', False):
@@ -1023,39 +1030,24 @@ class Options(BaseModel):
                     path=f'{path}.{key}' if path else key,
                 )
                 if item is not _TOML_SKIP:
-                    table[key] = item
-            return table
+                    table.add(key, item)
+            return table if isinstance(table, tomlkit.TOMLDocument) else with_comment(table, comment)
 
         # Mappings (dict, TypedDict): a table with one entry per key (keys must be strings in TOML)
         if isinstance(value, Mapping):
-            return {
-                str(key): cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}')
-                for key, v in value.items()
-            }
+            table = tomlkit.table()
+            for key, v in value.items():
+                table.add(str(key), cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}.{key}'))
+            return with_comment(table, comment)
 
-        # Iterables: cast to lists, since TOML doesn't differentiate
+        # Iterables: cast to arrays, since TOML doesn't differentiate
         if isinstance(value, (list, tuple, set, frozenset, TypedIterable)):
-            return [
+            items = [
                 cls._value_to_toml(v, keep_comments=keep_comments, path=f'{path}[{i}]') for i, v in enumerate(value)
             ]
+            return with_comment(tomlkit.item(items), comment)
 
-        # Plain values without a comment, since an empty CommentValue leaves a trailing space
-        if field is None or not field.description or not keep_comments:
-            return value
-        return CommentValue(val=value, comment=f'# {field.description}', beginline=False, _dict=dict)
-
-    def _field_to_comment_value(
-        self, name: str, field: FieldInfo | ComputedFieldInfo, keep_comments: bool = False
-    ) -> Any:
-        """
-        Convert a field to TOML data, see ``_value_to_toml()``.
-
-        :param name: Name of the field.
-        :param field: FieldInfo object.
-        :param keep_comments: Whether to include comments in the output.
-        :return: A CommentValue, a (nested) dictionary or a list, or ``_TOML_SKIP`` for None.
-        """
-        return self._value_to_toml(getattr(self, name), field=field, keep_comments=keep_comments)
+        return toml_item(value, comment)
 
     @overload
     def to_toml(
@@ -1107,13 +1099,7 @@ class Options(BaseModel):
             file written.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False.
         """
-        # Cast all fields to toml.CommentValue (nested Options and dicts to tables)
-        data = self._value_to_toml(self, keep_comments=comments)
-
-        # Encoder to handle all serialization
-        encoder = ExtendedTomlEncoder()
-
-        text = toml.dumps(data, encoder=encoder)
+        text = tomlkit.dumps(self._value_to_toml(self, keep_comments=comments))
         return (
             text
             if filename is None
@@ -1136,8 +1122,8 @@ class Options(BaseModel):
             and read as a path only if that fails; an empty string loads the defaults.
         :param encoding: The encoding of the file.
         :return: An |Options| object.
-        :raises toml.TomlDecodeError: If the TOML is invalid, including a string that is
-            neither TOML nor an existing file.
+        :raises tomlkit.exceptions.ParseError: If the TOML is invalid, including a string
+            that is neither TOML nor an existing file (also a :class:`ValueError`).
         :raises FileNotFoundError: If ``s`` is a :class:`~pathlib.Path` that doesn't exist.
         :raises OptionsValidationError: If the data is invalid for the |Options| class.
         """

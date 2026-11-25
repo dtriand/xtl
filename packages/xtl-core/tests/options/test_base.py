@@ -5,7 +5,7 @@ from pathlib import Path
 from hypothesis import given, strategies as st
 from pydantic import Field, model_validator
 import pytest
-import toml
+from tomlkit.exceptions import ParseError
 
 from xtl_core.options import Option, Options
 from xtl_core.options.exceptions import OptionsValidationError
@@ -48,10 +48,10 @@ class Everything(Options):
     real: float = Option(default=0.0)
     flag: bool = Option(default=False)
     maybe: int | None = Option(default=None)
-    items: list[int] = Option(default_factory=list)
-    mapping: dict[str, int] = Option(default_factory=dict)
-    inner: Inner = Option(default_factory=Inner)
-    inners: list[Inner] = Option(default_factory=list)
+    items: list[int] = Option(default_factory=list, desc='An array')
+    mapping: dict[str, int] = Option(default_factory=dict, desc='A table')
+    inner: Inner = Option(default_factory=Inner, desc='A nested model,\n  described on two lines')
+    inners: list[Inner] = Option(default_factory=list, desc='An array of tables')
     path: Path = Option(default=Path('.'))
     typed: TypedList[int] = Option(default_factory=lambda: TypedList(int))
 
@@ -63,20 +63,9 @@ class Cast(Options):
 _INT64 = st.integers(-(2**63), 2**63 - 1)  # TOML's integers
 _SEGMENT = st.from_regex(r'[A-Za-z0-9_-]{1,8}', fullmatch=True)
 
-# What the `toml` library writes and reads back unchanged (see `TestFromToml.test_strings_the_toml_library_breaks`):
-#  values without control characters, no-break space or soft hyphen, and not only double quotes; keys only of assigned,
-#  printable characters, with no space other than ' ', and with '.' only if they have no whitespace, '"' or '\'
-_TOML_TEXT = st.text(st.characters(exclude_categories=('Cc', 'Cs'), exclude_characters='\xa0\xad')).filter(
-    lambda s: not s or s.strip('"')
-)
-_TOML_KEYS = st.text(
-    st.characters(exclude_categories=('Cc', 'Cs', 'Cf', 'Cn', 'Co', 'Zs', 'Zl', 'Zp'), include_characters=' ')
-).filter(lambda s: '.' not in s or not any(c.isspace() or c in '"\\' for c in s))
 
-
-def everything(
-    text: st.SearchStrategy[str] = st.text(), keys: st.SearchStrategy[str] = st.text()
-) -> st.SearchStrategy[Everything]:
+def everything() -> st.SearchStrategy[Everything]:
+    text = st.text()
     inner = st.builds(Inner, name=text, values=st.lists(_INT64, max_size=3))
     return st.builds(
         Everything,
@@ -86,7 +75,7 @@ def everything(
         flag=st.booleans(),
         maybe=st.none() | _INT64,
         items=st.lists(_INT64, max_size=5),
-        mapping=st.dictionaries(keys, _INT64, max_size=3),
+        mapping=st.dictionaries(text, _INT64, max_size=3),
         inner=inner,
         inners=st.lists(inner, max_size=2),
         path=st.lists(_SEGMENT, min_size=1, max_size=3).map(lambda parts: Path(*parts)),
@@ -521,6 +510,16 @@ class TestToToml:
             'age = 2 # Age in years',
         ]
 
+    def test_comments_on_tables_and_arrays(self):
+        lines = Everything(inners=[Inner()]).to_toml(comments=True).splitlines()
+        assert 'items = [] # An array' in lines
+        assert '[mapping] # A table' in lines
+        # Inline comments can't span lines, so multi-line descriptions are joined
+        assert '[inner] # A nested model, described on two lines' in lines
+
+    def test_no_comments(self):
+        assert '#' not in Everything(inners=[Inner()]).to_toml()
+
     class Item(Options):
         a: int = 1
         tags: list[str] = Option(default_factory=lambda: ['x', 'y'])
@@ -567,7 +566,7 @@ class TestToToml:
 
         m = FormatModel()
         # Formatters apply to iterables too, and their output is converted recursively
-        assert m.to_toml() == ('joined = "a b"\nspec = [ "1", "2",]\nnone_ok = "auto"\n')
+        assert m.to_toml() == ('joined = "a b"\nspec = ["1", "2"]\nnone_ok = "auto"\n')
 
         # Fields formatted as None are left out
         assert 'dropped' not in FormatModel(dropped=0).to_toml()
@@ -637,11 +636,11 @@ class TestFromToml:
         c0 = AliasedPerson(name='Alice', age=2, _parse_env=True)
         assert AliasedPerson.from_toml(c0.to_toml()).to_dict() == c0.to_dict()
 
-    @given(m=everything(text=_TOML_TEXT, keys=_TOML_KEYS))
+    @given(m=everything())
     def test_round_trip(self, m):
         assert Everything.from_toml(m.to_toml()) == m
 
-    @given(m=everything(text=_TOML_TEXT, keys=_TOML_KEYS))
+    @given(m=everything())
     def test_round_trip_with_comments(self, m):
         assert Everything.from_toml(m.to_toml(comments=True)) == m
 
@@ -650,26 +649,26 @@ class TestFromToml:
         loaded = Everything.from_toml(Everything(real=value).to_toml()).real
         assert loaded == value or (math.isnan(loaded) and math.isnan(value))
 
-    @pytest.mark.xfail(strict=True, reason='The `toml` library drops, changes or fails on these strings')
-    @pytest.mark.parametrize('text', ['"', '""', '\x00', '\x1f', '\x7f', '\x85', '\xa0', '\xad', 'a\x00b'])
-    def test_strings_the_toml_library_breaks(self, text):
-        assert Everything.from_toml(Everything(text=text).to_toml()).text == text
+    # Regression: the `toml` library dropped, changed or failed on these strings and keys, and lost the sign of -0.0
 
-    @pytest.mark.xfail(strict=True, reason='The `toml` library drops, changes or fails on these keys')
+    @pytest.mark.parametrize('text', ['"', '""', '\x00', '\x1f', '\x7f', '\x85', '\xa0', '\xad', 'a\x00b'])
+    def test_strings(self, text):
+        assert Everything.from_toml(Everything(text=text).to_toml(comments=True)).text == text
+
     @pytest.mark.parametrize('key', ['a\x00', 'a\xa0b', 'a b', '', '\U000e0001'])
-    def test_keys_the_toml_library_breaks(self, key):
+    def test_keys(self, key):
         assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
 
-    @pytest.mark.xfail(
-        strict=True, reason="With a '.', the `toml` library strips spaces around it and doesn't decode escapes"
-    )
     @pytest.mark.parametrize(
         'key', ['. ', ' .', '."', 'a."b', '.\\'], ids=['dot-space', 'space-dot', 'dot-quote', 'a-dot-quote-b', 'dot-bs']
     )
     def test_dotted_keys(self, key):
         assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
 
-    @pytest.mark.xfail(strict=True, reason='The `toml` library writes -0.0 as 0.0')
+    @pytest.mark.parametrize('key', ['#', '[a]', 'a=b'], ids=['hash', 'brackets', 'equals'])
+    def test_keys_with_toml_syntax(self, key):
+        assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
+
     def test_negative_zero(self):
         assert math.copysign(1, Everything.from_toml(Everything(real=-0.0).to_toml()).real) == -1
 
@@ -774,14 +773,14 @@ class TestReadContents:
 
     @pytest.mark.parametrize(
         'fmt_name, text, error',
-        [('json', '{"values": ', json.JSONDecodeError), ('toml', 'values = ', toml.TomlDecodeError)],
+        [('json', '{"values": ', json.JSONDecodeError), ('toml', 'values = ', ParseError)],
     )
     def test_invalid_string(self, fmt_name, text, error):
         from_ = Inner.from_json if fmt_name == 'json' else Inner.from_toml
         with pytest.raises(error):
             from_(text)
 
-    @pytest.mark.parametrize('fmt_name, error', [('json', json.JSONDecodeError), ('toml', toml.TomlDecodeError)])
+    @pytest.mark.parametrize('fmt_name, error', [('json', json.JSONDecodeError), ('toml', ParseError)])
     def test_invalid_file_contents(self, tmp_path, fmt_name, error):
         path = tmp_path / f'bad.{fmt_name}'
         path.write_text('{"values": ' if fmt_name == 'json' else 'values = ')
