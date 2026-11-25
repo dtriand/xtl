@@ -619,6 +619,14 @@ class TestLoad:
         with pytest.raises(OptionsValidationError, match='unit'):
             self.load(Model, self.old, how, tmp_path, upgrade=False)
 
+    @pytest.mark.parametrize('fmt', ['json', 'toml'])
+    def test_encoding(self, Model, tmp_path, fmt):
+        text = json.dumps(self.old) if fmt == 'json' else toml.dumps(self.old)
+        path = tmp_path / f'data.{fmt}'
+        path.write_text(text, encoding='utf-16')
+        m = getattr(Model, f'from_{fmt}')(path, encoding='utf-16')
+        assert (m.version, m.units) == ('2.0.0', 'A')
+
     def test_upgrade_false_runs_no_steps(self):
         Model = versioned_model('2.0.0')
         Model.upgrade_step(to='2.0.0')(never)

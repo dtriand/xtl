@@ -1,5 +1,4 @@
 import json
-import locale
 import math
 from pathlib import Path
 
@@ -441,9 +440,9 @@ class TestFromJson:
     def test_round_trip(self, m):
         assert Everything.from_json(m.to_json()) == m
 
-    @pytest.mark.xfail(strict=True, reason='JSON writes NaN and infinity as null, which then fails to load')
     @pytest.mark.parametrize('value', [math.nan, math.inf, -math.inf], ids=['nan', 'inf', '-inf'])
     def test_non_finite_floats(self, value):
+        """Regression: NaN and infinity were written as null, which then failed to load."""
         loaded = Everything.from_json(Everything(real=value).to_json()).real
         assert loaded == value or (math.isnan(loaded) and math.isnan(value))
 
@@ -608,9 +607,6 @@ class TestFromToml:
         assert math.copysign(1, Everything.from_toml(Everything(real=-0.0).to_toml()).real) == -1
 
 
-_UTF8_DEFAULT = locale.getpreferredencoding(False).lower().replace('-', '') == 'utf8'
-
-
 class TestWriteText:
     """Writing JSON and TOML files, through ``to_json()`` and ``to_toml()``."""
 
@@ -679,12 +675,18 @@ class TestWriteText:
         with pytest.raises(TypeError, match='positional argument'):
             write(tmp_path / 'out', True)
 
-    @pytest.mark.xfail(not _UTF8_DEFAULT, strict=True, reason="Files are written in the locale's encoding")
     def test_utf8(self, tmp_path, fmt):
+        """Regression: files were read and written in the locale's encoding."""
         to_, from_, suffix = fmt
         path = to_(Inner(name='α → β'), tmp_path / f'out{suffix}')
         assert 'α → β' in path.read_text(encoding='utf-8')
         assert from_(path).name == 'α → β'
+
+    def test_encoding(self, tmp_path, fmt):
+        to_, from_, suffix = fmt
+        path = to_(Inner(name='α → β'), tmp_path / f'out{suffix}', encoding='utf-16')
+        assert 'α → β' in path.read_text(encoding='utf-16')
+        assert from_(path, encoding='utf-16').name == 'α → β'
 
 
 class TestReadContents:

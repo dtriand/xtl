@@ -241,7 +241,8 @@ class TestTypedDict:
             m = Model(mapping=mapping)
             assert getattr(Model, f'from_{fmt}')(getattr(m, f'to_{fmt}')()) == m
 
-        @pytest.mark.xfail(strict=True, reason='TOML gets a list of the keys')
         def test_toml(self):
+            """Regression: the field was written to TOML as a list of its keys."""
             m = Model(mapping={'a': 1})
+            assert m.to_toml().endswith('[mapping]\na = 1\n')
             assert Model.from_toml(m.to_toml()) == m

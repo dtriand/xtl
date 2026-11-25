@@ -360,10 +360,10 @@ class VersionedOptions(Options):
 
     @classmethod
     @extend_docstring(Options.from_json, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
-    def from_json(cls, s: str | Path, /, *, upgrade: bool = True) -> Self:
-        return cls.from_dict(cls._read_contents(s, mode='json'), upgrade=upgrade)
+    def from_json(cls, s: str | Path, /, *, encoding: str = 'utf-8', upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='json', encoding=encoding), upgrade=upgrade)
 
     @classmethod
     @extend_docstring(Options.from_toml, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
-    def from_toml(cls, s: str | Path, /, *, upgrade: bool = True) -> Self:
-        return cls.from_dict(cls._read_contents(s, mode='toml'), upgrade=upgrade)
+    def from_toml(cls, s: str | Path, /, *, encoding: str = 'utf-8', upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='toml', encoding=encoding), upgrade=upgrade)

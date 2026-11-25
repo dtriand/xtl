@@ -19,9 +19,12 @@ class TestExtendedTomlEncoder:
     def test_paths_posix(self, path):
         assert dumps({'path': path}) == 'path = "a/b"\n'
 
-    @pytest.mark.xfail(strict=True, reason='Paths are written between quotes without escaping')
-    @pytest.mark.parametrize('name', ['a"b', 'a\\b'], ids=['quote', 'backslash'])
+    @pytest.mark.parametrize(
+        'name', ['a"b', 'a\\b', 'a\tb', 'a\x7fb', 'α β'], ids=['quote', 'backslash', 'tab', 'delete', 'unicode']
+    )
     def test_paths_escaped(self, name):
+        """Regression: paths were written between quotes without escaping, so ``"`` gave
+        invalid TOML and ``\\b`` turned into a backspace."""
         assert toml.loads(dumps({'path': PurePosixPath(name)})) == {'path': name}
 
     def test_file_permissions(self):
