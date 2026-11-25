@@ -121,9 +121,10 @@ class TestTypedList:
             assert TypedList(int, [1]) == [1]
             assert TypedList(int) == []
 
-        @pytest.mark.xfail(strict=True, reason='Comparing with other types raises NotImplementedError')
         def test_other_types(self):
+            """Regression: comparing with other types raised NotImplementedError."""
             assert TypedList(int, [1]) != 1
+            assert TypedList(int, [1]) != (1,)
             assert 1 not in [TypedList(int, [1])]
 
     class TestRepr:
@@ -176,10 +177,17 @@ class TestTypedDict:
             with pytest.raises(OptionsValidationError, match='expected int got str instead'):
                 TypedDict(str, int, {'a': 'b'})
 
-        @pytest.mark.xfail(strict=True, reason='The check for hashable key types never fails')
-        def test_unhashable_key_type(self):
+        @pytest.mark.parametrize('key_type', [list, dict, list[int]], ids=['list', 'dict', 'list[int]'])
+        def test_unhashable_key_type(self, key_type):
+            """Regression: the check for hashable key types never failed."""
             with pytest.raises(TypeError, match='is not hashable'):
-                TypedDict(list, int)
+                TypedDict(key_type, int)
+
+        @pytest.mark.parametrize(
+            'key_type, key', [(int, 1), (tuple[int, int], (1, 2)), (int | str, 'a')], ids=['int', 'tuple', 'union']
+        )
+        def test_hashable_key_type(self, key_type, key):
+            assert dict(TypedDict(key_type, int, {key: 1})) == {key: 1}
 
     class TestSetitem:
         def test_cast(self):
@@ -208,8 +216,8 @@ class TestTypedDict:
         def test_typed_dict(self):
             assert TypedDict(str, int, TypedDict(str, int, {'a': 1})) == {'a': 1}
 
-        @pytest.mark.xfail(strict=True, reason='A read-only mapping is iterated as key-value pairs')
         def test_read_only_mapping(self):
+            """Regression: a read-only mapping was iterated as key-value pairs."""
             assert TypedDict(str, int, MappingProxyType({'a': 1})) == {'a': 1}
 
     class TestEq:
@@ -218,9 +226,11 @@ class TestTypedDict:
             assert TypedDict(str, int, {'a': 1}) == {'a': 1}
             assert TypedDict(str, int, {'a': 1}) != {'a': 2}
 
-        @pytest.mark.xfail(strict=True, reason='Comparing with other types raises NotImplementedError')
         def test_other_types(self):
+            """Regression: comparing with other types raised NotImplementedError."""
             assert TypedDict(str, int) != 1
+            assert TypedDict(str, int) != []
+            assert 1 not in [TypedDict(str, int)]
 
     class TestRepr:
         def test_repr(self):

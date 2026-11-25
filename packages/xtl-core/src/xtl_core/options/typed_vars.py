@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence
-from typing import Any, Generic, TypeVar, Protocol, get_args, overload, runtime_checkable
+from typing import Any, Generic, TypeVar, Protocol, get_args, get_origin, overload, runtime_checkable
 
 from pydantic import ValidationError, TypeAdapter
 from pydantic_core import InitErrorDetails, PydanticCustomError, core_schema
@@ -109,7 +109,9 @@ class TypedMapping(ABC, TypedMutable, Generic[KT, VT]):
 
     def __init__(self, key_type: type[KT], value_type: type[VT], initial=None):
         self._data = self._builtin_type()
-        if not hasattr(key_type, '__hash__'):
+        # Classes that aren't hashable set `__hash__` to None, e.g. list, or list[int] through its origin
+        origin = get_origin(key_type) or key_type
+        if isinstance(origin, type) and origin.__hash__ is None:
             raise TypeError(f'Key type {key_type} is not hashable, cannot be used as a key in {type(self).__name__}')
         self._key_type = key_type
         self._value_type = value_type
@@ -239,8 +241,7 @@ class TypedList(TypedIterable[T], MutableSequence[T]):
             return self._data == other._data
         elif isinstance(other, list):
             return self._data == other
-        else:
-            raise NotImplementedError
+        return NotImplemented
 
     def insert(self, index, value) -> None:
         self._data.insert(index, self._validate(value))
@@ -279,12 +280,11 @@ class TypedDict(TypedMapping[KT, VT], MutableMapping[KT, VT]):
             return self._data == other._data
         elif isinstance(other, Mapping):
             return self._data == dict(other)
-        else:
-            raise NotImplementedError
+        return NotImplemented
 
     @staticmethod
     def _iter_items(values):
-        if isinstance(values, MutableMapping):
+        if isinstance(values, Mapping):
             return values.items()
         return values
 
