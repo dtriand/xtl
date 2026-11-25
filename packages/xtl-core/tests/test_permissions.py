@@ -2,6 +2,7 @@ import dataclasses
 import os
 import time
 
+from hypothesis import given, strategies as st
 import pytest
 
 from xtl_core.options import Option, Options
@@ -24,6 +25,11 @@ not_as_root = pytest.mark.skipif(OS_POSIX and os.geteuid() == 0, reason='root ig
 
 def mode(path) -> int:
     return path.stat().st_mode & 0o777
+
+
+# Every parser of permissions, with short ids for the test names
+_PARSERS = [FilePermissionsBit, FilePermissions, get_permissions_in_decimal]
+_PARSER_IDS = ['bit', 'mode', 'decimal']
 
 
 @pytest.mark.parametrize('name', permissions.__all__)
@@ -117,50 +123,6 @@ class TestFilePermissionsBit:
         with pytest.raises(ValueError, match='must be a valid permission string'):
             FilePermissionsBit(value)
 
-
-class TestUntrustedStrings:
-    """
-    Permissions come from config files and the command line: huge or crafted strings
-    must fail fast, and without ending up in full in the error message.
-    """
-
-    HUGE = 10**7
-
-    @pytest.mark.parametrize(
-        'value',
-        [
-            pytest.param('r' * HUGE, id='letters'),
-            pytest.param('rwx' * (HUGE // 3), id='repeated-group'),
-            pytest.param('-' * HUGE, id='dashes'),
-            pytest.param('0o' + '7' * HUGE, id='octal'),
-            pytest.param('7' * HUGE, id='digits'),
-            pytest.param('r' * HUGE + '!', id='backtracking'),
-        ],
-    )
-    @pytest.mark.parametrize('parse', [FilePermissionsBit, FilePermissions, get_permissions_in_decimal])
-    def test_huge(self, parse, value):
-        start = time.perf_counter()
-        with pytest.raises(ValueError) as e:
-            parse(value)
-        assert time.perf_counter() - start < 1  # Generous: takes microseconds
-        for error in (e.value, e.value.__cause__):
-            if error is not None:
-                assert len(str(error)) < 200
-
-    def test_message_cut(self):
-        with pytest.raises(ValueError, match=r"'group' must be a valid permission string, not 'aaaa.*\.\.\.$"):
-            FilePermissions(7, 'a' * 1000, 0)
-
-    def test_message_length(self):
-        with pytest.raises(ValueError, match='not one of 1000 characters'):
-            FilePermissionsBit('a' * 1000)
-
-    @pytest.mark.xfail(strict=True, reason="`cast_as`'s error repeats the whole input")
-    def test_in_options(self):
-        with pytest.raises(ValueError) as e:
-            _WithPermissions.from_toml(f'permissions = "{"r" * 10**6}"')
-        assert len(str(e.value)) < 1000
-
     @pytest.mark.parametrize(
         'value, short, canonical, as_tuple',
         [
@@ -222,6 +184,117 @@ class TestUntrustedStrings:
     def test_unhashable(self):
         with pytest.raises(TypeError):
             hash(FilePermissionsBit(0o5))
+
+
+class TestUntrustedStrings:
+    """
+    Permissions come from config files and the command line: huge or crafted strings
+    must fail fast, and without ending up in full in the error message.
+    """
+
+    HUGE = 10**7
+
+    @pytest.mark.parametrize(
+        'value',
+        [
+            pytest.param('r' * HUGE, id='letters'),
+            pytest.param('rwx' * (HUGE // 3), id='repeated-group'),
+            pytest.param('-' * HUGE, id='dashes'),
+            pytest.param('0o' + '7' * HUGE, id='octal'),
+            pytest.param('7' * HUGE, id='digits'),
+            pytest.param('r' * HUGE + '!', id='backtracking'),
+        ],
+    )
+    @pytest.mark.parametrize('parse', _PARSERS, ids=_PARSER_IDS)
+    def test_huge(self, parse, value):
+        start = time.perf_counter()
+        with pytest.raises(ValueError) as e:
+            parse(value)
+        assert time.perf_counter() - start < 1  # Generous: takes microseconds
+        for error in (e.value, e.value.__cause__):
+            if error is not None:
+                assert len(str(error)) < 200
+
+    def test_message_cut(self):
+        with pytest.raises(ValueError, match=r"'group' must be a valid permission string, not 'aaaa.*\.\.\.$"):
+            FilePermissions(7, 'a' * 1000, 0)
+
+    def test_message_length(self):
+        with pytest.raises(ValueError, match='not one of 1000 characters'):
+            FilePermissionsBit('a' * 1000)
+
+    @pytest.mark.xfail(strict=True, reason="`cast_as`'s error repeats the whole input")
+    def test_in_options(self):
+        with pytest.raises(ValueError) as e:
+            _WithPermissions.from_toml(f'permissions = "{"r" * 10**6}"')
+        assert len(str(e.value)) < 1000
+
+
+# Characters of every permission form, so that generated strings are often close to valid ones
+_PERMISSION_CHARACTERS = '-rwx' + ''.join(t.value for t in FileType) + '0o1234567 \n'
+
+
+class TestProperties:
+    """What holds for any input, checked with generated examples."""
+
+    @given(value=st.text() | st.text(alphabet=_PERMISSION_CHARACTERS, max_size=12))
+    @pytest.mark.parametrize('parse', _PARSERS, ids=_PARSER_IDS)
+    def test_any_string(self, parse, value):
+        # Parses, or raises a short ValueError
+        try:
+            parse(value)
+        except ValueError as e:
+            assert len(str(e)) < 200
+
+    @given(value=st.integers(0, 7))
+    def test_bit_forms_round_trip(self, value):
+        bit = FilePermissionsBit(value)
+        for form in (bit.string, bit.string_canonical, bit.octal, bit.decimal):
+            assert FilePermissionsBit(form) == bit
+
+    @given(value=st.integers(0, 0o777))
+    def test_mode_forms_round_trip(self, value):
+        p = FilePermissions(value)
+        assert p.decimal == value
+        for form in (p.decimal, p.octal, p.octal[2:], '0' + p.octal[2:], p.string):
+            assert FilePermissions(form) == p
+        assert get_permissions_in_decimal(p.string) == value
+
+    @given(value=st.integers(0, 0o777), file_type=st.sampled_from(FileType))
+    def test_file_type_round_trips(self, value, file_type):
+        p = FilePermissions(value, file_type=file_type)
+        parsed = FilePermissions(p.string)
+        assert parsed == p
+        assert parsed.file_type is file_type
+
+    @given(owner=st.integers(0, 7), group=st.integers(0, 7), other=st.integers(0, 7))
+    def test_parts_make_the_mode(self, owner, group, other):
+        assert FilePermissions(owner, group, other).decimal == owner << 6 | group << 3 | other
+
+    # Nothing lenient gets through: whatever is accepted is one of the forms of what it parses to
+
+    @staticmethod
+    def bit_forms(bit: FilePermissionsBit) -> set[str]:
+        return {bit.string, bit.string_canonical, bit.octal} | ({''} if bit.value == 0 else set())
+
+    @given(value=st.text(alphabet=_PERMISSION_CHARACTERS, max_size=12))
+    def test_accepted_bits_are_known_forms(self, value):
+        try:
+            bit = FilePermissionsBit(value)
+        except ValueError:
+            return
+        assert value in self.bit_forms(bit)
+
+    @given(value=st.text(alphabet=_PERMISSION_CHARACTERS, max_size=12))
+    def test_accepted_modes_are_known_forms(self, value):
+        try:
+            p = FilePermissions(value)
+        except ValueError:
+            return
+        whole = {p.octal, p.octal[2:], '0' + p.octal[2:], p.string}
+        # A string that isn't a whole mode is the owner's part
+        owner = self.bit_forms(p.owner) if p.group.value == p.other.value == 0 and p.file_type is None else set()
+        assert value in whole | owner
 
 
 class TestFilePermissions:
