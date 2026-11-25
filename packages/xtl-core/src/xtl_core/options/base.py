@@ -619,9 +619,8 @@ class Options(BaseModel):
             # During model initialization data is a dict
             mode = 'dict'
 
-            # Check for parsing of environment variables
+            # Check for parsing of environment variables (kept on the instance below)
             parse_env = data.get('_parse_env', False)
-            cls._parse_env = parse_env
         elif isinstance(data, cls):
             # During value assignment data is a pydantic model
             mode = 'pydantic'
@@ -659,6 +658,8 @@ class Options(BaseModel):
 
         # Generate the pydantic model
         validated_self = handler(data)
+        if mode == 'dict':
+            validated_self._parse_env = parse_env
 
         # Apply after validators
         for name, value in validated_self.__dict__.items():
@@ -668,10 +669,7 @@ class Options(BaseModel):
             #   `default` or `default_value` and no actual value
             #   NB: this skips the before validators
             if parse_env:
-                new_value = cls._get_envvar(value)
-                if new_value is value:
-                    continue
-                value = new_value
+                value = cls._get_envvar(value)
 
             if name in validators:
                 value, new_errors = cls._validate_after(
@@ -746,25 +744,25 @@ class Options(BaseModel):
         if self._parse_env:
             value = self._get_envvar(value)
 
-        # Apply before validators
-        validators = self._get_custom_validators()
-        errors = []
-        if name in validators:
-            value, errors = self._validate_before(name=name, value=value, validators=validators[name])
-        # Check and raise validation errors
-        if errors:
-            raise ValidationError.from_exception_data(title='before_validators', line_errors=errors)
-
         try:
-            # Validate the model with the new value
-            data = self.model_dump()
-            # Pass `_parse_env` along to ensure persistency
-            data.update({name: value, '_parse_env': self._parse_env})
-            self.model_validate(data)
-            # Update the attribute if validation is successful
-            super().__setattr__(name, value)
+            # Apply before validators
+            validators = self._get_custom_validators()
+            if name in validators:
+                value, errors = self._validate_before(name=name, value=value, validators=validators[name])
+                if errors:
+                    raise ValidationError.from_exception_data(title='before_validators', line_errors=errors)
+
+            # Pydantic validates the new value (`validate_assignment`), then the `after`
+            #  validators run in `_custom_validation()`. Pydantic sets the attribute before
+            #  the after validators run, so this happens on a shallow copy, which a failure
+            #  leaves behind
+            trial = self.model_copy()
+            super(Options, trial).__setattr__(name, value)
         except ValidationError as e:
-            raise e
+            raise OptionsValidationError(e, type(self).__name__) from e
+        # Take the validated values, including any that the validators changed
+        self.__dict__.update(trial.__dict__)
+        self.__pydantic_fields_set__.add(name)
 
     @classmethod
     def model_validate(

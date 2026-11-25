@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 
 from hypothesis import given, strategies as st
-from pydantic import Field
+from pydantic import Field, model_validator
 import pytest
 import toml
 
@@ -246,13 +246,46 @@ class TestSetattr:
         assert m.path == tmp_path
         assert m.model_dump() == {'name': 'Alice', 'age': 2, 'double_this': 6, 'field': 1.5, 'path': tmp_path}
 
+    def test_model_validator(self):
+        class Range(Options):
+            lo: int = Option(default=0)
+            hi: int = Option(default=1)
+
+            @model_validator(mode='after')
+            def ordered(self):
+                if self.lo > self.hi:
+                    raise ValueError('lo > hi')
+                return self
+
+        m = Range()
+        with pytest.raises(OptionsValidationError, match='lo > hi'):
+            m.lo = 5
+        assert (m.lo, m.hi) == (0, 1)
+
+    def test_nested(self):
+        class Outer(Options):
+            inner: Inner = Option(default_factory=Inner)
+
+        m = Outer()
+        m.inner = {'name': 'a'}
+        assert m.inner == Inner(name='a')
+        with pytest.raises(OptionsValidationError, match=r'Outer\.inner\.values'):
+            m.inner = {'values': 'abc'}
+        assert m.inner == Inner(name='a')
+
+    def test_fields_set(self):
+        m = Person(name='Alice', age=2, field=1.0)
+        m.double_this = 2
+        assert m.model_fields_set == {'name', 'age', 'field', 'double_this'}
+
     def test_not_a_field(self):
         m = Person(name='Alice', age=2, field=1.0)
         with pytest.raises(ValueError):
             m.unknown = 1
 
-    @pytest.mark.xfail(strict=True, reason="Assignment validates the model's formatted output, not its values")
     def test_other_fields_formatter(self):
+        """Regression: assignment validated the model's formatted output, not its values."""
+
         class Joined(Options):
             tags: list[str] = Option(default_factory=lambda: ['a', 'b'], formatter=' '.join)
             n: int = Option(default=1)
@@ -261,11 +294,12 @@ class TestSetattr:
         m.n = 2
         assert (m.n, m.tags) == (2, ['a', 'b'])
 
-    @pytest.mark.xfail(strict=True, reason="A failing `cast_as` on assignment raises pydantic's ValidationError")
     def test_cast_error(self):
+        """Regression: a failing before validator raised pydantic's ValidationError."""
         m = Cast()
         with pytest.raises(OptionsValidationError, match='Cast.n'):
             m.n = 'abc'
+        assert m.n == Cast().n
 
 
 class TestParseEnv:
@@ -296,6 +330,30 @@ class TestParseEnv:
         e = self.EnvModel(user='${XTLUSER}')
         assert e._parse_env is False
         assert e.model_dump() == {'user': '${Xtluser}'}
+
+    def test_per_instance(self):
+        """Regression: the setting was kept on the class, so every instance had that of
+        the instance created last."""
+        on = self.EnvModel(_parse_env=True)
+        off = self.EnvModel()
+        on.user = off.user = '${XTLUSER}'
+        assert (on._parse_env, on.user) == (True, 'user1')
+        assert (off._parse_env, off.user) == (False, '${XTLUSER}')
+
+    def test_after_validators(self):
+        """Regression: with environment variables parsed, after validators were skipped for
+        values without a variable."""
+
+        class Choice(Options):
+            name: str = Option(default='${XTLUSER}', choices=('user1', 'a'))
+
+        with pytest.raises(OptionsValidationError, match='Value is not in choices'):
+            Choice(name='b', _parse_env=True)
+        m = Choice(_parse_env=True)
+        with pytest.raises(OptionsValidationError, match='Value is not in choices'):
+            m.name = 'b'
+        m.name = 'a'
+        assert m.name == 'a'
 
     def test_default_values(self):
         assert self.EnvModel(_parse_env=True).user == 'user1'
