@@ -76,6 +76,7 @@ h5peek = "xtl.cli.cli_h5peek:app"
 
 [dependency-groups]
 test = [
+    "hypothesis>=6.115.0",
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=6.0.0",

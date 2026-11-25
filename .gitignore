@@ -54,6 +54,9 @@ docs/build/
 .tox
 .pytest_cache
 
+## Hypothesis (examples that failed, replayed first next time)
+.hypothesis/
+
 ## Coverage
 .coverage
 .coverage.*

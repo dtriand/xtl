@@ -44,6 +44,7 @@ homepage = "https://github.com/dtriand/xtl"
 
 [dependency-groups]
 test = [
+    "hypothesis>=6.115.0",
     "pytest>=7.2.0",
     "pytest-asyncio>=0.24.0",
 ]
