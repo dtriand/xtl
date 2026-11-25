@@ -98,7 +98,7 @@ def validate_path_is_absolute(value: None | Path | Iterable[Path]) -> None | Pat
         return value
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
-            if not v.is_file():
+            if not v.is_absolute():
                 raise ValueError(f'Path[{i}] is not absolute: {v!r}') from None
     else:
         if not value.is_absolute():
@@ -115,8 +115,10 @@ def cast_as(value: Any, type_: type | Callable) -> Any:
             # Do not cast if already the right type
             return value
         return type_(value)
-    except ValueError:
-        raise ValueError(f'Cannot cast {value!r} as {type_.__name__}') from None
+    except (ValueError, TypeError):
+        # e.g. int('a') raises a ValueError, int(None) a TypeError
+        # Callables like functools.partial have no __name__
+        raise ValueError(f'Cannot cast {value!r} as {getattr(type_, "__name__", repr(type_))}') from None
 
 
 def cast_as_none_if_empty(value: Any) -> Optional[Any]:

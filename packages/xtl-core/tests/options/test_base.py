@@ -203,9 +203,9 @@ class TestInit:
             Person(name='Dave', age=-1, field=1.0)
         assert [error['loc'] for error in e.value.errors] == ['Person.age']
 
-    @pytest.mark.xfail(strict=True, reason='`cast_as` lets a TypeError through, e.g. int(None)')
     @pytest.mark.parametrize('value', [None, [1]], ids=['None', 'list'])
     def test_cast_type_error(self, value):
+        """Regression: ``cast_as`` let a TypeError through, e.g. ``int(None)``."""
         with pytest.raises(OptionsValidationError, match='Cast.n'):
             Cast(n=value)
 

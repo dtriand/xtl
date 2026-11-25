@@ -1,3 +1,4 @@
+import functools
 import gc
 from pathlib import Path
 
@@ -114,13 +115,13 @@ class TestValidatePathIsAbsolute:
         with pytest.raises(ValueError, match='Path is not absolute'):
             validate_path_is_absolute(Path('relative'))
 
-    @pytest.mark.xfail(strict=True, reason='In a list, paths are checked with `is_file()` instead of `is_absolute()`')
     def test_list_of_absolute(self, tree):
+        """Regression: in a list, paths were checked with ``is_file()`` instead of ``is_absolute()``."""
         _, directory, missing = tree
         assert validate_path_is_absolute([directory, missing]) == [directory, missing]
 
-    @pytest.mark.xfail(strict=True, reason='In a list, paths are checked with `is_file()` instead of `is_absolute()`')
     def test_list_with_relative(self, tree, monkeypatch):
+        """Regression: likewise, so a relative path to a file passed."""
         file, directory, _ = tree
         monkeypatch.chdir(directory)
         with pytest.raises(ValueError, match=r'Path\[0\] is not absolute'):
@@ -142,6 +143,16 @@ class TestCastAs:
     def test_value_error(self):
         with pytest.raises(ValueError, match="Cannot cast 'abc' as int"):
             cast_as('abc', int)
+
+    @pytest.mark.parametrize('value', [None, [1]], ids=['None', 'list'])
+    def test_type_error(self, value):
+        """Regression: a TypeError went through as it was."""
+        with pytest.raises(ValueError, match='Cannot cast .* as int'):
+            cast_as(value, int)
+
+    def test_callable_without_name(self):
+        with pytest.raises(ValueError, match=r'Cannot cast None as functools\.partial'):
+            cast_as(None, functools.partial(int, base=2))
 
 
 class TestCastAsNoneIfEmpty:
