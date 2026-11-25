@@ -145,11 +145,11 @@ def cast_as_path_or_none(value: Any) -> Optional[Path]:
 
 def cast_as_temp_dir_if_none(value: Any, prefix: str = 'xtl_') -> Path:
     """
-    Cast the value to a temporary directory if it is ``None``.
+    Cast the value to a new temporary directory if it is ``None``. The directory stays
+    until whoever uses it removes it.
     """
     if value is None:
-        temp_dir = tempfile.TemporaryDirectory(prefix=prefix)
-        return Path(temp_dir.name)
+        return Path(tempfile.mkdtemp(prefix=prefix))
     return Path(value)
 
 

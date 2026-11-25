@@ -65,13 +65,13 @@ _SEGMENT = st.from_regex(r'[A-Za-z0-9_-]{1,8}', fullmatch=True)
 
 # What the `toml` library writes and reads back unchanged (see `TestFromToml.test_strings_the_toml_library_breaks`):
 #  values without control characters, no-break space or soft hyphen, and not only double quotes; keys only of assigned,
-#  printable characters, with no space other than ' ', and not both '.' and '"'
+#  printable characters, with no space other than ' ', and with '.' only if they have no whitespace, '"' or '\'
 _TOML_TEXT = st.text(st.characters(exclude_categories=('Cc', 'Cs'), exclude_characters='\xa0\xad')).filter(
     lambda s: not s or s.strip('"')
 )
 _TOML_KEYS = st.text(
     st.characters(exclude_categories=('Cc', 'Cs', 'Cf', 'Cn', 'Co', 'Zs', 'Zl', 'Zp'), include_characters=' ')
-).filter(lambda s: not ('.' in s and '"' in s))
+).filter(lambda s: '.' not in s or not any(c.isspace() or c in '"\\' for c in s))
 
 
 def everything(
@@ -660,9 +660,13 @@ class TestFromToml:
     def test_keys_the_toml_library_breaks(self, key):
         assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
 
-    @pytest.mark.xfail(strict=True, reason="The `toml` library splits a key with '.' and an escaped '\"' at the dot")
-    @pytest.mark.parametrize('key', ['."', 'a."b'], ids=['dot-quote', 'dot-quote-b'])
-    def test_keys_with_dot_and_quote(self, key):
+    @pytest.mark.xfail(
+        strict=True, reason="With a '.', the `toml` library strips spaces around it and doesn't decode escapes"
+    )
+    @pytest.mark.parametrize(
+        'key', ['. ', ' .', '."', 'a."b', '.\\'], ids=['dot-space', 'space-dot', 'dot-quote', 'a-dot-quote-b', 'dot-bs']
+    )
+    def test_dotted_keys(self, key):
         assert Everything.from_toml(Everything(mapping={key: 1}).to_toml()).mapping == {key: 1}
 
     @pytest.mark.xfail(strict=True, reason='The `toml` library writes -0.0 as 0.0')

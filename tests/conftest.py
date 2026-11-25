@@ -44,6 +44,24 @@ def pytest_unconfigure(config):
         shutil.rmtree(_SETTINGS_DIR, ignore_errors=True)
 
 
+@pytest.fixture(autouse=True, scope='session')
+def _temp_dirs(tmp_path_factory):
+    """
+    Temporary directories that the code under test creates and leaves behind (e.g. the
+    default job directory of a batch job config, or the CLIs' job directories) go under
+    pytest's base directory, which pytest prunes, instead of the system's. The
+    environment variables are for subprocesses, e.g. the workers of a pool.
+    """
+    directory = str(tmp_path_factory.mktemp('tempfile'))  # pytest's own base directory is set by now
+    original = tempfile.tempdir
+    tempfile.tempdir = directory
+    with pytest.MonkeyPatch.context() as mp:
+        for name in ('TMPDIR', 'TEMP', 'TMP'):
+            mp.setenv(name, directory)
+        yield
+    tempfile.tempdir = original
+
+
 @pytest.fixture(scope='session', params=[f'{random.randint(0, 9999):04d}' for _ in range(0, 3)])
 def seed(request):
     """
