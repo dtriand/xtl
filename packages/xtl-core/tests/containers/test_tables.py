@@ -53,7 +53,6 @@ class TestMissingValue:
         assert MissingValue(None) == MissingValue(None)
         assert MissingValue(None) != MissingValue('')
 
-    @pytest.mark.xfail(strict=True, reason='str() calls a to_repr() that MissingValue lacks')
     def test_str(self):
         assert str(MissingValue(1)) == '1'
 
@@ -80,6 +79,16 @@ class TestMissingValueConfig:
         def test_repr_default(self):
             assert MissingValueConfig(values=['N/A']).repr is None
 
+        def test_values_default(self):
+            assert MissingValueConfig().values == set()
+
+        def test_repr_and_eq(self):
+            config = MissingValueConfig(values=['N/A'], repr='-')
+            assert repr(config) == "MissingValueConfig(values={'N/A'}, repr='-', checker=None)"
+            assert config == MissingValueConfig(values='N/A', repr='-')
+            assert config != MissingValueConfig(values='N/A')
+            assert config != 'N/A'
+
     class TestContains:
         def test_values(self):
             missing = MissingValueConfig(values=['N/A', None], repr='-')
@@ -97,18 +106,15 @@ class TestMissingValueConfig:
             assert 'XYZ' not in missing
             assert 1 not in missing
 
-        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
         def test_unhashable(self):
             missing = MissingValueConfig(values=[None])
             assert [1, 2] not in missing
             assert {'a': 1} not in missing
 
-        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
         def test_unhashable_checker(self):
             missing = MissingValueConfig(values=[None], checker=lambda v: v == [])
             assert [] in missing
 
-        @pytest.mark.xfail(strict=True, reason='NaN is only found when it is the same object')
         def test_nan(self):
             assert float('nan') in MissingValueConfig(values=[math.nan])
 
@@ -159,12 +165,10 @@ class TestTable:
             with pytest.raises(KeyError):
                 Table(headers=['A'], formats={'B': '.2f'})
 
-        @pytest.mark.xfail(strict=True, reason='Unhashable values are looked up in a set')
         def test_unhashable_cells(self):
             table = Table(data=[[[1, 2], {'a': 1}]], missing_values=[None])
             assert table.data == [[[1, 2], {'a': 1}]]
 
-        @pytest.mark.xfail(strict=True, reason='`if data:` on an array is ambiguous')
         def test_numpy_rows(self):
             np = pytest.importorskip('numpy')
             assert Table(data=np.array([[1, 2], [3, 4]])).data == [[1, 2], [3, 4]]
@@ -292,7 +296,6 @@ class TestTable:
         def test_get(self, small_table):
             assert small_table.headers == ['ID', 'Name']
 
-        @pytest.mark.xfail(strict=True, reason='The internal list is returned')
         def test_get_copy(self, small_table):
             small_table.headers.append('x')
             assert small_table.headers == ['ID', 'Name']
@@ -379,20 +382,17 @@ class TestTable:
             table.add_row([1, 2, 3])
             assert table.shape == (1, 3)
 
-        @pytest.mark.xfail(strict=True, reason='The length is only checked against existing rows')
         def test_wrong_length_without_rows(self):
             table = Table(headers=['a'])
             with pytest.raises(ValueError):
                 table.add_row([1, 2, 3])
             assert table.shape == (0, 1)
 
-        @pytest.mark.xfail(strict=True, reason='Empty cells are marked with a string')
         def test_dict_value_equal_to_marker(self):
             table = Table(headers=['a', 'b'], missing_value_repr='-')
             table.add_row({'a': 'XTLDummyMissingValue'})
             assert table.get_row(0) == ['XTLDummyMissingValue', '-']
 
-        @pytest.mark.xfail(strict=True, reason='Cells are compared with the marker string by `!=`')
         def test_dict_array_value(self):
             np = pytest.importorskip('numpy')
             table = Table(headers=['a', 'b'])
@@ -423,6 +423,18 @@ class TestTable:
             with pytest.raises(ValueError):
                 small_table.add_col([1, 2])
 
+        def test_name_without_headers(self):
+            table = Table(data=[[1], [2]])
+            with pytest.raises(ValueError):
+                table.add_col([3, 4], col_name='b')
+            assert table.shape == (2, 1)
+
+        def test_to_headers_without_rows(self):
+            # The other columns get missing values
+            table = Table(headers=['a'], missing_value_repr='-')
+            table.add_col([1, 2], col_name='b')
+            assert table.data == [['-', 1], ['-', 2]]
+
         def test_without_headers(self):
             table = Table(data=[[1], [2]])
             table.add_col([3, 4])
@@ -433,14 +445,12 @@ class TestTable:
             assert fmt_table.get_format('E') == '{:.1f} keV'
             assert fmt_table._format_cell(4, fmt_table._data[0][4]) == '1.0 keV'
 
-        @pytest.mark.xfail(strict=True, reason='The values are appended to rows that do not exist')
         def test_to_table_without_rows(self):
             table = Table()
             table.add_col([1, 2], col_name='a')
             assert table.headers == ['a']
             assert table.data == [[1], [2]]
 
-        @pytest.mark.xfail(strict=True, reason='The header is added before the length is checked')
         def test_wrong_length(self, small_table):
             with pytest.raises(ValueError):
                 small_table.add_col([1, 2, 3], col_name='x')
@@ -473,11 +483,9 @@ class TestTable:
             with pytest.raises(IndexError):
                 sample_table.get_col(idx)
 
-        @pytest.mark.xfail(strict=True, reason='Without rows, every index but 0 is out of range')
         def test_without_rows(self):
             assert Table(headers=['a', 'b']).get_col(1) == []
 
-        @pytest.mark.xfail(strict=True, reason='Without rows, index 0 is always in range')
         def test_without_columns(self):
             with pytest.raises(IndexError):
                 Table().get_col(0)
@@ -496,7 +504,6 @@ class TestTable:
             with pytest.raises(ValueError):
                 small_table.set_row(0, [1])
 
-        @pytest.mark.xfail(strict=True, reason='The length is compared with the headers')
         def test_without_headers(self):
             table = Table(data=[[1, 2]])
             table.set_row(0, [3, 4])
@@ -523,7 +530,6 @@ class TestTable:
             with pytest.raises(IndexError):
                 small_table.set_col(2, [1, 2])
 
-        @pytest.mark.xfail(strict=True, reason='Negative indices are rejected')
         def test_negative_index(self, small_table):
             small_table.set_col(-1, ['a', 'b'])
             assert small_table.get_col('Name') == ['a', 'b']
@@ -572,7 +578,6 @@ class TestTable:
             # The first column of a name is kept
             assert Table(data=[[1, 2]], headers=['a', 'a']).to_dict() == {'a': [1]}
 
-        @pytest.mark.xfail(strict=True, reason='The width is read from the first row')
         def test_empty(self):
             assert Table().to_dict() == {}
 
@@ -787,12 +792,10 @@ class TestTable:
             table = Table.from_numpy(np.array([[1.0, -1.0]]), missing_values=[-1.0], missing_value_repr='-')
             assert table.data == [[1.0, '-']]
 
-        @pytest.mark.xfail(strict=True, reason='NaN is checked by identity with np.nan, after tolist()')
         def test_nan(self):
             np = pytest.importorskip('numpy')
             assert Table.from_numpy(np.array([[1.0, np.nan]]), missing_value_repr='-').data == [[1.0, '-']]
 
-        @pytest.mark.xfail(strict=True, reason='A MissingValueConfig is taken as a missing value')
         def test_missing_value_config(self):
             np = pytest.importorskip('numpy')
             config = MissingValueConfig(values=[2.0], repr='-')
@@ -813,7 +816,11 @@ class TestTable:
             assert table.get_col('Quantity') == [10, 'MISSING', 12]
             assert table.get_col('Color') == ['Red', 'MISSING', 'MISSING']
 
-        @pytest.mark.xfail(strict=True, reason='A MissingValueConfig is taken as a missing value')
+        def test_list_cells(self):
+            # `pd.isna()` of a list is element-wise
+            pd = pytest.importorskip('pandas')
+            assert Table.from_pandas(pd.DataFrame({'A': [[1, None]]})).data == [[[1, None]]]
+
         def test_missing_value_config(self):
             pd = pytest.importorskip('pandas')
             config = MissingValueConfig(values=['N/A'], repr='-')
@@ -1005,6 +1012,19 @@ class TestTable:
             with pytest.raises(error):
                 sample_table[key]
 
+        def test_numpy_indices(self, sample_table):
+            np = pytest.importorskip('numpy')
+            assert sample_table[np.int64(1), np.int64(2)] == 'Gamma'
+
+        @pytest.mark.parametrize('key', [True, (0, False)], ids=['column', 'row'])
+        def test_bool_index(self, sample_table, key):
+            with pytest.raises(TypeError):
+                sample_table[key]
+
+        def test_slice_step_zero(self, sample_table):
+            with pytest.raises(ValueError):
+                sample_table[::0]
+
         def test_formats(self, fmt_table):
             assert fmt_table['Value':'Count'].formats == {'Value': '.2f', 'Count': '>8,d'}
             assert fmt_table['Value'].formats == {'Value': '.2f'}
@@ -1036,21 +1056,17 @@ class TestTable:
             sliced['ID', 0] = 99
             assert small_table.get_col('ID') == [1, 2]
 
-        @pytest.mark.xfail(strict=True, reason='The headers of the new table are looked up by index')
         def test_column_without_headers(self):
             result = Table(data=[[1, 2], [3, 4]])[1]
             assert result.headers == []
             assert result.data == [[2], [4]]
 
-        @pytest.mark.xfail(strict=True, reason='Column slices are bounded by the number of headers')
         def test_column_slice_without_headers(self):
             assert Table(data=[[1, 2, 3]])[0:2].data == [[1, 2]]
 
-        @pytest.mark.xfail(strict=True, reason='Column slices are bounded by the number of headers')
         def test_row_without_headers(self):
             assert Table(data=[[1, 2], [3, 4]])[:, 1].data == [[3, 4]]
 
-        @pytest.mark.xfail(strict=True, reason='The headers of the new table are looked up by index')
         def test_cell_without_headers(self):
             assert Table(data=[[1, 2], [3, 4]])[1, 0] == 2
 
@@ -1106,12 +1122,10 @@ class TestTable:
             with pytest.raises(error):
                 sample_table[key] = 1
 
-        @pytest.mark.xfail(strict=True, reason='Negative column indices are rejected')
         def test_negative_column(self, sample_table):
             sample_table[-1, 0] = 'Green'
             assert sample_table.get_col('Color')[0] == 'Green'
 
-        @pytest.mark.xfail(strict=True, reason='A string counts as a sequence of values')
         def test_column_rows_string(self, sample_table):
             sample_table['Name', 0:3] = 'xyz'
             assert sample_table.get_col('Name')[:3] == ['xyz', 'xyz', 'xyz']
@@ -1169,7 +1183,6 @@ class TestTable:
             with pytest.raises(ValueError):
                 small_table += Table(data=[[True, 10]], headers=['Active', 'Value'])
 
-        @pytest.mark.xfail(strict=True, reason="The other table's rows are appended, not copied")
         def test_copies_rows(self, small_table):
             other = Table(data=[[3, 'Gamma']], headers=['ID', 'Name'])
             small_table += other
@@ -1334,7 +1347,6 @@ class TestTable:
             with pytest.raises(TypeError):
                 sample_table -= 1
 
-        @pytest.mark.xfail(strict=True, reason='An unknown name raises ValueError from list.index()')
         def test_unknown_name(self, sample_table):
             with pytest.raises(KeyError):
                 sample_table -= 'Other'

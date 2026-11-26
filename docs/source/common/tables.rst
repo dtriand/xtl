@@ -117,6 +117,9 @@ A |Table| can be initialized in several ways:
       df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
       table = Table.from_pandas(df)
 
+   NaN values of an array, and the values pandas considers missing (``None``, NaN, ``NaT``, ...), become missing
+   values, unless a |MissingValueConfig| is given as ``missing_values``.
+
 
 Appending data
 ^^^^^^^^^^^^^^
@@ -244,6 +247,10 @@ You can also set values using similar syntax:
 .. note::
 
    |Table| does not provide any type of data validation or type checking. It only serves as a structured data container.
+
+Slices and the results of ``+``, ``|`` and ``-`` are new tables with copies of the rows, so changing them leaves the
+original as it is. :attr:`headers <xtl_core.containers.tables.Table.headers>` returns a copy too: rename the columns
+with ``table.headers = [...]``. Columns with the same name are looked up as the first of them.
 
 Alternatively, |Table| also support methods for accessing and modifying data:
 
