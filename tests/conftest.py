@@ -45,21 +45,28 @@ def pytest_unconfigure(config):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def _temp_dirs(tmp_path_factory):
+def _temp_dirs():
     """
     Temporary directories that the code under test creates and leaves behind (e.g. the
     default job directory of a batch job config, or the CLIs' job directories) go under
-    pytest's base directory, which pytest prunes, instead of the system's. The
-    environment variables are for subprocesses, e.g. the workers of a pool.
+    one directory for the session, removed at its end. The environment variables are for
+    subprocesses, e.g. the workers of a pool.
+
+    The directory is short and directly in the system's temporary directory, not under
+    pytest's: `multiprocessing` makes its sockets in it, and macOS limits their paths to
+    104 bytes (`/var/folders/<..>/T/` is 49, `xtl-tests-<8>/pymp-<8>/listener-<8>` 44).
     """
-    directory = str(tmp_path_factory.mktemp('tempfile'))  # pytest's own base directory is set by now
     original = tempfile.tempdir
+    directory = tempfile.mkdtemp(prefix='xtl-tests-')
     tempfile.tempdir = directory
-    with pytest.MonkeyPatch.context() as mp:
-        for name in ('TMPDIR', 'TEMP', 'TMP'):
-            mp.setenv(name, directory)
-        yield
-    tempfile.tempdir = original
+    try:
+        with pytest.MonkeyPatch.context() as mp:
+            for name in ('TMPDIR', 'TEMP', 'TMP'):
+                mp.setenv(name, directory)
+            yield
+    finally:
+        tempfile.tempdir = original
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 @pytest.fixture(scope='session', params=[f'{random.randint(0, 9999):04d}' for _ in range(0, 3)])
