@@ -481,9 +481,12 @@ Import from CSV:
    # With custom parameters
    table = Table.from_csv('data.csv',
                          delimiter=';',         # Use semicolon as delimiter
-                         header_line=None,      # No header line
+                         header_line=1,         # Headers on the second line, the first is skipped
                          header_char='#',       # Headers prefixed with # character
-                         new_line='\r\n')       # Custom newline character
+                         encoding='latin-1')    # Not UTF-8
+
+Quoted values are read as in Python's :mod:`csv` module, so they may contain the delimiter, quotes and line breaks. All
+values are read as strings.
 
 Data export
 ^^^^^^^^^^^
@@ -579,10 +582,10 @@ padding). Use ``formatted=False`` to write the raw values instead:
    table.to_csv()                 # 1,Alpha,10.50 ...
    table.to_csv(formatted=False)  # 1,Alpha,10.5 ...
 
-.. note::
-
-   Formats that include a thousands separator (*e.g.* ``',d'``) will produce values that contain commas. Make sure to
-   use a different ``delimiter`` in such cases.
+Values that contain the delimiter, quotes or line breaks are quoted, as in Python's :mod:`csv` module (*e.g.* formats
+with a thousands separator, ``',d'``, give ``"1,234"``), so that :func:`from_csv()
+<xtl_core.containers.tables.Table.from_csv>` reads them back. Files are written in UTF-8 unless ``encoding`` says
+otherwise, and with the line breaks of ``new_line`` on every system.
 
 Console
 ^^^^^^^

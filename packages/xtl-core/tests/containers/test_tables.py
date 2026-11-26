@@ -1,4 +1,3 @@
-import locale
 import math
 import sys
 
@@ -6,9 +5,6 @@ from hypothesis import given, strategies as st
 import pytest
 
 from xtl_core.containers.tables import MissingValue, MissingValueConfig, Table
-
-# Files are read and written in the locale's encoding, so the default encoding only shows where it isn't UTF-8
-_LOCALE_IS_UTF8 = locale.getpreferredencoding(False).lower().replace('-', '') == 'utf8'
 
 
 @pytest.fixture
@@ -655,6 +651,16 @@ class TestTable:
         def test_without_headers(self):
             assert Table(data=[[1, 2], [3, 4]]).to_csv() == '1,2\n3,4\n'
 
+        def test_delimiter_one_character(self, small_table):
+            with pytest.raises(TypeError):
+                small_table.to_csv(delimiter='::')
+
+        @pytest.mark.parametrize('new_line', ['\n', '\r\n'], ids=['lf', 'crlf'])
+        def test_file_line_breaks(self, small_table, tmp_path, new_line):
+            # As given, not the system's
+            path = small_table.to_csv(filename=tmp_path / 'table.csv', new_line=new_line)
+            assert path.read_bytes() == f'ID,Name{new_line}1,Alpha{new_line}2,Beta{new_line}'.encode()
+
         def test_formatted(self, fmt_table):
             assert fmt_table.to_csv(delimiter=';') == (
                 'ID;Name;Value;Count\n1;Alpha;10.50;1,234,567\n22;B;-;3\n3;Gamma;3.14;x\n'
@@ -694,33 +700,27 @@ class TestTable:
         def test_file_keep_suffix(self, sample_table, tmp_path):
             assert sample_table.to_csv(filename=tmp_path / 'table.txt', keep_file_ext=True) == tmp_path / 'table.txt'
 
-        @pytest.mark.xfail(strict=True, reason='Only the given name is checked, then the .csv file is written')
         def test_file_suffix_exists(self, sample_table, tmp_path):
             (tmp_path / 'table.csv').write_text('precious')
             with pytest.raises(FileExistsError):
                 sample_table.to_csv(filename=tmp_path / 'table.txt')
             assert (tmp_path / 'table.csv').read_text() == 'precious'
 
-        @pytest.mark.xfail(strict=True, reason='Values are not quoted')
         def test_quoting(self):
             table = Table(data=[['a,b', 'say "hi"', 'x\ny']], headers=['h,1', 'h2', 'h3'])
             assert table.to_csv() == '"h,1",h2,h3\n"a,b","say ""hi""","x\ny"\n'
 
-        @pytest.mark.xfail(strict=True, reason='The trailing delimiter is cut from rows without cells too')
         def test_rows_without_cells(self):
             assert Table(data=[[], []]).to_csv() == '\n\n'
 
-        @pytest.mark.xfail(strict=True, reason='Values are stripped in unformatted columns too')
         def test_formatted_keeps_whitespace(self):
             table = Table(data=[[' a ', 1.0]], headers=['A', 'B'], formats={'B': '>6.1f'})
             assert table.to_csv() == 'A,B\n a ,1.0\n'
 
-        @pytest.mark.xfail(strict=True, reason='No encoding parameter')
         def test_file_encoding(self, tmp_path):
             path = Table(data=[['é']]).to_csv(filename=tmp_path / 'table.csv', encoding='utf-16')
             assert path.read_text(encoding='utf-16') == 'é\n'
 
-        @pytest.mark.xfail(not _LOCALE_IS_UTF8, strict=True, reason="Files are written in the locale's encoding")
         def test_file_utf8(self, tmp_path):
             path = Table(data=[['é', 'λ']]).to_csv(filename=tmp_path / 'table.csv')
             assert path.read_bytes().decode('utf-8') == 'é,λ\n'
@@ -732,7 +732,6 @@ class TestTable:
             header_char=st.sampled_from(['', '#', '# ']),
             new_line=st.sampled_from(['\n', '\r\n']),
         )
-        @pytest.mark.xfail(strict=True, reason='Values are not quoted and quotes are not parsed')
         def test_round_trip(self, headers, data, delimiter, header_char, new_line):
             # NUL is excluded: Python 3.10's csv reader rejects it
             cell = st.text(alphabet=st.characters(exclude_characters='\x00'))
@@ -874,27 +873,32 @@ class TestTable:
         def test_empty(self):
             assert Table.from_csv('').shape == (0, 0)
 
-        @pytest.mark.xfail(strict=True, reason='Quotes are not parsed')
         def test_quoted(self):
             table = Table.from_csv('"h,1",h2\n"a,b","say ""hi"""\n"x\ny",z\n', header_line=0)
             assert table.headers == ['h,1', 'h2']
             assert table.data == [['a,b', 'say "hi"'], ['x\ny', 'z']]
 
-        @pytest.mark.xfail(
-            sys.platform != 'win32' and sys.version_info < (3, 14),
-            strict=True,
-            reason='Path.exists() raises for names that are too long',
-        )
+        def test_one_line(self, tmp_path, monkeypatch):
+            # A file if one of that name exists, else the content
+            monkeypatch.chdir(tmp_path)
+            assert Table.from_csv('a,b').data == [['a', 'b']]
+            (tmp_path / 'a,b').write_text('1,2\n', encoding='utf-8')
+            assert Table.from_csv('a,b').data == [['1', '2']]
+            assert Table.from_csv('a,b\n').data == [['a', 'b']]
+
+        def test_delimiter_one_character(self):
+            with pytest.raises(TypeError):
+                Table.from_csv('a::b\n', delimiter='::')
+
         def test_long_line(self):
+            # Too long for a file name: on Linux and macOS before Python 3.14 `Path.exists()` raises
             assert Table.from_csv(','.join(['a'] * 300)).shape == (1, 300)
 
-        @pytest.mark.xfail(strict=True, reason='No encoding parameter')
         def test_file_encoding(self, tmp_path):
             path = tmp_path / 'test.csv'
             path.write_text('é\n', encoding='utf-16')
             assert Table.from_csv(path, encoding='utf-16').data == [['é']]
 
-        @pytest.mark.xfail(not _LOCALE_IS_UTF8, strict=True, reason="Files are read in the locale's encoding")
         def test_file_utf8(self, tmp_path):
             path = tmp_path / 'test.csv'
             path.write_bytes('é,λ\n'.encode('utf-8'))

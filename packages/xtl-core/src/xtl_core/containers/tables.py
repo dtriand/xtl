@@ -1,11 +1,15 @@
 from collections.abc import Mapping
+import csv
 from dataclasses import dataclass
+import io
 from numbers import Number
 import operator
+import os
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Optional, Union
 
+from xtl_core.system.compatibility.py313 import path_is_file
 from xtl_core.system.compatibility.py314 import sentinel
 
 if TYPE_CHECKING:
@@ -719,35 +723,41 @@ class Table:
         overwrite: bool = False,
         keep_file_ext: bool = False,
         formatted: bool = True,
+        encoding: str = 'utf-8',
     ) -> str | Path:
         """Write the table to a CSV file. If ``filename`` is not provided, then the
-        CSV will be returned as a string.
+        CSV will be returned as a string. Values with the delimiter, quotes or line breaks
+        are quoted, as in :mod:`csv`.
 
         :param filename: Optional output path for the CSV file.
-        :param delimiter: Delimiter to use in the CSV.
+        :param delimiter: Delimiter to use in the CSV, one character.
         :param new_line: Newline character to use in the CSV.
         :param header_char: Character to prepend to the header line (e.g., '#').
         :param overwrite: Overwrite the file if it already exists.
         :param keep_file_ext: Keep the file extension if ``filename`` is provided.
         :param formatted: Apply the column formats to the values (without padding).
+        :param encoding: Encoding of the file.
         :return: Either the CSV string or the output path.
         :raises FileExistsError: If the file already exists and ``overwrite`` is False
         """
-        result = ''
-        delimiter_len = len(delimiter)
 
-        if self._headers:
-            # Add headers to the CSV
-            result += header_char + delimiter.join(self._headers) + new_line
+        def cell(i: int, value: Any) -> str:
+            if not formatted:
+                return str(self._to_repr(value))
+            text = self._format_cell(i, value)
+            # Only the padding of a format goes, not the value's own spaces
+            if isinstance(value, MissingValue) or self._get_format(i) is None:
+                return text
+            return text.strip()
 
-        for row in self._data:
-            for i, val in enumerate(row):
-                if formatted:
-                    result += self._format_cell(i, val).strip() + delimiter
-                else:
-                    result += str(self._to_repr(val)) + delimiter
-            result = result[:-delimiter_len]  # Remove trailing delimiter
-            result += new_line
+        def line(values: list[str]) -> str:
+            buffer = io.StringIO()
+            csv.writer(buffer, delimiter=delimiter, lineterminator=new_line).writerow(values)
+            return buffer.getvalue()
+
+        lines = [header_char + line(self._headers)] if self._headers else []
+        lines += [line([cell(i, v) for i, v in enumerate(row)]) for row in self._data]
+        result = ''.join(lines)
 
         # If no filename is provided, then return a CSV string
         if filename is None:
@@ -755,14 +765,14 @@ class Table:
 
         # If a filename is provided, then write to a file
         filename = Path(filename)
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True)
-        if filename.exists() and not overwrite:
-            raise FileExistsError(f'File already exists: {filename}')
         if filename.suffix != '.csv' and not keep_file_ext:
             filename = filename.with_suffix('.csv')
+        if filename.exists() and not overwrite:
+            raise FileExistsError(f'File already exists: {filename}')
+        filename.parent.mkdir(parents=True, exist_ok=True)
 
-        filename.write_text(result)
+        # The line breaks as given, not the system's
+        filename.write_text(result, encoding=encoding, newline='')
         return filename
 
     ################
@@ -876,63 +886,54 @@ class Table:
         s: str | Path,
         *,
         delimiter: str = ',',
-        new_line: str = '\n',
         header_line: int = None,
         header_char: str = '',
         formats: Optional[dict[Union[str, int], str]] = None,
+        encoding: str = 'utf-8',
     ) -> 'Table':
-        """Create a Table from a CSV file or string.
+        """Create a Table from a CSV file or string. Quoted values are read as in
+        :mod:`csv`; all values are strings.
+
+        A :class:`~pathlib.Path` is a file. A string is the CSV content if it has a line
+        break, otherwise a file if one of that name exists, else the CSV content.
 
         :param s: Path to CSV file or CSV string content
-        :param delimiter: Delimiter used in the CSV (default: ',')
-        :param header_line: Line that contains headers (default: None)
+        :param delimiter: Delimiter used in the CSV, one character (default: ',')
+        :param header_line: Line that contains headers (default: None); the lines before
+            it are skipped
         :param header_char: Character that might prefix the header line (e.g., '#')
         :param formats: Column formats used when rendering the table
+        :param encoding: Encoding of the file.
         :return: A new Table instance
         """
         # Check if the input is empty
         if not s:
             return cls(headers=[], formats=formats)
 
-        # Check if s is a file path or string content
-        is_file = isinstance(s, (str, Path)) and Path(s).exists()
-
-        if is_file:
-            # Read from file
-            content = Path(s).read_text()
+        if isinstance(s, os.PathLike) or ('\n' not in s and '\r' not in s and path_is_file(s)):
+            # Line breaks as they are, for quoted values that span lines
+            with open(s, encoding=encoding, newline='') as f:
+                content = f.read()
         else:
-            # Use source as raw CSV content
             content = s
 
-        # Split into lines and process
-        lines = content.split(new_line)
-        if not lines:
-            return cls(headers=[], formats=formats)
+        # Split at line breaks only, keeping them for the reader
+        lines = list(io.StringIO(content, newline=''))
 
-        # Process headers
         headers = None
-        data_idx = 0
-
         if header_line is not None:
-            data_idx = header_line + 1
-            header_line = lines[header_line]
-            # Remove header character if present
-            if header_char and header_line.startswith(header_char):
-                header_line = header_line[len(header_char) :]
-            headers = [h for h in header_line.split(delimiter)]
+            lines = lines[header_line:]
+            # Remove header character if present, before the quotes are parsed
+            if header_char and lines and lines[0].startswith(header_char):
+                lines[0] = lines[0][len(header_char) :]
 
-        # Process data rows
-        data = []
-        for i in range(data_idx, len(lines)):
-            line = lines[i]
-            # Skip empty lines
-            if not line:
-                continue
+        reader = csv.reader(lines, delimiter=delimiter)
+        if header_line is not None:
+            headers = next(reader, [])
+        # Skip empty lines
+        records = [record for record in reader if record]
 
-            # Split by delimiter
-            data.append(line.split(delimiter))
-
-        return cls(data=data, headers=headers, formats=formats)
+        return cls(data=records, headers=headers, formats=formats)
 
     #############
     # Operators #
