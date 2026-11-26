@@ -8,7 +8,7 @@ from xtl_core.system.compatibility.py310 import StrEnum
 
 
 # Test data setup
-class TestFileType(StrEnum):
+class TextFileType(StrEnum):
     TXT = 'txt'
     CSV = 'csv'
     JSON = 'json'
@@ -21,20 +21,20 @@ class TextData:
         self.content = content
 
 
-class TextFileReader(FileContainer[TestFileType, TextData], abc.ABC):
+class TextFileReader(FileContainer[TextFileType, TextData], abc.ABC):
     """Abstract base class for text file readers"""
 
 
 # Define metaclass for text file readers
-class TextReaderMeta(FileReaderMeta[TextFileReader, TestFileType, TextData]):
-    registry: Dict[TestFileType, List[Type[TextFileReader]]] = {}
-    extensions = {TestFileType.TXT: ['.txt'], TestFileType.CSV: ['.csv'], TestFileType.JSON: ['.json']}
+class TextReaderMeta(FileReaderMeta[TextFileReader, TextFileType, TextData]):
+    registry: Dict[TextFileType, List[Type[TextFileReader]]] = {}
+    extensions = {TextFileType.TXT: ['.txt'], TextFileType.CSV: ['.csv'], TextFileType.JSON: ['.json']}
     base_class = TextFileReader
 
 
 # Concrete implementations of text file readers
 class TxtFileReader(TextFileReader, metaclass=TextReaderMeta):
-    file_type = TestFileType.TXT
+    file_type = TextFileType.TXT
 
     @staticmethod
     def sniff(file: str | Path) -> bool:
@@ -48,7 +48,7 @@ class TxtFileReader(TextFileReader, metaclass=TextReaderMeta):
 
 
 class CsvFileReader(TextFileReader, metaclass=TextReaderMeta):
-    file_type = TestFileType.CSV
+    file_type = TextFileType.CSV
 
     @staticmethod
     def sniff(file: str | Path) -> bool:
@@ -68,7 +68,7 @@ class CsvFileReader(TextFileReader, metaclass=TextReaderMeta):
 
 
 class JsonFileReader(TextFileReader, metaclass=TextReaderMeta):
-    file_type = TestFileType.JSON
+    file_type = TextFileType.JSON
 
     @staticmethod
     def sniff(file: str | Path) -> bool:
@@ -135,14 +135,14 @@ class TestFileContainer:
 class TestFileReaderMeta:
     def test_registry_populated(self):
         """Test that the registry is populated with the correct readers"""
-        assert TestFileType.TXT in TextReaderMeta.registry
-        assert TestFileType.CSV in TextReaderMeta.registry
-        assert TestFileType.JSON in TextReaderMeta.registry
+        assert TextFileType.TXT in TextReaderMeta.registry
+        assert TextFileType.CSV in TextReaderMeta.registry
+        assert TextFileType.JSON in TextReaderMeta.registry
 
         # Check that the correct classes are registered
-        assert TxtFileReader in TextReaderMeta.registry[TestFileType.TXT]
-        assert CsvFileReader in TextReaderMeta.registry[TestFileType.CSV]
-        assert JsonFileReader in TextReaderMeta.registry[TestFileType.JSON]
+        assert TxtFileReader in TextReaderMeta.registry[TextFileType.TXT]
+        assert CsvFileReader in TextReaderMeta.registry[TextFileType.CSV]
+        assert JsonFileReader in TextReaderMeta.registry[TextFileType.JSON]
 
     def test_get_file_types(self, test_dir):
         """Test that _get_file_types returns the correct file types"""
@@ -150,9 +150,9 @@ class TestFileReaderMeta:
         csv_file = test_dir / 'test.csv'
         json_file = test_dir / 'test.json'
 
-        assert TextReaderMeta._get_file_types(txt_file) == [TestFileType.TXT]
-        assert TextReaderMeta._get_file_types(csv_file) == [TestFileType.CSV]
-        assert TextReaderMeta._get_file_types(json_file) == [TestFileType.JSON]
+        assert TextReaderMeta._get_file_types(txt_file) == [TextFileType.TXT]
+        assert TextReaderMeta._get_file_types(csv_file) == [TextFileType.CSV]
+        assert TextReaderMeta._get_file_types(json_file) == [TextFileType.JSON]
 
         # Test with unsupported extension
         unsupported_file = test_dir / 'test.unsupported'
@@ -201,7 +201,7 @@ class TestFileReaderMeta:
 
         # Create a new reader for TXT files
         class AlternativeTxtReader(TextFileReader, metaclass=TextReaderMeta):
-            file_type = TestFileType.TXT
+            file_type = TextFileType.TXT
 
             @staticmethod
             def sniff(file: str | Path) -> bool:
@@ -221,9 +221,9 @@ class TestFileReaderMeta:
         regular_txt_file = test_dir / 'test.txt'
 
         # Verify both readers are registered
-        assert len(TextReaderMeta.registry[TestFileType.TXT]) == 2
-        assert TxtFileReader in TextReaderMeta.registry[TestFileType.TXT]
-        assert AlternativeTxtReader in TextReaderMeta.registry[TestFileType.TXT]
+        assert len(TextReaderMeta.registry[TextFileType.TXT]) == 2
+        assert TxtFileReader in TextReaderMeta.registry[TextFileType.TXT]
+        assert AlternativeTxtReader in TextReaderMeta.registry[TextFileType.TXT]
 
         # Test sniff function
         assert TxtFileReader.sniff(regular_txt_file) is True
@@ -249,13 +249,13 @@ class TestFileReaderMeta:
         # Test with empty extensions
         with pytest.raises(TypeError):
 
-            class EmptyExtensionsMeta(FileReaderMeta[TextFileReader, TestFileType, TextData]):
-                registry: Dict[TestFileType, List[Type[TextFileReader]]] = {}
+            class EmptyExtensionsMeta(FileReaderMeta[TextFileReader, TextFileType, TextData]):
+                registry: Dict[TextFileType, List[Type[TextFileReader]]] = {}
                 extensions = {}  # Empty extensions
                 base_class = TextFileReader
 
             class EmptyExtensionsReader(TextFileReader, metaclass=EmptyExtensionsMeta):
-                file_type = TestFileType.TXT
+                file_type = TextFileType.TXT
 
                 def read(self) -> TextData: ...
 
@@ -264,13 +264,13 @@ class TestFileReaderMeta:
         # Test missing base_class
         with pytest.raises(TypeError):
 
-            class NoBaseClassMeta(FileReaderMeta[TextFileReader, TestFileType, TextData]):
-                registry: Dict[TestFileType, List[Type[TextFileReader]]] = {}
-                extensions = {TestFileType.TXT: ['.txt']}
+            class NoBaseClassMeta(FileReaderMeta[TextFileReader, TextFileType, TextData]):
+                registry: Dict[TextFileType, List[Type[TextFileReader]]] = {}
+                extensions = {TextFileType.TXT: ['.txt']}
                 # Missing base_class
 
             class NoBaseClassReader(TextFileReader, metaclass=NoBaseClassMeta):
-                file_type = TestFileType.TXT
+                file_type = TextFileType.TXT
 
                 def read(self) -> TextData: ...
 
@@ -280,15 +280,15 @@ class TestFileReaderMeta:
         class DifferentBase:
             pass
 
-        class ValidMeta(FileReaderMeta[TextFileReader, TestFileType, TextData]):
-            registry: Dict[TestFileType, List[Type[TextFileReader]]] = {}
-            extensions = {TestFileType.TXT: ['.txt']}
+        class ValidMeta(FileReaderMeta[TextFileReader, TextFileType, TextData]):
+            registry: Dict[TextFileType, List[Type[TextFileReader]]] = {}
+            extensions = {TextFileType.TXT: ['.txt']}
             base_class = TextFileReader
 
         with pytest.raises(TypeError):
 
             class InvalidReader(DifferentBase, metaclass=ValidMeta):
-                file_type = TestFileType.TXT
+                file_type = TextFileType.TXT
 
 
 # Tests for concrete readers
