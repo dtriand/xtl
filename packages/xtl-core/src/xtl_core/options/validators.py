@@ -21,6 +21,7 @@ from typing import Any, Callable, Iterable, Optional
 
 from pydantic import AfterValidator, BeforeValidator
 
+from xtl_core.system.compatibility.py313 import path_exists, path_is_dir, path_is_file
 from xtl_core.utils.strings import shorten
 
 
@@ -52,10 +53,10 @@ def validate_path_exists(value: None | Path | Iterable[Path]) -> None | Path | I
         return value
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
-            if not v.exists():
+            if not path_exists(v):
                 raise ValueError(f'Path[{i}] does not exist: {shorten(repr(v))}') from None
     else:
-        if not value.exists():
+        if not path_exists(value):
             raise ValueError(f'Path does not exist: {shorten(repr(value))}') from None
     return value
 
@@ -68,10 +69,10 @@ def validate_path_is_file(value: None | Path | Iterable[Path]) -> None | Path | 
         return value
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
-            if not v.is_file():
+            if not path_is_file(v):
                 raise ValueError(f'Path[{i}] is not a file: {shorten(repr(v))}') from None
     else:
-        if not value.is_file():
+        if not path_is_file(value):
             raise ValueError(f'Path is not a file: {shorten(repr(value))}') from None
     return value
 
@@ -84,10 +85,10 @@ def validate_path_is_dir(value: None | Path | Iterable[Path]) -> None | Path | I
         return value
     elif isinstance(value, Iterable):
         for i, v in enumerate(value):
-            if not v.is_dir():
+            if not path_is_dir(v):
                 raise ValueError(f'Path[{i}] is not a directory: {shorten(repr(v))}') from None
     else:
-        if not value.is_dir():
+        if not path_is_dir(value):
             raise ValueError(f'Path is not a directory: {shorten(repr(value))}') from None
     return value
 

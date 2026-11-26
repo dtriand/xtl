@@ -90,6 +90,10 @@ class TestValidatePathIsFile:
         with pytest.raises(ValueError, match=r'Path\[1\] is not a file'):
             validate_path_is_file([tree[0], tree[which]])
 
+    def test_huge_path(self):
+        with pytest.raises(ValueError, match='Path is not a file'):
+            validate_path_is_file(Path('x' * 10**5))
+
 
 class TestValidatePathIsDir:
     def test_none(self):
@@ -106,6 +110,10 @@ class TestValidatePathIsDir:
             validate_path_is_dir(tree[which])
         with pytest.raises(ValueError, match=r'Path\[1\] is not a directory'):
             validate_path_is_dir([tree[1], tree[which]])
+
+    def test_huge_path(self):
+        with pytest.raises(ValueError, match='Path is not a directory'):
+            validate_path_is_dir(Path('x' * 10**5))
 
 
 class TestValidatePathIsAbsolute:

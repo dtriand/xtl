@@ -31,8 +31,9 @@ PY312_OR_LESS: bool = PY_VERS < (3, 13)
 # TODO: Remove when dropping support for Python 3.13 (EOL: 10/2029)
 PY313_OR_LESS: bool = PY_VERS < (3, 14)
 """Python version is 3.13 or less"""
-# Features missing in Python 3.13:
-# - Deferred evaluation of annotations (`from __future__ import annotations`)
+# Features missing in Python 3.13 (stand-ins in `py313`):
+# - Deferred evaluation of annotations (`from __future__ import annotations`, no stand-in)
+# - ``Path.exists()``, ``is_file()``, ``is_dir()`` that return False for any ``OSError``
 
 # TODO: Remove when dropping support for Python 3.14 (EOL: 10/2030)
 PY314_OR_LESS: bool = PY_VERS < (3, 15)

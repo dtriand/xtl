@@ -874,7 +874,7 @@ class TestTable:
             assert table.data == [['a,b', 'say "hi"'], ['x\ny', 'z']]
 
         @pytest.mark.xfail(
-            sys.platform != 'win32' and sys.version_info < (3, 13),
+            sys.platform != 'win32' and sys.version_info < (3, 14),
             strict=True,
             reason='Path.exists() raises for names that are too long',
         )

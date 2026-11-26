@@ -450,7 +450,8 @@ class TestFilePermissions:
         assert FilePermissions(FilePermissions(0o750), file_type='d').file_type is FileType.DIRECTORY
         assert FilePermissions(FilePermissions('drwxr-x---')).file_type is FileType.DIRECTORY
 
-    @pytest.mark.parametrize('value', ['z', 'D', 'dd', '', 'd' * 10**6])
+    # Short ids: pytest puts the id in an environment variable, which Windows limits to 32767 characters
+    @pytest.mark.parametrize('value', ['z', 'D', 'dd', '', 'd' * 10**6], ids=['z', 'D', 'dd', 'empty', 'huge'])
     def test_file_type_invalid(self, value):
         with pytest.raises(ValueError, match="'file_type' must be one of '-', 'd'") as e:
             FilePermissions(0o750, file_type=value)

@@ -780,6 +780,16 @@ class TestReadContents:
         with pytest.raises(error):
             from_(text)
 
+    @pytest.mark.parametrize(
+        'fmt_name, text, error',
+        [('json', '{"values": ', json.JSONDecodeError), ('toml', 'values = ', ParseError)],
+    )
+    def test_invalid_huge_string(self, fmt_name, text, error):
+        # Too long for a file name: on Linux before Python 3.14 `Path.exists()` raises
+        from_ = Inner.from_json if fmt_name == 'json' else Inner.from_toml
+        with pytest.raises(error):
+            from_(text + 'x' * 10**5)
+
     @pytest.mark.parametrize('fmt_name, error', [('json', json.JSONDecodeError), ('toml', ParseError)])
     def test_invalid_file_contents(self, tmp_path, fmt_name, error):
         path = tmp_path / f'bad.{fmt_name}'
@@ -792,6 +802,11 @@ class TestReadContents:
     def test_missing_file(self, tmp_path, loader):
         with pytest.raises(FileNotFoundError, match='File not found'):
             getattr(Inner, loader)(tmp_path / 'missing')
+
+    @pytest.mark.parametrize('loader', ['from_json', 'from_toml'])
+    def test_missing_file_huge_name(self, loader):
+        with pytest.raises(FileNotFoundError, match='File not found'):
+            getattr(Inner, loader)(Path('x' * 10**5))
 
     def test_json_not_an_object(self):
         with pytest.raises(OptionsValidationError):

@@ -42,6 +42,7 @@ from xtl_core.options.validators import *
 from xtl_core.options.toml import toml_item, with_comment
 from xtl_core.options.typed_vars import TypedIterable
 from xtl_core.options.exceptions import OptionsValidationError
+from xtl_core.system.compatibility.py313 import path_exists
 from xtl_core.system.compatibility.py314 import sentinel
 
 
@@ -842,13 +843,13 @@ class Options(BaseModel):
                 return loads(s)
             except (json.JSONDecodeError, TomlParseError):
                 # Not a valid string — check if it is a file
-                if not Path(s).exists():
+                if not path_exists(s):
                     # It was probably an invalid string
                     raise
 
         # Try parsing as a file path
         path = Path(s)
-        if not path.exists():
+        if not path_exists(path):
             raise FileNotFoundError(f'File not found: {path}')
         return loads(path.read_text(encoding=encoding))
 
