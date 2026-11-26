@@ -68,9 +68,11 @@ def get_temp_location() -> Path:
 def is_temp(f: str | Path) -> bool:
     """
     Check if the given file path is located within the system's temporary directory.
+    Both are resolved first, so links and short names (*e.g.* macOS's ``/var`` for
+    ``/private/var``, or ``RUNNER~1`` on Windows) don't matter.
 
     :param f: The path to check.
     """
-    temp_location = get_temp_location()
+    temp_location = get_temp_location().resolve()
     f = Path(f).resolve()
     return temp_location in f.parents

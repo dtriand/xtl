@@ -739,7 +739,7 @@ class TestTable:
             text = Table(data=rows, headers=headers).to_csv(
                 delimiter=delimiter, header_char=header_char, new_line=new_line
             )
-            table = Table.from_csv(text, delimiter=delimiter, header_char=header_char, new_line=new_line, header_line=0)
+            table = Table.from_csv(text, delimiter=delimiter, header_char=header_char, header_line=0)
             assert table.headers == headers
             assert table.data == rows
 
@@ -860,8 +860,9 @@ class TestTable:
             table = Table.from_csv('# ' + self._CSV, header_char='# ', header_line=0)
             assert table.headers == ['ID', 'Name', 'Value']
 
-        def test_new_line(self):
-            table = Table.from_csv(self._CSV.replace('\n', '\r\n'), new_line='\r\n', header_line=0)
+        @pytest.mark.parametrize('line_break', ['\r\n', '\r'], ids=['crlf', 'cr'])
+        def test_line_breaks(self, line_break):
+            table = Table.from_csv(self._CSV.replace('\n', line_break), header_line=0)
             assert table.data == [['1', 'Alpha', '10.5'], ['2', 'Beta', '20.3']]
 
         def test_skips_empty_lines(self):
