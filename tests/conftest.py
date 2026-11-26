@@ -45,7 +45,7 @@ def pytest_unconfigure(config):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def _temp_dirs():
+def _temp_dirs(tmp_path_factory):
     """
     Temporary directories that the code under test creates and leaves behind (e.g. the
     default job directory of a batch job config, or the CLIs' job directories) go under
@@ -56,6 +56,9 @@ def _temp_dirs():
     pytest's: `multiprocessing` makes its sockets in it, and macOS limits their paths to
     104 bytes (`/var/folders/<..>/T/` is 49, `xtl-tests-<8>/pymp-<8>/listener-<8>` 44).
     """
+    # pytest makes its base directory on first use: before the switch, so it stays in the system's (and keeps the
+    # directories of failed tests)
+    tmp_path_factory.getbasetemp()
     original = tempfile.tempdir
     directory = tempfile.mkdtemp(prefix='xtl-tests-')
     tempfile.tempdir = directory
