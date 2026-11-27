@@ -136,12 +136,23 @@ class _ThreadCalls(_DirectCalls):
     def __init__(self):
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='xtl-manager', initializer=self._started)
         self._thread: int | None = None
+        # The thread starts now, with the pool, rather than on its first call: starting it waits as `Future.result()`
+        #  does (see `call()`)
+        self.call(lambda: None)
 
     def _started(self) -> None:
         self._thread = threading.get_ident()
 
     def call(self, fn: Callable[..., Any], *args: Any) -> Any:
-        return self._executor.submit(fn, *args).result()
+        # NB: Waits on a bare lock, not with `Future.result()`: Ctrl+C in a `Condition.wait()` can leave the
+        #  condition's lock released (seen with Python 3.10 on Windows), and its `with` block then raises
+        #  `RuntimeError: release unlocked lock` instead of `KeyboardInterrupt`
+        done = threading.Lock()
+        done.acquire()
+        future = self._executor.submit(fn, *args)
+        future.add_done_callback(lambda _: done.release())
+        done.acquire()
+        return future.result()
 
     async def attempt(self, fn: Callable[[], Any], undo: Callable[[Any], Any] | None = None) -> Any:
         future = self._executor.submit(fn)
@@ -282,7 +293,8 @@ class ProcessIPCBackend(IPCBackend):
 
     def __init__(self):
         self._manager: SyncManager | None = None
-        self._calls = _ThreadCalls()  # The pool's calls to the manager, which Ctrl+C mustn't interrupt
+        # The pool's calls to the manager, which Ctrl+C mustn't interrupt: from a thread of their own once started
+        self._calls: _DirectCalls = _DirectCalls()
         self._locks: dict[str, ProcessLock] = {}
         self._queues: dict[str, ProcessQueue] = {}
         self._states: dict[str, ProcessState] = {}
