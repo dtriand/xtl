@@ -1,0 +1,725 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>Under the hood &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/checklist.css?v=95d8aad2" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'dev/jobs/internals';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../../_static/js/checklist.js?v=1566aa6d"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Checklist for a new job" href="checklist.html" />
+    <link rel="prev" title="Logging" href="logging.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">Developer guide</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="index.html">Jobs and pools</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checklist.html">Checklist for a new job</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/xtl.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fdev/jobs/internals.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Under the hood</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-travels-to-a-worker">What travels to a worker</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-a-job-in-each-pool-type">Running a job in each pool type</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#logs-from-worker-processes">Logs from worker processes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cancellation">Cancellation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shared-state-across-processes">Shared state across processes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#when-a-pool-exits">When a pool exits</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#workers-started-by-fork">Workers started by fork</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extension-points">Extension points</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="under-the-hood">
+<h1>Under the hood<a class="headerlink" href="#under-the-hood" title="Link to this heading">#</a></h1>
+<p>This page follows a job from <code class="docutils literal notranslate"><span class="pre">submit()</span></code> to its result, in each pool type. It is for changing <a class="reference internal" href="../../api/xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a>
+itself, or for debugging a job that behaves differently in one pool type than in another.</p>
+<section id="what-travels-to-a-worker">
+<h2>What travels to a worker<a class="headerlink" href="#what-travels-to-a-worker" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.submit" title="xtl.jobs.pools.BasePool.submit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">submit()</span></code></a> creates, for each configuration, the job object (with its logger, a child of
+the pool’s) and a <a class="reference internal" href="../../api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission" title="xtl.jobs.submissions.JobSubmission"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobSubmission</span></code></a>: everything needed to run the job somewhere else.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code>: a <a class="reference internal" href="../../api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData" title="xtl.jobs.jobs.JobData"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobData</span></code></a> with the job class as an import path, the job id, the configuration as a dict, the pool’s
+job handler specs and the pool’s label</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ipc</span></code>: the locks, queues and states registered with the pool when the job starts</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resources</span></code>: what the job may use (its request, capped by the pool’s share)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">logger_name</span></code> and <code class="docutils literal notranslate"><span class="pre">log_level</span></code>: its logger’s full name and level</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">xtl_settings</span></code> (process pools only): a snapshot of <code class="docutils literal notranslate"><span class="pre">xtl.settings</span></code>, taken when the job starts</p></li>
+</ul>
+<p>Nothing else about the job object travels: no attributes set on it, no logger configuration. A worker rebuilds the
+job with <a class="reference internal" href="../../api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.deserialize" title="xtl.jobs.jobs.Job.deserialize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Job.deserialize()</span></code></a>, which imports the class and validates the
+configuration again.</p>
+</section>
+<section id="running-a-job-in-each-pool-type">
+<h2>Running a job in each pool type<a class="headerlink" href="#running-a-job-in-each-pool-type" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.launch" title="xtl.jobs.pools.BasePool.launch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">launch()</span></code></a> creates one <a class="reference external" href="https://docs.python.org/3/library/asyncio.html#module-asyncio" title="(in Python v3.15)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code></a> task per submission. Each task waits for a slot (a
+semaphore of <code class="docutils literal notranslate"><span class="pre">max_jobs</span></code>), runs the submission, and sets the job’s status as it goes. In thread and process pools,
+the task awaits the worker, so the status is always set in the main process.</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">SimplePool</span></code> and <code class="docutils literal notranslate"><span class="pre">AsyncPool</span></code></dt><dd><p>Run the submitted job object itself, in the pool’s event loop. <code class="docutils literal notranslate"><span class="pre">SimplePool</span></code> is an <code class="docutils literal notranslate"><span class="pre">AsyncPool</span></code> with one slot.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">ThreadedPool</span></code></dt><dd><p>In a worker thread: a new event loop (<code class="docutils literal notranslate"><span class="pre">asyncio.run()</span></code>), a resource manager with the submission’s resources, a
+new job built from the submission (using the same logger object, since threads share loggers), a <code class="docutils literal notranslate"><span class="pre">ProxyPool</span></code> over
+the pool’s own locks, queues and states, then <code class="docutils literal notranslate"><span class="pre">job.run()</span></code>. The result comes back as it is.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code></dt><dd><p>On entry, the pool starts a <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code> manager process for its shared state, a log queue with a listener,
+and the <code class="docutils literal notranslate"><span class="pre">ProcessPoolExecutor</span></code>. Each worker process resets the loggers it inherited and sends its records to the
+log queue (see <a class="reference internal" href="#logs-from-worker-processes">Logs from worker processes</a>). For each job, the submission is pickled to a worker, which:</p>
+<ol class="arabic simple">
+<li><p>applies the settings snapshot to its <code class="docutils literal notranslate"><span class="pre">xtl.settings</span></code></p></li>
+<li><p>creates a resource manager with the submission’s resources</p></li>
+<li><p>builds the job (importing its class), with a <code class="docutils literal notranslate"><span class="pre">ProxyPool</span></code> over the manager’s proxies</p></li>
+<li><p>runs <code class="docutils literal notranslate"><span class="pre">job.run()</span></code> in a new event loop</p></li>
+</ol>
+<p>The result is pickled back; one that can’t be pickled is replaced by a
+<a class="reference internal" href="../../api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.WorkerError" title="xtl.jobs.exceptions.WorkerError"><code class="xref py py-class docutils literal notranslate"><span class="pre">WorkerError</span></code></a>.</p>
+</dd>
+</dl>
+</section>
+<section id="logs-from-worker-processes">
+<h2>Logs from worker processes<a class="headerlink" href="#logs-from-worker-processes" title="Link to this heading">#</a></h2>
+<p>Threads share the main process’s loggers, so nothing is needed for them. A worker process sends its records back:</p>
+<ol class="arabic simple">
+<li><p>When the worker starts, it resets every logger it inherited, and puts one <a class="reference internal" href="../../api/xtl.jobs.logging.html#xtl.jobs.logging.RelayHandler" title="xtl.jobs.logging.RelayHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">RelayHandler</span></code></a>
+on its root logger.</p></li>
+<li><p>A job’s logger in the worker has the same full name as in the main process, and the pool’s level, so records the
+pool wouldn’t show stay in the worker. The job’s own handlers (e.g. its <code class="docutils literal notranslate"><span class="pre">xtl.log</span></code>) are built in the worker and
+write there directly.</p></li>
+<li><p>The relay handler puts each record on the log queue as a JSON-safe dict, with the message already formatted and
+the traceback as text.</p></li>
+<li><p>In the main process, the listener re-emits each record through the logger of the same name, and the tree takes it
+to the pool’s handlers.</p></li>
+<li><p>A job’s result is returned only once all its records have been re-emitted, so its last lines come before its
+result.</p></li>
+</ol>
+<p>So a handler in the main process sees a worker’s exceptions as text (<code class="docutils literal notranslate"><span class="pre">record.exc_text</span></code>), not as exception objects.</p>
+</section>
+<section id="cancellation">
+<h2>Cancellation<a class="headerlink" href="#cancellation" title="Link to this heading">#</a></h2>
+<p>In the event loop, cancelling a job’s task cancels the job. A job in a worker thread or process can’t be reached that
+way, so:</p>
+<ul class="simple">
+<li><p>the pool marks the job as cancelled, with the reason, in a shared state of its own (<code class="docutils literal notranslate"><span class="pre">_xtl_cancel</span></code>);</p></li>
+<li><p>in the worker, <code class="docutils literal notranslate"><span class="pre">_run_watched()</span></code> runs the job next to a watcher, which looks for the mark every 0.25 s and cancels
+the job there;</p></li>
+<li><p>if workers are still busy after <code class="docutils literal notranslate"><span class="pre">_CANCEL_GRACE</span></code> seconds (15), a process pool ends them (<code class="docutils literal notranslate"><span class="pre">_end_workers()</span></code>:
+<code class="docutils literal notranslate"><span class="pre">terminate()</span></code>, then <code class="docutils literal notranslate"><span class="pre">kill()</span></code>); a thread pool warns and waits.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> reaches every process of the console or terminal. A process pool’s workers and its manager ignore it from
+the moment they start (<code class="docutils literal notranslate"><span class="pre">shielded_context()</span></code>), so only the main process acts on it, by cancelling the jobs as above.
+Batch files run in a session (POSIX) or process group (Windows) of their own, which <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> doesn’t reach either
+(<a class="reference internal" href="batch-jobs.html"><span class="doc">Batch jobs</span></a>).</p>
+</section>
+<section id="shared-state-across-processes">
+<h2>Shared state across processes<a class="headerlink" href="#shared-state-across-processes" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code>’s locks, queues and states live in the manager process; jobs hold proxies to them, and every
+operation is a call to the manager. Workers can’t create new ones (nor can a thread pool’s), hence the rule to create
+them before launching.</p>
+<p>In the pool’s own process, these calls (the log listener’s, cancellations, and yours on <code class="docutils literal notranslate"><span class="pre">pool.get_state()</span></code> and the
+like) are made one at a time from a thread of their own, while the caller waits. Ctrl+C interrupts only the main
+thread; a call interrupted halfway would leave its reply on the connection to the manager, for the next call to read.
+A wait that is cancelled while its try is under way gives back what the try got: a lock is released, and a queue item
+goes back at the end of the queue. Workers ignore Ctrl+C and call the manager directly.</p>
+<p>Waiting for a lock or a queue item in a thread or process pool doesn’t block the event loop: the job tries, then
+sleeps and tries again, from 1 ms up to 50 ms between tries (<a class="reference internal" href="../../api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.poll" title="xtl.jobs.ipc.base.poll"><code class="xref py py-func docutils literal notranslate"><span class="pre">poll()</span></code></a>), so a cancelled wait
+stops cleanly. The cost is up to 50 ms of delay for a job that has waited long. The locks are not reentrant: a job
+that takes a lock it already holds waits forever.</p>
+</section>
+<section id="when-a-pool-exits">
+<h2>When a pool exits<a class="headerlink" href="#when-a-pool-exits" title="Link to this heading">#</a></h2>
+<p>On exit, a pool cancels its jobs if the block raised, shuts down its executor, stops its log listener and shared
+state, gives back its resources, and removes its logger and every logger under it from <a class="reference external" href="https://docs.python.org/3/library/logging.html#module-logging" title="(in Python v3.15)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">logging</span></code></a>. Without that
+last step, a long session would keep thousands of loggers, and every <a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger.setLevel" title="(in Python v3.15)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">logging.Logger.setLevel()</span></code></a> call gets slower
+with each one. Handlers that the pool built from its configuration are closed; those added with <code class="docutils literal notranslate"><span class="pre">add_handler()</span></code> are
+only detached.</p>
+</section>
+<section id="workers-started-by-fork">
+<h2>Workers started by fork<a class="headerlink" href="#workers-started-by-fork" title="Link to this heading">#</a></h2>
+<p>On Linux with Python before 3.14, a process pool’s workers start as copies of the main process (<em>fork</em>), with its
+loggers, context variables and anything patched at run time. Windows and macOS always start a fresh interpreter, and
+Linux with Python 3.14 a fresh one from a server process. The worker setup undoes what matters for jobs (loggers, the
+resource lease in scope). A bug that only shows on Linux with an older Python is probably state inherited through
+fork; <code class="docutils literal notranslate"><span class="pre">TestForkedWorker</span></code> in <code class="docutils literal notranslate"><span class="pre">tests/jobs/test_logging.py</span></code> recreates that state on every system.</p>
+</section>
+<section id="extension-points">
+<h2>Extension points<a class="headerlink" href="#extension-points" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>A log handler for each job</strong>: any importable <a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Handler" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">logging.Handler</span></code></a> subclass, in a
+<a class="reference internal" href="../../api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig" title="xtl.jobs.logging.HandlerConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlerConfig</span></code></a> (<a class="reference internal" href="logging.html"><span class="doc">Logging</span></a>).</p></li>
+<li><p><strong>A pool type</strong>: subclass <a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool" title="xtl.jobs.pools.BasePool"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></a> and define <code class="docutils literal notranslate"><span class="pre">_ipc_cls</span></code> (an
+<a class="reference internal" href="../../api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend" title="xtl.jobs.ipc.base.IPCBackend"><code class="xref py py-class docutils literal notranslate"><span class="pre">IPCBackend</span></code></a>), <code class="docutils literal notranslate"><span class="pre">_resolve_resources()</span></code> (what to request for a given <code class="docutils literal notranslate"><span class="pre">max_jobs</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">_execute_submission()</span></code> (run one submission, return its <a class="reference internal" href="../../api/xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobResults</span></code></a>).</p></li>
+<li><p><strong>A shell, compute site or command policy</strong>: subclass <a class="reference internal" href="../../api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseShell</span></code></a>,
+<a class="reference internal" href="../../api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite" title="xtl.jobs.sites.LocalSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocalSite</span></code></a> or <a class="reference internal" href="../../api/xtl.jobs.policies.html#xtl.jobs.policies.BaseCommandPolicy" title="xtl.jobs.policies.BaseCommandPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCommandPolicy</span></code></a>. A configuration only accepts
+the built-in shells and sites for now, so these work with a <a class="reference internal" href="../../api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchFile</span></code></a> built by hand,
+not yet in a batch job.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="logging.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Logging</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="checklist.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Checklist for a new job</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-travels-to-a-worker">What travels to a worker</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-a-job-in-each-pool-type">Running a job in each pool type</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#logs-from-worker-processes">Logs from worker processes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cancellation">Cancellation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#shared-state-across-processes">Shared state across processes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#when-a-pool-exits">When a pool exits</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#workers-started-by-fork">Workers started by fork</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extension-points">Extension points</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

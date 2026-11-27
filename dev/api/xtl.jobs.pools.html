@@ -1,0 +1,1187 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>xtl.jobs.pools module &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/checklist.css?v=95d8aad2" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.jobs.pools';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../_static/js/checklist.js?v=1566aa6d"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xtl.jobs.resources module" href="xtl.jobs.resources.html" />
+    <link rel="prev" title="xtl.jobs.steps module" href="xtl.jobs.steps.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dev/index.html">Developer guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../dev/jobs/index.html">Jobs and pools</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/checklist.html">Checklist for a new job</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="xtl.html">API reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.jobs.pools.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>xtl.jobs.pools module</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.AsyncPool"><code class="docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool"><code class="docutils literal notranslate"><span class="pre">BasePool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.__init__"><code class="docutils literal notranslate"><span class="pre">BasePool.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.add_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.add_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.add_job_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.add_job_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.counts"><code class="docutils literal notranslate"><span class="pre">BasePool.counts()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_lock"><code class="docutils literal notranslate"><span class="pre">BasePool.get_lock()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_logger"><code class="docutils literal notranslate"><span class="pre">BasePool.get_logger()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_queue"><code class="docutils literal notranslate"><span class="pre">BasePool.get_queue()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_state"><code class="docutils literal notranslate"><span class="pre">BasePool.get_state()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.label"><code class="docutils literal notranslate"><span class="pre">BasePool.label</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.launch"><code class="docutils literal notranslate"><span class="pre">BasePool.launch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.logger"><code class="docutils literal notranslate"><span class="pre">BasePool.logger</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.max_jobs"><code class="docutils literal notranslate"><span class="pre">BasePool.max_jobs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.name"><code class="docutils literal notranslate"><span class="pre">BasePool.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.pool_id"><code class="docutils literal notranslate"><span class="pre">BasePool.pool_id</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.remove_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.remove_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.remove_job_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.remove_job_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.resources"><code class="docutils literal notranslate"><span class="pre">BasePool.resources</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.status"><code class="docutils literal notranslate"><span class="pre">BasePool.status</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.submit"><code class="docutils literal notranslate"><span class="pre">BasePool.submit()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool"><code class="docutils literal notranslate"><span class="pre">JobPool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.ASYNC"><code class="docutils literal notranslate"><span class="pre">JobPool.ASYNC</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.PROCESSES"><code class="docutils literal notranslate"><span class="pre">JobPool.PROCESSES</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.SIMPLE"><code class="docutils literal notranslate"><span class="pre">JobPool.SIMPLE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.THREADS"><code class="docutils literal notranslate"><span class="pre">JobPool.THREADS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.__new__"><code class="docutils literal notranslate"><span class="pre">JobPool.__new__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.get"><code class="docutils literal notranslate"><span class="pre">JobPool.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.MultiprocessPool"><code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.MultiprocessPool.__init__"><code class="docutils literal notranslate"><span class="pre">MultiprocessPool.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol"><code class="docutils literal notranslate"><span class="pre">PoolProtocol</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_lock"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_lock()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_queue"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_queue()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_state"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_state()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.pool_id"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.pool_id</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolType"><code class="docutils literal notranslate"><span class="pre">PoolType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.SimplePool"><code class="docutils literal notranslate"><span class="pre">SimplePool</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.ThreadedPool"><code class="docutils literal notranslate"><span class="pre">ThreadedPool</span></code></a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-xtl.jobs.pools">
+<span id="xtl-jobs-pools-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module<a class="headerlink" href="#module-xtl.jobs.pools" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.AsyncPool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">AsyncPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1131-L1147"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.AsyncPool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.pools.BasePool" title="xtl.jobs.pools.BasePool"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></a></p>
+<p>A pool for running jobs asynchronously. The jobs are executed within the same process and same thread (and event
+loop). This is well suited for running I/O-bound task, e.g. fetching data over network, executing batch jobs. It is
+the most responsive pool type, since it does not add any IPC overhead.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">BasePool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L239-L1098"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.pools.PoolProtocol" title="xtl.jobs.pools.PoolProtocol"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoolProtocol</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resources</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resources_manager</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L254-L346"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Abstract base class for job pools.</p>
+<p>The pool’s logger is the root of a tree: the jobs’ loggers are its children (<code class="docutils literal notranslate"><span class="pre">&lt;pool</span> <span class="pre">logger&gt;.&lt;job_id&gt;</span></code>), and
+steps hang under their job. Jobs’ loggers have no handlers and propagate, so that the pool’s handlers get every
+record. The pool’s logger doesn’t propagate further.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – Optional name for pool; it can’t contain dots or #</p></li>
+<li><p><strong>max_jobs</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The maximum number of concurrent jobs to run. This is capped by the available quota
+(default: 1).</p></li>
+<li><p><strong>logger_config</strong> (<a class="reference internal" href="xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig" title="xtl.jobs.logging.LoggerConfig"><em>LoggerConfig</em></a>) – Optional configuration for the pool’s logger.</p></li>
+<li><p><strong>resources</strong> (<a class="reference internal" href="xtl.jobs.resources.html#xtl.jobs.resources.Resources" title="xtl.jobs.resources.Resources"><em>Resources</em></a><em> | </em><em>None</em>) – Optional resources to request for this pool. This is capped by the available quota
+(default: None, get all available)</p></li>
+<li><p><strong>resources_manager</strong> (<a class="reference internal" href="xtl.jobs.resources.html#xtl.jobs.resources.ResourceManager" title="xtl.jobs.resources.ResourceManager"><em>ResourceManager</em></a><em> | </em><em>None</em>) – Optional ResourceManager to use for resource allocation. If not provided, the default
+global ResourceManager will be used.</p></li>
+<li><p><strong>parent_logger</strong> (<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.15)"><em>Logger</em></a><em> | </em><em>None</em>) – Optional, the logger of the job that creates this pool. The pool’s logger then hangs
+under it and passes its records up, with no handlers of its own, unless a <cite>logger_config</cite> is passed.</p></li>
+<li><p><strong>kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If an invalid <cite>max_jobs</cite> is provided, or if <cite>name</cite> contains dots or #</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If <cite>logger_config</cite> is not of the correct type</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.add_handler">
+<span class="sig-name descname"><span class="pre">add_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L435-L452"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.add_handler" title="Link to this definition">#</a></dt>
+<dd><p>Add a handler to the pool’s logger. It gets the records of the pool, of every job and of every step, also from
+worker processes. The handler gets a filter that sets <code class="docutils literal notranslate"><span class="pre">record.job</span></code>, the logger’s name relative to this pool,
+for formats to use as <code class="docutils literal notranslate"><span class="pre">%(job)s</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>handler</strong> (<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Handler" title="(in Python v3.15)"><em>Handler</em></a>) – The handler to add.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.add_job_handler">
+<span class="sig-name descname"><span class="pre">add_job_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L454-L473"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.add_job_handler" title="Link to this definition">#</a></dt>
+<dd><p>Give every job submitted from now on its own handler, built from <cite>spec</cite> where the job runs, attached to the
+job’s logger while it runs, and closed before its directory is cleaned up. String fields of the spec (except
+its format) and string values of its options may hold placeholders that each job fills in:
+<code class="docutils literal notranslate"><span class="pre">{job_directory}</span></code>, <code class="docutils literal notranslate"><span class="pre">{job_id}</span></code>, <code class="docutils literal notranslate"><span class="pre">{job_class}</span></code> and <code class="docutils literal notranslate"><span class="pre">{pool}</span></code> (this pool’s label). A job’s config can
+replace the spec, or switch it off, by its name (<code class="docutils literal notranslate"><span class="pre">JobConfig.log_handlers</span></code>).</p>
+<p>Example:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pool</span><span class="o">.</span><span class="n">add_job_handler</span><span class="p">(</span><span class="n">JobFileHandlerConfig</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">'file'</span><span class="p">)</span>  <span class="c1"># `&lt;job_directory&gt;/xtl.log`</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> (<a class="reference internal" href="xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig" title="xtl.jobs.logging.HandlerConfig"><em>HandlerConfig</em></a>) – The handler’s config. It travels with each job, so it must survive JSON.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – The spec’s name; a second spec with the same name replaces the first.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.counts">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L419-L423"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.counts" title="Link to this definition">#</a></dt>
+<dd><p>How many of this pool’s jobs are in each status, with every status present (0 if none).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)">dict</a>[<a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobStatus" title="xtl.jobs.results.JobStatus"><em>JobStatus</em></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.get_lock">
+<span class="sig-name descname"><span class="pre">get_lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1033-L1046"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.get_lock" title="Link to this definition">#</a></dt>
+<dd><p>Get a lock from the pool. If the requested lock does not exist, it will be created.
+If a name is not specified, the default lock will be returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – The name of the lock to retrieve, or None for the default lock.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – If the pool is not currently active (i.e., not within the context manager).</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An IPCLock instance corresponding to the requested lock.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock" title="xtl.jobs.ipc.base.IPCLock"><em>IPCLock</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.get_logger">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L503-L521"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.get_logger" title="Link to this definition">#</a></dt>
+<dd><p>Get or create a logger for the pool with the specified ID. If a <cite>config</cite> is not specified, the default
+configuration of this pool type is chosen.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logger_id</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – The ID for the logger (e.g., pool name)</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig" title="xtl.jobs.logging.LoggerConfig"><em>LoggerConfig</em></a><em> | </em><em>None</em>) – Optional logging configuration.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – Optional, how the pool’s own records are named on screen (default: <cite>logger_id</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.15)"><em>Logger</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.get_queue">
+<span class="sig-name descname"><span class="pre">get_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1048-L1061"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.get_queue" title="Link to this definition">#</a></dt>
+<dd><p>Get a queue from the pool. If the requested queue does not exist, it will be created.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – The name of the queue to retrieve.</p></li>
+<li><p><strong>maxsize</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The maximum size of the queue (default: 0 for unlimited).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – If the pool is not currently active (i.e., not within the context manager).</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An IPCQueue instance corresponding to the requested queue.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue" title="xtl.jobs.ipc.base.IPCQueue"><em>IPCQueue</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.get_state">
+<span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1063-L1090"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.get_state" title="Link to this definition">#</a></dt>
+<dd><p>Get a shared state dict from the pool. If the requested state does not exist, it will be created.
+Per-operation atomicity is guaranteed. Any compound read-modify-write (RMW) operations (e.g. in-place
+modification) are NOT atomic and must be protected with an explicit lock.</p>
+<p>Example usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="s1">'my_state'</span><span class="p">)</span>
+<span class="c1"># Atomic operation</span>
+<span class="n">state</span><span class="p">[</span><span class="s1">'counter'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="c1"># Compound RMW - unsafe</span>
+<span class="n">state</span><span class="p">[</span><span class="s1">'counter'</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># 3 separate operations: get, modify, set - not atomic!</span>
+<span class="c1"># Compound RMW - safe with lock</span>
+<span class="k">async</span> <span class="k">with</span> <span class="n">pool</span><span class="o">.</span><span class="n">get_lock</span><span class="p">():</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">'counter'</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># Protected by lock, safe to perform compound RMW</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – The name of the state to retrieve.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – If the pool is not currently active (i.e., not within the context manager).</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An IPCState instance corresponding to the requested state.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState" title="xtl.jobs.ipc.base.IPCState"><em>IPCState</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.label">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">label</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.label" title="Link to this definition">#</a></dt>
+<dd><p>How this pool’s own records are named on screen: its class, plus <code class="docutils literal notranslate"><span class="pre">|&lt;name&gt;</span></code> if it was named.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.launch">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">launch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stream'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.AsyncIterator" title="(in Python v3.15)"><span class="pre">AsyncIterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><span class="pre">JobResults</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L922-L940"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.launch" title="Link to this definition">#</a></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">launch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'all'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><span class="pre">JobResults</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">launch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><span class="pre">JobResults</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Launch all submitted jobs in the pool. By default, the results are returned only when all jobs have completed.
+If <cite>mode</cite> is set to <cite>‘stream’</cite>, then the results are yielded as soon as each job completes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><em>Literal</em></a><em>[</em><em>'stream'</em><em>, </em><em>'all'</em><em>]</em>) – How to return the results from the running jobs:
+- <cite>‘all’</cite>: Return all results after all jobs have completed (default)
+- <cite>‘stream’</cite>: Yield results as soon as they become available</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – If called outside the pool’s context manager.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If an invalid <cite>mode</cite> is passed.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The results of the job execution.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.AsyncIterator" title="(in Python v3.15)"><em>AsyncIterator</em></a>[<a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><em>JobResults</em></a>] | <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><em>JobResults</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.logger">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">logger</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.15)"><span class="pre">Logger</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.logger" title="Link to this definition">#</a></dt>
+<dd><p>Get the logger associated with this pool.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.max_jobs">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">max_jobs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.max_jobs" title="Link to this definition">#</a></dt>
+<dd><p>Get the maximum number of concurrent jobs allowed in this pool.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.name">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.name" title="Link to this definition">#</a></dt>
+<dd><p>Name of this pool.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.pool_id">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">pool_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.pool_id" title="Link to this definition">#</a></dt>
+<dd><p>Unique identifier for this pool.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.remove_handler">
+<span class="sig-name descname"><span class="pre">remove_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handler</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L481-L494"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.remove_handler" title="Link to this definition">#</a></dt>
+<dd><p>Remove a handler added with <a class="reference internal" href="#xtl.jobs.pools.BasePool.add_handler" title="xtl.jobs.pools.BasePool.add_handler"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_handler()</span></code></a>, the name filter it got from this pool, and the level, if it
+got the pool’s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>handler</strong> (<a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Handler" title="(in Python v3.15)"><em>Handler</em></a>) – The handler to remove.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.remove_job_handler">
+<span class="sig-name descname"><span class="pre">remove_job_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L475-L479"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.remove_job_handler" title="Link to this definition">#</a></dt>
+<dd><p>Stop giving jobs submitted from now on the handler added with <a class="reference internal" href="#xtl.jobs.pools.BasePool.add_job_handler" title="xtl.jobs.pools.BasePool.add_job_handler"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_job_handler()</span></code></a> under <cite>name</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.resources">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">resources</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.resources.html#xtl.jobs.resources.Resources" title="xtl.jobs.resources.Resources"><span class="pre">Resources</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.resources" title="Link to this definition">#</a></dt>
+<dd><p>The resources granted to this pool. Allocation happens within the context manager.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.status">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.results.html#xtl.jobs.results.JobStatus" title="xtl.jobs.results.JobStatus"><span class="pre">JobStatus</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.jobs.pools.BasePool.status" title="Link to this definition">#</a></dt>
+<dd><p>The status of each job submitted to this pool, by job id, in submission order. It is a copy, so it can be read
+from another thread (e.g. a display’s), and it stays readable after the pool exits.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.BasePool.submit">
+<span class="sig-name descname"><span class="pre">submit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">configs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L743-L846"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.BasePool.submit" title="Link to this definition">#</a></dt>
+<dd><p>Submit a job to the pool for execution. This method must be called from within the pool’s context manager.</p>
+<p>Example:</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">MyJob</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="p">[</span><span class="n">config1</span><span class="p">,</span> <span class="n">config2</span><span class="p">])</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_cls</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.15)"><em>Type</em></a><em>[</em><a class="reference internal" href="xtl.jobs.jobs.html#xtl.jobs.jobs.Job" title="xtl.jobs.jobs.Job"><em>Job</em></a><em>]</em>) – The job type to submit. Must be a subclass of <cite>Job</cite>.</p></li>
+<li><p><strong>configs</strong> (<a class="reference internal" href="xtl.jobs.config.html#xtl.jobs.config.JobConfig" title="xtl.jobs.config.JobConfig"><em>JobConfig</em></a><em> | </em><em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><em>Iterable</em></a><em>[</em><a class="reference internal" href="xtl.jobs.config.html#xtl.jobs.config.JobConfig" title="xtl.jobs.config.JobConfig"><em>JobConfig</em></a><em> | </em><em>None</em><em>]</em>) – The configs to submit to the pool.</p></li>
+<li><p><strong>job_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><em>Iterable</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em><em>] </em><em>| </em><em>None</em>) – Optional, the IDs of the submitted jobs, one per config (None for a random one). If not
+provided, IDs are generated as <code class="docutils literal notranslate"><span class="pre">&lt;job_cls&gt;-&lt;i&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">i</span></code> is an incrementing index; such a job is
+shown as <code class="docutils literal notranslate"><span class="pre">&lt;job_cls&gt;|&lt;i&gt;</span></code> (its <a class="reference internal" href="xtl.jobs.jobs.html#xtl.jobs.jobs.Job.label" title="xtl.jobs.jobs.Job.label"><code class="xref py py-attr docutils literal notranslate"><span class="pre">label</span></code></a>). Given IDs must be usable in file names
+and commands (no <code class="docutils literal notranslate"><span class="pre">|</span> <span class="pre">/</span> <span class="pre">\</span> <span class="pre">:</span> <span class="pre">*</span> <span class="pre">?</span> <span class="pre">&quot;</span> <span class="pre">&lt;</span> <span class="pre">&gt;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><strong>RuntimeError</strong></a> – If the method is called outside the pool’s context manager</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If <cite>job_cls</cite> is not a subclass of <cite>Job</cite>.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If one of the <cite>configs</cite> is not a <cite>JobConfig</cite> instance or None.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <cite>job_ids</cite> is provided but does not have the same length as <cite>configs</cite></p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a job id is already in the pool, given twice, or not usable in file names and commands</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of the configured submitted jobs.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference internal" href="xtl.jobs.jobs.html#xtl.jobs.jobs.Job" title="xtl.jobs.jobs.Job"><em>Job</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">JobPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L87-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.JobPool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="xtl_core.system.compatibility.py310.html#xtl_core.system.compatibility.py310.StrEnum" title="enum.StrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></a></p>
+<p>Enum for available job pools.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.ASYNC">
+<span class="sig-name descname"><span class="pre">ASYNC</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'async'</span></span><a class="headerlink" href="#xtl.jobs.pools.JobPool.ASYNC" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.PROCESSES">
+<span class="sig-name descname"><span class="pre">PROCESSES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'processes'</span></span><a class="headerlink" href="#xtl.jobs.pools.JobPool.PROCESSES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.SIMPLE">
+<span class="sig-name descname"><span class="pre">SIMPLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'simple'</span></span><a class="headerlink" href="#xtl.jobs.pools.JobPool.SIMPLE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.THREADS">
+<span class="sig-name descname"><span class="pre">THREADS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'threads'</span></span><a class="headerlink" href="#xtl.jobs.pools.JobPool.THREADS" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl.jobs.pools.JobPool.__new__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.JobPool.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L97-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.JobPool.get" title="Link to this definition">#</a></dt>
+<dd><p>Get the class of the requested job pool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.15)"><em>Type</em></a>[<a class="reference internal" href="#xtl.jobs.pools.BasePool" title="xtl.jobs.pools.BasePool"><em>BasePool</em></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.MultiprocessPool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">MultiprocessPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1230-L1471"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.MultiprocessPool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.pools.BasePool" title="xtl.jobs.pools.BasePool"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></a></p>
+<p>A pool for running jobs in separate processes. This pool is well suited for running CPU-bound tasks, e.g. heavy
+numerical calculations. It can also be used to impose stronger isolation between worker processes. It has the
+highest overhead among the pool types upon initialization. Internally, the spawned subprocesses are managed by
+a ProcessPoolExecutor.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.MultiprocessPool.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1242-L1248"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.MultiprocessPool.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Abstract base class for job pools.</p>
+<p>The pool’s logger is the root of a tree: the jobs’ loggers are its children (<code class="docutils literal notranslate"><span class="pre">&lt;pool</span> <span class="pre">logger&gt;.&lt;job_id&gt;</span></code>), and
+steps hang under their job. Jobs’ loggers have no handlers and propagate, so that the pool’s handlers get every
+record. The pool’s logger doesn’t propagate further.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Optional name for pool; it can’t contain dots or #</p></li>
+<li><p><strong>max_jobs</strong> – The maximum number of concurrent jobs to run. This is capped by the available quota
+(default: 1).</p></li>
+<li><p><strong>logger_config</strong> – Optional configuration for the pool’s logger.</p></li>
+<li><p><strong>resources</strong> – Optional resources to request for this pool. This is capped by the available quota
+(default: None, get all available)</p></li>
+<li><p><strong>resources_manager</strong> – Optional ResourceManager to use for resource allocation. If not provided, the default
+global ResourceManager will be used.</p></li>
+<li><p><strong>parent_logger</strong> – Optional, the logger of the job that creates this pool. The pool’s logger then hangs
+under it and passes its records up, with no handlers of its own, unless a <cite>logger_config</cite> is passed.</p></li>
+<li><p><strong>kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If an invalid <cite>max_jobs</cite> is provided, or if <cite>name</cite> contains dots or #</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If <cite>logger_config</cite> is not of the correct type</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">PoolProtocol</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L116-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<p>Protocol for pools.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol.__init__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol.get_lock">
+<span class="sig-name descname"><span class="pre">get_lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L122-L122"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol.get_lock" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock" title="xtl.jobs.ipc.base.IPCLock"><em>IPCLock</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol.get_queue">
+<span class="sig-name descname"><span class="pre">get_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L123-L123"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol.get_queue" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue" title="xtl.jobs.ipc.base.IPCQueue"><em>IPCQueue</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol.get_state">
+<span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L124-L124"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol.get_state" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState" title="xtl.jobs.ipc.base.IPCState"><em>IPCState</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolProtocol.pool_id">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">pool_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl.jobs.pools.PoolProtocol.pool_id" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="xtl.jobs.pools.PoolType">
+<span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">PoolType</span></span><a class="headerlink" href="#xtl.jobs.pools.PoolType" title="Link to this definition">#</a></dt>
+<dd><p>A pool type, as a <a class="reference internal" href="#xtl.jobs.pools.JobPool" title="xtl.jobs.pools.JobPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobPool</span></code></a> or its value. The strings match the members of <a class="reference internal" href="#xtl.jobs.pools.JobPool" title="xtl.jobs.pools.JobPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobPool</span></code></a> (tested).</p>
+<p>alias of <a class="reference internal" href="#xtl.jobs.pools.JobPool" title="xtl.jobs.pools.JobPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobPool</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Literal</span></code></a>[‘simple’, ‘async’, ‘threads’, ‘processes’]</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.SimplePool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">SimplePool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1150-L1163"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.SimplePool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.pools.AsyncPool" title="xtl.jobs.pools.AsyncPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></p>
+<p>A pool for running jobs synchronously. This is a thin wrapper around AsyncPool, that enforces a sequential job
+execution (<cite>max_jobs=1</cite>). Suitable for running a single job, or when concurrency is risky. It can also be used for
+debugging, since it enforces a deterministic operations order.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.pools.ThreadedPool">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.pools.</span></span><span class="sig-name descname"><span class="pre">ThreadedPool</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/pools.py#L1166-L1227"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.pools.ThreadedPool" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.pools.BasePool" title="xtl.jobs.pools.BasePool"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasePool</span></code></a></p>
+<p>A pool for running jobs in separate threads. The jobs are executed within the same process but in separate threads.
+This pool is well suited for running I/O-blocking tasks, e.g. non-async APIs, filesystem I/O. Not ideal for
+CPU-bound tasks, since Python (at least &lt; 3.14) is not truly threaded. Internally, the spawned threads are managed
+by a ThreadPoolExecutor.</p>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="xtl.jobs.steps.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="xtl.jobs.resources.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.AsyncPool"><code class="docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool"><code class="docutils literal notranslate"><span class="pre">BasePool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.__init__"><code class="docutils literal notranslate"><span class="pre">BasePool.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.add_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.add_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.add_job_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.add_job_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.counts"><code class="docutils literal notranslate"><span class="pre">BasePool.counts()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_lock"><code class="docutils literal notranslate"><span class="pre">BasePool.get_lock()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_logger"><code class="docutils literal notranslate"><span class="pre">BasePool.get_logger()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_queue"><code class="docutils literal notranslate"><span class="pre">BasePool.get_queue()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.get_state"><code class="docutils literal notranslate"><span class="pre">BasePool.get_state()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.label"><code class="docutils literal notranslate"><span class="pre">BasePool.label</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.launch"><code class="docutils literal notranslate"><span class="pre">BasePool.launch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.logger"><code class="docutils literal notranslate"><span class="pre">BasePool.logger</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.max_jobs"><code class="docutils literal notranslate"><span class="pre">BasePool.max_jobs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.name"><code class="docutils literal notranslate"><span class="pre">BasePool.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.pool_id"><code class="docutils literal notranslate"><span class="pre">BasePool.pool_id</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.remove_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.remove_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.remove_job_handler"><code class="docutils literal notranslate"><span class="pre">BasePool.remove_job_handler()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.resources"><code class="docutils literal notranslate"><span class="pre">BasePool.resources</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.status"><code class="docutils literal notranslate"><span class="pre">BasePool.status</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.BasePool.submit"><code class="docutils literal notranslate"><span class="pre">BasePool.submit()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool"><code class="docutils literal notranslate"><span class="pre">JobPool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.ASYNC"><code class="docutils literal notranslate"><span class="pre">JobPool.ASYNC</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.PROCESSES"><code class="docutils literal notranslate"><span class="pre">JobPool.PROCESSES</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.SIMPLE"><code class="docutils literal notranslate"><span class="pre">JobPool.SIMPLE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.THREADS"><code class="docutils literal notranslate"><span class="pre">JobPool.THREADS</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.__new__"><code class="docutils literal notranslate"><span class="pre">JobPool.__new__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.JobPool.get"><code class="docutils literal notranslate"><span class="pre">JobPool.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.MultiprocessPool"><code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.MultiprocessPool.__init__"><code class="docutils literal notranslate"><span class="pre">MultiprocessPool.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol"><code class="docutils literal notranslate"><span class="pre">PoolProtocol</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.__init__"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_lock"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_lock()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_queue"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_queue()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.get_state"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.get_state()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolProtocol.pool_id"><code class="docutils literal notranslate"><span class="pre">PoolProtocol.pool_id</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.PoolType"><code class="docutils literal notranslate"><span class="pre">PoolType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.SimplePool"><code class="docutils literal notranslate"><span class="pre">SimplePool</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.pools.ThreadedPool"><code class="docutils literal notranslate"><span class="pre">ThreadedPool</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

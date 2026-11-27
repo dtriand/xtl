@@ -1,0 +1,803 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>Pools &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/checklist.css?v=95d8aad2" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'dev/jobs/pools';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../../_static/js/checklist.js?v=1566aa6d"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Logging" href="logging.html" />
+    <link rel="prev" title="Stepped jobs" href="stepped-jobs.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../index.html">Developer guide</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="index.html">Jobs and pools</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checklist.html">Checklist for a new job</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/xtl.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../api/xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../api/xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../api/xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fdev/jobs/pools.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Pools</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-pool-types">The pool types</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-jobs">Running jobs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#job-status">Job status</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cancellation">Cancellation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#resources">Resources</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sharing-state-between-jobs">Sharing state between jobs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pools-with-a-live-display-livepool">Pools with a live display: <code class="docutils literal notranslate"><span class="pre">LivePool</span></code></a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pools">
+<h1>Pools<a class="headerlink" href="#pools" title="Link to this heading">#</a></h1>
+<p>A pool runs many jobs, at most <code class="docutils literal notranslate"><span class="pre">max_jobs</span></code> at a time. All pools have the same interface, so any job runs in any of
+them; they differ in where the jobs run.</p>
+<section id="the-pool-types">
+<h2>The pool types<a class="headerlink" href="#the-pool-types" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Pool</p></th>
+<th class="head"><p>Runs the jobs</p></th>
+<th class="head"><p>Best for</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.SimplePool" title="xtl.jobs.pools.SimplePool"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplePool</span></code></a></p></td>
+<td><p>in the event loop, one after the other</p></td>
+<td><p>running jobs strictly in order, e.g. while debugging</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.AsyncPool" title="xtl.jobs.pools.AsyncPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncPool</span></code></a></p></td>
+<td><p>in the event loop, concurrently</p></td>
+<td><p>batch jobs, and anything that mostly waits (e.g. API calls)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.ThreadedPool" title="xtl.jobs.pools.ThreadedPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadedPool</span></code></a></p></td>
+<td><p>in worker threads</p></td>
+<td><p>Python code that blocks but releases the GIL (I/O, numpy, C extensions)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.MultiprocessPool" title="xtl.jobs.pools.MultiprocessPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiprocessPool</span></code></a></p></td>
+<td><p>in worker processes</p></td>
+<td><p>CPU-bound Python code; slower to start</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Thread and process pools build a copy of each job in the worker, which brings a few rules
+(<a class="reference internal" href="jobs.html#jobs-in-workers"><span class="std std-ref">Thread and process pools gotchas</span></a>).</p>
+<p>Where a pool type is configurable, it goes by name: <code class="docutils literal notranslate"><span class="pre">'simple'</span></code>, <code class="docutils literal notranslate"><span class="pre">'async'</span></code>, <code class="docutils literal notranslate"><span class="pre">'threads'</span></code> or <code class="docutils literal notranslate"><span class="pre">'processes'</span></code>
+(<code class="docutils literal notranslate"><span class="pre">JobPool('threads').get()</span></code> returns <a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.ThreadedPool" title="xtl.jobs.pools.ThreadedPool"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThreadedPool</span></code></a>).</p>
+</section>
+<section id="running-jobs">
+<h2>Running jobs<a class="headerlink" href="#running-jobs" title="Link to this heading">#</a></h2>
+<p>Running jobs in a pool takes three steps: open the pool, submit the jobs, and launch them.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">xtl.jobs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadedPool</span>
+
+<span class="n">configs</span> <span class="o">=</span> <span class="p">[</span><span class="n">StatsConfig</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">])]</span>
+
+<span class="k">async</span> <span class="k">with</span> <span class="n">ThreadedPool</span><span class="p">(</span><span class="n">max_jobs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'stats'</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>  <span class="c1"># 1. open</span>
+    <span class="n">jobs</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">StatsJob</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">)</span>           <span class="c1"># 2. submit</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">()</span>                           <span class="c1"># 3. launch</span>
+
+<span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span> <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">]</span>  <span class="c1"># ['StatsJob-1', 'StatsJob-2', 'StatsJob-3', 'StatsJob-4']</span>
+<span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">success</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>  <span class="c1"># [True, True, False, True]</span>
+</pre></div>
+</div>
+<ol class="arabic">
+<li><p><strong>Open</strong> the pool with <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code>. Its arguments are <code class="docutils literal notranslate"><span class="pre">max_jobs</span></code>, how many jobs run at once, and optionally a
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, shown in its logs, and a <code class="docutils literal notranslate"><span class="pre">logger_config</span></code> (<a class="reference internal" href="logging.html"><span class="doc">Logging</span></a>). A pool is single-use: once it has exited,
+entering it again raises <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a>, so create a new one for the next batch.</p></li>
+<li><p><strong>Submit</strong> jobs with <a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.submit" title="xtl.jobs.pools.BasePool.submit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">submit()</span></code></a>: a job class and a list of configurations, one per job.
+The pool numbers the jobs (<code class="docutils literal notranslate"><span class="pre">StatsJob-1</span></code>, <code class="docutils literal notranslate"><span class="pre">StatsJob-2</span></code>…) and returns them. Nothing runs yet.</p></li>
+<li><p><strong>Launch</strong> them with <a class="reference internal" href="../../api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.launch" title="xtl.jobs.pools.BasePool.launch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">launch()</span></code></a>, which runs the jobs submitted so far and returns
+their <a class="reference internal" href="../../api/xtl.jobs.results.html#xtl.jobs.results.JobResults" title="xtl.jobs.results.JobResults"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobResults</span></code></a> in the order they were submitted. To handle each result as soon as its job finishes instead,
+stream them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="s1">'stream'</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">job_id</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can submit and launch again within the same <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code>; each launch runs only the jobs submitted since the
+previous one.</p>
+</li>
+</ol>
+<p><strong>Dependencies:</strong> before a launch runs its jobs, the pool checks the external programs they need (<code class="docutils literal notranslate"><span class="pre">_dependencies</span></code>,
+see <a class="reference internal" href="batch-jobs.html"><span class="doc">Batch jobs</span></a>), once for all of them: each dependency is checked once per compute site and shell, and the
+outcome is remembered, so the jobs don’t check again when they start (in a process pool, the workers receive it with
+the settings). A job whose dependency is missing doesn’t run: its result has a
+<a class="reference internal" href="../../api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.DependencyError" title="xtl.jobs.exceptions.DependencyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencyError</span></code></a>, its status is <code class="docutils literal notranslate"><span class="pre">FAILED</span></code>, and the other jobs run as usual. Nothing is
+checked if <code class="docutils literal notranslate"><span class="pre">dependencies.check</span></code> is off in <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code>.</p>
+<p><strong>When something fails:</strong> a failing job doesn’t stop the others; its exception is in its result (above, the empty list
+in <code class="docutils literal notranslate"><span class="pre">StatsJob-3</span></code>). An exception in your own code inside the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code> block, <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> or a cancellation is
+different: the pool stops the running jobs (see <a class="reference internal" href="#cancellation">Cancellation</a>), and the exception propagates.</p>
+</section>
+<section id="job-status">
+<h2>Job status<a class="headerlink" href="#job-status" title="Link to this heading">#</a></h2>
+<p>While the jobs run, the pool knows where each one stands, as a <a class="reference internal" href="../../api/xtl.jobs.results.html#xtl.jobs.results.JobStatus" title="xtl.jobs.results.JobStatus"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobStatus</span></code></a>: <code class="docutils literal notranslate"><span class="pre">SUBMITTED</span></code>, <code class="docutils literal notranslate"><span class="pre">QUEUED</span></code> (launched,
+waiting for a slot), <code class="docutils literal notranslate"><span class="pre">RUNNING</span></code>, <code class="docutils literal notranslate"><span class="pre">DONE</span></code>, <code class="docutils literal notranslate"><span class="pre">FAILED</span></code> or <code class="docutils literal notranslate"><span class="pre">CANCELLED</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncPool</span><span class="p">(</span><span class="n">max_jobs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">StatsJob</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">)</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">())</span>
+    <span class="o">...</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">counts</span><span class="p">()</span>  <span class="c1"># {JobStatus.QUEUED: 2, JobStatus.RUNNING: 2, JobStatus.DONE: 0, ...}</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">status</span>    <span class="c1"># {'StatsJob-1': JobStatus.RUNNING, 'StatsJob-2': JobStatus.RUNNING, 'StatsJob-3': ...}</span>
+</pre></div>
+</div>
+<p>Both return copies, which stay readable after the pool exits, e.g. to draw a progress bar from another thread.</p>
+</section>
+<section id="cancellation">
+<h2>Cancellation<a class="headerlink" href="#cancellation" title="Link to this heading">#</a></h2>
+<p>A pool cancels its running and waiting jobs when:</p>
+<ul class="simple">
+<li><p>your code inside the <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">with</span></code> block raises an exception</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code> is pressed</p></li>
+<li><p>the task that awaits <code class="docutils literal notranslate"><span class="pre">launch()</span></code> is cancelled, e.g. by a timeout:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">ThreadedPool</span><span class="p">(</span><span class="n">max_jobs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">SlowJob</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">(),</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>  <span class="c1"># TimeoutError after 60 s</span>
+</pre></div>
+</div>
+<p>The exception (here <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TimeoutError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeoutError</span></code></a>) propagates once the jobs have stopped, and there are no results; the
+pool’s <code class="docutils literal notranslate"><span class="pre">status</span></code> shows each job as <code class="docutils literal notranslate"><span class="pre">CANCELLED</span></code>.</p>
+<p><strong>What a job sees:</strong> <a class="reference external" href="https://docs.python.org/3/library/asyncio-exceptions.html#asyncio.CancelledError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">asyncio.CancelledError</span></code></a>, raised at the <code class="docutils literal notranslate"><span class="pre">await</span></code> where it waits, in every pool type (in a
+thread or process pool, within a fraction of a second). Clean up in a <code class="docutils literal notranslate"><span class="pre">finally</span></code> block:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SlowJob</span><span class="p">(</span><span class="n">Job</span><span class="p">[</span><span class="n">JobConfig</span><span class="p">]):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">600</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">'cleaning up'</span><span class="p">)</span>  <span class="c1"># runs when the job is cancelled too</span>
+</pre></div>
+</div>
+<p>A batch job stops the programs it started (<a class="reference internal" href="batch-jobs.html"><span class="doc">Batch jobs</span></a>).</p>
+<p><strong>A job that doesn’t stop</strong>, because it catches the cancellation, or blocks without awaiting (e.g. <code class="docutils literal notranslate"><span class="pre">time.sleep()</span></code>, a
+long computation), gets a grace period of 15 seconds. Then a process pool ends its worker processes, while a thread
+pool, which can’t end a thread, waits for it.</p>
+<p>If a worker process dies (a crash, or the system killing it for memory), the process pool is broken: the jobs running
+at the time, and every job launched later in that pool, fail with
+<a class="reference external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.process.BrokenProcessPool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BrokenProcessPool</span></code></a>.</p>
+</section>
+<section id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Link to this heading">#</a></h2>
+<p>Pools share a machine’s resources: a count of <code class="docutils literal notranslate"><span class="pre">jobs</span></code>, <code class="docutils literal notranslate"><span class="pre">threads</span></code> and <code class="docutils literal notranslate"><span class="pre">processes</span></code> (a <a class="reference internal" href="../../api/xtl.jobs.resources.html#xtl.jobs.resources.Resources" title="xtl.jobs.resources.Resources"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resources</span></code></a>). The totals come
+from the <code class="docutils literal notranslate"><span class="pre">[jobs.resources]</span></code> section of <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code> (by default, the number of CPU cores each).</p>
+<ul class="simple">
+<li><p>A pool takes its share when it’s entered and gives it back on exit. If not enough is free, entering waits for
+another pool to give some back.</p></li>
+<li><p>A job can ask for less than its pool’s share: its configuration’s <code class="docutils literal notranslate"><span class="pre">resources</span></code>, or else its class’s
+<code class="docutils literal notranslate"><span class="pre">_resources</span></code>.</p></li>
+<li><p>A pool opened inside a job (<a class="reference internal" href="../../api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.get_pool" title="xtl.jobs.jobs.Job.get_pool"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_pool()</span></code></a>) gets its share from that job’s, so nested pools
+never use more than their parent. <code class="docutils literal notranslate"><span class="pre">get_pool()</span></code> lowers <code class="docutils literal notranslate"><span class="pre">max_jobs</span></code> to what’s available, with a warning.</p></li>
+</ul>
+</section>
+<section id="sharing-state-between-jobs">
+<h2>Sharing state between jobs<a class="headerlink" href="#sharing-state-between-jobs" title="Link to this heading">#</a></h2>
+<p>Locks, queues and states that the jobs use must be created with the pool before launching (see <a class="reference internal" href="jobs.html"><span class="doc">Writing jobs</span></a> for
+using them inside a job):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">ThreadedPool</span><span class="p">(</span><span class="n">max_jobs</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="s1">'counts'</span><span class="p">)</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">'n'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">Counter</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="mi">32</span><span class="p">)</span>  <span class="c1"># each job adds 1, under the pool's default lock</span>
+    <span class="k">await</span> <span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">()</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">'n'</span><span class="p">]</span>  <span class="c1"># 32</span>
+</pre></div>
+</div>
+<p>Values in a <code class="docutils literal notranslate"><span class="pre">MultiprocessPool</span></code>’s queues and states cross processes, so they must be picklable.</p>
+</section>
+<section id="pools-with-a-live-display-livepool">
+<h2>Pools with a live display: <code class="docutils literal notranslate"><span class="pre">LivePool</span></code><a class="headerlink" href="#pools-with-a-live-display-livepool" title="Link to this heading">#</a></h2>
+<p>The command line tools use <code class="docutils literal notranslate"><span class="pre">xtl.tui.live_pool.LivePool</span></code>, which wraps a pool and draws a progress bar and the jobs’
+latest log lines on the console:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">xtl.tui.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConsoleIO</span>
+
+<span class="n">console</span> <span class="o">=</span> <span class="n">ConsoleIO</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">with</span> <span class="n">console</span><span class="o">.</span><span class="n">get_pool</span><span class="p">(</span><span class="s1">'async'</span><span class="p">,</span> <span class="n">max_jobs</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">StatsJob</span><span class="p">,</span> <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">pool</span><span class="o">.</span><span class="n">launch</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>It has the same <code class="docutils literal notranslate"><span class="pre">submit()</span></code>, <code class="docutils literal notranslate"><span class="pre">launch()</span></code> and shared-state methods. In addition, every job writes <code class="docutils literal notranslate"><span class="pre">xtl.log</span></code> in its
+job directory (unless <code class="docutils literal notranslate"><span class="pre">cli.job_log_files</span> <span class="pre">=</span> <span class="pre">false</span></code> in <code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code>), and if a job fails, it offers to print all the
+jobs’ logs once the pool has exited.</p>
+<p>A command line tool declares the external programs its jobs need with <code class="docutils literal notranslate"><span class="pre">&#64;requires</span></code>, and checks them once, before it
+starts any jobs, with <code class="docutils literal notranslate"><span class="pre">console.check_dependencies()</span></code>; its pools and jobs then find the outcome and don’t check again.
+If one is missing, the tool prints what’s missing (and what the check printed, with <code class="docutils literal notranslate"><span class="pre">-v</span></code>) and exits with code 1:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">xtl.cli.utilities.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">attach_hook</span><span class="p">,</span> <span class="n">requires</span><span class="p">,</span> <span class="n">typer_async</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="s1">'compare'</span><span class="p">)</span>
+<span class="nd">@requires</span><span class="p">(</span><span class="s1">'atsas'</span><span class="p">)</span>
+<span class="nd">@attach_hook</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">get_console_options</span><span class="p">,</span> <span class="n">hook_output</span><span class="o">=</span><span class="s1">'console_options'</span><span class="p">)</span>
+<span class="nd">@attach_hook</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">get_job_options</span><span class="p">,</span> <span class="n">hook_output</span><span class="o">=</span><span class="s1">'job_options'</span><span class="p">)</span>
+<span class="nd">@typer_async</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cli_saxs_compare</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">job_options</span><span class="p">:</span> <span class="n">JobOptions</span> <span class="o">=</span> <span class="n">typer</span><span class="o">.</span><span class="n">Option</span><span class="p">(),</span> <span class="n">console_options</span><span class="p">:</span> <span class="o">...</span><span class="p">):</span>
+    <span class="n">console</span> <span class="o">=</span> <span class="n">ConsoleIO</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">console_options</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">console_options</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">apply_job_options</span><span class="p">(</span><span class="n">job_options</span><span class="p">)</span>  <span class="c1"># --compute-site and --modules, into the settings</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">check_dependencies</span><span class="p">()</span>            <span class="c1"># after the options, which may change where they're found</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">console</span><span class="o">.</span><span class="n">get_pool</span><span class="p">(</span><span class="s1">'async'</span><span class="p">,</span> <span class="n">max_jobs</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>Each problem gets a line of its own, which says what is missing and what needs it, <em>e.g.</em>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Missing dependencies:
+- module atsas/9.9 not found (required for atsas)
+- executables datcmp, datop not found (required for atsas)
+Run with -v to see what the checks printed.
+</pre></div>
+</div>
+<p>Other lines read <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">command</span> <span class="pre">`envmodule`</span> <span class="pre">not</span> <span class="pre">found</span> <span class="pre">(required</span> <span class="pre">for</span> <span class="pre">atsas,</span> <span class="pre">to</span> <span class="pre">load</span> <span class="pre">atsas/4.1.3)</span></code>, <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">gcc/12</span>
+<span class="pre">not</span> <span class="pre">found</span> <span class="pre">(loaded</span> <span class="pre">for</span> <span class="pre">every</span> <span class="pre">job)</span></code>, <code class="docutils literal notranslate"><span class="pre">atsas</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">checked:</span> <span class="pre">&lt;reason&gt;</span></code> (<em>e.g.</em> the check didn’t finish, or an
+unsafe module name) or <code class="docutils literal notranslate"><span class="pre">unknown</span> <span class="pre">dependency</span> <span class="pre">&lt;name&gt;</span></code>. A job’s <a class="reference internal" href="../../api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.DependencyError" title="xtl.jobs.exceptions.DependencyError"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencyError</span></code></a> uses the
+same lines.</p>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="stepped-jobs.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Stepped jobs</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="logging.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Logging</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-pool-types">The pool types</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-jobs">Running jobs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#job-status">Job status</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cancellation">Cancellation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#resources">Resources</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sharing-state-between-jobs">Sharing state between jobs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pools-with-a-live-display-livepool">Pools with a live display: <code class="docutils literal notranslate"><span class="pre">LivePool</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

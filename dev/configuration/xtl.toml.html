@@ -34,7 +34,8 @@
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/checklist.css?v=95d8aad2" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -46,13 +47,14 @@
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
-    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'configuration/xtl.toml';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../_static/js/checklist.js?v=1566aa6d"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Environment variables" href="environment.html" />
+    <link rel="next" title="Shells, compute sites and dependencies" href="dependencies.html" />
     <link rel="prev" title="Configuration" href="index.html" />
     
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -220,16 +222,12 @@
 </button></div>
         <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
-        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Configuration</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="dependencies.html">Shells, compute sites and dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="environment.html">Environment variables</a></li>
-</ul>
-</details></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2"><a class="reference internal" href="../common/options.html">Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../common/tables.html">Tables</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -237,30 +235,89 @@
 <li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
 </ul>
 </details></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../api/modules.html">API documentation</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl.html">xtl</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.common.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.tables</span></code> module</a></li>
-</ul>
-</details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
-</ul>
-</details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dev/index.html">Developer guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../dev/jobs/index.html">Jobs and pools</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/checklist.html">Checklist for a new job</a></li>
 </ul>
 </details></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/xtl.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../api/xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -401,6 +458,8 @@
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#config-file-locations">Config file locations</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-structure">File structure</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#invalid-files">Invalid files</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#versions">Versions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#starting-over">Starting over</a></li>
 </ul>
             </nav>
         </div>
@@ -460,22 +519,22 @@ created with the default settings in the first location that can be written to. 
 different configuration per project, job or test run:</p>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="shell" data-sync-id="bash" for="sd-tab-item-0">
-Bash</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-0-content" class="sd-tab-label" data-sync-group="shell" data-sync-id="bash" for="sd-tab-item-0">
+Bash</label><div class="sd-tab-content docutils" id="sd-tab-item-0-content">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">export</span><span class="w"> </span><span class="nv">XTL_CONFIG</span><span class="o">=</span>/path/to/my-config.toml
 </pre></div>
 </div>
 </div>
 <input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="shell" data-sync-id="pwsh" for="sd-tab-item-1">
-PowerShell</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-1-content" class="sd-tab-label" data-sync-group="shell" data-sync-id="pwsh" for="sd-tab-item-1">
+PowerShell</label><div class="sd-tab-content docutils" id="sd-tab-item-1-content">
 <div class="highlight-ps1con notranslate"><div class="highlight"><pre><span></span><span class="gp">PS&gt; </span><span class="nv">$env:XTL_CONFIG</span> <span class="p">=</span> <span class="s2">"C:\path\to\my-config.toml"</span>
 </pre></div>
 </div>
 </div>
 <input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="shell" data-sync-id="cmd" for="sd-tab-item-2">
-cmd</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-2-content" class="sd-tab-label" data-sync-group="shell" data-sync-id="cmd" for="sd-tab-item-2">
+cmd</label><div class="sd-tab-content docutils" id="sd-tab-item-2-content">
 <div class="highlight-doscon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;</span> <span class="k">set</span> <span class="nv">XTL_CONFIG</span><span class="p">=</span>C:\path\to\my-config.toml
 </pre></div>
 </div>
@@ -497,9 +556,15 @@ cmd</label><div class="sd-tab-content docutils">
 <span class="k">[jobs.resources]</span>
 <span class="n">max_jobs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span>
 
+<span class="k">[dependencies]</span>
+<span class="n">modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"gcc/12"</span><span class="p">]</span>
+
 <span class="k">[dependencies.atsas]</span>
-<span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/opt/atsas/bin"</span>
 <span class="n">modules</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">"atsas/4.1.3"</span><span class="p">]</span>
+<span class="n">compute_site</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"modules"</span>
+
+<span class="k">[dependencies.easybragg]</span>
+<span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"/opt/easybragg/bin"</span>
 </pre></div>
 </div>
 </div>
@@ -508,9 +573,14 @@ cmd</label><div class="sd-tab-content docutils">
 <li><p><code class="docutils literal notranslate"><span class="pre">[units]</span></code>: physical units</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">[jobs]</span></code>: jobs run by <a class="reference internal" href="../api/xtl.jobs.html#module-xtl.jobs" title="xtl.jobs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xtl.jobs</span></code></a>, <em>e.g.</em> compute site, permissions and
 resources</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">[dependencies]</span></code>: external programs used by XTL (<em>e.g.</em> ATSAS, autoPROC), with the
+<li><p><code class="docutils literal notranslate"><span class="pre">[dependencies]</span></code>: external programs used by XTL (<em>e.g.</em> ATSAS, autoPROC): the
 directory of their executables (<code class="docutils literal notranslate"><span class="pre">path</span></code>) or the modules that provide them
-(<code class="docutils literal notranslate"><span class="pre">modules</span></code>)</p></li>
+(<code class="docutils literal notranslate"><span class="pre">modules</span></code>, loaded in that order; not both), and optionally the <code class="docutils literal notranslate"><span class="pre">compute_site</span></code>, <code class="docutils literal notranslate"><span class="pre">shell</span></code>
+and <code class="docutils literal notranslate"><span class="pre">policy</span></code> they run with. In <code class="docutils literal notranslate"><span class="pre">[dependencies]</span></code> itself, <code class="docutils literal notranslate"><span class="pre">path</span></code> is a directory
+that every job finds executables in, <code class="docutils literal notranslate"><span class="pre">modules</span></code> lists the modules that every job
+loads first on a <code class="docutils literal notranslate"><span class="pre">modules</span></code> compute site (these two can be set together), and <code class="docutils literal notranslate"><span class="pre">check</span></code>
+whether jobs check that their dependencies can be found before they run (see
+<a class="reference internal" href="dependencies.html"><span class="doc">Shells, compute sites and dependencies</span></a>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">[cli]</span></code>: options for the command line utilities</p></li>
 </ul>
 <p>All settings, with their descriptions and default values, are listed in
@@ -525,6 +595,25 @@ directory of their executables (<code class="docutils literal notranslate"><span
 runs with the default settings instead; the file is left unchanged. Unknown keys and a
 version mismatch are only reported as warnings. <code class="docutils literal notranslate"><span class="pre">xtl.config</span> <span class="pre">validate</span></code> checks a file
 and lists all of its problems.</p>
+</section>
+<section id="versions">
+<h2>Versions<a class="headerlink" href="#versions" title="Link to this heading">#</a></h2>
+<p>A config file records the version of XTL that wrote it (<code class="docutils literal notranslate"><span class="pre">version</span></code>). A file from an older version still loads: its
+settings are upgraded to the current layout as they are read, and a warning suggests updating the file itself:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.config<span class="w"> </span>upgrade
+</pre></div>
+</div>
+<p>This edits only what changed (and the version), so your comments and formatting stay; <code class="docutils literal notranslate"><span class="pre">--diff</span></code> shows the changes
+first, and the old file is kept as <code class="docutils literal notranslate"><span class="pre">xtl.toml.bak</span></code>. <code class="docutils literal notranslate"><span class="pre">--clean</span></code> writes the file afresh instead. A file from a newer
+version of XTL loads as it is, with a warning, and can’t be upgraded.</p>
+<p>A file only needs the settings you change. To see all the others in your file, with their descriptions, add them
+(settings without a value become commented-out lines to fill in):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.config<span class="w"> </span>upgrade<span class="w"> </span>--add-missing
+</pre></div>
+</div>
+</section>
+<section id="starting-over">
+<h2>Starting over<a class="headerlink" href="#starting-over" title="Link to this heading">#</a></h2>
 <p>To start over from the default settings, overwrite the file with a clean one, <em>e.g.</em> for
 the <code class="docutils literal notranslate"><span class="pre">user</span></code> location (see <a class="reference internal" href="../cli/xtl.config.html"><span class="doc">xtl.config</span></a>):</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>xtl.config<span class="w"> </span>create<span class="w"> </span>--user<span class="w"> </span>--clean<span class="w"> </span>--force
@@ -554,11 +643,11 @@ the <code class="docutils literal notranslate"><span class="pre">user</span></co
       </div>
     </a>
     <a class="right-next"
-       href="environment.html"
+       href="dependencies.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Environment variables</p>
+        <p class="prev-next-title">Shells, compute sites and dependencies</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -583,6 +672,8 @@ the <code class="docutils literal notranslate"><span class="pre">user</span></co
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#config-file-locations">Config file locations</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-structure">File structure</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#invalid-files">Invalid files</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#versions">Versions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#starting-over">Starting over</a></li>
 </ul>
   </nav></div>
 

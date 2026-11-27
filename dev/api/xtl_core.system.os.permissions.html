@@ -1,0 +1,1007 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>xtl_core.system.os.permissions module &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/checklist.css?v=95d8aad2" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl_core.system.os.permissions';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../_static/js/checklist.js?v=1566aa6d"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xtl_core.options package" href="xtl_core.options.html" />
+    <link rel="prev" title="xtl_core.system.os package" href="xtl_core.system.os.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dev/index.html">Developer guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../dev/jobs/index.html">Jobs and pools</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/checklist.html">Checklist for a new job</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="xtl.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/tables.html">Tables</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="xtl_core.html">API reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 current active has-children"><a class="reference internal" href="xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l4 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl_core.system.os.permissions.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>xtl_core.system.os.permissions module</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions"><code class="docutils literal notranslate"><span class="pre">FilePermissions</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.__init__"><code class="docutils literal notranslate"><span class="pre">FilePermissions.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.decimal"><code class="docutils literal notranslate"><span class="pre">FilePermissions.decimal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.file_type"><code class="docutils literal notranslate"><span class="pre">FilePermissions.file_type</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.from_path"><code class="docutils literal notranslate"><span class="pre">FilePermissions.from_path()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.from_string"><code class="docutils literal notranslate"><span class="pre">FilePermissions.from_string()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.group"><code class="docutils literal notranslate"><span class="pre">FilePermissions.group</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.octal"><code class="docutils literal notranslate"><span class="pre">FilePermissions.octal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.other"><code class="docutils literal notranslate"><span class="pre">FilePermissions.other</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.owner"><code class="docutils literal notranslate"><span class="pre">FilePermissions.owner</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.string"><code class="docutils literal notranslate"><span class="pre">FilePermissions.string</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.tuple"><code class="docutils literal notranslate"><span class="pre">FilePermissions.tuple</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.__init__"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_execute"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_execute</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_read"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_read</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_write"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_write</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.decimal"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.decimal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.octal"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.octal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.string"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.string</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.string_canonical"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.string_canonical</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.tuple"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.tuple</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.value"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType"><code class="docutils literal notranslate"><span class="pre">FileType</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.BLOCK_DEVICE"><code class="docutils literal notranslate"><span class="pre">FileType.BLOCK_DEVICE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.CHARACTER_DEVICE"><code class="docutils literal notranslate"><span class="pre">FileType.CHARACTER_DEVICE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.DIRECTORY"><code class="docutils literal notranslate"><span class="pre">FileType.DIRECTORY</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.FIFO"><code class="docutils literal notranslate"><span class="pre">FileType.FIFO</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.FILE"><code class="docutils literal notranslate"><span class="pre">FileType.FILE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.SOCKET"><code class="docutils literal notranslate"><span class="pre">FileType.SOCKET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.SYMLINK"><code class="docutils literal notranslate"><span class="pre">FileType.SYMLINK</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.__new__"><code class="docutils literal notranslate"><span class="pre">FileType.__new__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.chmod_recursively"><code class="docutils literal notranslate"><span class="pre">chmod_recursively()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.get_permissions_in_decimal"><code class="docutils literal notranslate"><span class="pre">get_permissions_in_decimal()</span></code></a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-xtl_core.system.os.permissions">
+<span id="xtl-core-system-os-permissions-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module<a class="headerlink" href="#module-xtl_core.system.os.permissions" title="Link to this heading">#</a></h1>
+<p>POSIX file permissions: parsing, conversion between their forms, and changing them
+recursively.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl_core.system.os.permissions.</span></span><span class="sig-name descname"><span class="pre">FilePermissions</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L222-L418"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Representation of POSIX file permissions for owner, group, and other.</p>
+<p>Created from the three parts, each as for <a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><code class="xref py py-class docutils literal notranslate"><span class="pre">FilePermissionsBit</span></code></a> (e.g.
+<code class="docutils literal notranslate"><span class="pre">FilePermissions(7,</span> <span class="pre">'r-x',</span> <span class="pre">0)</span></code>), or from a single value for all of them: an int
+(<code class="docutils literal notranslate"><span class="pre">0o750</span></code>), three octal digits (<code class="docutils literal notranslate"><span class="pre">'750'</span></code>, <code class="docutils literal notranslate"><span class="pre">'0750'</span></code> or <code class="docutils literal notranslate"><span class="pre">'0o750'</span></code>), canonical
+letters with or without the file type (<code class="docutils literal notranslate"><span class="pre">'rwxr-x---'</span></code>, <code class="docutils literal notranslate"><span class="pre">'drwxr-x---'</span></code>) or another
+<code class="docutils literal notranslate"><span class="pre">FilePermissions</span></code>. A single value that is none of these is the owner’s part
+(<code class="docutils literal notranslate"><span class="pre">'rwx'</span></code> is <code class="docutils literal notranslate"><span class="pre">0o700</span></code>). The parts are always copies: changing a
+<a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><code class="xref py py-class docutils literal notranslate"><span class="pre">FilePermissionsBit</span></code></a> passed in doesn’t change the permissions.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">owner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>owner</strong> (<a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><em>FilePermissionsBit</em></a>)</p></li>
+<li><p><strong>group</strong> (<a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><em>FilePermissionsBit</em></a>)</p></li>
+<li><p><strong>other</strong> (<a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><em>FilePermissionsBit</em></a>)</p></li>
+<li><p><strong>file_type</strong> (<a class="reference internal" href="#xtl_core.system.os.permissions.FileType" title="xtl_core.system.os.permissions.FileType"><em>FileType</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.decimal">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">decimal</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.decimal" title="Link to this definition">#</a></dt>
+<dd><p>Get the decimal representation of the file permissions, e.g., <cite>420</cite> for <cite>0o640</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The decimal representation of the file permissions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.file_type">
+<span class="sig-name descname"><span class="pre">file_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl_core.system.os.permissions.FileType" title="xtl_core.system.os.permissions.FileType"><span class="pre">FileType</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.file_type" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.from_path">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L391-L407"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.from_path" title="Link to this definition">#</a></dt>
+<dd><p>Create a <cite>FilePermissions</cite> object from a file or directory path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><em>Path</em></a>) – The path to the file or directory.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <cite>FilePermissions</cite> object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissions" title="xtl_core.system.os.permissions.FilePermissions"><em>FilePermissions</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.from_string">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L409-L418"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.from_string" title="Link to this definition">#</a></dt>
+<dd><p>Create a <cite>FilePermissions</cite> object from a string representation of permissions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>s</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – The string representation of permissions, e.g., <cite>‘rwxr-xr–’</cite> or
+<cite>‘700’</cite>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <cite>FilePermissions</cite> object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissions" title="xtl_core.system.os.permissions.FilePermissions"><em>FilePermissions</em></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.group">
+<span class="sig-name descname"><span class="pre">group</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><span class="pre">FilePermissionsBit</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.group" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.octal">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">octal</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.octal" title="Link to this definition">#</a></dt>
+<dd><p>Get the octal representation of the file permissions, e.g., <cite>‘0o644’</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The octal representation of the file permissions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.other">
+<span class="sig-name descname"><span class="pre">other</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><span class="pre">FilePermissionsBit</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.other" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.owner">
+<span class="sig-name descname"><span class="pre">owner</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="xtl_core.system.os.permissions.FilePermissionsBit"><span class="pre">FilePermissionsBit</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.owner" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.string">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">string</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.string" title="Link to this definition">#</a></dt>
+<dd><p>Get the string representation of the file permissions, e.g., <cite>‘rwxr-xr–’</cite>. If
+<cite>file_type</cite> is set, then it is included in the string representation (length 10),
+otherwise it is omitted (length 9).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The string representation of the file permissions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissions.tuple">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tuple</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissions.tuple" title="Link to this definition">#</a></dt>
+<dd><p>Get the permissions as three (read, write, execute) tuples for owner, group and
+other.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple containing three tuples, each representing the permissions for
+owner, group, and other.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl_core.system.os.permissions.</span></span><span class="sig-name descname"><span class="pre">FilePermissionsBit</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L67-L219"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Representation of POSIX file permissions for a single group, e.g., permissions for
+owner.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.can_execute">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">can_execute</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_execute" title="Link to this definition">#</a></dt>
+<dd><p>Check if the permission bit allows executing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if it has execute permission, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.can_read">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">can_read</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_read" title="Link to this definition">#</a></dt>
+<dd><p>Check if the permission bit allows reading.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if it has read permission, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.can_write">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">can_write</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_write" title="Link to this definition">#</a></dt>
+<dd><p>Check if the permission bit allows writing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if it has write permission, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.decimal">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">decimal</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.decimal" title="Link to this definition">#</a></dt>
+<dd><p>Get the decimal representation of the permission bit, e.g., <cite>6</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The decimal representation of the permission bit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.octal">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">octal</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.octal" title="Link to this definition">#</a></dt>
+<dd><p>Get the octal representation of the permission bit, e.g., <cite>‘0o6’</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The octal representation of the permission bit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.string">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">string</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.string" title="Link to this definition">#</a></dt>
+<dd><p>Get the short string representation of the permission bit, e.g., <cite>‘rw’</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The shorthand string representation of the permission bit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.string_canonical">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">string_canonical</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.string_canonical" title="Link to this definition">#</a></dt>
+<dd><p>Get the canonical string representation of the permission bit, e.g., <cite>‘rw-’</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The canonical string representation of the permission bit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.tuple">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tuple</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.tuple" title="Link to this definition">#</a></dt>
+<dd><p>Get the permission bit as a tuple of booleans (read, write, execute).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple containing three boolean values representing read, write, and
+execute permissions.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FilePermissionsBit.value">
+<span class="sig-name descname"><span class="pre">value</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#xtl_core.system.os.permissions.FilePermissionsBit.value" title="Link to this definition">#</a></dt>
+<dd><p>Permission value in octal format: an int from 0 to 7, once initialized. Created
+from such an int, an octal string (<cite>‘0o5’</cite>), canonical (<cite>‘r-x’</cite>) or short (<cite>‘rx’</cite>)
+permission letters, or <cite>‘’</cite>, <cite>‘-’</cite> or <cite>None</cite> for no permissions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl_core.system.os.permissions.</span></span><span class="sig-name descname"><span class="pre">FileType</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L20-L31"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.FileType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="xtl_core.system.compatibility.py310.html#xtl_core.system.compatibility.py310.StrEnum" title="enum.StrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></a></p>
+<p>POSIX file type representation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.BLOCK_DEVICE">
+<span class="sig-name descname"><span class="pre">BLOCK_DEVICE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'b'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.BLOCK_DEVICE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.CHARACTER_DEVICE">
+<span class="sig-name descname"><span class="pre">CHARACTER_DEVICE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'c'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.CHARACTER_DEVICE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.DIRECTORY">
+<span class="sig-name descname"><span class="pre">DIRECTORY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'d'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.DIRECTORY" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.FIFO">
+<span class="sig-name descname"><span class="pre">FIFO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'p'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.FIFO" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.FILE">
+<span class="sig-name descname"><span class="pre">FILE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'-'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.FILE" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.SOCKET">
+<span class="sig-name descname"><span class="pre">SOCKET</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'s'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.SOCKET" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.SYMLINK">
+<span class="sig-name descname"><span class="pre">SYMLINK</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'l'</span></span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.SYMLINK" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.FileType.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl_core.system.os.permissions.FileType.__new__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.chmod_recursively">
+<span class="sig-prename descclassname"><span class="pre">xtl_core.system.os.permissions.</span></span><span class="sig-name descname"><span class="pre">chmod_recursively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files_permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">directories_permissions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L432-L484"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.chmod_recursively" title="Link to this definition">#</a></dt>
+<dd><p>Change the permissions of a directory and of all files and subdirectories within it,
+or of a single file. Symbolic links are skipped, and never followed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><em>Path</em></a>) – The path to the directory or file</p></li>
+<li><p><strong>files_permissions</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissions" title="xtl_core.system.os.permissions.FilePermissions"><em>FilePermissions</em></a><em> | </em><em>None</em>) – The desired permissions for files; <code class="docutils literal notranslate"><span class="pre">None</span></code> leaves them
+unchanged</p></li>
+<li><p><strong>directories_permissions</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissions" title="xtl_core.system.os.permissions.FilePermissions"><em>FilePermissions</em></a><em> | </em><em>None</em>) – The desired permissions for directories; <code class="docutils literal notranslate"><span class="pre">None</span></code>
+leaves them unchanged</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If neither permissions are given, or one isn’t valid.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#FileNotFoundError" title="(in Python v3.15)"><strong>FileNotFoundError</strong></a> – If the path doesn’t exist.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#OSError" title="(in Python v3.15)"><strong>OSError</strong></a> – If a permission can’t be changed, or a directory can’t be listed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xtl_core.system.os.permissions.get_permissions_in_decimal">
+<span class="sig-prename descclassname"><span class="pre">xtl_core.system.os.permissions.</span></span><span class="sig-name descname"><span class="pre">get_permissions_in_decimal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/packages/xtl-core/src/xtl_core/system/os/permissions.py#L421-L429"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl_core.system.os.permissions.get_permissions_in_decimal" title="Link to this definition">#</a></dt>
+<dd><p>Convert an octal permission value to its decimal representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><a class="reference internal" href="#xtl_core.system.os.permissions.FilePermissions" title="xtl_core.system.os.permissions.FilePermissions"><em>FilePermissions</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="xtl_core.system.os.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="xtl_core.options.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions"><code class="docutils literal notranslate"><span class="pre">FilePermissions</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.__init__"><code class="docutils literal notranslate"><span class="pre">FilePermissions.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.decimal"><code class="docutils literal notranslate"><span class="pre">FilePermissions.decimal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.file_type"><code class="docutils literal notranslate"><span class="pre">FilePermissions.file_type</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.from_path"><code class="docutils literal notranslate"><span class="pre">FilePermissions.from_path()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.from_string"><code class="docutils literal notranslate"><span class="pre">FilePermissions.from_string()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.group"><code class="docutils literal notranslate"><span class="pre">FilePermissions.group</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.octal"><code class="docutils literal notranslate"><span class="pre">FilePermissions.octal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.other"><code class="docutils literal notranslate"><span class="pre">FilePermissions.other</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.owner"><code class="docutils literal notranslate"><span class="pre">FilePermissions.owner</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.string"><code class="docutils literal notranslate"><span class="pre">FilePermissions.string</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissions.tuple"><code class="docutils literal notranslate"><span class="pre">FilePermissions.tuple</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.__init__"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_execute"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_execute</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_read"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_read</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.can_write"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.can_write</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.decimal"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.decimal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.octal"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.octal</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.string"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.string</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.string_canonical"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.string_canonical</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.tuple"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.tuple</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FilePermissionsBit.value"><code class="docutils literal notranslate"><span class="pre">FilePermissionsBit.value</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType"><code class="docutils literal notranslate"><span class="pre">FileType</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.BLOCK_DEVICE"><code class="docutils literal notranslate"><span class="pre">FileType.BLOCK_DEVICE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.CHARACTER_DEVICE"><code class="docutils literal notranslate"><span class="pre">FileType.CHARACTER_DEVICE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.DIRECTORY"><code class="docutils literal notranslate"><span class="pre">FileType.DIRECTORY</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.FIFO"><code class="docutils literal notranslate"><span class="pre">FileType.FIFO</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.FILE"><code class="docutils literal notranslate"><span class="pre">FileType.FILE</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.SOCKET"><code class="docutils literal notranslate"><span class="pre">FileType.SOCKET</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.SYMLINK"><code class="docutils literal notranslate"><span class="pre">FileType.SYMLINK</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.FileType.__new__"><code class="docutils literal notranslate"><span class="pre">FileType.__new__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.chmod_recursively"><code class="docutils literal notranslate"><span class="pre">chmod_recursively()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl_core.system.os.permissions.get_permissions_in_decimal"><code class="docutils literal notranslate"><span class="pre">get_permissions_in_decimal()</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

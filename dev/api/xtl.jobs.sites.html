@@ -1,0 +1,1018 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../_static/favicon-32x32.png" sizes="32x32" rel="icon" type="image/png">
+    <link href="../_static/favicon-16x16.png" sizes="16x16" rel="icon" type="image/png">
+    <title>xtl.jobs.sites module &#8212; xtl 0.2.0dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css?v=4418a689" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/checklist.css?v=95d8aad2" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../_static/documentation_options.js?v=36b89599"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/xtl.jobs.sites';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="../_static/js/checklist.js?v=1566aa6d"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xtl.jobs.policies module" href="xtl.jobs.policies.html" />
+    <link rel="prev" title="xtl.jobs.shells module" href="xtl.jobs.shells.html" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+    <style>
+        /* Version selector styles */
+        .version-selector-nav {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 6px 0 8px;
+        }
+        .version-selector-nav select {
+            width: 80px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--pst-color-border, #ccc);
+            background-color: var(--pst-color-background, #fff);
+            color: var(--pst-color-text-base, #000);
+            font-size: 14px;
+        }
+    </style>
+    <script src="../_static/js/version-selector.js"></script>
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+    
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/icon.png" class="logo__image only-light" alt="xtl 0.2.0dev0 documentation - Home"/>
+    <img src="../_static/icon.png" class="logo__image only-dark pst-js-only" alt="xtl 0.2.0dev0 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration/environment.html">Environment variables</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.autoproc.html"><code class="docutils literal notranslate"><span class="pre">xtl.autoproc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../dev/index.html">Developer guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../dev/jobs/index.html">Jobs and pools</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../dev/jobs/checklist.html">Checklist for a new job</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="xtl.html">API reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/dtriand/xtl/issues/new?title=Issue%20on%20page%20%2Fapi/xtl.jobs.sites.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>xtl.jobs.sites module</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.__init__"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.check_dependencies"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.check_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.default_shell"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.default_shell</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.execute_batch"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.execute_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.execute_command"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.execute_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.is_valid_shell"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.is_valid_shell()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.policy"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.policy</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_command"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_content"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_content()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_postamble"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_postamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_preamble"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_preamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.resolve_dependencies"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.resolve_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.supported_shells"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.supported_shells</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite"><code class="docutils literal notranslate"><span class="pre">ComputeSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.LOCAL"><code class="docutils literal notranslate"><span class="pre">ComputeSite.LOCAL</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.MODULES"><code class="docutils literal notranslate"><span class="pre">ComputeSite.MODULES</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.__new__"><code class="docutils literal notranslate"><span class="pre">ComputeSite.__new__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.get"><code class="docutils literal notranslate"><span class="pre">ComputeSite.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite"><code class="docutils literal notranslate"><span class="pre">LocalSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.cancel_batch"><code class="docutils literal notranslate"><span class="pre">LocalSite.cancel_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.check_dependencies"><code class="docutils literal notranslate"><span class="pre">LocalSite.check_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.execute_batch"><code class="docutils literal notranslate"><span class="pre">LocalSite.execute_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_command"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_content"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_content()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_postamble"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_postamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_preamble"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_preamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_setup"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_setup()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ModulesSite"><code class="docutils literal notranslate"><span class="pre">ModulesSite</span></code></a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-xtl.jobs.sites">
+<span id="xtl-jobs-sites-module"></span><h1><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module<a class="headerlink" href="#module-xtl.jobs.sites" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.sites.</span></span><span class="sig-name descname"><span class="pre">BaseComputeSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L67-L203"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L72-L91"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.__init__" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>default_shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.Shell" title="xtl.jobs.shells.Shell"><em>Shell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><em>BaseShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><em>BashShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><em>CmdShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.PowerShell" title="xtl.jobs.shells.PowerShell"><em>PowerShell</em></a><em> | </em><em>None</em>) – The shell to prefer, instead of the site’s own default</p></li>
+<li><p><strong>shells</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><em>Iterable</em></a><em>[</em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.Shell" title="xtl.jobs.shells.Shell"><em>Shell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><em>BaseShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><em>BashShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><em>CmdShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.PowerShell" title="xtl.jobs.shells.PowerShell"><em>PowerShell</em></a><em>] </em><em>| </em><em>None</em>) – The shells that the site supports, instead of its own</p></li>
+<li><p><strong>policy</strong> (<a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy" title="xtl.jobs.policies.CommandPolicy"><em>CommandPolicy</em></a><em> | </em><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.BaseCommandPolicy" title="xtl.jobs.policies.BaseCommandPolicy"><em>BaseCommandPolicy</em></a><em> | </em><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.DefaultCommandPolicy" title="xtl.jobs.policies.DefaultCommandPolicy"><em>DefaultCommandPolicy</em></a><em> | </em><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy" title="xtl.jobs.policies.NiceCommandPolicy"><em>NiceCommandPolicy</em></a><em> | </em><em>None</em>) – The command policy, instead of the site’s own</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the default shell isn’t one of the supported shells</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.check_dependencies">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L167-L170"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.check_dependencies" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.ShellType" title="xtl.jobs.shells.ShellType"><em>ShellType</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[DependencyCheck]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.default_shell">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">default_shell</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.Shell" title="xtl.jobs.shells.Shell"><span class="pre">Shell</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.default_shell" title="Link to this definition">#</a></dt>
+<dd><p>Returns the default shell for this compute site. This shell is preferred over
+other compatible shells when executing commands. If no default shell is defined,
+None is returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The default Shell instance or None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.execute_batch">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L196-L197"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.execute_batch" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>batch</strong> (<a class="reference internal" href="xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><em>BatchFile</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.execute_command">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L172-L194"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.execute_command" title="Link to this definition">#</a></dt>
+<dd><p>Execute a command locally and return the CompletedProcess object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.15)"><em>Sequence</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>]</em>) – The command to execute as a list of strings.</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The timeout in seconds for the command execution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The CompletedProcess object if the command executed successfully,
+None if the command timed out or couldn’t be started (e.g. the program
+doesn’t exist).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/subprocess.html#subprocess.CompletedProcess" title="(in Python v3.15)"><em>CompletedProcess</em></a> | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.is_valid_shell">
+<span class="sig-name descname"><span class="pre">is_valid_shell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L129-L132"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.is_valid_shell" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.Shell" title="xtl.jobs.shells.Shell"><em>Shell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BaseShell" title="xtl.jobs.shells.BaseShell"><em>BaseShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.BashShell" title="xtl.jobs.shells.BashShell"><em>BashShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.CmdShell" title="xtl.jobs.shells.CmdShell"><em>CmdShell</em></a><em> | </em><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.PowerShell" title="xtl.jobs.shells.PowerShell"><em>PowerShell</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.policy">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">policy</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.BaseCommandPolicy" title="xtl.jobs.policies.BaseCommandPolicy"><span class="pre">BaseCommandPolicy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.DefaultCommandPolicy" title="xtl.jobs.policies.DefaultCommandPolicy"><span class="pre">DefaultCommandPolicy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy" title="xtl.jobs.policies.NiceCommandPolicy"><span class="pre">NiceCommandPolicy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.policy" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.prepare_command">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">prepare_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L139-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.prepare_command" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>command</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.prepare_content">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">prepare_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L142-L143"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.prepare_content" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>content</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.prepare_postamble">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">prepare_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L145-L146"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.prepare_postamble" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.prepare_preamble">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L134-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.prepare_preamble" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.ShellType" title="xtl.jobs.shells.ShellType"><em>ShellType</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.resolve_dependencies">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">resolve_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L148-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.resolve_dependencies" title="Link to this definition">#</a></dt>
+<dd><p>Resolves dependencies from settings based on the provided dependency names or
+DependencySettings objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – An iterable of dependency names (str) or DependencySettings
+instances, or None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resolved DependencySettings instances, without duplicates.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a dependency name is not found in settings and strict
+resolution is enabled.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[<a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings">DependencySettings</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xtl.jobs.sites.BaseComputeSite.supported_shells">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">supported_shells</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.Shell" title="xtl.jobs.shells.Shell"><span class="pre">Shell</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#xtl.jobs.sites.BaseComputeSite.supported_shells" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ComputeSite">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.sites.</span></span><span class="sig-name descname"><span class="pre">ComputeSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L35-L64"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.ComputeSite" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="xtl_core.system.compatibility.py310.html#xtl_core.system.compatibility.py310.StrEnum" title="enum.StrEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">StrEnum</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ComputeSite.LOCAL">
+<span class="sig-name descname"><span class="pre">LOCAL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'local'</span></span><a class="headerlink" href="#xtl.jobs.sites.ComputeSite.LOCAL" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ComputeSite.MODULES">
+<span class="sig-name descname"><span class="pre">MODULES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'modules'</span></span><a class="headerlink" href="#xtl.jobs.sites.ComputeSite.MODULES" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ComputeSite.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xtl.jobs.sites.ComputeSite.__new__" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ComputeSite.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L44-L56"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.ComputeSite.get" title="Link to this definition">#</a></dt>
+<dd><p>An instance of the compute site.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – Passed to the site, e.g. <code class="docutils literal notranslate"><span class="pre">policy</span></code> (see <a class="reference internal" href="#xtl.jobs.sites.BaseComputeSite" title="xtl.jobs.sites.BaseComputeSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComputeSite</span></code></a>).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#xtl.jobs.sites.LocalSite" title="xtl.jobs.sites.LocalSite"><em>LocalSite</em></a> | <a class="reference internal" href="#xtl.jobs.sites.ModulesSite" title="xtl.jobs.sites.ModulesSite"><em>ModulesSite</em></a> | <em>SchedulerSite</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.sites.</span></span><span class="sig-name descname"><span class="pre">LocalSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L225-L584"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.sites.BaseComputeSite" title="xtl.jobs.sites.BaseComputeSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComputeSite</span></code></a></p>
+<p>A compute site that represents the local machine. The executables of dependencies are found on <code class="docutils literal notranslate"><span class="pre">PATH</span></code>, after
+the directories of <code class="docutils literal notranslate"><span class="pre">settings.dependencies.path</span></code> and of each dependency’s <code class="docutils literal notranslate"><span class="pre">path</span></code> are put first on it.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.cancel_batch">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cancel_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L475-L481"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.cancel_batch" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>batch</strong> (<a class="reference internal" href="xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><em>BatchFile</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.check_dependencies">
+<span class="sig-name descname"><span class="pre">check_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L302-L323"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.check_dependencies" title="Link to this definition">#</a></dt>
+<dd><p>Check that dependencies can be found in a shell: for each dependency, a short script in the shell sets up the
+common settings and the dependency’s own (see <a class="reference internal" href="#xtl.jobs.sites.LocalSite.prepare_setup" title="xtl.jobs.sites.LocalSite.prepare_setup"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prepare_setup()</span></code></a>), then looks up every executable that the
+dependency provides. A dependency is found only if all of them are; a module that doesn’t load is reported
+too. Each dependency is checked on its own, and the outcome is remembered in its settings, so that it isn’t
+checked again on this site and in this shell until its settings change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – Dependency names or settings, or None.</p></li>
+<li><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.ShellType" title="xtl.jobs.shells.ShellType"><em>ShellType</em></a>) – The shell to check in.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One check per dependency, in the given order.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)">list</a>[DependencyCheck]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.execute_batch">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">execute_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L391-L449"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.execute_batch" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> (<a class="reference internal" href="xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile" title="xtl.jobs.batchfiles.BatchFile"><em>BatchFile</em></a>)</p></li>
+<li><p><strong>stdout</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><em>Path</em></a>)</p></li>
+<li><p><strong>stderr</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><em>Path</em></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.prepare_command">
+<span class="sig-name descname"><span class="pre">prepare_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L293-L294"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.prepare_command" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>command</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.prepare_content">
+<span class="sig-name descname"><span class="pre">prepare_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L296-L297"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.prepare_content" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>content</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.prepare_postamble">
+<span class="sig-name descname"><span class="pre">prepare_postamble</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L299-L300"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.prepare_postamble" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.prepare_preamble">
+<span class="sig-name descname"><span class="pre">prepare_preamble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L271-L291"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.prepare_preamble" title="Link to this definition">#</a></dt>
+<dd><p>The preamble of a batch file: the shebang, the site’s directives (if any), the setup of the dependencies
+(see <a class="reference internal" href="#xtl.jobs.sites.LocalSite.prepare_setup" title="xtl.jobs.sites.LocalSite.prepare_setup"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prepare_setup()</span></code></a>), and a guard line for each executable they provide, which ends the batch file with
+exit code 127 if the executable isn’t found, before any command runs. Then passed through the policy, if any.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – Dependency names or settings, or None.</p></li>
+<li><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.ShellType" title="xtl.jobs.shells.ShellType"><em>ShellType</em></a>) – The shell to write the preamble for.</p></li>
+<li><p><strong>kwargs</strong> – Passed to the site’s directives, e.g. <code class="docutils literal notranslate"><span class="pre">config</span></code> on a Slurm site.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a name or a directory can’t be written safely in the shell.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xtl.jobs.sites.LocalSite.prepare_setup">
+<span class="sig-name descname"><span class="pre">prepare_setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L234-L246"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.LocalSite.prepare_setup" title="Link to this definition">#</a></dt>
+<dd><p>The lines that set up dependencies in a shell, each ending with the shell’s line ending: on this site, the
+common <code class="docutils literal notranslate"><span class="pre">path</span></code> and then each dependency’s are put first on <code class="docutils literal notranslate"><span class="pre">PATH</span></code> (so a dependency’s directory comes first).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dependencies</strong> (<em>Iterable</em><em>[</em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em>] </em><em>| </em><a class="reference internal" href="xtl.config.settings.html#xtl.config.settings.DependencySettings" title="xtl.config.settings.DependencySettings"><em>DependencySettings</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a><em> | </em><em>None</em>) – Dependency names or settings, or None.</p></li>
+<li><p><strong>shell</strong> (<a class="reference internal" href="xtl.jobs.shells.html#xtl.jobs.shells.ShellType" title="xtl.jobs.shells.ShellType"><em>ShellType</em></a>) – The shell to write the lines for.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a name or a directory can’t be written safely in the shell.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xtl.jobs.sites.ModulesSite">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xtl.jobs.sites.</span></span><span class="sig-name descname"><span class="pre">ModulesSite</span></span><a class="reference external" href="https://github.com/dtriand/xtl/blob/master/src/xtl/jobs/sites.py#L587-L615"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xtl.jobs.sites.ModulesSite" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#xtl.jobs.sites.LocalSite" title="xtl.jobs.sites.LocalSite"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocalSite</span></code></a></p>
+<p>A compute site that uses
+<a class="reference external" href="https://modules.readthedocs.io/en/latest/">Environment Modules</a> to manage
+software dependencies.</p>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="xtl.jobs.shells.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="xtl.jobs.policies.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.__init__"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.__init__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.check_dependencies"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.check_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.default_shell"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.default_shell</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.execute_batch"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.execute_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.execute_command"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.execute_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.is_valid_shell"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.is_valid_shell()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.policy"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.policy</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_command"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_content"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_content()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_postamble"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_postamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.prepare_preamble"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.prepare_preamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.resolve_dependencies"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.resolve_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.BaseComputeSite.supported_shells"><code class="docutils literal notranslate"><span class="pre">BaseComputeSite.supported_shells</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite"><code class="docutils literal notranslate"><span class="pre">ComputeSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.LOCAL"><code class="docutils literal notranslate"><span class="pre">ComputeSite.LOCAL</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.MODULES"><code class="docutils literal notranslate"><span class="pre">ComputeSite.MODULES</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.__new__"><code class="docutils literal notranslate"><span class="pre">ComputeSite.__new__()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ComputeSite.get"><code class="docutils literal notranslate"><span class="pre">ComputeSite.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite"><code class="docutils literal notranslate"><span class="pre">LocalSite</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.cancel_batch"><code class="docutils literal notranslate"><span class="pre">LocalSite.cancel_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.check_dependencies"><code class="docutils literal notranslate"><span class="pre">LocalSite.check_dependencies()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.execute_batch"><code class="docutils literal notranslate"><span class="pre">LocalSite.execute_batch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_command"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_command()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_content"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_content()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_postamble"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_postamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_preamble"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_preamble()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.LocalSite.prepare_setup"><code class="docutils literal notranslate"><span class="pre">LocalSite.prepare_setup()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xtl.jobs.sites.ModulesSite"><code class="docutils literal notranslate"><span class="pre">ModulesSite</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Dimitris P. Triandafillidis
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2020-2026, Dimitris P. Triandafillidis.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+<div class="extra_footer">
+  XTL v0.2.0dev0 (Jun 01, 2025)
+</div>
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+
+    
+  <footer class="bd-footer">
+  </footer>
+    <script>
+        // Initialize the version selector on document load
+        document.addEventListener('DOMContentLoaded', function() {
+            addVersionSelectorToNav();
+        });
+    </script>
+
+  </body>
+</html>

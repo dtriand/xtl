@@ -32,7 +32,8 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=4418a689" />
     <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="_static/css/checklist.css?v=95d8aad2" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
@@ -44,10 +45,11 @@
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
-    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="_static/design-tabs.js?v=fcb327ea"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <script src="_static/js/version-selector.js?v=b659abb7"></script>
+    <script src="_static/js/checklist.js?v=1566aa6d"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
     
@@ -214,16 +216,12 @@
 </button></div>
         <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
-        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="configuration/index.html">Configuration</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="configuration/xtl.toml.html"><code class="docutils literal notranslate"><span class="pre">xtl.toml</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration/dependencies.html">Shells, compute sites and dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="configuration/environment.html">Environment variables</a></li>
-</ul>
-</details></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="common/index.html">Shared utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2"><a class="reference internal" href="common/options.html">Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="common/tables.html">Tables</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="cli/index.html">Command line utilities</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -231,30 +229,89 @@
 <li class="toctree-l2"><a class="reference internal" href="cli/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code></a></li>
 </ul>
 </details></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="api/modules.html">API documentation</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl.html">xtl</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl.common.html"><code class="docutils literal notranslate"><span class="pre">xtl.common</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.compatibility</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.environment</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.options.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.options</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.validators</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.serializers</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.common.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl.common.tables</span></code> module</a></li>
-</ul>
-</details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
-</ul>
-</details></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="dev/index.html">Developer guide</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="dev/jobs/index.html">Jobs and pools</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/jobs.html">Writing jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/batch-jobs.html">Batch jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/stepped-jobs.html">Stepped jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/pools.html">Pools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/logging.html">Logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/internals.html">Under the hood</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dev/jobs/checklist.html">Checklist for a new job</a></li>
 </ul>
 </details></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/xtl.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl.shared.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.shared.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl.shared.environment</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.config</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.config.settings.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.settings</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.config.version.html"><code class="docutils literal notranslate"><span class="pre">xtl.config.version</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.jobs.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.jobs</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.config.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.config</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.results.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.results</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.steps.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.steps</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.pools.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.pools</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.resources.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.resources</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl.jobs.ipc.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.ipc.base.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.base</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.ipc.async_.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.async_</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.ipc.threads.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.threads</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl.jobs.ipc.processes.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.ipc.processes</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.submissions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.submissions</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.logging.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.logging</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.batchfiles.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.batchfiles</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.shells.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.shells</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.sites.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.sites</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.policies.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.policies</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl.jobs.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.jobs.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="api/xtl.exceptions.html"><code class="docutils literal notranslate"><span class="pre">xtl.exceptions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">xtl-core</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Using <code class="docutils literal notranslate"><span class="pre">xtl-core</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="core/options.html">Options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="core/tables.html">Tables</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api/xtl_core.html">API reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/xtl_core.errors.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.errors</span></code> module</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl_core.system.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl_core.system.compatibility.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl_core.system.compatibility.py310.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py310</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl_core.system.compatibility.py313.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py313</span></code> module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl_core.system.compatibility.py314.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.compatibility.py314</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.system.environment.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.environment</span></code> module</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="api/xtl_core.system.os.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/xtl_core.system.os.permissions.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.system.os.permissions</span></code> module</a></li>
+</ul>
+</details></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl_core.options.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.options.base.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.base</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.options.serializers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.serializers</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.options.validators.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.validators</span></code> module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.options.versioned.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.options.versioned</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/xtl_core.containers.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers</span></code> package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/xtl_core.containers.tables.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.containers.tables</span></code> module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="api/xtl_core.version_info.html"><code class="docutils literal notranslate"><span class="pre">xtl_core.version_info</span></code> module</a></li>
 </ul>
 </details></li>
 </ul>
@@ -415,6 +472,7 @@
  | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -427,48 +485,112 @@
 <h2 id="_">_</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.html#xtl.common.AnnotatedDataclass.__init__">__init__() (xtl.common.AnnotatedDataclass method)</a>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.__init__">__init__() (xtl.config.settings.ConfigFileInfo method)</a>
 
       <ul>
-        <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.__init__">(xtl.common.environment.EnvVar method)</a>
-</li>
-        <li><a href="api/xtl.common.options.html#xtl.common.options.Options.__init__">(xtl.common.options.Options method)</a>
-</li>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValue.__init__">(xtl.common.tables.MissingValue method)</a>
-</li>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.__init__">(xtl.common.tables.MissingValueConfig method)</a>
-</li>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.__init__">(xtl.common.tables.Table method)</a>
-</li>
-        <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.__init__">(xtl.config.settings.ConfigFileInfo method)</a>
-</li>
-        <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.__init__">(xtl.config.version.VersionInfo method)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.__init__">(xtl.jobs.BatchFile method)</a>
-</li>
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.__init__">(xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob.__init__">(xtl.jobs.BatchJob method)</a>
+        <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.DependencyError.__init__">(xtl.jobs.exceptions.DependencyError method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Job.__init__">(xtl.jobs.Job method)</a>
+        <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.SubprocessError.__init__">(xtl.jobs.exceptions.SubprocessError method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.MultiprocessPool.__init__">(xtl.jobs.MultiprocessPool method)</a>
+        <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.WorkerError.__init__">(xtl.jobs.exceptions.WorkerError method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.__init__">(xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncLock.__init__">(xtl.jobs.ipc.async_.AsyncLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue.__init__">(xtl.jobs.ipc.async_.AsyncQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandle.__init__">(xtl.jobs.ipc.base.IPCHandle method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandleNames.__init__">(xtl.jobs.ipc.base.IPCHandleNames method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock.__init__">(xtl.jobs.ipc.base.IPCLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.__init__">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessLock.__init__">(xtl.jobs.ipc.processes.ProcessLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue.__init__">(xtl.jobs.ipc.processes.ProcessQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessState.__init__">(xtl.jobs.ipc.processes.ProcessState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.__init__">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.__init__">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedLock.__init__">(xtl.jobs.ipc.threads.ThreadedLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue.__init__">(xtl.jobs.ipc.threads.ThreadedQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedState.__init__">(xtl.jobs.ipc.threads.ThreadedState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.BatchJob.__init__">(xtl.jobs.jobs.BatchJob method)</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.__init__">(xtl.jobs.jobs.Job method)</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.SteppedJob.__init__">(xtl.jobs.jobs.SteppedJob method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobNameFilter.__init__">(xtl.jobs.logging.JobNameFilter method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.__init__">(xtl.jobs.pools.BasePool method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.MultiprocessPool.__init__">(xtl.jobs.pools.MultiprocessPool method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol.__init__">(xtl.jobs.pools.PoolProtocol method)</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourceManager.__init__">(xtl.jobs.resources.ResourceManager method)</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.__init__">(xtl.jobs.resources.Resources method)</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourcesLease.__init__">(xtl.jobs.resources.ResourcesLease method)</a>
+</li>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.BatchResults.__init__">(xtl.jobs.results.BatchResults method)</a>
+</li>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults.__init__">(xtl.jobs.results.JobResults method)</a>
+</li>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.SteppedJobResults.__init__">(xtl.jobs.results.SteppedJobResults method)</a>
+</li>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.__init__">(xtl.jobs.sites.BaseComputeSite method)</a>
+</li>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValue.__init__">(xtl_core.containers.tables.MissingValue method)</a>
+</li>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValueConfig.__init__">(xtl_core.containers.tables.MissingValueConfig method)</a>
+</li>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.__init__">(xtl_core.containers.tables.Table method)</a>
+</li>
+        <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.__init__">(xtl_core.options.base.Options method)</a>
+</li>
+        <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.UpgradeStep.__init__">(xtl_core.options.versioned.UpgradeStep method)</a>
+</li>
+        <li><a href="api/xtl_core.system.compatibility.py314.html#xtl_core.system.compatibility.py314.sentinel.__init__">(xtl_core.system.compatibility.py314.sentinel method)</a>
+</li>
+        <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.__init__">(xtl_core.system.environment.EnvVar method)</a>
+</li>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.__init__">(xtl_core.system.os.permissions.FilePermissions method)</a>
+</li>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.__init__">(xtl_core.system.os.permissions.FilePermissionsBit method)</a>
+</li>
+        <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.__init__">(xtl_core.version_info.VersionInfo method)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.__new__">__new__() (xtl.config.version.ReleaseLevel method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.__new__">__new__() (xtl.jobs.batchfiles.BatchFileStatus method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.__new__">(xtl.jobs.batchfiles.BatchFileStatus method)</a>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.__new__">(xtl.jobs.pools.JobPool method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CommandPolicy.__new__">(xtl.jobs.CommandPolicy method)</a>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.__new__">(xtl.jobs.results.JobStatus method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.__new__">(xtl.jobs.ComputeSite method)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ComputeSite.__new__">(xtl.jobs.sites.ComputeSite method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.__new__">(xtl.jobs.JobPool method)</a>
+        <li><a href="api/xtl_core.system.compatibility.py310.html#xtl_core.system.compatibility.py310.StrEnum.__new__">(xtl_core.system.compatibility.py310.StrEnum method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.__new__">(xtl.jobs.Shell method)</a>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.__new__">(xtl_core.system.os.permissions.FileType method)</a>
+</li>
+        <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.__new__">(xtl_core.version_info.ReleaseLevel method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -477,41 +599,55 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncLock.acquire">acquire() (xtl.jobs.ipc.async_.AsyncLock method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock.acquire">(xtl.jobs.ipc.base.IPCLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessLock.acquire">(xtl.jobs.ipc.processes.ProcessLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedLock.acquire">(xtl.jobs.ipc.threads.ThreadedLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourceManager.acquire">(xtl.jobs.resources.ResourceManager method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourcesLease.acquire_child">acquire_child() (xtl.jobs.resources.ResourcesLease method)</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.active">active() (xtl.config.settings.XTLSettings class method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.add_col">add_col() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.add_col">add_col() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.add_comment">add_comment() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_comment">(xtl.jobs.batchfiles.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_comment">add_comment() (xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.add_line">add_line() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_line">(xtl.jobs.batchfiles.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.add_handler">add_handler() (xtl.jobs.pools.BasePool method)</a>
 </li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.add_lines">add_lines() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_lines">(xtl.jobs.batchfiles.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.add_job_handler">add_job_handler() (xtl.jobs.pools.BasePool method)</a>
 </li>
-      </ul></li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.add_row">add_row() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_line">add_line() (xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
-      <li><a href="api/xtl.common.html#xtl.common.afield">afield() (in module xtl.common)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.add_lines">add_lines() (xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.ALPHA">ALPHA (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.add_row">add_row() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.ALPHA">ALPHA (xtl_core.version_info.ReleaseLevel attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.apply_settings">apply_settings() (xtl.jobs.submissions.JobSubmission method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.html#xtl.common.AnnotatedDataclass">AnnotatedDataclass (class in xtl.common)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.arguments">arguments (xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.ASYNC">ASYNC (xtl.jobs.JobPool attribute)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.ASYNC">ASYNC (xtl.jobs.pools.JobPool attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.AsyncPool">AsyncPool (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend">AsyncIPCBackend (class in xtl.jobs.ipc.async_)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncLock">AsyncLock (class in xtl.jobs.ipc.async_)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.AsyncPool">AsyncPool (class in xtl.jobs.pools)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue">AsyncQueue (class in xtl.jobs.ipc.async_)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncState">AsyncState (class in xtl.jobs.ipc.async_)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.atsas">atsas (xtl.config.settings.DependenciesSettings attribute)</a>
 </li>
@@ -531,6 +667,8 @@
       </ul></li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutoprocSettings">AutoprocSettings (class in xtl.config.settings)</a>
 </li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourceManager.available">available() (xtl.jobs.resources.ResourceManager method)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -539,29 +677,19 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.BaseCommandPolicy">BaseCommandPolicy (class in xtl.jobs.policies)</a>
 </li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite">BaseComputeSite (class in xtl.jobs.sites)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool">BasePool (class in xtl.jobs.pools)</a>
+</li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell">BaseShell (class in xtl.jobs.shells)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.BASH">BASH (xtl.jobs.Shell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.BASH">BASH (xtl.jobs.shells.Shell attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell">BashShell (class in xtl.jobs.shells)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.batch_command">batch_command (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.BASH">(xtl.jobs.shells.Shell attribute)</a>
-</li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell">BashShell (class in xtl.jobs)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell">(class in xtl.jobs.shells)</a>
-</li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.batch_command">batch_command (xtl.jobs.BashShell attribute)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.batch_command">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.batch_command">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.batch_command">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.batch_command">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.batch_command">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -571,15 +699,9 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.batch_extension">batch_extension (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.batch_extension">batch_extension (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.batch_extension">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.batch_extension">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.batch_extension">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.batch_extension">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.batch_extension">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -587,19 +709,19 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.batch_extension">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile">BatchFile (class in xtl.jobs)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile">(class in xtl.jobs.batchfiles)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile">BatchFile (class in xtl.jobs.batchfiles)</a>
 </li>
-      </ul></li>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus">BatchFileStatus (class in xtl.jobs.batchfiles)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob">BatchJob (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.BatchJob">BatchJob (class in xtl.jobs.jobs)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig">BatchJobConfig (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig">BatchJobConfig (class in xtl.jobs.config)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.BETA">BETA (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.BatchResults">BatchResults (class in xtl.jobs.results)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.BETA">BETA (xtl_core.version_info.ReleaseLevel attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.BLOCK_DEVICE">BLOCK_DEVICE (xtl_core.system.os.permissions.FileType attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -607,39 +729,63 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.cancel">cancel() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.cancel">(xtl.jobs.batchfiles.BatchFile method)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.can_execute">can_execute (xtl_core.system.os.permissions.FilePermissionsBit property)</a>
 </li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.cancel_batch">cancel_batch() (xtl.jobs.LocalSite method)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.can_read">can_read (xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.can_write">can_write (xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.cancel">cancel() (xtl.jobs.batchfiles.BatchFile method)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.cancel_batch">cancel_batch() (xtl.jobs.sites.LocalSite method)</a>
 </li>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.CANCELLED">CANCELLED (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.CANCELLED">(xtl.jobs.results.JobStatus attribute)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.CastAsNoneIfEmpty">CastAsNoneIfEmpty() (in module xtl.common.validators)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.cap_to">cap_to() (xtl.jobs.resources.Resources method)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.CastAsPathOrNone">CastAsPathOrNone() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.CastAsNoneIfEmpty">CastAsNoneIfEmpty() (in module xtl_core.options.validators)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.CastAsValidator">CastAsValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.CastAsPathOrNone">CastAsPathOrNone() (in module xtl_core.options.validators)</a>
 </li>
-      <li><a href="api/xtl.common.html#xtl.common.cfield">cfield() (in module xtl.common)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.CastAsValidator">CastAsValidator() (in module xtl_core.options.validators)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.CHARACTER_DEVICE">CHARACTER_DEVICE (xtl_core.system.os.permissions.FileType attribute)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.check">check (xtl.config.settings.DependenciesSettings attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.check">check() (xtl.config.settings.XTLSettings method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.check_dependencies">check_dependencies() (xtl.jobs.LocalSite method)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.check_dependencies">check_dependencies() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.ModulesSite.check_dependencies">(xtl.jobs.ModulesSite method)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.check_dependencies">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.check_file">check_file() (xtl.config.settings.XTLSettings class method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.checker">checker (xtl.common.tables.MissingValueConfig attribute)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.check_job_id">check_job_id() (xtl.jobs.jobs.Job static method)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.ChoicesValidator">ChoicesValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.checks_to_dict">checks_to_dict() (xtl.config.settings.DependenciesSettings method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.clear">clear() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.checks_to_list">checks_to_list() (xtl.config.settings.DependencySettings method)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.chmod_recursively">chmod_recursively() (in module xtl_core.system.os.permissions)</a>
+</li>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.ChoicesValidator">ChoicesValidator() (in module xtl_core.options.validators)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.clamp_min">clamp_min() (xtl.jobs.resources.Resources method)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.clear_checks">clear_checks() (xtl.config.settings.DependenciesSettings method)</a>
+
+      <ul>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.clear_checks">(xtl.config.settings.DependencySettings method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.clear_default_level">clear_default_level() (in module xtl.jobs.logging)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.cli">cli (xtl.config.settings.XTLSettings attribute)</a>
 </li>
@@ -649,39 +795,21 @@
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings">CLISettings (class in xtl.config.settings)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.CMD">CMD (xtl.jobs.Shell attribute)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.CMD">(xtl.jobs.shells.Shell attribute)</a>
-</li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell">CmdShell (class in xtl.jobs)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell">(class in xtl.jobs.shells)</a>
-</li>
-      </ul></li>
-      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIAutoprocSettings.collect_logs">collect_logs (xtl.config.settings.CLIAutoprocSettings attribute)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.CommandPolicy">CommandPolicy (class in xtl.jobs)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy">(class in xtl.jobs.policies)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.CMD">CMD (xtl.jobs.shells.Shell attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell">CmdShell (class in xtl.jobs.shells)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIAutoprocSettings.collect_logs">collect_logs (xtl.config.settings.CLIAutoprocSettings attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy">CommandPolicy (class in xtl.jobs.policies)</a>
+</li>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicyType">CommandPolicyType (in module xtl.jobs.policies)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.comment_char">comment_char (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.comment_char">comment_char (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.comment_char">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.comment_char">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.comment_char">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.comment_char">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.comment_char">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -689,39 +817,51 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.comment_char">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.compatible_shells">compatible_shells (xtl.jobs.BatchJobConfig property)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.compatible_shells">compatible_shells (xtl.jobs.config.BatchJobConfig property)</a>
 </li>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.COMPLETED">COMPLETED (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomateSettings.compute_site">compute_site (xtl.config.settings.AutomateSettings attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.compute_site">(xtl.config.settings.JobsSettings attribute)</a>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.compute_site">(xtl.config.settings.DependencySettings attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.compute_site">(xtl.jobs.BatchFile property)</a>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.compute_site">(xtl.config.settings.JobsSettings attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.compute_site">(xtl.jobs.batchfiles.BatchFile property)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.compute_site">(xtl.jobs.BatchJobConfig attribute)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.compute_site">(xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite">ComputeSite (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ComputeSite">ComputeSite (class in xtl.jobs.sites)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.condition">condition (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.condition">condition (xtl.jobs.steps.StepSpec attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob.config">config (xtl.jobs.BatchJob property)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.BatchJob.config">config (xtl.jobs.jobs.BatchJob property)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Job.config">(xtl.jobs.Job property)</a>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.config">(xtl.jobs.jobs.Job property)</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.config">(xtl.jobs.jobs.JobData attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.config_cls">config_cls (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.config_cls">config_cls (xtl.jobs.steps.StepSpec attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo">ConfigFileInfo (class in xtl.config.settings)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.configure">configure() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.configure">configure() (xtl.jobs.jobs.Job method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.SteppedJob.configure">(xtl.jobs.jobs.SteppedJob method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob.context">context (xtl.jobs.BatchJob property)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.configure">(xtl.jobs.logging.LoggerConfig method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.BatchJob.context">context (xtl.jobs.jobs.BatchJob property)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.counts">counts() (xtl.jobs.pools.BasePool method)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.html#xtl_core.system.os.CPU_CORES">CPU_CORES (in module xtl_core.system.os)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.creatable">creatable (xtl.config.settings.ConfigFileInfo attribute)</a>
 </li>
@@ -731,59 +871,73 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.data">data (xtl.common.tables.Table property)</a>
-</li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.date">date (xtl.config.version.VersionInfo attribute)</a>
-</li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.default">default (xtl.common.environment.EnvVar attribute)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.CommandPolicy.DEFAULT">DEFAULT (xtl.jobs.CommandPolicy attribute)</a>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults.data">data (xtl.jobs.results.JobResults attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy.DEFAULT">(xtl.jobs.policies.CommandPolicy attribute)</a>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.data">(xtl.jobs.steps.JobContext attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.DEFAULT">(xtl.jobs.Shell attribute)</a>
+        <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.data">(xtl.jobs.submissions.JobSubmission attribute)</a>
 </li>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.data">(xtl_core.containers.tables.Table property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.date">date (xtl_core.version_info.VersionInfo attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat.datefmt">datefmt (xtl.jobs.logging.LoggingFormat attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.decimal">decimal (xtl_core.system.os.permissions.FilePermissions property)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.decimal">(xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy.DEFAULT">DEFAULT (xtl.jobs.policies.CommandPolicy attribute)</a>
+
+      <ul>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.DEFAULT">(xtl.jobs.shells.Shell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.default_missing_value">default_missing_value (xtl.common.tables.Table attribute)</a>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.default">default (xtl_core.system.environment.EnvVar attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.default_shell">default_shell (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.default_missing_value">default_missing_value (xtl_core.containers.tables.Table attribute)</a>
 </li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.default_shell">default_shell (xtl.jobs.config.BatchJobConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.default_shell">(xtl.jobs.sites.BaseComputeSite property)</a>
+</li>
+      </ul></li>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.DefaultCommandPolicy">DefaultCommandPolicy (class in xtl.jobs.policies)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.defaults">defaults (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.defaults">defaults (xtl.jobs.steps.StepSpec attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.DefaultShell">DefaultShell (in module xtl.jobs.shells)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.del_col">del_col() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.del_col">del_col() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.del_row">del_row() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.del_row">del_row() (xtl_core.containers.tables.Table method)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.dependencies">dependencies (xtl.config.settings.XTLSettings attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.dependencies">(xtl.jobs.BatchFile property)</a>
-</li>
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.dependencies">(xtl.jobs.batchfiles.BatchFile property)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.dependencies">(xtl.jobs.BatchJobConfig attribute)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings">DependenciesSettings (class in xtl.config.settings)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.dependency_command">dependency_command (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.dependencies">dependencies() (xtl.jobs.jobs.Job class method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.dependency_command">(xtl.jobs.CmdShell attribute)</a>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.SteppedJob.dependencies">(xtl.jobs.jobs.SteppedJob class method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.dependency_command">(xtl.jobs.PowerShell attribute)</a>
+      </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings">DependenciesSettings (class in xtl.config.settings)</a>
 </li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.dependency_command">(xtl.jobs.shells.BaseShell attribute)</a>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.dependency_checks">dependency_checks (xtl.jobs.submissions.JobSubmission attribute)</a>
 </li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.dependency_command">dependency_command (xtl.jobs.shells.BaseShell attribute)</a>
+
+      <ul>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.dependency_command">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.dependency_command">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -791,19 +945,27 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.dependency_command">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.DependencyError">DependencyError</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings">DependencySettings (class in xtl.config.settings)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.desc">desc (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.desc">desc (xtl.jobs.steps.StepSpec attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.description">description (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.description">description (xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.deserialize">deserialize() (xtl.jobs.Job class method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.deserialize">deserialize() (xtl.jobs.jobs.Job class method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.DEV">DEV (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.DEV">DEV (xtl_core.version_info.ReleaseLevel attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.directories">directories (xtl.config.settings.AutomatePermissionsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.dynamic_defaults">dynamic_defaults (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.DIRECTORY">DIRECTORY (xtl_core.system.os.permissions.FileType attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobNameFilter.display_name">display_name() (xtl.jobs.logging.JobNameFilter method)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.DONE">DONE (xtl.jobs.results.JobStatus attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.dynamic_defaults">dynamic_defaults (xtl.jobs.steps.StepSpec attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -815,17 +977,25 @@
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.EasyBraggSettings">EasyBraggSettings (class in xtl.config.settings)</a>
 </li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar">EnvVar (class in xtl.common.environment)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.executable">executable (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue.empty">empty() (xtl.jobs.ipc.async_.AsyncQueue method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.executable">(xtl.jobs.CmdShell attribute)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue.empty">(xtl.jobs.ipc.base.IPCQueue method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.executable">(xtl.jobs.PowerShell attribute)</a>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue.empty">(xtl.jobs.ipc.processes.ProcessQueue method)</a>
 </li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.executable">(xtl.jobs.shells.BaseShell attribute)</a>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue.empty">(xtl.jobs.ipc.threads.ThreadedQueue method)</a>
 </li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.encoding">encoding (xtl.jobs.logging.FileHandlerConfig attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar">EnvVar (class in xtl_core.system.environment)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults.error">error (xtl.jobs.results.JobResults attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.executable">executable (xtl.jobs.shells.BaseShell attribute)</a>
+
+      <ul>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.executable">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.executable">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -835,23 +1005,17 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.execute">execute() (xtl.jobs.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.execute">execute() (xtl.jobs.batchfiles.BatchFile method)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.execute_batch">execute_batch() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.execute">(xtl.jobs.batchfiles.BatchFile method)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.execute_batch">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.execute_batch">execute_batch() (xtl.jobs.LocalSite method)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.execute_command">execute_command (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.execute_command">execute_command (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.execute_command">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.execute_command">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.execute_command">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.execute_command">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.execute_command">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -859,7 +1023,11 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.execute_command">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.execute_command">execute_command() (xtl.jobs.sites.BaseComputeSite static method)</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.exists">exists (xtl.config.settings.ConfigFileInfo property)</a>
+</li>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.expand_path">expand_path() (in module xtl_core.system.environment)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -868,60 +1036,124 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.FAILED">FAILED (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.file">file (xtl.jobs.BatchFile property)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.file">(xtl.jobs.batchfiles.BatchFile property)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.file">(xtl.jobs.BatchJobConfig property)</a>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.FAILED">(xtl.jobs.results.JobStatus attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.filename">filename (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.FIFO">FIFO (xtl_core.system.os.permissions.FileType attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.file">file (xtl.jobs.batchfiles.BatchFile property)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.FILE">FILE (xtl_core.system.os.permissions.FileType attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.file_encoding">file_encoding (xtl.jobs.shells.BaseShell attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.file_encoding">(xtl.jobs.shells.PowerShell attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.file_type">file_type (xtl_core.system.os.permissions.FilePermissions attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig">FileHandlerConfig (class in xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.filename">filename (xtl.jobs.config.BatchJobConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.filename">(xtl.jobs.logging.FileHandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.filename">(xtl.jobs.logging.JobFileHandlerConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions">FilePermissions (class in xtl_core.system.os.permissions)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit">FilePermissionsBit (class in xtl_core.system.os.permissions)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.files">files (xtl.config.settings.AutomatePermissionsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.FINAL">FINAL (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType">FileType (class in xtl_core.system.os.permissions)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.fill">fill() (xtl.jobs.logging.HandlerConfig method)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobNameFilter.filter">filter() (xtl.jobs.logging.JobNameFilter method)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.FINAL">FINAL (xtl_core.version_info.ReleaseLevel attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.fits_in">fits_in() (xtl.jobs.resources.Resources method)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobNameFilter.for_logger">for_logger() (xtl.jobs.logging.JobNameFilter class method)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings.format">format (xtl.config.settings.CLISettings attribute)</a>
-</li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.formats">formats (xtl.common.tables.Table property)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.from_config">from_config() (xtl.jobs.BatchFile class method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.from_config">(xtl.jobs.batchfiles.BatchFile class method)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.format">(xtl.jobs.logging.HandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.format">(xtl.jobs.logging.JobFileHandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat.format">(xtl.jobs.logging.LoggingFormat attribute)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.from_csv">from_csv() (xtl.common.tables.Table class method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.formats">formats (xtl_core.containers.tables.Table property)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.from_dict">from_dict() (xtl.common.options.Options class method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.from_config">from_config() (xtl.jobs.batchfiles.BatchFile class method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.from_csv">from_csv() (xtl_core.containers.tables.Table class method)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.from_dict">from_dict() (xtl.config.settings.XTLSettings class method)</a>
 
       <ul>
-        <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions.from_dict">(xtl.common.options.VersionedOptions class method)</a>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.from_dict">(xtl_core.containers.tables.Table class method)</a>
 </li>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.from_dict">(xtl.common.tables.Table class method)</a>
+        <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.from_dict">(xtl_core.options.base.Options class method)</a>
+</li>
+        <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.from_dict">(xtl_core.options.versioned.VersionedOptions class method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.from_hex">from_hex() (xtl.config.version.VersionInfo class method)</a>
-</li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.from_json">from_json() (xtl.common.options.Options class method)</a>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.from_handle">from_handle() (xtl.jobs.ipc.async_.AsyncIPCBackend class method)</a>
 
       <ul>
-        <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions.from_json">(xtl.common.options.VersionedOptions class method)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.from_handle">(xtl.jobs.ipc.base.IPCBackend class method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.from_handle">(xtl.jobs.ipc.processes.ProcessIPCBackend class method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.from_handle">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend class method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.from_handle">(xtl.jobs.ipc.threads.ThreadedIPCBackend class method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.from_numpy">from_numpy() (xtl.common.tables.Table class method)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.from_hex">from_hex() (xtl_core.version_info.VersionInfo class method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.from_pandas">from_pandas() (xtl.common.tables.Table class method)</a>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.from_job">from_job() (xtl.jobs.submissions.JobSubmission class method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.from_str">from_str() (xtl.config.version.VersionInfo class method)</a>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.from_json">from_json() (xtl_core.options.base.Options class method)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.from_json">(xtl_core.options.versioned.VersionedOptions class method)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.from_toml">from_toml() (xtl.common.options.Options class method)</a>
+      </ul></li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.from_numpy">from_numpy() (xtl_core.containers.tables.Table class method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.from_value">from_value() (xtl.config.version.VersionInfo class method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.from_pandas">from_pandas() (xtl_core.containers.tables.Table class method)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.from_path">from_path() (xtl_core.system.os.permissions.FilePermissions class method)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.from_spec">from_spec() (xtl.jobs.logging.HandlerConfig static method)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.from_str">from_str() (xtl_core.version_info.VersionInfo class method)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.from_string">from_string() (xtl_core.system.os.permissions.FilePermissions class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.from_toml">from_toml() (xtl_core.options.base.Options class method)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.from_toml">(xtl_core.options.versioned.VersionedOptions class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.from_value">from_value() (xtl_core.version_info.VersionInfo class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.UpgradeStep.func">func (xtl_core.options.versioned.UpgradeStep attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -929,69 +1161,201 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.GAMMA">GAMMA (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.GAMMA">GAMMA (xtl_core.version_info.ReleaseLevel attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.get">get() (xtl.config.settings.DependenciesSettings method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CommandPolicy.get">(xtl.jobs.CommandPolicy method)</a>
+        <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue.get">(xtl.jobs.ipc.async_.AsyncQueue method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.get">(xtl.jobs.ComputeSite method)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue.get">(xtl.jobs.ipc.base.IPCQueue method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.get">(xtl.jobs.JobPool method)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState.get">(xtl.jobs.ipc.base.IPCState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue.get">(xtl.jobs.ipc.processes.ProcessQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue.get">(xtl.jobs.ipc.threads.ThreadedQueue method)</a>
 </li>
         <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy.get">(xtl.jobs.policies.CommandPolicy method)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.get">(xtl.jobs.Shell method)</a>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.get">(xtl.jobs.pools.JobPool method)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.get">(xtl.jobs.shells.Shell method)</a>
 </li>
-      </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.get_batch">get_batch() (xtl.jobs.BatchJobConfig method)</a>
-</li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.get_col">get_col() (xtl.common.tables.Table method)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.get_content">get_content() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_content">(xtl.jobs.batchfiles.BatchFile method)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ComputeSite.get">(xtl.jobs.sites.ComputeSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.get_context">get_context() (xtl.jobs.BatchJobConfig method)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.get_batch">get_batch() (xtl.jobs.config.BatchJobConfig method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.get_check">get_check() (xtl.config.settings.DependencySettings method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.get_col">get_col() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_content">get_content() (xtl.jobs.batchfiles.BatchFile method)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.get_context">get_context() (xtl.jobs.config.BatchJobConfig method)</a>
+</li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_dependency_resolution_command">get_dependency_resolution_command() (xtl.jobs.shells.BaseShell method)</a>
 </li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_execute_batch_command">get_execute_batch_command() (xtl.jobs.shells.BaseShell method)</a>
 </li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_execute_command">get_execute_command() (xtl.jobs.shells.BaseShell method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.get_format">get_format() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.get_file">get_file() (xtl.jobs.config.BatchJobConfig method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.get_logger">get_logger() (xtl.jobs.Job class method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.get_format">get_format() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.get_pool">get_pool() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat.get_formatter">get_formatter() (xtl.jobs.logging.LoggingFormat method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.get_postamble">get_postamble() (xtl.jobs.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_found_report_command">get_found_report_command() (xtl.jobs.shells.BaseShell method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_postamble">(xtl.jobs.batchfiles.BatchFile method)</a>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.get_found_report_command">(xtl.jobs.shells.BashShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.get_found_report_command">(xtl.jobs.shells.CmdShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.get_found_report_command">(xtl.jobs.shells.PowerShell method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.get_preamble">get_preamble() (xtl.jobs.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_guard_command">get_guard_command() (xtl.jobs.shells.BaseShell method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_preamble">(xtl.jobs.batchfiles.BatchFile method)</a>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.get_guard_command">(xtl.jobs.shells.BashShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.get_guard_command">(xtl.jobs.shells.CmdShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.get_guard_command">(xtl.jobs.shells.PowerShell method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.get_resources">get_resources() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.get_handler">get_handler() (xtl.jobs.logging.FileHandlerConfig method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.get_handler">(xtl.jobs.logging.HandlerConfig method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.get_row">get_row() (xtl.common.tables.Table method)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.get_handler">(xtl.jobs.logging.JobFileHandlerConfig method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.get_template">get_template() (xtl.jobs.BatchJobConfig method)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig.get_handler">(xtl.jobs.logging.StreamHandlerConfig method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.get_job_cls">get_job_cls() (xtl.jobs.jobs.JobData method)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_load_command">get_load_command() (xtl.jobs.shells.BaseShell method)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_load_report_command">get_load_report_command() (xtl.jobs.shells.BaseShell method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.get_load_report_command">(xtl.jobs.shells.BashShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.get_load_report_command">(xtl.jobs.shells.CmdShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.get_load_report_command">(xtl.jobs.shells.PowerShell method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.get_lock">get_lock() (xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.get_lock">(xtl.jobs.ipc.base.IPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.get_lock">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.get_lock">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.get_lock">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.get_lock">(xtl.jobs.pools.BasePool method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol.get_lock">(xtl.jobs.pools.PoolProtocol method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.get_logger">get_logger() (xtl.jobs.jobs.Job class method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.get_logger">(xtl.jobs.pools.BasePool class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.get_logger_config">get_logger_config() (in module xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_module_command">get_module_command() (xtl.jobs.shells.BaseShell method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.get_module_command">(xtl.jobs.shells.BashShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.get_module_command">(xtl.jobs.shells.CmdShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.get_module_command">(xtl.jobs.shells.PowerShell method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.html#xtl_core.system.os.get_os_name_and_version">get_os_name_and_version() (in module xtl_core.system.os)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.get_path_command">get_path_command() (xtl.jobs.shells.BaseShell method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.get_path_command">(xtl.jobs.shells.BashShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.get_path_command">(xtl.jobs.shells.CmdShell method)</a>
+</li>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.get_path_command">(xtl.jobs.shells.PowerShell method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.get_permissions_in_decimal">get_permissions_in_decimal() (in module xtl_core.system.os.permissions)</a>
+</li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.get_pool">get_pool() (xtl.jobs.jobs.Job method)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_postamble">get_postamble() (xtl.jobs.batchfiles.BatchFile method)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.get_preamble">get_preamble() (xtl.jobs.batchfiles.BatchFile method)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.get_queue">get_queue() (xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.get_queue">(xtl.jobs.ipc.base.IPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.get_queue">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.get_queue">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.get_queue">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.get_queue">(xtl.jobs.pools.BasePool method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol.get_queue">(xtl.jobs.pools.PoolProtocol method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.get_rc_manager">get_rc_manager() (in module xtl.jobs.resources)</a>
+</li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.get_resources">get_resources() (xtl.jobs.jobs.Job method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.get_row">get_row() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.get_state">get_state() (xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.get_state">(xtl.jobs.ipc.base.IPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.get_state">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.get_state">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.get_state">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.get_state">(xtl.jobs.pools.BasePool method)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol.get_state">(xtl.jobs.pools.PoolProtocol method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.html#xtl_core.system.os.get_temp_location">get_temp_location() (in module xtl_core.system.os)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.get_template">get_template() (xtl.jobs.config.BatchJobConfig method)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.get_total_resources">get_total_resources() (in module xtl.jobs.resources)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.html#xtl_core.system.os.get_username">get_username() (in module xtl_core.system.os)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.global_config">global_config (xtl.config.settings.XTLSettings attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.group">group (xtl_core.system.os.permissions.FilePermissions attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -999,13 +1363,25 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.has_missing">has_missing (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.handler">handler (xtl.jobs.logging.FileHandlerConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.handler">(xtl.jobs.logging.HandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig.handler">(xtl.jobs.logging.StreamHandlerConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig">HandlerConfig (class in xtl.jobs.logging)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.headers">headers (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.handlers">handlers (xtl.jobs.logging.LoggerConfig attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.hex">hex (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.has_missing">has_missing (xtl_core.containers.tables.Table property)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.headers">headers (xtl_core.containers.tables.Table property)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.hex">hex (xtl_core.version_info.VersionInfo property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1014,6 +1390,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.IDLE">IDLE (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ignore_interrupts">ignore_interrupts() (in module xtl.jobs.ipc.processes)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.initialize">initialize() (xtl.config.settings.XTLSettings class method)</a>
 </li>
@@ -1049,19 +1427,29 @@
         <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy.intercept_preamble">(xtl.jobs.policies.NiceCommandPolicy method)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.ipc">ipc (xtl.jobs.submissions.JobSubmission attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend">IPCBackend (class in xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandle">IPCHandle (class in xtl.jobs.ipc.base)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.is_complete">is_complete (xtl.jobs.Job property)</a>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandleNames">IPCHandleNames (class in xtl.jobs.ipc.base)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.is_posix">is_posix (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock">IPCLock (class in xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue">IPCQueue (class in xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState">IPCState (class in xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.is_complete">is_complete (xtl.jobs.jobs.Job property)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.is_finished">is_finished (xtl.jobs.results.JobStatus property)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.is_posix">is_posix (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.is_posix">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.is_posix">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.is_posix">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.is_posix">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.is_posix">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -1069,14 +1457,24 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.is_posix">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.is_running">is_running (xtl.jobs.Job property)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.is_running">is_running (xtl.jobs.jobs.Job property)</a>
 </li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.is_set">is_set (xtl.common.environment.EnvVar property)</a>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.is_set">is_set (xtl_core.system.environment.EnvVar property)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.items">items() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.system.os.html#xtl_core.system.os.is_temp">is_temp() (in module xtl_core.system.os)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.is_valid_shell">is_valid_shell() (xtl.jobs.sites.BaseComputeSite method)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.items">items() (xtl.config.settings.DependenciesSettings method)</a>
 
       <ul>
-        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.items">(xtl.config.settings.DependenciesSettings method)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState.items">(xtl.jobs.ipc.base.IPCState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessState.items">(xtl.jobs.ipc.processes.ProcessState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedState.items">(xtl.jobs.ipc.threads.ThreadedState method)</a>
+</li>
+        <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.items">(xtl_core.containers.tables.Table method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -1085,33 +1483,67 @@
 <h2 id="J">J</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job">Job (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job">Job (class in xtl.jobs.jobs)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.job_cls">job_cls (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.job_cls">job_cls (xtl.jobs.jobs.JobData attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.job_cls">(xtl.jobs.steps.StepSpec attribute)</a>
 </li>
+      </ul></li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomateSettings.job_digits">job_digits (xtl.config.settings.AutomateSettings attribute)</a>
 
       <ul>
         <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.job_digits">(xtl.config.settings.JobsSettings attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.job_directory">job_directory (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.job_directory">job_directory (xtl.jobs.config.BatchJobConfig attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.job_directory">(xtl.jobs.JobConfig attribute)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig.job_directory">(xtl.jobs.config.JobConfig attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.job_id">job_id (xtl.jobs.jobs.Job property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.job_id">(xtl.jobs.jobs.JobData attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults.job_id">(xtl.jobs.results.JobResults attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings.job_log_files">job_log_files (xtl.config.settings.CLISettings attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.job_logger_name">job_logger_name (xtl.jobs.submissions.JobSubmission property)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.job_id">job_id (xtl.jobs.Job property)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig">JobConfig (class in xtl.jobs.config)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig">JobConfig (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext">JobContext (class in xtl.jobs.steps)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool">JobPool (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData">JobData (class in xtl.jobs.jobs)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig">JobFileHandlerConfig (class in xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobNameFilter">JobNameFilter (class in xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool">JobPool (class in xtl.jobs.pools)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults">JobResults (class in xtl.jobs.results)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.jobs">jobs (xtl.config.settings.XTLSettings attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.jobs">(xtl.jobs.resources.Resources attribute)</a>
 </li>
+      </ul></li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings">JobsSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus">JobStatus (class in xtl.jobs.results)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission">JobSubmission (class in xtl.jobs.submissions)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.join">join() (xtl.jobs.shells.BaseShell method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1126,30 +1558,82 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState.keys">keys() (xtl.jobs.ipc.base.IPCState method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessState.keys">(xtl.jobs.ipc.processes.ProcessState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedState.keys">(xtl.jobs.ipc.threads.ThreadedState method)</a>
+</li>
+      </ul></li>
+  </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions.legacy_versions">legacy_versions() (xtl.common.options.VersionedOptions class method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.label">label (xtl.jobs.jobs.Job property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.label">(xtl.jobs.pools.BasePool property)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.LegacyOptions">LegacyOptions (class in xtl.common.options)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.label_of">label_of() (xtl.jobs.jobs.Job class method)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.LengthValidator">LengthValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.launch">launch() (xtl.jobs.pools.BasePool method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.level">level (xtl.config.version.VersionInfo attribute)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.LengthValidator">LengthValidator() (in module xtl_core.options.validators)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.LOCAL">LOCAL (xtl.jobs.ComputeSite attribute)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.level">level (xtl.jobs.logging.HandlerConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.level">(xtl.jobs.logging.JobFileHandlerConfig attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite">LocalSite (class in xtl.jobs)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.level">(xtl.jobs.logging.LoggerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.level">(xtl_core.version_info.VersionInfo attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ComputeSite.LOCAL">LOCAL (xtl.jobs.sites.ComputeSite attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite">LocalSite (class in xtl.jobs.sites)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.locations">locations() (xtl.config.settings.XTLSettings class method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.lock">lock() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.lock">lock() (xtl.jobs.jobs.Job method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.logger">logger (xtl.jobs.Job property)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandle.locks">locks (xtl.jobs.ipc.base.IPCHandle property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandleNames.locks">(xtl.jobs.ipc.base.IPCHandleNames attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig.log_handlers">log_handlers (xtl.jobs.config.JobConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.log_handlers">(xtl.jobs.jobs.JobData attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.log_level">log_level (xtl.jobs.submissions.JobSubmission attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.logger">logger (xtl.jobs.batchfiles.BatchFile property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.logger">(xtl.jobs.jobs.Job property)</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.logger">(xtl.jobs.pools.BasePool property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.logger_config">logger_config (xtl.jobs.jobs.Job property)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.logger_name">logger_name (xtl.jobs.submissions.JobSubmission attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig">LoggerConfig (class in xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat">LoggingFormat (class in xtl.jobs.logging)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIAutoprocSettings.logs_dir">logs_dir (xtl.config.settings.CLIAutoprocSettings attribute)</a>
 </li>
@@ -1159,67 +1643,103 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.major">major (xtl.config.version.VersionInfo attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.major">major (xtl_core.version_info.VersionInfo attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLISettings.max_fps">max_fps (xtl.config.settings.CLISettings attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_jobs">max_jobs (xtl.config.settings.ResourcesSettings attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.max_jobs">(xtl.jobs.pools.BasePool property)</a>
 </li>
+      </ul></li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_processes">max_processes (xtl.config.settings.ResourcesSettings attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ResourcesSettings.max_threads">max_threads (xtl.config.settings.ResourcesSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.micro">micro (xtl.config.version.VersionInfo attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.micro">micro (xtl_core.version_info.VersionInfo attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.minor">minor (xtl.config.version.VersionInfo attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.minor">minor (xtl_core.version_info.VersionInfo attribute)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.missing">missing (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.missing">missing (xtl_core.containers.tables.Table property)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValue">MissingValue (class in xtl.common.tables)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.MissingPlaceholderError">MissingPlaceholderError</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig">MissingValueConfig (class in xtl.common.tables)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValue">MissingValue (class in xtl_core.containers.tables)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.model_config">model_config (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValueConfig">MissingValueConfig (class in xtl_core.containers.tables)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.mode">mode (xtl.jobs.logging.FileHandlerConfig attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.model_config">(xtl.jobs.JobConfig attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig.model_config">(xtl.jobs.SteppedJobConfig attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.model_config">(xtl.jobs.StepSpec attribute)</a>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.mode">(xtl.jobs.logging.JobFileHandlerConfig attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.model_post_init">model_post_init() (xtl.jobs.BatchJobConfig method)</a>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.UpgradeStep.model">model (xtl_core.options.versioned.UpgradeStep attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.model_config">model_config (xtl.jobs.config.BatchJobConfig attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.model_post_init">(xtl.jobs.JobConfig method)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig.model_config">(xtl.jobs.config.JobConfig attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig.model_post_init">(xtl.jobs.SteppedJobConfig method)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.SteppedJobConfig.model_config">(xtl.jobs.config.SteppedJobConfig attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.model_post_init">(xtl.jobs.StepSpec method)</a>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.model_config">(xtl.jobs.jobs.JobData attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.model_config">(xtl.jobs.logging.FileHandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.model_config">(xtl.jobs.logging.HandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.model_config">(xtl.jobs.logging.JobFileHandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.model_config">(xtl.jobs.logging.LoggerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat.model_config">(xtl.jobs.logging.LoggingFormat attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig.model_config">(xtl.jobs.logging.StreamHandlerConfig attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.model_config">(xtl.jobs.steps.JobContext attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.model_config">(xtl.jobs.steps.StepSpec attribute)</a>
+</li>
+        <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.model_config">(xtl.jobs.submissions.JobSubmission attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.model_validate">model_validate() (xtl.common.options.Options class method)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.model_post_init">model_post_init() (xtl.jobs.config.BatchJobConfig method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig.model_post_init">(xtl.jobs.config.JobConfig method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.SteppedJobConfig.model_post_init">(xtl.jobs.config.SteppedJobConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.model_post_init">(xtl.jobs.jobs.JobData method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.FileHandlerConfig.model_post_init">(xtl.jobs.logging.FileHandlerConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.model_post_init">(xtl.jobs.logging.HandlerConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.JobFileHandlerConfig.model_post_init">(xtl.jobs.logging.JobFileHandlerConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.model_post_init">(xtl.jobs.logging.LoggerConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggingFormat.model_post_init">(xtl.jobs.logging.LoggingFormat method)</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig.model_post_init">(xtl.jobs.logging.StreamHandlerConfig method)</a>
+</li>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.model_post_init">(xtl.jobs.steps.JobContext method)</a>
+</li>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.model_post_init">(xtl.jobs.steps.StepSpec method)</a>
+</li>
+        <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.model_post_init">(xtl.jobs.submissions.JobSubmission method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.model_validate">model_validate() (xtl_core.options.base.Options class method)</a>
+</li>
       <li>
     module
 
       <ul>
         <li><a href="api/xtl.html#module-xtl">xtl</a>
-</li>
-        <li><a href="api/xtl.common.html#module-xtl.common">xtl.common</a>
-</li>
-        <li><a href="api/xtl.common.environment.html#module-xtl.common.environment">xtl.common.environment</a>
-</li>
-        <li><a href="api/xtl.common.options.html#module-xtl.common.options">xtl.common.options</a>
-</li>
-        <li><a href="api/xtl.common.serializers.html#module-xtl.common.serializers">xtl.common.serializers</a>
-</li>
-        <li><a href="api/xtl.common.tables.html#module-xtl.common.tables">xtl.common.tables</a>
-</li>
-        <li><a href="api/xtl.common.validators.html#module-xtl.common.validators">xtl.common.validators</a>
 </li>
         <li><a href="api/xtl.config.html#module-xtl.config">xtl.config</a>
 </li>
@@ -1227,22 +1747,110 @@
 </li>
         <li><a href="api/xtl.config.version.html#module-xtl.config.version">xtl.config.version</a>
 </li>
+        <li><a href="api/xtl.exceptions.html#module-xtl.exceptions">xtl.exceptions</a>
+</li>
         <li><a href="api/xtl.jobs.html#module-xtl.jobs">xtl.jobs</a>
 </li>
         <li><a href="api/xtl.jobs.batchfiles.html#module-xtl.jobs.batchfiles">xtl.jobs.batchfiles</a>
 </li>
+        <li><a href="api/xtl.jobs.config.html#module-xtl.jobs.config">xtl.jobs.config</a>
+</li>
+        <li><a href="api/xtl.jobs.exceptions.html#module-xtl.jobs.exceptions">xtl.jobs.exceptions</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.html#module-xtl.jobs.ipc">xtl.jobs.ipc</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.async_.html#module-xtl.jobs.ipc.async_">xtl.jobs.ipc.async_</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.base.html#module-xtl.jobs.ipc.base">xtl.jobs.ipc.base</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#module-xtl.jobs.ipc.processes">xtl.jobs.ipc.processes</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#module-xtl.jobs.ipc.threads">xtl.jobs.ipc.threads</a>
+</li>
+        <li><a href="api/xtl.jobs.jobs.html#module-xtl.jobs.jobs">xtl.jobs.jobs</a>
+</li>
+        <li><a href="api/xtl.jobs.logging.html#module-xtl.jobs.logging">xtl.jobs.logging</a>
+</li>
         <li><a href="api/xtl.jobs.policies.html#module-xtl.jobs.policies">xtl.jobs.policies</a>
+</li>
+        <li><a href="api/xtl.jobs.pools.html#module-xtl.jobs.pools">xtl.jobs.pools</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#module-xtl.jobs.resources">xtl.jobs.resources</a>
+</li>
+        <li><a href="api/xtl.jobs.results.html#module-xtl.jobs.results">xtl.jobs.results</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#module-xtl.jobs.shells">xtl.jobs.shells</a>
 </li>
+        <li><a href="api/xtl.jobs.sites.html#module-xtl.jobs.sites">xtl.jobs.sites</a>
+</li>
+        <li><a href="api/xtl.jobs.steps.html#module-xtl.jobs.steps">xtl.jobs.steps</a>
+</li>
+        <li><a href="api/xtl.jobs.submissions.html#module-xtl.jobs.submissions">xtl.jobs.submissions</a>
+</li>
+        <li><a href="api/xtl.shared.html#module-xtl.shared">xtl.shared</a>
+</li>
+        <li><a href="api/xtl.shared.environment.html#module-xtl.shared.environment">xtl.shared.environment</a>
+</li>
+        <li><a href="api/xtl_core.html#module-xtl_core">xtl_core</a>
+</li>
+        <li><a href="api/xtl_core.containers.html#module-xtl_core.containers">xtl_core.containers</a>
+</li>
+        <li><a href="api/xtl_core.containers.tables.html#module-xtl_core.containers.tables">xtl_core.containers.tables</a>
+</li>
+        <li><a href="api/xtl_core.errors.html#module-xtl_core.errors">xtl_core.errors</a>
+</li>
+        <li><a href="api/xtl_core.options.html#module-xtl_core.options">xtl_core.options</a>
+</li>
+        <li><a href="api/xtl_core.options.base.html#module-xtl_core.options.base">xtl_core.options.base</a>
+</li>
+        <li><a href="api/xtl_core.options.serializers.html#module-xtl_core.options.serializers">xtl_core.options.serializers</a>
+</li>
+        <li><a href="api/xtl_core.options.validators.html#module-xtl_core.options.validators">xtl_core.options.validators</a>
+</li>
+        <li><a href="api/xtl_core.options.versioned.html#module-xtl_core.options.versioned">xtl_core.options.versioned</a>
+</li>
+        <li><a href="api/xtl_core.system.html#module-xtl_core.system">xtl_core.system</a>
+</li>
+        <li><a href="api/xtl_core.system.compatibility.py310.html#module-xtl_core.system.compatibility.py310">xtl_core.system.compatibility.py310</a>
+</li>
+        <li><a href="api/xtl_core.system.compatibility.py313.html#module-xtl_core.system.compatibility.py313">xtl_core.system.compatibility.py313</a>
+</li>
+        <li><a href="api/xtl_core.system.compatibility.py314.html#module-xtl_core.system.compatibility.py314">xtl_core.system.compatibility.py314</a>
+</li>
+        <li><a href="api/xtl_core.system.environment.html#module-xtl_core.system.environment">xtl_core.system.environment</a>
+</li>
+        <li><a href="api/xtl_core.system.os.html#module-xtl_core.system.os">xtl_core.system.os</a>
+</li>
+        <li><a href="api/xtl_core.system.os.permissions.html#module-xtl_core.system.os.permissions">xtl_core.system.os.permissions</a>
+</li>
+        <li><a href="api/xtl_core.version_info.html#module-xtl_core.version_info">xtl_core.version_info</a>
+</li>
       </ul></li>
-      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.modules">modules (xtl.config.settings.DependencySettings attribute)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.module_command">module_command (xtl.jobs.shells.BaseShell attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.module_command">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.MODULES">MODULES (xtl.jobs.ComputeSite attribute)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.module_setup">module_setup (xtl.jobs.shells.BaseShell attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.module_setup">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ModulesSite">ModulesSite (class in xtl.jobs)</a>
+      </ul></li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.modules">modules (xtl.config.settings.DependenciesSettings attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.modules">(xtl.config.settings.DependencySettings attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.MultiprocessPool">MultiprocessPool (class in xtl.jobs)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ComputeSite.MODULES">MODULES (xtl.jobs.sites.ComputeSite attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.ModulesSite">ModulesSite (class in xtl.jobs.sites)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.MultiprocessPool">MultiprocessPool (class in xtl.jobs.pools)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1250,16 +1858,12 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.name">name (xtl.common.environment.EnvVar attribute)</a>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.name">name (xtl.config.settings.ConfigFileInfo attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.name">(xtl.config.settings.ConfigFileInfo attribute)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.name">(xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.name">(xtl.jobs.BashShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.name">(xtl.jobs.BatchJobConfig attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.name">(xtl.jobs.CmdShell attribute)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock.name">(xtl.jobs.ipc.base.IPCLock property)</a>
 </li>
         <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.BaseCommandPolicy.name">(xtl.jobs.policies.BaseCommandPolicy attribute)</a>
 </li>
@@ -1267,7 +1871,7 @@
 </li>
         <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy.name">(xtl.jobs.policies.NiceCommandPolicy attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.name">(xtl.jobs.PowerShell attribute)</a>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.name">(xtl.jobs.pools.BasePool property)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.name">(xtl.jobs.shells.BaseShell attribute)</a>
 </li>
@@ -1277,22 +1881,18 @@
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.name">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.name">(xtl.jobs.StepSpec attribute)</a>
+        <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.name">(xtl.jobs.steps.StepSpec attribute)</a>
+</li>
+        <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.name">(xtl_core.system.environment.EnvVar attribute)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.names">names() (xtl.config.settings.DependenciesSettings class method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.new_line_char">new_line_char (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.new_line_char">new_line_char (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.new_line_char">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.new_line_char">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.new_line_char">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.new_line_char">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.new_line_char">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -1300,19 +1900,17 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.new_line_char">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.CommandPolicy.NICE">NICE (xtl.jobs.CommandPolicy attribute)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy.NICE">(xtl.jobs.policies.CommandPolicy attribute)</a>
+      <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.CommandPolicy.NICE">NICE (xtl.jobs.policies.CommandPolicy attribute)</a>
 </li>
-      </ul></li>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy.nice_value">nice_value (xtl.jobs.policies.NiceCommandPolicy attribute)</a>
 </li>
       <li><a href="api/xtl.jobs.policies.html#xtl.jobs.policies.NiceCommandPolicy">NiceCommandPolicy (class in xtl.jobs.policies)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.no_cols">no_cols (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.no_cols">no_cols (xtl_core.containers.tables.Table property)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.no_rows">no_rows (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.no_rows">no_rows (xtl_core.containers.tables.Table property)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.NOT_YET">NOT_YET (in module xtl.jobs.ipc.base)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1320,11 +1918,23 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Option">Option() (in module xtl.common.options)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.octal">octal (xtl_core.system.os.permissions.FilePermissions property)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.octal">(xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Option">Option() (in module xtl_core.options.base)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options">Options (class in xtl.common.options)</a>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options">Options (class in xtl_core.options.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.options">options (xtl.jobs.logging.HandlerConfig attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.other">other (xtl_core.system.os.permissions.FilePermissions attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.owner">owner (xtl_core.system.os.permissions.FilePermissions attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1332,99 +1942,216 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.parser">parser (xtl.common.environment.EnvVar attribute)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.parent">parent (xtl.jobs.steps.JobContext attribute)</a>
+</li>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.parser">parser (xtl_core.system.environment.EnvVar attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.pass_through">pass_through() (in module xtl.jobs.logging)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ConfigFileInfo.path">path (xtl.config.settings.ConfigFileInfo attribute)</a>
 
       <ul>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.path">(xtl.config.settings.DependenciesSettings attribute)</a>
+</li>
         <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.path">(xtl.config.settings.DependencySettings attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.PathExistsValidator">PathExistsValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.system.compatibility.py313.html#xtl_core.system.compatibility.py313.path_exists">path_exists() (in module xtl_core.system.compatibility.py313)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.PathIsAbsoluteValidator">PathIsAbsoluteValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.system.compatibility.py313.html#xtl_core.system.compatibility.py313.path_is_dir">path_is_dir() (in module xtl_core.system.compatibility.py313)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.PathIsDirValidator">PathIsDirValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.system.compatibility.py313.html#xtl_core.system.compatibility.py313.path_is_file">path_is_file() (in module xtl_core.system.compatibility.py313)</a>
 </li>
-      <li><a href="api/xtl.common.validators.html#xtl.common.validators.PathIsFileValidator">PathIsFileValidator() (in module xtl.common.validators)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.PathExistsValidator">PathExistsValidator() (in module xtl_core.options.validators)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.pep440">pep440 (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.PathIsAbsoluteValidator">PathIsAbsoluteValidator() (in module xtl_core.options.validators)</a>
 </li>
-      <li><a href="api/xtl.common.serializers.html#xtl.common.serializers.PermissionOctal">PermissionOctal() (in module xtl.common.serializers)</a>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.PathIsDirValidator">PathIsDirValidator() (in module xtl_core.options.validators)</a>
+</li>
+      <li><a href="api/xtl_core.options.validators.html#xtl_core.options.validators.PathIsFileValidator">PathIsFileValidator() (in module xtl_core.options.validators)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.pep440">pep440 (xtl_core.version_info.VersionInfo property)</a>
+</li>
+      <li><a href="api/xtl_core.options.serializers.html#xtl_core.options.serializers.PermissionOctal">PermissionOctal() (in module xtl_core.options.serializers)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomateSettings.permissions">permissions (xtl.config.settings.AutomateSettings attribute)</a>
 
       <ul>
         <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.permissions">(xtl.config.settings.JobsSettings attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.permissions">(xtl.jobs.BatchFile property)</a>
-</li>
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.permissions">(xtl.jobs.batchfiles.BatchFile property)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.permissions">(xtl.jobs.BatchJobConfig attribute)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.permissions">(xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.html#xtl.common.pfield">pfield() (in module xtl.common)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.PLACEHOLDERS">PLACEHOLDERS (xtl.jobs.logging.HandlerConfig attribute)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.policy">policy (xtl.config.settings.DependencySettings attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.policy">(xtl.jobs.sites.BaseComputeSite property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.poll">poll() (in module xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.POLL_FIRST">POLL_FIRST (in module xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.POLL_MAX">POLL_MAX (in module xtl.jobs.ipc.base)</a>
+</li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.pool">pool (xtl.jobs.jobs.Job property)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.pool_id">pool_id (xtl.jobs.pools.BasePool property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol.pool_id">(xtl.jobs.pools.PoolProtocol property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.pool_label">pool_label (xtl.jobs.jobs.JobData attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.pool_label">pool_label() (in module xtl.jobs.logging)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.pool">pool (xtl.jobs.Job property)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolProtocol">PoolProtocol (class in xtl.jobs.pools)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec.post_processor">post_processor (xtl.jobs.StepSpec attribute)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.PoolType">PoolType (in module xtl.jobs.pools)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell">PowerShell (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec.post_processor">post_processor (xtl.jobs.steps.StepSpec attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell">PowerShell (class in xtl.jobs.shells)</a>
+</li>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.POWERSHELL">POWERSHELL (xtl.jobs.shells.Shell attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.RelayHandler.prepare">prepare() (xtl.jobs.logging.RelayHandler method)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.prepare_command">prepare_command() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell">(class in xtl.jobs.shells)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.prepare_command">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Shell.POWERSHELL">POWERSHELL (xtl.jobs.Shell attribute)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.prepare_content">prepare_content() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell.POWERSHELL">(xtl.jobs.shells.Shell attribute)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.prepare_content">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_command">prepare_command() (xtl.jobs.LocalSite method)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_content">prepare_content() (xtl.jobs.LocalSite method)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_postamble">prepare_postamble() (xtl.jobs.LocalSite method)</a>
-</li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.LocalSite.prepare_preamble">prepare_preamble() (xtl.jobs.LocalSite method)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.prepare_postamble">prepare_postamble() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.ModulesSite.prepare_preamble">(xtl.jobs.ModulesSite method)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.prepare_postamble">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.process">process (xtl.jobs.BatchFile property)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.prepare_preamble">prepare_preamble() (xtl.jobs.sites.BaseComputeSite method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.process">(xtl.jobs.batchfiles.BatchFile property)</a>
+        <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.prepare_preamble">(xtl.jobs.sites.LocalSite method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.PROCESSES">PROCESSES (xtl.jobs.JobPool attribute)</a>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.LocalSite.prepare_setup">prepare_setup() (xtl.jobs.sites.LocalSite method)</a>
+</li>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.process">process (xtl.jobs.batchfiles.BatchFile property)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.PROCESSES">PROCESSES (xtl.jobs.pools.JobPool attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.processes">processes (xtl.jobs.resources.Resources attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend">ProcessIPCBackend (class in xtl.jobs.ipc.processes)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessLock">ProcessLock (class in xtl.jobs.ipc.processes)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue">ProcessQueue (class in xtl.jobs.ipc.processes)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessState">ProcessState (class in xtl.jobs.ipc.processes)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.LoggerConfig.propagate">propagate (xtl.jobs.logging.LoggerConfig attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.provides">provides (xtl.config.settings.DependencySettings property)</a>
 </li>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend">ProxyProcessIPCBackend (class in xtl.jobs.ipc.processes)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue.put">put() (xtl.jobs.ipc.async_.AsyncQueue method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue.put">(xtl.jobs.ipc.base.IPCQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue.put">(xtl.jobs.ipc.processes.ProcessQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue.put">(xtl.jobs.ipc.threads.ThreadedQueue method)</a>
+</li>
+      </ul></li>
+      <li>
+    Python Enhancement Proposals
+
+      <ul>
+        <li><a href="api/xtl_core.system.compatibility.py314.html#index-0">PEP 661</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncQueue.qsize">qsize() (xtl.jobs.ipc.async_.AsyncQueue method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCQueue.qsize">(xtl.jobs.ipc.base.IPCQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessQueue.qsize">(xtl.jobs.ipc.processes.ProcessQueue method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue.qsize">(xtl.jobs.ipc.threads.ThreadedQueue method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.QUEUED">QUEUED (xtl.jobs.results.JobStatus attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandle.queues">queues (xtl.jobs.ipc.base.IPCHandle property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandleNames.queues">(xtl.jobs.ipc.base.IPCHandleNames attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.raw">raw (xtl.common.environment.EnvVar property)</a>
+      <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.raw">raw (xtl_core.system.environment.EnvVar property)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel.RC">RC (xtl.config.version.ReleaseLevel attribute)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel.RC">RC (xtl_core.version_info.ReleaseLevel attribute)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions.register_legacy">register_legacy() (xtl.common.options.VersionedOptions class method)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.RelayHandler.record_to_dict">record_to_dict() (xtl.jobs.logging.RelayHandler static method)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.release_date">release_date (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.register_pool_class">register_pool_class() (in module xtl.jobs.logging)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.release_level">release_level (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.RelayHandler">RelayHandler (class in xtl.jobs.logging)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.ReleaseLevel">ReleaseLevel (class in xtl.config.version)</a>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncLock.release">release() (xtl.jobs.ipc.async_.AsyncLock method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCLock.release">(xtl.jobs.ipc.base.IPCLock method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.repr">repr (xtl.common.tables.MissingValueConfig attribute)</a>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessLock.release">(xtl.jobs.ipc.processes.ProcessLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedLock.release">(xtl.jobs.ipc.threads.ThreadedLock method)</a>
+</li>
+        <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourcesLease.release">(xtl.jobs.resources.ResourcesLease method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.release_date">release_date (xtl_core.version_info.VersionInfo property)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.release_level">release_level (xtl_core.version_info.VersionInfo property)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.ReleaseLevel">ReleaseLevel (class in xtl_core.version_info)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.remember_check">remember_check() (xtl.config.settings.DependencySettings method)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.remove_handler">remove_handler() (xtl.jobs.pools.BasePool method)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.remove_job_handler">remove_job_handler() (xtl.jobs.pools.BasePool method)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.resolution">resolution (xtl.config.settings.DependenciesSettings attribute)</a>
 </li>
@@ -1432,26 +2159,44 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.resolve">resolve() (xtl.config.settings.DependenciesSettings method)</a>
 </li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.resolve_dependencies">resolve_dependencies() (xtl.jobs.sites.BaseComputeSite static method)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourceManager">ResourceManager (class in xtl.jobs.resources)</a>
+</li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources">Resources (class in xtl.jobs.resources)</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.resources">resources (xtl.config.settings.JobsSettings attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.resources">(xtl.jobs.BatchJobConfig attribute)</a>
+        <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.JobConfig.resources">(xtl.jobs.config.JobConfig attribute)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.JobConfig.resources">(xtl.jobs.JobConfig attribute)</a>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.resources">(xtl.jobs.pools.BasePool property)</a>
+</li>
+        <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.resources">(xtl.jobs.submissions.JobSubmission attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.ResourcesLease">ResourcesLease (class in xtl.jobs.resources)</a>
+</li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.ResourcesSettings">ResourcesSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.results">results (xtl.jobs.steps.JobContext attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.BatchResults.return_code">return_code (xtl.jobs.results.BatchResults attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIConsoleFormatSettings.rich">rich (xtl.config.settings.CLIConsoleFormatSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.run">run() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.run">run() (xtl.jobs.jobs.Job method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJob.run">(xtl.jobs.SteppedJob method)</a>
+        <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.SteppedJob.run">(xtl.jobs.jobs.SteppedJob method)</a>
 </li>
       </ul></li>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.RUNNING">RUNNING (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.RUNNING">(xtl.jobs.results.JobStatus attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1460,41 +2205,37 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.sanitize_value">sanitize_value() (xtl.jobs.shells.BaseShell method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.save">save() (xtl.jobs.BatchFile method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.save">(xtl.jobs.batchfiles.BatchFile method)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.save">save() (xtl.jobs.batchfiles.BatchFile method)</a>
 </li>
-      </ul></li>
       <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFileStatus.SCHEDULED">SCHEDULED (xtl.jobs.batchfiles.BatchFileStatus attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.scripts">scripts (xtl.config.settings.AutomatePermissionsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.serial">serial (xtl.config.version.VersionInfo attribute)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.select_site_and_shell">select_site_and_shell() (xtl.jobs.config.BatchJobConfig method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Job.serialize">serialize() (xtl.jobs.Job method)</a>
+      <li><a href="api/xtl_core.system.compatibility.py314.html#xtl_core.system.compatibility.py314.sentinel">sentinel (class in xtl_core.system.compatibility.py314)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.set_col">set_col() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.serial">serial (xtl_core.version_info.VersionInfo attribute)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.set_format">set_format() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.Job.serialize">serialize() (xtl.jobs.jobs.Job method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.set_row">set_row() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.set_col">set_col() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.set_default_level">set_default_level() (in module xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.set_format">set_format() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.set_row">set_row() (xtl_core.containers.tables.Table method)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.Settings">Settings (class in xtl.config.settings)</a>
 </li>
       <li><a href="api/xtl.html#xtl.settings">settings (in module xtl)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.shape">shape (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.shape">shape (xtl_core.containers.tables.Table property)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BashShell.shebang">shebang (xtl.jobs.BashShell attribute)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.shebang">shebang (xtl.jobs.shells.BaseShell attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.CmdShell.shebang">(xtl.jobs.CmdShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.PowerShell.shebang">(xtl.jobs.PowerShell attribute)</a>
-</li>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BaseShell.shebang">(xtl.jobs.shells.BaseShell attribute)</a>
-</li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.BashShell.shebang">(xtl.jobs.shells.BashShell attribute)</a>
 </li>
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.CmdShell.shebang">(xtl.jobs.shells.CmdShell attribute)</a>
@@ -1502,59 +2243,127 @@
         <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.PowerShell.shebang">(xtl.jobs.shells.PowerShell attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.Shell">Shell (class in xtl.jobs)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell">(class in xtl.jobs.shells)</a>
+      <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.Shell">Shell (class in xtl.jobs.shells)</a>
 </li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.shell">shell (xtl.jobs.BatchFile property)</a>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.shell">shell (xtl.config.settings.DependencySettings attribute)</a>
 
       <ul>
         <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.shell">(xtl.jobs.batchfiles.BatchFile property)</a>
 </li>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.shell">(xtl.jobs.BatchJobConfig property)</a>
-</li>
       </ul></li>
       <li><a href="api/xtl.jobs.shells.html#xtl.jobs.shells.ShellType">ShellType (in module xtl.jobs.shells)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.SIMPLE">SIMPLE (xtl.jobs.JobPool attribute)</a>
+      <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.shielded_context">shielded_context() (in module xtl.jobs.ipc.processes)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.SimplePool">SimplePool (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.SIMPLE">SIMPLE (xtl.jobs.pools.JobPool attribute)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.size">size (xtl.common.tables.Table property)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.SimplePool">SimplePool (class in xtl.jobs.pools)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.SLURM">SLURM (xtl.jobs.ComputeSite attribute)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.site_resources">site_resources (xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ComputeSite.SLURM_LOCAL">SLURM_LOCAL (xtl.jobs.ComputeSite attribute)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.size">size (xtl_core.containers.tables.Table property)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.SOCKET">SOCKET (xtl_core.system.os.permissions.FileType attribute)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.source">source (xtl.config.settings.XTLSettings property)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchFile.status">status (xtl.jobs.BatchFile property)</a>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.start">start() (xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
 
       <ul>
-        <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.status">(xtl.jobs.batchfiles.BatchFile property)</a>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.start">(xtl.jobs.ipc.base.IPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.start">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.start">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.start">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.stderr">stderr (xtl.jobs.BatchJobConfig property)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandle.state">state (xtl.jobs.ipc.base.IPCHandle property)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.stdout">stdout (xtl.jobs.BatchJobConfig property)</a>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCHandleNames.states">states (xtl.jobs.ipc.base.IPCHandleNames attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJob">SteppedJob (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.batchfiles.html#xtl.jobs.batchfiles.BatchFile.status">status (xtl.jobs.batchfiles.BatchFile property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.status">(xtl.jobs.pools.BasePool property)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig">SteppedJobConfig (class in xtl.jobs)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.stderr">stderr (xtl.jobs.config.BatchJobConfig property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.BatchResults.stderr">(xtl.jobs.results.BatchResults attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.SteppedJobConfig.steps">steps (xtl.jobs.SteppedJobConfig attribute)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.stdout">stdout (xtl.jobs.config.BatchJobConfig property)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.BatchResults.stdout">(xtl.jobs.results.BatchResults attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.StepSpec">StepSpec (class in xtl.jobs)</a>
+      </ul></li>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.JobContext.step">step (xtl.jobs.steps.JobContext attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.string">string (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.SteppedJob">SteppedJob (class in xtl.jobs.jobs)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.string_safe">string_safe (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.SteppedJobConfig">SteppedJobConfig (class in xtl.jobs.config)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.SteppedJobResults">SteppedJobResults (class in xtl.jobs.results)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.SteppedJobConfig.steps">steps (xtl.jobs.config.SteppedJobConfig attribute)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.SteppedJobResults.steps">(xtl.jobs.results.SteppedJobResults attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.steps.html#xtl.jobs.steps.StepSpec">StepSpec (class in xtl.jobs.steps)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.async_.html#xtl.jobs.ipc.async_.AsyncIPCBackend.stop">stop() (xtl.jobs.ipc.async_.AsyncIPCBackend method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.stop">(xtl.jobs.ipc.base.IPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessIPCBackend.stop">(xtl.jobs.ipc.processes.ProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProxyProcessIPCBackend.stop">(xtl.jobs.ipc.processes.ProxyProcessIPCBackend method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend.stop">(xtl.jobs.ipc.threads.ThreadedIPCBackend method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig.stream">stream (xtl.jobs.logging.StreamHandlerConfig attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.StreamHandlerConfig">StreamHandlerConfig (class in xtl.jobs.logging)</a>
+</li>
+      <li><a href="api/xtl_core.system.compatibility.py310.html#xtl_core.system.compatibility.py310.StrEnum">StrEnum (class in xtl_core.system.compatibility.py310)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.string">string (xtl_core.system.os.permissions.FilePermissions property)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.string">(xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+        <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.string">(xtl_core.version_info.VersionInfo property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.string_canonical">string_canonical (xtl_core.system.os.permissions.FilePermissionsBit property)</a>
+</li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.string_safe">string_safe (xtl_core.version_info.VersionInfo property)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.CLIConsoleFormatSettings.striped_tables">striped_tables (xtl.config.settings.CLIConsoleFormatSettings attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.submission_id">submission_id (xtl.jobs.submissions.JobSubmission attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.BasePool.submit">submit() (xtl.jobs.pools.BasePool method)</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobStatus.SUBMITTED">SUBMITTED (xtl.jobs.results.JobStatus attribute)</a>
+</li>
+      <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.SubprocessError">SubprocessError</a>
+</li>
+      <li><a href="api/xtl.jobs.results.html#xtl.jobs.results.JobResults.success">success (xtl.jobs.results.JobResults property)</a>
+</li>
+      <li><a href="api/xtl.jobs.sites.html#xtl.jobs.sites.BaseComputeSite.supported_shells">supported_shells (xtl.jobs.sites.BaseComputeSite property)</a>
+</li>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FileType.SYMLINK">SYMLINK (xtl_core.system.os.permissions.FileType attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1562,49 +2371,73 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table">Table (class in xtl.common.tables)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table">Table (class in xtl_core.containers.tables)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.UnitsSettings.temperature">temperature (xtl.config.settings.UnitsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.templates">templates (xtl.jobs.BatchJobConfig attribute)</a>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.templates">templates (xtl.jobs.config.BatchJobConfig attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.ThreadedPool">ThreadedPool (class in xtl.jobs)</a>
+      <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedIPCBackend">ThreadedIPCBackend (class in xtl.jobs.ipc.threads)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedLock">ThreadedLock (class in xtl.jobs.ipc.threads)</a>
+</li>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.ThreadedPool">ThreadedPool (class in xtl.jobs.pools)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedQueue">ThreadedQueue (class in xtl.jobs.ipc.threads)</a>
+</li>
+      <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedState">ThreadedState (class in xtl.jobs.ipc.threads)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.threading_debug">threading_debug (xtl.config.settings.JobsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.JobPool.THREADS">THREADS (xtl.jobs.JobPool attribute)</a>
+      <li><a href="api/xtl.jobs.pools.html#xtl.jobs.pools.JobPool.THREADS">THREADS (xtl.jobs.pools.JobPool attribute)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_csv">to_csv() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.resources.html#xtl.jobs.resources.Resources.threads">threads (xtl.jobs.resources.Resources attribute)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.to_dict">to_dict() (xtl.common.options.Options method)</a>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.UpgradeStep.to">to (xtl_core.options.versioned.UpgradeStep attribute)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_csv">to_csv() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_dict">to_dict() (xtl_core.containers.tables.Table method)</a>
 
       <ul>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_dict">(xtl.common.tables.Table method)</a>
+        <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.to_dict">(xtl_core.options.base.Options method)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.to_json">to_json() (xtl.common.options.Options method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_list">to_list() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCBackend.to_handle">to_handle() (xtl.jobs.ipc.base.IPCBackend method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_numpy">to_numpy() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.to_job">to_job() (xtl.jobs.submissions.JobSubmission method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_pandas">to_pandas() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.to_json">to_json() (xtl_core.options.base.Options method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.to_repr">to_repr() (xtl.common.tables.MissingValueConfig method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_list">to_list() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.Table.to_rich">to_rich() (xtl.common.tables.Table method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_numpy">to_numpy() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJobConfig.to_slurm">to_slurm() (xtl.jobs.BatchJobConfig method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_pandas">to_pandas() (xtl_core.containers.tables.Table method)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.Options.to_toml">to_toml() (xtl.common.options.Options method)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValueConfig.to_repr">to_repr() (xtl_core.containers.tables.MissingValueConfig method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.Table.to_rich">to_rich() (xtl_core.containers.tables.Table method)</a>
+</li>
+      <li><a href="api/xtl.jobs.config.html#xtl.jobs.config.BatchJobConfig.to_slurm">to_slurm() (xtl.jobs.config.BatchJobConfig method)</a>
+</li>
+      <li><a href="api/xtl.jobs.logging.html#xtl.jobs.logging.HandlerConfig.to_spec">to_spec() (xtl.jobs.logging.HandlerConfig method)</a>
+</li>
+      <li><a href="api/xtl_core.options.base.html#xtl_core.options.base.Options.to_toml">to_toml() (xtl_core.options.base.Options method)</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.JobsSettings.tracebacks">tracebacks (xtl.config.settings.JobsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.tuple">tuple (xtl.config.version.VersionInfo property)</a>
+      <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissions.tuple">tuple (xtl_core.system.os.permissions.FilePermissions property)</a>
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.tuple">(xtl_core.system.os.permissions.FilePermissionsBit property)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo.tuple_safe">tuple_safe (xtl.config.version.VersionInfo property)</a>
+        <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.tuple">(xtl_core.version_info.VersionInfo property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo.tuple_safe">tuple_safe (xtl_core.version_info.VersionInfo property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1616,11 +2449,29 @@
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.UnitsSettings">UnitsSettings (class in xtl.config.settings)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.AutomatePermissionsSettings.update">update (xtl.config.settings.AutomatePermissionsSettings attribute)</a>
 </li>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.LegacyOptions.upgrade">upgrade() (xtl.common.options.LegacyOptions method)</a>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState.update">update() (xtl.jobs.ipc.base.IPCState method)</a>
+</li>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependenciesSettings.update_checks">update_checks() (xtl.config.settings.DependenciesSettings method)</a>
+
+      <ul>
+        <li><a href="api/xtl.config.settings.html#xtl.config.settings.DependencySettings.update_checks">(xtl.config.settings.DependencySettings method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/xtl.config.settings.html#xtl.config.settings.Settings.update_from">update_from() (xtl.config.settings.Settings method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.upgrade">upgrade() (xtl_core.options.versioned.VersionedOptions class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.upgrade_step">upgrade_step() (xtl_core.options.versioned.VersionedOptions class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.upgrade_steps">upgrade_steps() (xtl_core.options.versioned.VersionedOptions class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions.upgrade_toml">upgrade_toml() (xtl_core.options.versioned.VersionedOptions class method)</a>
+</li>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.UpgradeStep">UpgradeStep (class in xtl_core.options.versioned)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1628,27 +2479,41 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.EnvVar.value">value (xtl.common.environment.EnvVar property)</a>
+      <li><a href="api/xtl.jobs.jobs.html#xtl.jobs.jobs.JobData.validate_job_cls">validate_job_cls() (xtl.jobs.jobs.JobData class method)</a>
+</li>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValue.value">value (xtl_core.containers.tables.MissingValue attribute)</a>
 
       <ul>
-        <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValue.value">(xtl.common.tables.MissingValue attribute)</a>
+        <li><a href="api/xtl_core.system.environment.html#xtl_core.system.environment.EnvVar.value">(xtl_core.system.environment.EnvVar property)</a>
+</li>
+        <li><a href="api/xtl_core.system.os.permissions.html#xtl_core.system.os.permissions.FilePermissionsBit.value">(xtl_core.system.os.permissions.FilePermissionsBit attribute)</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.tables.html#xtl.common.tables.MissingValueConfig.values">values (xtl.common.tables.MissingValueConfig attribute)</a>
+      <li><a href="api/xtl_core.containers.tables.html#xtl_core.containers.tables.MissingValueConfig.values">values (xtl_core.containers.tables.MissingValueConfig attribute)</a>
 </li>
+      <li><a href="api/xtl.jobs.ipc.base.html#xtl.jobs.ipc.base.IPCState.values">values() (xtl.jobs.ipc.base.IPCState method)</a>
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.processes.html#xtl.jobs.ipc.processes.ProcessState.values">(xtl.jobs.ipc.processes.ProcessState method)</a>
+</li>
+        <li><a href="api/xtl.jobs.ipc.threads.html#xtl.jobs.ipc.threads.ThreadedState.values">(xtl.jobs.ipc.threads.ThreadedState method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/xtl.html#xtl.version">version (in module xtl)</a>
 
       <ul>
         <li><a href="api/xtl.config.version.html#xtl.config.version.version">(in module xtl.config.version)</a>
 </li>
+        <li><a href="api/xtl_core.html#xtl_core.version">(in module xtl_core)</a>
+</li>
         <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings.version">(xtl.config.settings.XTLSettings attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.common.options.html#xtl.common.options.VersionedOptions">VersionedOptions (class in xtl.common.options)</a>
+      <li><a href="api/xtl_core.options.versioned.html#xtl_core.options.versioned.VersionedOptions">VersionedOptions (class in xtl_core.options.versioned)</a>
 </li>
-      <li><a href="api/xtl.config.version.html#xtl.config.version.VersionInfo">VersionInfo (class in xtl.config.version)</a>
+      <li><a href="api/xtl_core.version_info.html#xtl_core.version_info.VersionInfo">VersionInfo (class in xtl_core.version_info)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1656,12 +2521,8 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/xtl.jobs.html#xtl.jobs.BatchJob.with_config">with_config() (xtl.jobs.BatchJob class method)</a>
-
-      <ul>
-        <li><a href="api/xtl.jobs.html#xtl.jobs.Job.with_config">(xtl.jobs.Job class method)</a>
+      <li><a href="api/xtl.jobs.exceptions.html#xtl.jobs.exceptions.WorkerError">WorkerError</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1676,56 +2537,12 @@
 </li>
       </ul></li>
       <li>
-    xtl.common
-
-      <ul>
-        <li><a href="api/xtl.common.html#module-xtl.common">module</a>
-</li>
-      </ul></li>
-      <li>
-    xtl.common.environment
-
-      <ul>
-        <li><a href="api/xtl.common.environment.html#module-xtl.common.environment">module</a>
-</li>
-      </ul></li>
-      <li>
-    xtl.common.options
-
-      <ul>
-        <li><a href="api/xtl.common.options.html#module-xtl.common.options">module</a>
-</li>
-      </ul></li>
-      <li>
-    xtl.common.serializers
-
-      <ul>
-        <li><a href="api/xtl.common.serializers.html#module-xtl.common.serializers">module</a>
-</li>
-      </ul></li>
-      <li>
-    xtl.common.tables
-
-      <ul>
-        <li><a href="api/xtl.common.tables.html#module-xtl.common.tables">module</a>
-</li>
-      </ul></li>
-      <li>
-    xtl.common.validators
-
-      <ul>
-        <li><a href="api/xtl.common.validators.html#module-xtl.common.validators">module</a>
-</li>
-      </ul></li>
-      <li>
     xtl.config
 
       <ul>
         <li><a href="api/xtl.config.html#module-xtl.config">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     xtl.config.settings
 
@@ -1738,6 +2555,13 @@
 
       <ul>
         <li><a href="api/xtl.config.version.html#module-xtl.config.version">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.exceptions
+
+      <ul>
+        <li><a href="api/xtl.exceptions.html#module-xtl.exceptions">module</a>
 </li>
       </ul></li>
       <li>
@@ -1755,10 +2579,94 @@
 </li>
       </ul></li>
       <li>
+    xtl.jobs.config
+
+      <ul>
+        <li><a href="api/xtl.jobs.config.html#module-xtl.jobs.config">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.exceptions
+
+      <ul>
+        <li><a href="api/xtl.jobs.exceptions.html#module-xtl.jobs.exceptions">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.ipc
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.html#module-xtl.jobs.ipc">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.ipc.async_
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.async_.html#module-xtl.jobs.ipc.async_">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.ipc.base
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.base.html#module-xtl.jobs.ipc.base">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.ipc.processes
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.processes.html#module-xtl.jobs.ipc.processes">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.ipc.threads
+
+      <ul>
+        <li><a href="api/xtl.jobs.ipc.threads.html#module-xtl.jobs.ipc.threads">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.jobs
+
+      <ul>
+        <li><a href="api/xtl.jobs.jobs.html#module-xtl.jobs.jobs">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.logging
+
+      <ul>
+        <li><a href="api/xtl.jobs.logging.html#module-xtl.jobs.logging">module</a>
+</li>
+      </ul></li>
+      <li>
     xtl.jobs.policies
 
       <ul>
         <li><a href="api/xtl.jobs.policies.html#module-xtl.jobs.policies">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.pools
+
+      <ul>
+        <li><a href="api/xtl.jobs.pools.html#module-xtl.jobs.pools">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.resources
+
+      <ul>
+        <li><a href="api/xtl.jobs.resources.html#module-xtl.jobs.resources">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.jobs.results
+
+      <ul>
+        <li><a href="api/xtl.jobs.results.html#module-xtl.jobs.results">module</a>
 </li>
       </ul></li>
       <li>
@@ -1768,13 +2676,177 @@
         <li><a href="api/xtl.jobs.shells.html#module-xtl.jobs.shells">module</a>
 </li>
       </ul></li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.XTL_COMPUTE_SITE">XTL_COMPUTE_SITE (in module xtl.common.environment)</a>
+      <li>
+    xtl.jobs.sites
+
+      <ul>
+        <li><a href="api/xtl.jobs.sites.html#module-xtl.jobs.sites">module</a>
 </li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.XTL_CONFIG">XTL_CONFIG (in module xtl.common.environment)</a>
+      </ul></li>
+      <li>
+    xtl.jobs.steps
+
+      <ul>
+        <li><a href="api/xtl.jobs.steps.html#module-xtl.jobs.steps">module</a>
 </li>
-      <li><a href="api/xtl.common.environment.html#xtl.common.environment.XTL_FONTS_DIR">XTL_FONTS_DIR (in module xtl.common.environment)</a>
+      </ul></li>
+      <li>
+    xtl.jobs.submissions
+
+      <ul>
+        <li><a href="api/xtl.jobs.submissions.html#module-xtl.jobs.submissions">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    xtl.shared
+
+      <ul>
+        <li><a href="api/xtl.shared.html#module-xtl.shared">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl.shared.environment
+
+      <ul>
+        <li><a href="api/xtl.shared.environment.html#module-xtl.shared.environment">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.shared.environment.html#xtl.shared.environment.XTL_COMPUTE_SITE">XTL_COMPUTE_SITE (in module xtl.shared.environment)</a>
+</li>
+      <li><a href="api/xtl.shared.environment.html#xtl.shared.environment.XTL_CONFIG">XTL_CONFIG (in module xtl.shared.environment)</a>
+</li>
+      <li>
+    xtl_core
+
+      <ul>
+        <li><a href="api/xtl_core.html#module-xtl_core">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.containers
+
+      <ul>
+        <li><a href="api/xtl_core.containers.html#module-xtl_core.containers">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.containers.tables
+
+      <ul>
+        <li><a href="api/xtl_core.containers.tables.html#module-xtl_core.containers.tables">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.errors
+
+      <ul>
+        <li><a href="api/xtl_core.errors.html#module-xtl_core.errors">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.options
+
+      <ul>
+        <li><a href="api/xtl_core.options.html#module-xtl_core.options">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.options.base
+
+      <ul>
+        <li><a href="api/xtl_core.options.base.html#module-xtl_core.options.base">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.options.serializers
+
+      <ul>
+        <li><a href="api/xtl_core.options.serializers.html#module-xtl_core.options.serializers">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.options.validators
+
+      <ul>
+        <li><a href="api/xtl_core.options.validators.html#module-xtl_core.options.validators">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.options.versioned
+
+      <ul>
+        <li><a href="api/xtl_core.options.versioned.html#module-xtl_core.options.versioned">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system
+
+      <ul>
+        <li><a href="api/xtl_core.system.html#module-xtl_core.system">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.compatibility.py310
+
+      <ul>
+        <li><a href="api/xtl_core.system.compatibility.py310.html#module-xtl_core.system.compatibility.py310">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.compatibility.py313
+
+      <ul>
+        <li><a href="api/xtl_core.system.compatibility.py313.html#module-xtl_core.system.compatibility.py313">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.compatibility.py314
+
+      <ul>
+        <li><a href="api/xtl_core.system.compatibility.py314.html#module-xtl_core.system.compatibility.py314">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.environment
+
+      <ul>
+        <li><a href="api/xtl_core.system.environment.html#module-xtl_core.system.environment">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.os
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.html#module-xtl_core.system.os">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.system.os.permissions
+
+      <ul>
+        <li><a href="api/xtl_core.system.os.permissions.html#module-xtl_core.system.os.permissions">module</a>
+</li>
+      </ul></li>
+      <li>
+    xtl_core.version_info
+
+      <ul>
+        <li><a href="api/xtl_core.version_info.html#module-xtl_core.version_info">module</a>
+</li>
+      </ul></li>
+      <li><a href="api/xtl.shared.environment.html#xtl.shared.environment.XTL_FONTS_DIR">XTL_FONTS_DIR (in module xtl.shared.environment)</a>
+</li>
+      <li><a href="api/xtl.jobs.submissions.html#xtl.jobs.submissions.JobSubmission.xtl_settings">xtl_settings (xtl.jobs.submissions.JobSubmission attribute)</a>
+</li>
+      <li><a href="api/xtl_core.errors.html#xtl_core.errors.XTLCoreError">XTLCoreError</a>
+</li>
+      <li><a href="api/xtl.exceptions.html#xtl.exceptions.XTLError">XTLError</a>
 </li>
       <li><a href="api/xtl.config.settings.html#xtl.config.settings.XTLSettings">XTLSettings (class in xtl.config.settings)</a>
+</li>
+      <li><a href="api/xtl.exceptions.html#xtl.exceptions.XTLWarning">XTLWarning</a>
 </li>
   </ul></td>
 </tr></table>

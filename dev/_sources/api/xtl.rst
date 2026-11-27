@@ -15,6 +15,14 @@ Subpackages
 .. toctree::
    :maxdepth: 3
 
-   xtl.common
+   xtl.shared
    xtl.config
    xtl.jobs
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 3
+
+   xtl.exceptions
