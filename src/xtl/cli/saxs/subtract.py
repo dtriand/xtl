@@ -49,9 +49,9 @@ async def cli_saxs_subtract(
     [green]>[/] xtl.saxs subtract sample1.dat -b background1.dat sample2.dat -b background2.dat
     [green]>[/] xtl.saxs subtract sample1.dat sample2.dat --background="background*.dat"
     """
-    import tempfile
     from xtl import settings
     from xtl.tui.console import ConsoleIO
+    from xtl_core.options.validators import cast_as_temp_dir_if_none
     from xtl.scattering.jobs.operations import SAXSSubtractJob, SAXSSubtractJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
@@ -66,7 +66,8 @@ async def cli_saxs_subtract(
 
     configs = [
         SAXSSubtractJobConfig(
-            job_directory=Path(tempfile.mkdtemp(prefix='xtl_saxs_subtract_')),
+            # Created by the job, which removes it on success
+            job_directory=cast_as_temp_dir_if_none(None, prefix='xtl_saxs_subtract_'),
             input=datafile.absolute(),
             modifier=background.absolute(),
             output=output_directory / f'subtracted_{datafile.stem}_minus_{background.stem}{datafile.suffix}',

@@ -113,9 +113,9 @@ Configuration
      - Where and how the batch file runs (see `Compute sites`_); if not set, the one the job's dependencies set in
        ``xtl.toml``, else ``jobs.compute_site``.
    * - ``job_directory``
-     - a new temporary directory, ``xtl_batch_*``
-     - Where the batch file and its logs go. Deleted after a successful run, like any job directory
-       (:doc:`jobs`).
+     - a new path in the temporary directory, ``xtl_batch_*``, created when the job runs
+     - Where the batch file and its logs go. Deleted after a successful run if the job created it, like any job
+       directory (:doc:`jobs`).
    * - ``filename``
      - ``'batch_job'``
      - Name of the batch file and its logs, without extension.

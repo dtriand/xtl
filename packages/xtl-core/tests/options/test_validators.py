@@ -197,7 +197,6 @@ class TestCastAsPathOrNone:
 class TestCastAsTempDirIfNone:
     @pytest.fixture(autouse=True)
     def temp_dir(self, tmp_path, monkeypatch):
-        """New temporary directories go in ``tmp_path``, since nothing removes them."""
         monkeypatch.setattr(tempfile, 'tempdir', str(tmp_path))
         return tmp_path
 
@@ -208,12 +207,15 @@ class TestCastAsTempDirIfNone:
     def test_prefix(self):
         assert cast_as_temp_dir_if_none(None, prefix='xtl_test_').name.startswith('xtl_test_')
 
-    def test_none_exists(self, temp_dir):
-        """Regression: the directory was deleted as soon as its object was collected."""
+    def test_none_in_the_temporary_directory(self, temp_dir):
+        assert cast_as_temp_dir_if_none(None).parent == temp_dir
+
+    def test_none_not_created(self, temp_dir):
+        # Whoever uses the path creates it (a job, when it runs), so building a config leaves nothing behind
         path = cast_as_temp_dir_if_none(None)
         gc.collect()
-        assert path.is_dir()
-        assert path.parent == temp_dir
+        assert not path.exists()
+        assert list(temp_dir.iterdir()) == []
 
     def test_new_each_time(self):
         assert cast_as_temp_dir_if_none(None) != cast_as_temp_dir_if_none(None)

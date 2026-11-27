@@ -3,6 +3,7 @@ import asyncio
 import contextlib
 from copy import deepcopy
 import logging
+from pathlib import Path
 import re
 import shutil
 from typing import (
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
 from xtl import settings
 from xtl.math.uuid import UUIDFactory
 from xtl_core.system.compatibility import OS_POSIX
+from xtl_core.system.compatibility.py313 import path_exists
 from xtl_core.utils.imports import import_object, import_path
 from xtl_core.utils.mappings import deepmerge
 from xtl_core.options import Option, Options
@@ -129,6 +131,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
     _keep_files: ClassVar[bool] = False
     """Whether to keep any files created by this job"""
 
+    _creates_directory: ClassVar[bool] = False
+    """Whether the job creates its ``job_directory`` before it runs, for jobs that work in it (batch jobs, stepped
+    jobs for their steps). Other jobs create nothing up front; whatever their run creates there (e.g. a log file) is
+    removed on success all the same."""
+
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
@@ -168,6 +175,8 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._is_running = False
         self._is_complete = False
         self._error: BaseException | None = None
+        # The job directory and its parents that the run created, deepest first (see `run()`)
+        self._created_directories: list[Path] = []
 
         # Pool integration
         self._pool: Optional['BasePool'] = None
@@ -471,10 +480,16 @@ class Job(abc.ABC, Generic[JobConfigType]):
             return None
 
         result = None
+        # Before anything creates them (a file handler makes its file's directory), so that the job knows which
+        #  directories it made, and removes only those on success
+        self._created_directories = self._missing_directories()
         handlers = self._open_log_handlers()
         try:
             self._is_running = True
+            # A job that can't run leaves no directory behind
             await self._check_dependencies()
+            if self._creates_directory:
+                self._make_job_directory()
             self._logger.debug('Launching job')
             result = await self._execute()
             self._is_complete = True
@@ -593,11 +608,58 @@ class Job(abc.ABC, Generic[JobConfigType]):
                 handler.close()
             self._logger.setLevel(previous)
 
+    def _missing_directories(self) -> list[Path]:
+        """
+        The job directory and those of its parents that don't exist yet, deepest first: what creating the job
+        directory makes.
+        """
+        cfg = self.config
+        directory = cfg.job_directory if cfg is not None else None
+        missing = []
+        while directory is not None and not path_exists(directory):
+            missing.append(directory)
+            parent = directory.parent
+            directory = parent if parent != directory else None
+        return missing
+
+    def _make_job_directory(self) -> None:
+        """
+        Create the job directory, with its parents, if it doesn't exist yet. On POSIX systems, the directories that
+        this creates get ``settings.jobs.permissions.directories`` (unless ``settings.jobs.permissions.update =
+        False``); a directory that existed keeps its own.
+
+        :raises OSError: If it can't be created.
+        """
+        cfg = self.config
+        job_dir = cfg.job_directory if cfg is not None else None
+        if job_dir is None:
+            return
+        if not job_dir.is_dir():
+            self.logger.debug('Creating job directory: %s', job_dir)
+            try:
+                job_dir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.logger.error('Failed to create job directory: %s', job_dir)
+                raise
+
+        if not (OS_POSIX and settings.jobs.permissions.update):
+            return
+        # NB: `chmod()`, since `mkdir(mode=...)` is cut by the umask; deepest first, so that permissions without
+        #  `x` for the owner don't lock the job out of the directories below
+        mode = settings.jobs.permissions.directories.decimal
+        for directory in self._created_directories:
+            try:
+                directory.chmod(mode)
+            except OSError as e:
+                self.logger.warning('Failed to set the permissions of %s: %s', directory, e)
+
     async def _tidy_up(self) -> None:
         """
         Performs a series of housekeeping tasks after job execution:
-        1. Deletes the job directory (unless ``Job._keep_files = True`` or ``settings.jobs.keep_temp = True``).
-        2. Updates the permissions of created files and directories on POSIX systems (unless
+        1. Deletes the job directory, if the job created it, and the parents that creating it made, if they are
+           empty (unless ``Job._keep_files = True`` or ``settings.jobs.keep_temp = True``). A directory that existed
+           before the job stays, as do its files.
+        2. Updates the permissions of the files and directories that stay on POSIX systems (unless
            ``settings.jobs.permissions.update = False``).
         """
         # Skip when no config (implies no job_dir)
@@ -610,16 +672,21 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if job_dir is None or not job_dir.exists():
             return
 
-        if not (self._keep_files or settings.jobs.keep_temp):
+        created = job_dir in self._created_directories
+        if created and not (self._keep_files or settings.jobs.keep_temp):
             self.logger.debug('Cleaning up job directory: %s', job_dir)
             async with self.lock():
                 shutil.rmtree(job_dir, ignore_errors=True)
-            # NB: rmtree goes on past what it can't delete (e.g. a file that is still open on Windows)
+                # NB: rmtree goes on past what it can't delete (e.g. a file that is still open on Windows)
+                if not job_dir.exists():
+                    self._remove_created_parents(job_dir)
             if job_dir.exists():
                 self.logger.warning('Job directory %s could not be removed completely', job_dir)
             else:
                 self.logger.debug('Job directory cleaned up successfully')
         else:
+            if not created:
+                self.logger.debug('Keeping job directory %s, which existed before the job', job_dir)
             # Skip permission update on non-POSIX systems
             if not OS_POSIX:
                 return
@@ -649,6 +716,20 @@ class Job(abc.ABC, Generic[JobConfigType]):
                     str(e),
                     exc_info=settings.jobs.tracebacks,
                 )
+
+    def _remove_created_parents(self, job_dir: Path) -> None:
+        """
+        Remove the parents of the job directory that creating it made, deepest first, as long as they are empty: a
+        parent that holds anything else (e.g. another job's directory) stays, and so do the ones above it.
+        """
+        for parent in self._created_directories:
+            if parent == job_dir:
+                continue
+            try:
+                parent.rmdir()
+            except OSError:
+                self.logger.debug('Keeping %s, which is not empty', parent)
+                return
 
     def lock(self, name: str | None = None) -> Any:
         """
@@ -827,6 +908,9 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
     underlying operating system and get dynamically rendered using the provided BatchJobConfig and context.
     """
 
+    # The batch file and its logs go in the job directory
+    _creates_directory = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -855,17 +939,10 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         if not cfg:
             raise ValueError('Job is not configured.')
 
-        # Create the batch directory if it doesn't exist
+        # The directory itself is created by `run()`
         job_dir = cfg.job_directory
         if not job_dir:
             raise ValueError('Job configuration does not specify `job_directory`')
-        if not job_dir.exists():
-            try:
-                self.logger.debug('Creating directory for batch file: %s', job_dir)
-                job_dir.mkdir(parents=True, exist_ok=True)
-            except OSError as e:
-                self.logger.error('Failed to create batch directory: %s', job_dir)
-                raise e
 
         # Create batch file, on the compute site and in the shell that its dependencies were checked on
         self.logger.debug('Creating batch file in %s', job_dir)
@@ -942,6 +1019,9 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
     """
 
     _steps: ClassVar[tuple['StepSpec', ...]] = ()
+
+    # The steps' directories go in the job directory, which lasts from the first step to the last
+    _creates_directory = True
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

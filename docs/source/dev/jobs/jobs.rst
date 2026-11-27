@@ -121,14 +121,21 @@ Two errors come from the jobs machinery itself, not from job code:
 Job directory
 -------------
 
-A job works in its ``job_directory``, if its configuration has one. A batch job always has one: a new temporary
-directory unless the configuration gives another. Other jobs have none unless the configuration sets it, and their
-``_execute()`` creates it when it needs it.
+A job works in its ``job_directory``, if its configuration has one. A batch job always has one: a new path in the
+temporary directory unless the configuration gives another. Other jobs have none unless the configuration sets it.
+Building, copying or pickling a configuration never touches the disk. Jobs that work in their directory, batch jobs
+and stepped jobs (for their steps' directories), create it with any missing parents when they run, once their
+dependencies are found (``_creates_directory = True``); on POSIX systems, these directories get
+``jobs.permissions.directories`` when ``jobs.permissions.update`` is on. Other jobs create nothing up front, so a step
+that doesn't need its directory doesn't get one; whatever their run does create there (*e.g.* a log file) counts as
+theirs all the same.
 
-When a job succeeds, its job directory is **deleted**, unless the job class sets ``_keep_files = True`` or
-``jobs.keep_temp`` is on in ``xtl.toml``. When it fails, the directory stays, so its inputs and logs can be inspected.
-A job that writes results the user wants to keep either sets ``_keep_files = True``, or writes them outside its job
-directory.
+When a job succeeds, it **deletes** what it created: its job directory, if the run created it, and then the parents
+that creating it made, as long as they are empty (another job's files next to it keep them). A directory that existed
+before the run stays, with everything in it, so a job never deletes a folder it didn't make. Nothing is deleted if the
+job class sets ``_keep_files = True`` or ``jobs.keep_temp`` is on in ``xtl.toml``. When it fails, everything stays, so
+its inputs and logs can be inspected. A job that writes results the user wants to keep either sets
+``_keep_files = True``, or writes them outside its job directory.
 
 Class attributes
 ----------------

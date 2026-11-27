@@ -36,15 +36,16 @@ async def cli_saxs_compare(
     [i]Print output as CSV[/i]
     [green]>[/] xtl.saxs compare sample*.dat --csv
     """
-    import tempfile
     from xtl.tui.console import ConsoleIO
+    from xtl_core.options.validators import cast_as_temp_dir_if_none
     from xtl.scattering.jobs.compare import SAXSCompareJob, SAXSCompareJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
     console.check_dependencies()
 
-    job_directory = Path(tempfile.mkdtemp(prefix='xtl_saxs_compare_'))
+    # Created by the job, which removes it on success
+    job_directory = cast_as_temp_dir_if_none(None, prefix='xtl_saxs_compare_')
     config = SAXSCompareJobConfig(
         job_directory=job_directory,
         files=datafiles,

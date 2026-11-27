@@ -5,10 +5,11 @@ Tests for jobs: the job data that travels to workers, the base job, batch jobs a
 import asyncio
 import logging
 from pathlib import Path
+import tempfile
 
 import pytest
 
-from tests.conftest import skipif_not_windows
+from tests.conftest import skipif_not_linux, skipif_not_windows
 from tests.jobs.helpers import Failing, Talker
 from xtl import settings
 from xtl.jobs import jobs as jobs_module
@@ -23,6 +24,8 @@ from xtl.jobs.results import BatchResults, JobResults, SteppedJobResults
 from xtl.jobs.shells import DefaultShell, Shell
 from xtl.jobs.steps import StepSpec
 from xtl_core.options import Option, OptionsValidationError
+from xtl_core.options.validators import cast_as_temp_dir_if_none
+from xtl_core.system.os.permissions import FilePermissions
 from xtl_core.system.compatibility import OS_WINDOWS
 
 SYSTEM_SHELL = Shell(DefaultShell().name)
@@ -94,6 +97,52 @@ class Raises(Job[JobConfig]):
 
 class KeptTalker(Talker):
     _keep_files = True
+
+
+class SeesDirectory(Job[JobConfig]):
+    """Works in its directory, as batch jobs do: returns whether it existed while the job ran, writes a file in it
+    and, if asked, one next to it."""
+
+    _creates_directory = True
+    beside: str | None = None
+
+    async def _execute(self):
+        directory = self.config.job_directory
+        exists = directory.is_dir()
+        (directory / 'output.txt').write_text('done')
+        if self.beside:
+            (directory.parent / self.beside).write_text('another job')
+        return exists
+
+
+class KeptSees(SeesDirectory):
+    _keep_files = True
+
+
+class LooksForDirectory(Job[JobConfig]):
+    """Doesn't work in its directory: returns whether it existed while the job ran."""
+
+    async def _execute(self):
+        return self.config.job_directory.exists()
+
+
+class WritesBeside(SeesDirectory):
+    beside = 'other.txt'
+
+
+class FailsInItsDirectory(SeesDirectory):
+    async def _execute(self):
+        await super()._execute()
+        raise ValueError('boom')
+
+
+class HoldsAFile(SeesDirectory):
+    """Leaves a file open in its directory, as a program that is still running would."""
+
+    held: list = []
+
+    async def _execute(self):
+        self.held.append(open(self.config.job_directory / 'held.txt', 'w'))
 
 
 class Limited(Talker):
@@ -339,20 +388,124 @@ class TestJob:
         assert tmp_path.exists()
 
     @pytest.mark.asyncio
+    async def test_creates_its_directory_when_it_runs(self, tmp_path):
+        directory = tmp_path / 'job'
+        job = SeesDirectory(JobConfig(job_directory=directory), job_id='a15')
+        assert not directory.exists()
+        assert (await job.run()).data is True
+
+    @pytest.mark.asyncio
+    async def test_plain_job_creates_no_directory(self, tmp_path):
+        # Jobs that don't work in their directory (e.g. a step that only creates a folder elsewhere) make none
+        directory = tmp_path / 'job'
+        assert (await LooksForDirectory(JobConfig(job_directory=directory), job_id='a15g').run()).data is False
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.mark.asyncio
+    async def test_plain_job_removes_what_its_run_created(self, tmp_path):
+        # E.g. a log file in its directory, whose handler makes the directory and parents
+        directory = tmp_path / 'a' / 'job'
+        log_file = JobFileHandlerConfig(filename='{job_directory}/xtl.log')
+        config = JobConfig(job_directory=directory, log_handlers={'file': log_file})
+        assert (await Talker(config, job_id='a15h').run()).success
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.fixture
+    def chmods(self, monkeypatch):
+        """The ``chmod()`` calls on paths, with permission updates on, as on POSIX."""
+        calls = []
+        monkeypatch.setattr(jobs_module, 'OS_POSIX', True)
+        monkeypatch.setattr(settings.jobs.permissions, 'update', True)
+        monkeypatch.setattr(jobs_module.Path, 'chmod', lambda path, mode, **kwargs: calls.append((path, mode)))
+        return calls
+
+    @pytest.mark.asyncio
+    async def test_creates_its_directory_with_the_permissions(self, tmp_path, chmods):
+        directory = tmp_path / 'a' / 'job'
+        assert (await KeptSees(JobConfig(job_directory=directory), job_id='a15p').run()).success
+        mode = settings.jobs.permissions.directories.decimal
+        # Deepest first, so that permissions without `x` don't lock the job out of the rest
+        assert chmods[:2] == [(directory, mode), (tmp_path / 'a', mode)]
+
+    @pytest.mark.asyncio
+    async def test_creates_its_directory_without_updating_permissions(self, tmp_path, chmods, monkeypatch):
+        monkeypatch.setattr(settings.jobs.permissions, 'update', False)
+        assert (await SeesDirectory(JobConfig(job_directory=tmp_path / 'job'), job_id='a15q').run()).success
+        assert chmods == []
+
+    @pytest.mark.asyncio
+    async def test_existing_directory_keeps_its_permissions(self, tmp_path, chmods, monkeypatch):
+        monkeypatch.setattr(jobs_module, 'chmod_recursively', lambda path, **kwargs: None)
+        assert (await SeesDirectory(JobConfig(job_directory=tmp_path), job_id='a15r').run()).success
+        assert chmods == []
+
+    @pytest.mark.asyncio
+    async def test_permissions_that_cannot_be_set(self, tmp_path, monkeypatch):
+        def fails(path, mode, **kwargs):
+            raise PermissionError('not allowed')
+
+        monkeypatch.setattr(jobs_module, 'OS_POSIX', True)
+        monkeypatch.setattr(settings.jobs.permissions, 'update', True)
+        monkeypatch.setattr(jobs_module.Path, 'chmod', fails)
+        job = SeesDirectory(JobConfig(job_directory=tmp_path / 'job'), job_id='a15s')
+        records = recorded(job)
+        assert (await job.run()).success
+        assert any('Failed to set the permissions of' in m for m in records.messages(logging.WARNING))
+
+    @skipif_not_linux
+    @pytest.mark.asyncio
+    async def test_creates_its_directory_with_the_permissions_on_disk(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(settings.jobs.permissions, 'update', True)
+        monkeypatch.setattr(settings.jobs.permissions, 'directories', FilePermissions(0o750))
+        directory = tmp_path / 'a' / 'job'
+        assert (await KeptSees(JobConfig(job_directory=directory), job_id='a15t').run()).success
+        for path in (directory, tmp_path / 'a'):
+            assert path.stat().st_mode & 0o777 == 0o750
+
+    @pytest.mark.asyncio
     async def test_tidy_up_removes_the_directory_on_success(self, tmp_path):
         directory = tmp_path / 'job'
-        directory.mkdir()
-        assert (await Talker(JobConfig(job_directory=directory), job_id='a15').run()).success
+        assert (await SeesDirectory(JobConfig(job_directory=directory), job_id='a15b').run()).success
         assert not directory.exists()
 
     @pytest.mark.asyncio
+    async def test_tidy_up_removes_the_parents_it_created(self, tmp_path):
+        directory = tmp_path / 'a' / 'b' / 'job'
+        assert (await SeesDirectory(JobConfig(job_directory=directory), job_id='a15c').run()).success
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.mark.asyncio
+    async def test_tidy_up_keeps_a_directory_that_existed(self, tmp_path):
+        # Regression: the job removed any directory it was given, whatever it held
+        (tmp_path / 'mine.txt').write_text('keep me')
+        assert (await SeesDirectory(JobConfig(job_directory=tmp_path), job_id='a15d').run()).data is True
+        assert sorted(p.name for p in tmp_path.iterdir()) == ['mine.txt', 'output.txt']
+
+    @pytest.mark.asyncio
+    async def test_tidy_up_keeps_a_parent_that_existed(self, tmp_path):
+        (tmp_path / 'shared').mkdir()
+        directory = tmp_path / 'shared' / 'a' / 'job'
+        assert (await SeesDirectory(JobConfig(job_directory=directory), job_id='a15e').run()).success
+        assert list(tmp_path.iterdir()) == [tmp_path / 'shared']
+        assert list((tmp_path / 'shared').iterdir()) == []
+
+    @pytest.mark.asyncio
+    async def test_tidy_up_keeps_a_parent_that_is_not_empty(self, tmp_path):
+        # E.g. another job's files next to this one's directory
+        directory = tmp_path / 'a' / 'job'
+        assert (await WritesBeside(JobConfig(job_directory=directory), job_id='a15f').run()).success
+        assert list((tmp_path / 'a').iterdir()) == [tmp_path / 'a' / 'other.txt']
+
+    @pytest.mark.asyncio
     async def test_tidy_up_keeps_the_directory_on_failure(self, tmp_path):
-        assert not (await Failing(JobConfig(job_directory=tmp_path), job_id='a16').run()).success
-        assert tmp_path.exists()
+        directory = tmp_path / 'a' / 'job'
+        assert not (await FailsInItsDirectory(JobConfig(job_directory=directory), job_id='a16').run()).success
+        assert (directory / 'output.txt').is_file()
 
     @pytest.mark.asyncio
     async def test_tidy_up_without_a_directory(self, tmp_path):
         assert (await Talker(JobConfig(job_directory=tmp_path / 'never'), job_id='a17').run()).success
+        assert not (tmp_path / 'never').exists()
         assert (await Talker(job_id='a17b').run()).success
 
     @pytest.mark.parametrize('kept_by', ['class', 'settings'])
@@ -361,27 +514,36 @@ class TestJob:
         monkeypatch.setattr(jobs_module, 'OS_POSIX', False)
         if kept_by == 'settings':
             monkeypatch.setattr(settings.jobs, 'keep_temp', True)
-        job_cls = KeptTalker if kept_by == 'class' else Talker
-        assert (await job_cls(JobConfig(job_directory=tmp_path), job_id='a18').run()).success
-        assert tmp_path.exists()
+        directory = tmp_path / 'a' / 'job'
+        job_cls = KeptSees if kept_by == 'class' else SeesDirectory
+        assert (await job_cls(JobConfig(job_directory=directory), job_id='a18').run()).success
+        assert (directory / 'output.txt').is_file()
 
     @pytest.mark.asyncio
     async def test_tidy_up_warns_about_what_it_cannot_remove(self, tmp_path, monkeypatch):
         monkeypatch.setattr(jobs_module.shutil, 'rmtree', lambda path, ignore_errors=False: None)
-        job = Talker(JobConfig(job_directory=tmp_path), job_id='a19')
+        directory = tmp_path / 'job'
+        job = SeesDirectory(JobConfig(job_directory=directory), job_id='a19')
         records = recorded(job)
         assert (await job.run()).success
-        assert f'Job directory {tmp_path} could not be removed completely' in records.messages(logging.WARNING)
+        assert f'Job directory {directory} could not be removed completely' in records.messages(logging.WARNING)
         assert 'Job directory cleaned up successfully' not in records.messages()
 
     @skipif_not_windows
     @pytest.mark.asyncio
     async def test_tidy_up_with_an_open_file(self, tmp_path):
-        job = Talker(JobConfig(job_directory=tmp_path), job_id='a20')
+        directory = tmp_path / 'a' / 'job'
+        job = HoldsAFile(JobConfig(job_directory=directory), job_id='a20')
         records = recorded(job)
-        with open(tmp_path / 'held.txt', 'w'):
+        try:
             assert (await job.run()).success
+        finally:
+            for f in HoldsAFile.held:
+                f.close()
+            HoldsAFile.held.clear()
         assert any('could not be removed completely' in m for m in records.messages(logging.WARNING))
+        # The parent isn't empty either, and stays
+        assert directory.is_dir()
 
     @pytest.mark.asyncio
     async def test_tidy_up_updates_permissions(self, tmp_path, monkeypatch):
@@ -561,7 +723,7 @@ class TestBatchJob:
         records = recorded(job)
         result = await job.run()
         assert isinstance(result.error, OSError)
-        assert any('Failed to create batch directory' in m for m in records.messages(logging.ERROR))
+        assert any('Failed to create job directory' in m for m in records.messages(logging.ERROR))
 
     @pytest.mark.asyncio
     async def test_run_without_a_batch_file(self, tmp_path, monkeypatch):
@@ -702,6 +864,64 @@ class TestSteppedJob:
         job._create_child = spy
         await job.run()
         assert directories == [tmp_path / '1_only']
+
+    @pytest.mark.asyncio
+    async def test_run_step_directories_go_with_the_job(self, tmp_path):
+        class Sees(SteppedJob[SteppedJobConfig]):
+            _steps = (StepSpec(name='only', job_cls=SeesDirectory, config_cls=JobConfig),)
+
+        job = Sees(job_id='s')
+        job.configure(SteppedJobConfig(job_directory=tmp_path / 'job'))
+        result = await job.run()
+        assert result.success
+        assert result.steps['only'].data is True  # the step's directory existed while it ran
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.mark.asyncio
+    async def test_run_plain_step_gets_no_directory(self, tmp_path):
+        class Mixed(SteppedJob[SteppedJobConfig]):
+            _steps = (
+                StepSpec(name='plain', job_cls=LooksForDirectory, config_cls=JobConfig),
+                StepSpec(name='works', job_cls=SeesDirectory, config_cls=JobConfig),
+            )
+
+        job = Mixed(job_id='m')
+        directories = []
+        original = job._execute
+
+        async def watch():
+            # What the steps' directories look like at the end of the run, before the job's tidy-up
+            result = await original()
+            directories.extend(sorted(p.name for p in (tmp_path / 'job').iterdir()))
+            return result
+
+        job._execute = watch
+        job.configure(SteppedJobConfig(job_directory=tmp_path / 'job'))
+        result = await job.run()
+        assert result.success
+        assert result.steps['plain'].data is False
+        assert result.steps['works'].data is True
+        assert directories == []  # the working step's own directory went with its success
+        assert list(tmp_path.iterdir()) == []
+
+    @pytest.mark.asyncio
+    async def test_run_step_with_a_temporary_default_leaves_nothing(self, tmp_path, monkeypatch):
+        # Regression: a step config class with a temporary directory as its default made one, which the step's
+        #  directory under the job's then replaced, leaving it empty
+        temp = tmp_path / 'temp'
+        temp.mkdir()
+        monkeypatch.setattr(tempfile, 'tempdir', str(temp))
+
+        class TempConfig(JobConfig):
+            job_directory: Path | None = Option(default_factory=lambda: cast_as_temp_dir_if_none(None))
+
+        class Sees(SteppedJob[SteppedJobConfig]):
+            _steps = (StepSpec(name='only', job_cls=SeesDirectory, config_cls=TempConfig),)
+
+        job = Sees(job_id='t')
+        job.configure(SteppedJobConfig(job_directory=tmp_path / 'job'))
+        assert (await job.run()).success
+        assert list(temp.iterdir()) == []
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize('hook', ['condition', 'dynamic_defaults', 'post_processor'])

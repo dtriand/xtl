@@ -1,4 +1,5 @@
 import logging
+import pickle
 import tempfile
 from pathlib import Path
 
@@ -60,6 +61,15 @@ class TestBatchJobConfig:
             assert config.job_directory.parent == Path(tempfile.gettempdir())
             assert config.job_directory.name.startswith('xtl_batch_')
         assert first.job_directory != second.job_directory
+
+    def test_job_directory_default_not_created(self, tmp_path, monkeypatch):
+        # Building, copying, dumping or pickling a config leaves nothing on disk: the job creates its directory
+        monkeypatch.setattr(tempfile, 'tempdir', str(tmp_path))
+        config = BatchJobConfig()
+        copy = config.model_copy()
+        config.to_dict(), config.to_toml(), repr(config), pickle.loads(pickle.dumps(config))
+        assert copy.job_directory == config.job_directory
+        assert list(tmp_path.iterdir()) == []
 
     def test_paths(self, tmp_path):
         config = BatchJobConfig(job_directory=str(tmp_path), filename='run')

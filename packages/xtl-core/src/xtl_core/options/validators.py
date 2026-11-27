@@ -19,6 +19,7 @@ from functools import partial
 from pathlib import Path
 import tempfile
 from typing import Any, Callable, Iterable, Optional
+import uuid
 
 from pydantic import AfterValidator, BeforeValidator
 
@@ -147,11 +148,12 @@ def cast_as_path_or_none(value: Any) -> Optional[Path]:
 
 def cast_as_temp_dir_if_none(value: Any, prefix: str = 'xtl_') -> Path:
     """
-    Cast the value to a new temporary directory if it is ``None``. The directory stays
-    until whoever uses it removes it.
+    Cast the value to a new path in the temporary directory if it is ``None``: unique, but
+    not created, so that building a config leaves nothing on disk. Whoever uses it creates
+    it (a job, when it runs) and removes it.
     """
     if value is None:
-        return Path(tempfile.mkdtemp(prefix=prefix))
+        return Path(tempfile.gettempdir()) / f'{prefix}{uuid.uuid4().hex}'
     return Path(value)
 
 
