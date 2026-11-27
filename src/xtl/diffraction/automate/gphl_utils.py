@@ -2,7 +2,7 @@ from dataclasses import dataclass, Field
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from xtl.common import AnnotatedDataclass
+from xtl.shared.annotated_dataclass import AnnotatedDataclass
 
 
 @dataclass

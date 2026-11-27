@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from xtl.diffraction.automate.gphl_utils import GPhLConfig
-from xtl.common.annotated_dataclass import afield, cfield, pfield, _ifield
+from xtl.shared.annotated_dataclass import afield, cfield, pfield, _ifield
 
 
 class TestGPhLConfig:

@@ -1,8 +1,7 @@
-from xtl.exceptions import InvalidArgument, DimensionalityError
 from xtl.math import si_units
 
 from pint import UnitRegistry
-from pint.errors import UndefinedUnitError
+from pint.errors import DimensionalityError, UndefinedUnitError
 
 ureg = UnitRegistry()
 """
@@ -24,8 +23,10 @@ def smart_units(value, new_units, pretty=False):
     :param bool pretty: Whether to reduce value to SI prefixes or not
     :return: Value in the new units
     :rtype: pint.Quantity
-    :raise DimensionalityError: If the dimensions of `value` and `new_units` are different.
-    :raise InvalidArgument: If the type of any argument is incorrect.
+    :raise pint.errors.DimensionalityError: If the dimensions of ``value`` and ``new_units`` are different (a
+        :class:`TypeError`).
+    :raise TypeError: If the type of any argument is incorrect.
+    :raise ValueError: If ``new_units`` aren't known units.
     """
 
     # Convert new_units to Quantity
@@ -33,9 +34,9 @@ def smart_units(value, new_units, pretty=False):
         try:
             new_units = ureg.parse_expression(new_units)
         except UndefinedUnitError:
-            raise InvalidArgument(raiser='new_units', message=f'{new_units}. Unknown units.')
+            raise ValueError(f'new_units: {new_units}. Unknown units.')
     if not isinstance(new_units, Q_):
-        raise InvalidArgument(raiser='new_units', message=f'{new_units}. Must be pint.Quantity or str.')
+        raise TypeError(f'new_units: {new_units}. Must be pint.Quantity or str.')
 
     # Convert value to Quantity
     if isinstance(value, str):
@@ -43,11 +44,11 @@ def smart_units(value, new_units, pretty=False):
     elif isinstance(value, (int, float)):
         return Q_(value, new_units.units)
     if not isinstance(value, Q_):
-        raise InvalidArgument(raiser='value', message=f'{value}. Must be pint.Quantity, str, int or float.')
+        raise TypeError(f'value: {value}. Must be pint.Quantity, str, int or float.')
 
     # Check dimensionality
     if value.dimensionality != new_units.dimensionality:
-        raise DimensionalityError(src_units=value.units, dst_units=new_units.units)
+        raise DimensionalityError(value.units, new_units.units, value.dimensionality, new_units.dimensionality)
 
     # Convert to new units
     value.ito(new_units)

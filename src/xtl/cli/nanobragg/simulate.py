@@ -4,14 +4,14 @@ from pathlib import Path
 import typer
 
 from xtl.cli.utilities import epilog
-from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
+from xtl.cli.utilities.decorators import typer_async, attach_hook, requires
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 
 app = typer.Typer()
 
 
 @app.command('simulate', short_help='Run a nanoBragg simulation', epilog=epilog)
-@jobs_depend_on('easybragg')
+@requires('easybragg')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
@@ -64,6 +64,7 @@ async def cli_nanobragg_simulate(
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
+    console.check_dependencies()
 
     if options_file.suffix not in ['.json', '.toml']:
         console.print('Options file must be JSON or TOML', style='red')

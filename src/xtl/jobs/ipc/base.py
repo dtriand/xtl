@@ -1,8 +1,44 @@
 from __future__ import annotations
 
 import abc
+import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+import inspect
+from typing import Any, Callable, Iterator
+
+from xtl_core.system.compatibility.py314 import sentinel
+
+POLL_FIRST = 0.001
+"""Seconds before the first retry of :func:`poll`."""
+
+POLL_MAX = 0.05
+"""Longest time between two retries of :func:`poll`."""
+
+NOT_YET = sentinel('NOT_YET')
+"""What an attempt passed to :func:`poll` returns when it should be retried."""
+
+
+async def poll(attempt: Callable[[], Any]) -> Any:
+    """
+    Wait for a thread or process primitive without blocking the event loop: call ``attempt`` until it returns
+    something other than :data:`NOT_YET`, sleeping between tries, twice as long each time up to :data:`POLL_MAX`.
+
+    Unlike waiting in an executor thread, which can't be stopped, a cancelled or timed-out wait leaves nothing behind:
+    no thread that later takes the lock or an item, and nothing for ``asyncio.run()`` to wait for on exit.
+
+    :param attempt: A non-blocking try, e.g. ``lock.acquire(blocking=False)`` or ``queue.get_nowait()``; it may return
+        an awaitable of its result instead.
+    :return: What the successful attempt returned.
+    """
+    delay = POLL_FIRST
+    while True:
+        result = attempt()
+        if inspect.isawaitable(result):
+            result = await result
+        if result is not NOT_YET:
+            return result
+        await asyncio.sleep(delay)
+        delay = min(2 * delay, POLL_MAX)
 
 
 class IPCLock(abc.ABC):
@@ -178,6 +214,19 @@ class IPCBackend(abc.ABC):
         create new ones.
         """
         ...
+
+    @staticmethod
+    def _unregistered(kind: str, name: str) -> KeyError:
+        """
+        The error of a worker-side backend asked for a primitive that the pool didn't register.
+
+        :param kind: ``'lock'``, ``'queue'`` or ``'state'``.
+        :param name: The name of the primitive.
+        """
+        return KeyError(
+            f'{kind.capitalize()} {name!r} was not registered with the pool. '
+            f'Call pool.get_{kind}({name!r}) before launching jobs.'
+        )
 
 
 @dataclass

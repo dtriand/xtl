@@ -2,7 +2,7 @@ from pathlib import Path
 
 import typer
 
-from xtl.cli.utilities.decorators import typer_async, attach_hook, jobs_depend_on
+from xtl.cli.utilities.decorators import typer_async, attach_hook, requires
 from xtl.cli.utilities.common import get_console_options, ConsoleOptions, get_job_options, JobOptions
 from xtl.cli.utilities import epilog
 from xtl.cli.utilities.io import resolve_paths_or_glob
@@ -12,7 +12,7 @@ app = typer.Typer()
 
 
 @app.command('subtract', short_help='Perform background subtractions', epilog=epilog)
-@jobs_depend_on('atsas')
+@requires('atsas')
 @attach_hook(func=get_console_options, hook_output='console_options')
 @attach_hook(func=get_job_options, hook_output='job_options')
 @typer_async
@@ -49,13 +49,14 @@ async def cli_saxs_subtract(
     [green]>[/] xtl.saxs subtract sample1.dat -b background1.dat sample2.dat -b background2.dat
     [green]>[/] xtl.saxs subtract sample1.dat sample2.dat --background="background*.dat"
     """
-    import tempfile
     from xtl import settings
     from xtl.tui.console import ConsoleIO
+    from xtl_core.options.validators import cast_as_temp_dir_if_none
     from xtl.scattering.jobs.operations import SAXSSubtractJob, SAXSSubtractJobConfig
 
     console = ConsoleIO(verbose=console_options.verbose, debug=console_options.debug)
     console.apply_job_options(job_options)
+    console.check_dependencies()
 
     if len(backgrounds) == 1:
         backgrounds = [backgrounds[0]] * len(datafiles)
@@ -65,7 +66,8 @@ async def cli_saxs_subtract(
 
     configs = [
         SAXSSubtractJobConfig(
-            job_directory=Path(tempfile.mkdtemp(prefix='xtl_saxs_subtract_')),
+            # Created by the job, which removes it on success
+            job_directory=cast_as_temp_dir_if_none(None, prefix='xtl_saxs_subtract_'),
             input=datafile.absolute(),
             modifier=background.absolute(),
             output=output_directory / f'subtracted_{datafile.stem}_minus_{background.stem}{datafile.suffix}',

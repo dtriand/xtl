@@ -3,7 +3,8 @@ import asyncio
 import contextlib
 from copy import deepcopy
 import logging
-from logging.handlers import QueueHandler
+from pathlib import Path
+import re
 import shutil
 from typing import (
     Any,
@@ -17,27 +18,46 @@ from typing import (
     get_args,
     overload,
     Literal,
-    cast,
-    Union,
 )
 
 from pydantic import field_validator
 
 if TYPE_CHECKING:
-    from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, SimplePool, AsyncPool, ThreadedPool, MultiprocessPool
+    from xtl.jobs.pools import (
+        PoolProtocol,
+        PoolType,
+        JobPool,
+        BasePool,
+        SimplePool,
+        AsyncPool,
+        ThreadedPool,
+        MultiprocessPool,
+    )
     from xtl.jobs.batchfiles import BatchFile
+    from xtl.jobs.shells import ShellType
+    from xtl.jobs.sites import ComputeSiteType
     from xtl.jobs.steps import StepSpec, JobContext
 
-from xtl import settings, Logger
+from xtl import settings
 from xtl.math.uuid import UUIDFactory
-from xtl.common.compatibility import OS_POSIX
-from xtl.common.misc import deepmerge
-from xtl.common.options import Option, Options
-from xtl.common.os import chmod_recursively
-from xtl.logging.config import LoggerConfig
-from xtl.exceptions.base import SubprocessError, StderrError
+from xtl_core.system.compatibility import OS_POSIX
+from xtl_core.system.compatibility.py313 import path_exists
+from xtl_core.utils.imports import import_object, import_path
+from xtl_core.utils.mappings import deepmerge
+from xtl_core.options import Option, Options
+from xtl_core.system.os.permissions import chmod_recursively
+from xtl.jobs.exceptions import SubprocessError
+from xtl.jobs.batchfiles import BatchFileStatus
 from xtl.jobs.config import JobConfig, BatchJobConfig, SteppedJobConfig
-from xtl.jobs.logging import get_logger_config
+from xtl.jobs.dependencies import ensure_dependencies, select_site_and_shell
+from xtl.jobs.logging import (
+    HandlerConfig,
+    JobNameFilter,
+    LoggerConfig,
+    MissingPlaceholderError,
+    get_logger_config,
+    pass_through,
+)
 from xtl.jobs.resources import Resources, get_rc_manager
 from xtl.jobs.results import JobResults, BatchResults, SteppedJobResults
 
@@ -46,7 +66,6 @@ __all__ = ['Job', 'BatchJob', 'SteppedJob', 'JobData']
 
 
 uuid = UUIDFactory()
-logger_ = Logger(__name__)
 
 
 class _DummyLock:
@@ -72,34 +91,24 @@ class JobData(Options):
 
     config: dict[str, Any] | None = Option(..., desc='Job configuration')
 
-    logging_config: dict[str, Any] | None = Option(..., desc='Logging configuration for this job')
+    log_handlers: dict[str, dict[str, Any]] = Option(
+        default_factory=dict, desc="Specs of the job's handlers from its pool, by name, as JSON-ready dicts"
+    )
 
-    @staticmethod
-    def _import_symbol(path: str):
-        """
-        Dynamically import a symbol from a module given its import path.
-        """
-        module_path, _, attr = path.rpartition('.')
-        if not module_path or not attr:
-            raise ValueError(f'Invalid import path: {path!r}')
-        module = __import__(module_path, fromlist=[attr])
-        try:
-            return getattr(module, attr)
-        except AttributeError as exc:
-            raise ImportError(f'Could not resolve symbol {path!r}') from exc
+    pool_label: str | None = Option(default=None, desc="Label of the job's pool, for the `{pool}` placeholder")
 
     def get_job_cls(self) -> Type['Job']:
         """
         Dynamically import and return the Job class specified by `job_cls`.
         """
-        return self._import_symbol(self.job_cls)
+        return import_object(self.job_cls)
 
     @field_validator('job_cls', mode='before')
     @classmethod
     def validate_job_cls(cls, value: Any) -> str:
         try:
-            job_cls = cls._import_symbol(value)
-        except (ImportError, ValueError) as exc:
+            job_cls = import_object(value)
+        except ImportError as exc:
             raise ValueError(f'Invalid `job_cls`: {value!r}') from exc
         if not isinstance(job_cls, type) or not issubclass(job_cls, Job):
             raise TypeError(f'`job_cls` must be a subclass of {Job.__name__}, got {value!r}')
@@ -111,65 +120,83 @@ BatchJobConfigType = TypeVar('BatchJobConfigType', bound=BatchJobConfig)
 
 
 class Job(abc.ABC, Generic[JobConfigType]):
-    _registry: ClassVar[set[str]] = set()
-    """Registry of all alive job IDs of this class. Used to prevent duplicate IDs"""
-
     # Note that this class variable is updated in __init_subclass__ when the subclass
     #  is defined with a generic parameter, e.g., Job[Config].
     _config_class: ClassVar[Type[JobConfig]] = JobConfig
     """The configuration class for this job type."""
 
     _logging_level: ClassVar[int] = logging.INFO
-    """Logging level for jobs."""
-
-    _logger_config: ClassVar[LoggerConfig] = get_logger_config(level=_logging_level)
-    """Logging configuration for jobs."""
+    """Default logging level for the loggers of this job type."""
 
     _keep_files: ClassVar[bool] = False
     """Whether to keep any files created by this job"""
 
+    _creates_directory: ClassVar[bool] = False
+    """Whether the job creates its ``job_directory`` before it runs, for jobs that work in it (batch jobs, stepped
+    jobs for their steps). Other jobs create nothing up front; whatever their run creates there (e.g. a log file) is
+    removed on success all the same."""
+
     _resources: ClassVar[Resources | None] = None
     """Maximum resources that the job can use, unless explicitly overriden in `JobConfig`"""
 
-    def __init__(self, job_id: str | None = None, logger: 'logging.Logger' = None, *, enforce_id: bool = False):
+    _dependencies: ClassVar[frozenset[str]] = frozenset()
+    """Names of the external programs that the job needs, as in ``settings.dependencies`` (e.g. ``{'atsas'}``)"""
+
+    def __init__(
+        self,
+        config: JobConfigType | None = None,
+        *,
+        job_id: str | None = None,
+        logger: 'logging.Logger' = None,
+        logger_config: LoggerConfig | None = None,
+    ):
         """
         Abstract base class for asynchronous jobs execution.
 
-        :param job_id: Optional, a unique identifier for the job. If not provided,
-            a unique ID will be generated.
+        :param config: Optional, the configuration of the job, an instance of the job's configuration class (see
+            :meth:`configure`). A job without one can be configured later.
+        :param job_id: Optional, an identifier for the job, used as given; it must be usable in file names and
+            commands (no ``| / \\ : * ? " < >``). If not provided, a random ID is generated. A pool makes sure its
+            jobs' IDs are unique; two jobs given the same ID outside a pool share a logger.
         :param logger: Optional, a custom logger for the job. If not provided,
-            a logger will be created using `job_id`.
-        :param enforce_id: If True, skip the check for duplicate job IDs and
-            register the job unconditionally.
+            a logger will be created using the job's :attr:`label` and `logger_config`.
+        :param logger_config: Optional, the logging configuration of the job, also
+            passed on to its child jobs. If not provided, the default of this job type
+            is used.
+        :raises ValueError: If `job_id` isn't usable in file names and commands (see :meth:`check_job_id`).
         """
-        # Create a unique job ID
-        self._job_id = str(job_id) if job_id else uuid.random(length=settings.jobs.job_digits)
-
-        if not enforce_id:
-            while self._job_id in self._registry:
-                # Regenerate if necessary
-                logger_.debug('Regenerating job_id: %s', self._job_id)
-                self._job_id = uuid.random(length=settings.jobs.job_digits)
+        self._job_id = self.check_job_id(str(job_id)) if job_id is not None else uuid.random(settings.jobs.job_digits)
 
         # Attach a logger
-        self._logger = logger or self.get_logger(self.job_id)
-
-        # Register the job in the class registry
-        self.__class__._registry.add(self._job_id)
+        self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
+        self._logger = logger or self.get_logger(self.label, logger_config)
 
         # Job state
         self._is_running = False
         self._is_complete = False
         self._error: BaseException | None = None
+        # The job directory and its parents that the run created, deepest first (see `run()`)
+        self._created_directories: list[Path] = []
 
         # Pool integration
         self._pool: Optional['BasePool'] = None
 
+        # Specs of handlers from the pool, by name, and the pool's label (set by the pool on submission)
+        self._log_handlers: dict[str, HandlerConfig] = {}
+        self._pool_label: str | None = None
+
         # Initialize config
         self._config: JobConfigType | None = None
+        if config is not None:
+            self.configure(config)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+
+        # Dependencies as a frozenset, whichever collection the class gives them in (a string is one name)
+        dependencies = cls.__dict__.get('_dependencies')
+        if dependencies is not None:
+            cls._dependencies = frozenset({dependencies} if isinstance(dependencies, str) else dependencies)
 
         # Check if the class was defined with a generic parameter
         config_class = None
@@ -201,6 +228,35 @@ class Job(abc.ABC, Generic[JobConfigType]):
             # Default to JobConfig if no specific type is provided
             cls._config_class = JobConfig
 
+    @classmethod
+    def dependencies(cls) -> frozenset[str]:
+        """
+        Names of the external programs that this job type needs (``_dependencies``), as in ``settings.dependencies``.
+        """
+        return cls._dependencies
+
+    def _select_site_and_shell(self) -> tuple['ComputeSiteType', 'ShellType']:
+        """
+        The compute site and shell that the job's dependencies are checked on: those they set in the settings, or the
+        defaults (see :func:`~xtl.jobs.dependencies.select_site_and_shell`).
+        """
+        return select_site_and_shell(self.dependencies())
+
+    async def _check_dependencies(self) -> None:
+        """
+        Make sure that the job's dependencies can be found, before it runs (see
+        :func:`~xtl.jobs.dependencies.ensure_dependencies`). A dependency is checked once per compute site and shell;
+        later checks use the outcome remembered in the settings.
+
+        :raises DependencyError: If a dependency is missing.
+        """
+        dependencies = self.dependencies()
+        if not dependencies or not settings.dependencies.check:
+            return
+        site, shell = self._select_site_and_shell()
+        # NB: A check runs a shell, which mustn't hold up the other jobs of the event loop
+        await asyncio.to_thread(ensure_dependencies, dependencies, site, shell)
+
     def configure(self, config: JobConfigType) -> None:
         """
         Configure a job instance.
@@ -220,38 +276,50 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         return self._config
 
-    @classmethod
-    def with_config(cls, config: JobConfigType = None, **kwargs) -> 'Job[JobConfigType]':
-        """
-        Get a preconfigured job instance.
-
-        :param config: Configuration of the job.
-        :param kwargs: Keyword arguments passed to the constructor of the job class, e.g., `job_id`, `logger`, etc.
-        :raises TypeError: If `config` is not an instance of the expected configuration class for this job type.
-        :return: A preconfigured job instance.
-        """
-        if not isinstance(config, cls._config_class):
-            raise TypeError(f'Expected config of type {cls._config_class.__name__}, got {type(config).__name__}')
-
-        # Extract init parameters
-        # NB: We explicitly pop, so that subclasses that override this method can make use of the remaining kwargs
-        job_id = kwargs.pop('job_id', None)
-        logger = kwargs.pop('logger', None)
-        enforce_id = kwargs.pop('enforce_id', False)
-        job = cls(job_id=job_id, logger=logger, enforce_id=enforce_id)
-
-        # Set configuration if provided
-        if config is not None:
-            job.configure(config)
-
-        return job
-
     @property
     def job_id(self) -> str:
         """
-        Get the unique identifier of the job.
+        Get the unique identifier of the job. It can be used as it is in file names and commands.
         """
         return self._job_id
+
+    @staticmethod
+    def check_job_id(job_id: str) -> str:
+        """
+        Check that a job id can be used as it is in file names and commands.
+
+        :param job_id: The job id.
+        :raises ValueError: If it is empty, or holds one of ``| / \\ : * ? " < >`` or a control character.
+        :return: The job id.
+        """
+        # Not allowed in file names on Windows, or meaningful to shells
+        unsafe = re.compile(r'[|/\\:*?"<>\x00-\x1f]')
+        if not job_id or unsafe.search(job_id):
+            raise ValueError(
+                'Job ids must be usable in file names and commands, without | / \\ : * ? " < > or control characters, '
+                f'got {job_id!r}'
+            )
+        return job_id
+
+    @classmethod
+    def label_of(cls, job_id: str) -> str:
+        """
+        How a job of this class with the id `job_id` is shown: a pool's number, ``<JobClass>-<i>``, as
+        ``<JobClass>|<i>`` (like a pool's :attr:`~xtl.jobs.pools.BasePool.label`); any other id as it is.
+
+        :param job_id: The job's id.
+        """
+        if match := re.fullmatch(rf'{re.escape(cls.__name__)}-([0-9]+)', job_id):
+            return f'{cls.__name__}|{match.group(1)}'
+        return job_id
+
+    @property
+    def label(self) -> str:
+        """
+        How this job is shown, on screen and in the name of its logger (see :meth:`label_of`). Since an id can't hold
+        ``|``, two jobs of different ids never have the same label.
+        """
+        return self.label_of(self._job_id)
 
     @property
     def is_running(self) -> bool:
@@ -284,54 +352,49 @@ class Job(abc.ABC, Generic[JobConfigType]):
         self._pool = pool
 
     @overload
-    async def get_pool(
-        self, max_jobs: int = 1, *, resources: Resources | None = None, **kwargs
-    ) -> AsyncIterator['SimplePool']: ...
-
-    @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['simple', 'JobPool.SIMPLE'],
+        pool_type: "Literal['simple', JobPool.SIMPLE]" = 'simple',
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['SimplePool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[SimplePool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['async', 'JobPool.ASYNC'],
+        pool_type: "Literal['async', JobPool.ASYNC]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['AsyncPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[AsyncPool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['threads', 'JobPool.THREADS'],
+        pool_type: "Literal['threads', JobPool.THREADS]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['ThreadedPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[ThreadedPool]': ...
 
     @overload
-    async def get_pool(
+    def get_pool(
         self,
-        pool_type: Literal['processes', 'JobPool.PROCESSES'],
+        pool_type: "Literal['processes', JobPool.PROCESSES]",
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
         **kwargs,
-    ) -> AsyncIterator['MultiprocessPool']: ...
+    ) -> 'contextlib.AbstractAsyncContextManager[MultiprocessPool]': ...
 
     @contextlib.asynccontextmanager
     async def get_pool(
         self,
-        pool_type: Union['JobPool', Literal['simple', 'async', 'threads', 'processes']] = 'simple',
+        pool_type: 'PoolType' = 'simple',
         max_jobs: int = 1,
         *,
         resources: Resources | None = None,
@@ -361,7 +424,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if max_jobs > limit:
             self.logger.warning(
                 'The requested max_jobs=%(max_jobs)d exceeds granted '
-                '%(dimension)s=%(limit)d for %(pool_type), capping to %(limit)d',
+                '%(dimension)s=%(limit)d for %(pool_type)s, capping to %(limit)d',
                 {'max_jobs': max_jobs, 'dimension': dimension, 'limit': limit, 'pool_type': pool_cls.__name__},
             )
             max_jobs = limit
@@ -369,19 +432,10 @@ class Job(abc.ABC, Generic[JobConfigType]):
         # Allocate the appropriate budget
         budget = Resources(jobs=max_jobs, threads=effective.threads, processes=effective.processes)
 
-        # Yield the pool
+        # Yield the pool, its logger under this job's
+        kwargs.setdefault('parent_logger', self.logger)
         async with pool_cls(max_jobs=max_jobs, resources=budget, **kwargs) as child:
             yield child
-
-    def clear(self) -> None:
-        """
-        Explicitly remove this job from the registry.
-        """
-        # Called by __del__ and BasePool._drain_pool()
-        self.__class__._registry.discard(self._job_id)
-
-    def __del__(self) -> None:
-        self.clear()
 
     def get_resources(self) -> Resources | None:
         """
@@ -426,8 +480,16 @@ class Job(abc.ABC, Generic[JobConfigType]):
             return None
 
         result = None
+        # Before anything creates them (a file handler makes its file's directory), so that the job knows which
+        #  directories it made, and removes only those on success
+        self._created_directories = self._missing_directories()
+        handlers = self._open_log_handlers()
         try:
             self._is_running = True
+            # A job that can't run leaves no directory behind
+            await self._check_dependencies()
+            if self._creates_directory:
+                self._make_job_directory()
             self._logger.debug('Launching job')
             result = await self._execute()
             self._is_complete = True
@@ -448,17 +510,14 @@ class Job(abc.ABC, Generic[JobConfigType]):
                     repr(e.command),
                     exc_info=settings.jobs.tracebacks,
                 )
-            elif isinstance(e, StderrError):
-                self._logger.error(
-                    'Job failed with stderr error: %s', repr(e.stderr), exc_info=settings.jobs.tracebacks
-                )
             else:
                 self._logger.error('Job failed due to an exception: %s', str(e), exc_info=settings.jobs.tracebacks)
         finally:
             self._is_running = False
 
             # For SteppedJobs, check if any of the steps failed
-            if isinstance(self, SteppedJob):
+            #  NB: `result` is None if `_execute` raised; anything but a 2-tuple is reported by `SteppedJob.run()`
+            if isinstance(self, SteppedJob) and isinstance(result, tuple) and len(result) == 2:
                 # SteppedJob._execute returns a tuple (step_results, data)
                 result: tuple[dict[str, JobResults | None], dict[str, Any]]
                 for i, r in enumerate(result[0].values()):
@@ -468,17 +527,139 @@ class Job(abc.ABC, Generic[JobConfigType]):
 
             if self._error:
                 self._logger.debug('Job aborted successfully')
-            else:
+
+            # Close the job's own handlers before its directory is cleaned up (an open file can't be deleted on Windows)
+            self._close_log_handlers(handlers)
+
+            if not self._error:
                 # Clean files when no errors occurred
                 await self._tidy_up()
 
         return JobResults(job_id=self._job_id, data=result, error=self._error)
 
+    def _log_handler_specs(self) -> dict[str, HandlerConfig]:
+        """
+        The specs of this job's own handlers: its pool's, with the ones from its config added, replaced or (with
+        None) switched off by name.
+        """
+        specs = dict(self._log_handlers)
+        cfg = self.config
+        if cfg is not None:
+            for name, spec in cfg.log_handlers.items():
+                if spec is None:
+                    specs.pop(name, None)
+                else:
+                    specs[name] = spec
+        return specs
+
+    def _open_log_handlers(self) -> list[tuple[logging.Handler, int]]:
+        """
+        Build this job's own handlers from their specs, with the placeholders filled in, and attach them to its
+        logger. The logger is lowered to what the handlers want, if that's lower than its level.
+
+        :return: The handlers, with the logger's level before, for :meth:`_close_log_handlers`.
+        """
+        specs = self._log_handler_specs()
+        if not specs:
+            return []
+
+        cfg = self.config
+        job_dir = cfg.job_directory if cfg is not None else None
+        values = {
+            'job_directory': str(job_dir) if job_dir is not None else None,
+            'job_id': self.job_id,
+            'job_class': self.__class__.__name__,
+            'pool': self._pool_label.replace('|', '_') if self._pool_label else None,
+        }
+
+        level = self._logger.getEffectiveLevel()
+        opened = []
+        for name, spec in specs.items():
+            try:
+                handler = spec.fill(values).get_handler()
+            except MissingPlaceholderError as e:
+                # E.g. a file in the job's directory, for a job that has none: nothing to warn about
+                self._logger.debug('Skipped log handler %r: %s', name, e)
+                continue
+            except Exception as e:
+                self._logger.warning('Skipped log handler %r: %s', name, e)
+                continue
+            # A handler without a level of its own gets the job's, so that a lower one doesn't widen it
+            if handler.level == logging.NOTSET:
+                handler.setLevel(level)
+            handler.addFilter(JobNameFilter.for_logger(self._logger))
+            self._logger.addHandler(handler)
+            opened.append(handler)
+
+        previous = self._logger.level
+        if opened:
+            lowest = min(h.level for h in opened)
+            if lowest < level:
+                self._logger.setLevel(lowest)
+        return [(handler, previous) for handler in opened]
+
+    def _close_log_handlers(self, handlers: list[tuple[logging.Handler, int]]) -> None:
+        """
+        Detach and close the handlers from :meth:`_open_log_handlers`, and put back the logger's level.
+        """
+        for handler, previous in handlers:
+            self._logger.removeHandler(handler)
+            with contextlib.suppress(Exception):
+                handler.close()
+            self._logger.setLevel(previous)
+
+    def _missing_directories(self) -> list[Path]:
+        """
+        The job directory and those of its parents that don't exist yet, deepest first: what creating the job
+        directory makes.
+        """
+        cfg = self.config
+        directory = cfg.job_directory if cfg is not None else None
+        missing = []
+        while directory is not None and not path_exists(directory):
+            missing.append(directory)
+            parent = directory.parent
+            directory = parent if parent != directory else None
+        return missing
+
+    def _make_job_directory(self) -> None:
+        """
+        Create the job directory, with its parents, if it doesn't exist yet. On POSIX systems, the directories that
+        this creates get ``settings.jobs.permissions.directories`` (unless ``settings.jobs.permissions.update =
+        False``); a directory that existed keeps its own.
+
+        :raises OSError: If it can't be created.
+        """
+        cfg = self.config
+        job_dir = cfg.job_directory if cfg is not None else None
+        if job_dir is None:
+            return
+        if not job_dir.is_dir():
+            self.logger.debug('Creating job directory: %s', job_dir)
+            try:
+                job_dir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.logger.error('Failed to create job directory: %s', job_dir)
+                raise
+
+        if not (OS_POSIX and settings.jobs.permissions.update):
+            return
+        # NB: `chmod()`, since `mkdir(mode=...)` is cut by the umask; deepest first, so that permissions without
+        #  `x` for the owner don't lock the job out of the directories below
+        mode = settings.jobs.permissions.directories.decimal
+        for directory in self._created_directories:
+            try:
+                directory.chmod(mode)
+            except OSError as e:
+                self.logger.warning('Failed to set the permissions of %s: %s', directory, e)
+
     async def _tidy_up(self) -> None:
         """
         Performs a series of housekeeping tasks after job execution:
-        1. Deletes the job directory (unless ``Job._keep_files = True`` or ``settings.jobs.keep_temp = True``).
-        2. Updates the permissions of created files and directories on POSIX systems (unless
+        1. Deletes the job directory, if the job created it, and the parents that creating it made, if they are
+           empty (unless ``Job._keep_files = True`` or ``settings.jobs.keep_temp = True``). A directory that existed
+           before the job stays, as do its files.
+        2. Updates the permissions of the files and directories that stay on POSIX systems (unless
            ``settings.jobs.permissions.update = False``).
         """
         # Skip when no config (implies no job_dir)
@@ -491,20 +672,21 @@ class Job(abc.ABC, Generic[JobConfigType]):
         if job_dir is None or not job_dir.exists():
             return
 
-        if not (self._keep_files or settings.jobs.keep_temp):
-            try:
-                self.logger.debug('Cleaning up job directory: %s', job_dir)
-                async with self.lock():
-                    shutil.rmtree(job_dir, ignore_errors=True)
+        created = job_dir in self._created_directories
+        if created and not (self._keep_files or settings.jobs.keep_temp):
+            self.logger.debug('Cleaning up job directory: %s', job_dir)
+            async with self.lock():
+                shutil.rmtree(job_dir, ignore_errors=True)
+                # NB: rmtree goes on past what it can't delete (e.g. a file that is still open on Windows)
+                if not job_dir.exists():
+                    self._remove_created_parents(job_dir)
+            if job_dir.exists():
+                self.logger.warning('Job directory %s could not be removed completely', job_dir)
+            else:
                 self.logger.debug('Job directory cleaned up successfully')
-            except OSError as e:
-                self.logger.error(
-                    'Failed to clean up job directory %s due to error: %s',
-                    job_dir,
-                    str(e),
-                    exc_info=settings.jobs.tracebacks,
-                )
         else:
+            if not created:
+                self.logger.debug('Keeping job directory %s, which existed before the job', job_dir)
             # Skip permission update on non-POSIX systems
             if not OS_POSIX:
                 return
@@ -535,6 +717,20 @@ class Job(abc.ABC, Generic[JobConfigType]):
                     exc_info=settings.jobs.tracebacks,
                 )
 
+    def _remove_created_parents(self, job_dir: Path) -> None:
+        """
+        Remove the parents of the job directory that creating it made, deepest first, as long as they are empty: a
+        parent that holds anything else (e.g. another job's directory) stays, and so do the ones above it.
+        """
+        for parent in self._created_directories:
+            if parent == job_dir:
+                continue
+            try:
+                parent.rmdir()
+            except OSError:
+                self.logger.debug('Keeping %s, which is not empty', parent)
+                return
+
     def lock(self, name: str | None = None) -> Any:
         """
         Context manager to acquire a lock during job execution.
@@ -543,7 +739,7 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         if self._pool is None:
             # If no pool is set, return a dummy lock that does nothing
-            self.logger.warning('Requested a lock for job outside a pool context manager')
+            self.logger.debug('No pool to lock; requested a lock outside a pool context manager')
             return _DummyLock()
         # Use the pool's lock
         return self._pool.get_lock(name)
@@ -555,17 +751,30 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         return self._logger
 
+    @property
+    def logger_config(self) -> LoggerConfig:
+        """
+        Get the logging configuration of this job, which its child jobs inherit.
+        """
+        return self._logger_config
+
     @classmethod
-    def get_logger(cls, job_id: str, config: LoggerConfig = None, update_config: bool = True) -> logging.Logger:
+    def _default_logger_config(cls) -> LoggerConfig:
+        """
+        The default logging configuration of this job type, built from the current settings.
+        """
+        return get_logger_config(level=cls._logging_level)
+
+    @classmethod
+    def get_logger(cls, job_id: str, config: LoggerConfig = None) -> logging.Logger:
         """
         Get or create a logger for the job with the given ID. If `config` is not
-        specified, the default configuration is chosen. If a logger already exists,
-        but a new ``config`` is provided, the handlers will get reconfigured.
+        specified, a logger that xtl hasn't configured yet gets the default
+        configuration of this job type. If a logger already exists, but a new
+        ``config`` is provided, the handlers will get reconfigured.
 
         :param job_id: Unique identifier of the job.
         :param config: Optional logging configuration.
-        :param update_config: If True, update the class-level logging configuration
-            with the provided config.
         """
         # Cast job_id to string
         if not isinstance(job_id, str):
@@ -579,14 +788,11 @@ class Job(abc.ABC, Generic[JobConfigType]):
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
             config.configure(logger)
-            if update_config:
-                # This is required for propagating log configs to subjobs
-                cls._logger_config = config
         else:
-            # When no `config` is passed, use the job class logger config
+            # When no `config` is passed, use the default of this job type
             has_xtl_handlers = any(getattr(h, '_xtl_owned', False) for h in logger.handlers)
             if not has_xtl_handlers:
-                cls._logger_config.configure(logger)
+                cls._default_logger_config().configure(logger)
         return logger
 
     @overload
@@ -607,21 +813,27 @@ class Job(abc.ABC, Generic[JobConfigType]):
         """
         cfg = self.config
         job_data = JobData(
-            job_cls=f'{self.__class__.__module__}.{self.__class__.__name__}',
+            job_cls=import_path(self.__class__),
             job_id=self.job_id,
             config=cfg.to_dict() if cfg else None,
-            logging_config=self._logger_config.to_dict() if self._logger_config else None,
+            log_handlers={name: spec.to_spec(mode='json') for name, spec in self._log_handlers.items()},
+            pool_label=self._pool_label,
         )
         if as_dict:
             return job_data.to_dict()
         return job_data
 
     @classmethod
-    def deserialize(cls, data: JobData | dict[str, Any]) -> 'Job[JobConfigType]':
+    def deserialize(
+        cls, data: JobData | dict[str, Any], *, logger: logging.Logger | None = None
+    ) -> 'Job[JobConfigType]':
         """
-        Deserialize a job from a JobData instance or raw dict.
+        Deserialize a job from a JobData instance or raw dict. The logging configuration doesn't travel with the job:
+        the side that runs it decides where its records go.
 
         :param data: Job or dict instance.
+        :param logger: Optional, the logger of the job, used as is. If not provided, the logger is fetched with
+            :meth:`get_logger`, which configures it only if xtl hasn't done so yet.
         :return: A configured Job instance
         """
         if isinstance(data, dict):
@@ -635,14 +847,9 @@ class Job(abc.ABC, Generic[JobConfigType]):
         config_cls = job_cls._config_class
         config = config_cls.from_dict(jdata.config) if jdata.config else None
 
-        job = job_cls.with_config(
-            config=config,
-            job_id=jdata.job_id,
-            logger=job_cls.get_logger(
-                jdata.job_id, config=LoggerConfig.from_dict(jdata.logging_config) if jdata.logging_config else None
-            ),
-            enforce_id=True,  # Use the requested job_id; skip job_id collision check
-        )
+        job = job_cls(config, job_id=jdata.job_id, logger=logger or job_cls.get_logger(job_cls.label_of(jdata.job_id)))
+        job._log_handlers = {name: HandlerConfig.from_spec(spec) for name, spec in jdata.log_handlers.items()}
+        job._pool_label = jdata.pool_label
         return job
 
     def _create_child(
@@ -653,51 +860,44 @@ class Job(abc.ABC, Generic[JobConfigType]):
         suffix: str | int,
         logger_config: LoggerConfig | None = None,
         inherit_pool: bool = True,
-        inherit_queue_handlers: bool = True,
-        **kwargs,
     ) -> 'Job':
         """
         Spawn a child Job that inherits the configuration from the current Job.
 
+        The child's logger is a child of this job's logger (``<parent logger>.<suffix>``). It has no handlers of its
+        own and propagates its records to this job's logger, so they reach the same handlers, wherever the job runs.
+
         :param job_cls: Job class to spawn.
         :param config: Configuration to use for the child job.
         :param suffix: Suffix to use for the child job ID.
-        :param logger_config: Logging configuration to use for the child job.
+        :param logger_config: Optional logging configuration for the child job, instead of using this job's handlers.
         :param inherit_pool: Whether the child job should inherit the current pool.
-        :param inherit_queue_handlers: Whether the child job should inherit any queue handlers attached to the current
-            job. This is used to propagate Queue handlers that are injected during runtime.
-        :param kwargs: Additional keyword arguments to pass to the `Job.with_config` constructor
         :returns: The spawned child Job instance.
         """
         child_id = f'{self.job_id}.{suffix}'
 
-        # Create logger for child
-        lcfg = logger_config or self._logger_config
-        child_logger = job_cls.get_logger(job_id=child_id, config=lcfg)
+        # Create the child's logger under this job's logger
+        child_logger = self.logger.getChild(str(suffix))
+        if logger_config is not None:
+            logger_config.configure(child_logger)
+        else:
+            # No handlers of its own (other than foreign ones); inherit the level and propagate to the parent
+            pass_through(child_logger)
 
         # Spawn child job
-        child = job_cls.with_config(config=config, job_id=child_id, logger=child_logger, **kwargs)
+        # NB: The child remembers its override or, since it uses this job's handlers, this job's config
+        child = job_cls(
+            config, job_id=child_id, logger=child_logger, logger_config=logger_config or self._logger_config
+        )
 
         # Optionally propagate pool
         if inherit_pool:
             pool: PoolProtocol | None = self._pool
             if pool is None:
-                self.logger.warning('Cannot propagate pool to child job, because no pool is available.')
+                self.logger.debug('No pool to propagate to child job: %s', child_id)
             else:
                 self.logger.debug('Propagating pool %s to child job: %s', pool.pool_id, child_id)
                 child.pool = pool
-
-        # Optionally propagate any Queue handlers (assuming they are injected at runtime)
-        if inherit_queue_handlers:
-            existing_qids = {id(h.queue) for h in child.logger.handlers if isinstance(h, QueueHandler)}
-            for handler in self.logger.handlers:
-                if isinstance(handler, QueueHandler):
-                    qid = id(handler.queue)
-                    if qid in existing_qids:
-                        continue
-                    self.logger.debug('Propagating QueueHandler (id: %s) to child job: %s', qid, child_id)
-                    child.logger.addHandler(handler)
-                    existing_qids.add(qid)
 
         return child
 
@@ -708,13 +908,14 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
     underlying operating system and get dynamically rendered using the provided BatchJobConfig and context.
     """
 
+    # The batch file and its logs go in the job directory
+    _creates_directory = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._config: BatchJobConfig | None
         self._batch: Optional[BatchFile] = None
-        self._batch_args: list[str] = []
-        self._batch_context: dict = {}
 
     @property
     def config(self) -> BatchJobConfig | None:
@@ -723,27 +924,31 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         """
         return self._config
 
+    def _select_site_and_shell(self) -> tuple['ComputeSiteType', 'ShellType']:
+        """
+        The compute site and shell that run the batch file, from the configuration and the job's dependencies (see
+        :meth:`~xtl.jobs.config.BatchJobConfig.select_site_and_shell`).
+        """
+        if self.config is None:
+            return super()._select_site_and_shell()
+        return self.config.select_site_and_shell(self.dependencies())
+
     async def _execute(self) -> Any | None:
         # Check if batch configuration is available
         cfg = self.config
         if not cfg:
             raise ValueError('Job is not configured.')
 
-        # Create the batch directory if it doesn't exist
+        # The directory itself is created by `run()`
         job_dir = cfg.job_directory
         if not job_dir:
             raise ValueError('Job configuration does not specify `job_directory`')
-        if not job_dir.exists():
-            try:
-                self.logger.debug('Creating directory for batch file: %s', job_dir)
-                job_dir.mkdir(parents=True, exist_ok=True)
-            except OSError as e:
-                self.logger.error('Failed to create batch directory: %s', job_dir)
-                raise e
 
-        # Create batch file
+        # Create batch file, on the compute site and in the shell that its dependencies were checked on
         self.logger.debug('Creating batch file in %s', job_dir)
-        batch = cfg.get_batch(context=self.context)
+        site, shell = self._select_site_and_shell()
+        batch = cfg.get_batch(context=self.context, dependencies=self.dependencies(), compute_site=site, shell=shell)
+        batch.logger = self.logger  # the compute site reports to this job
         self._batch = batch
 
         # Save batch file
@@ -765,10 +970,11 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
 
         # Execute the batch file
         try:
-            await batch.execute(stdout=cfg.stdout, stderr=cfg.stderr, batch_args=self._batch_args)
+            await batch.execute(stdout=cfg.stdout, stderr=cfg.stderr, batch_args=cfg.arguments)
         except asyncio.CancelledError as e:
-            await batch.cancel()
-            self.logger.error('Batch execution was cancelled by the user')
+            # A local site stops the batch itself when it's cancelled; a batch that still runs is stopped here
+            if batch.status == BatchFileStatus.RUNNING:
+                await batch.cancel()
             raise e
 
         # Handle result
@@ -785,36 +991,24 @@ class BatchJob(Job[BatchJobConfig], Generic[BatchJobConfigType]):
         # Check for errors
         if results.return_code != 0:
             raise SubprocessError(
-                message=f'Batch execution failed with return code {results.return_code}',
-                command=(batch.file,) + tuple(self._batch_args),
-                raiser=batch.file,
+                f'Batch execution of {batch.file} failed with return code {results.return_code}',
+                command=(batch.file,) + tuple(cfg.arguments),
             )
 
         self.logger.debug('Batch execution completed successfully')
 
         return results
 
-    @classmethod
-    def with_config(cls, config: BatchJobConfigType = None, **kwargs) -> 'BatchJob[BatchJobConfigType]':
-        # NB: We cast the result to the right type for type-checking reasons
-        job = cast('BatchJob[BatchJobConfigType]', super().with_config(config=config, **kwargs))
-        # Assign any additional kwargs that were not popped in the parent method
-        #  as context for rendering batch file templates.
-        job._batch_args = kwargs.pop('batch_args', [])
-        job._batch_context |= kwargs
-        return job
-
     @property
     def context(self) -> dict:
         """
-        Get the context for rendering batch file templates.
+        Get the context for rendering batch file templates: the configuration's
+        :meth:`~xtl.jobs.config.BatchJobConfig.get_context`.
         """
-        batch_context = deepcopy(self._batch_context)
         cfg = self.config
         if not cfg:
             raise ValueError('Job is not configured.')
-        cfg_context = cfg.get_context()
-        return deepmerge(batch_context, cfg_context)
+        return cfg.get_context()
 
 
 class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
@@ -825,6 +1019,62 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
     """
 
     _steps: ClassVar[tuple['StepSpec', ...]] = ()
+
+    # The steps' directories go in the job directory, which lasts from the first step to the last
+    _creates_directory = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Steps are looked up, overridden and reported by name
+        names = [spec.name for spec in cls._steps]
+        if duplicates := sorted({name for name in names if names.count(name) > 1}):
+            raise ValueError(f'Duplicate step names in {cls.__name__}._steps: {", ".join(duplicates)}')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._progress: tuple[dict[str, JobResults | None], dict[str, Any]] = ({}, {})
+        """The results and data of the steps so far, kept if a step's hook raises"""
+
+    @classmethod
+    def dependencies(cls) -> frozenset[str]:
+        """
+        Names of the external programs that this job type needs: its own (``_dependencies``) and those of its steps,
+        and of their steps, without building their configurations. The job checks them before its first step, on the
+        compute site and in the shell that they set in the settings, or the defaults; a step whose configuration picks
+        another site or shell checks them again when it starts.
+        """
+        names = set(cls._dependencies)
+        for spec in cls._steps:
+            names |= spec.job_cls.dependencies()
+        return frozenset(names)
+
+    def configure(self, config: SteppedJobConfig) -> None:
+        """
+        Configure a stepped job instance, checking its step overrides (``config.steps``): each key must name one of
+        the job's steps, and each override must be a dict of options of that step's configuration class. Values are
+        checked when the step's configuration is built, together with its defaults.
+
+        :param config: Configuration of the job.
+        :raises TypeError: If `config` is not of the expected class, or a step's override isn't a dict.
+        :raises ValueError: If an override names an unknown step, or an unknown option of a step.
+        """
+        super().configure(config)
+        specs = {spec.name: spec for spec in self._steps}
+        for name, overrides in config.steps.items():
+            spec = specs.get(name)
+            if spec is None:
+                raise ValueError(
+                    f'Unknown step {name!r} in `steps`; the steps of {self.__class__.__name__} are: '
+                    f'{", ".join(specs) or "none"}'
+                )
+            if not isinstance(overrides, dict):
+                raise TypeError(f'The override of step {name!r} must be a dict, got {type(overrides).__name__}')
+            fields = spec.config_cls.model_fields
+            known = set(fields) | {field.alias for field in fields.values() if field.alias}
+            if unknown := sorted(set(overrides) - known):
+                raise ValueError(
+                    f'Unknown options for step {name!r} ({spec.config_cls.__name__}): {", ".join(unknown)}'
+                )
 
     def _get_step_config(self, step_name: str, ctx: 'JobContext') -> JobConfig | BatchJobConfig:
         # Check for configuration
@@ -860,6 +1110,7 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
         ctx = JobContext(parent=self)
         step_results: dict[str, JobResults | None] = ctx.results  # Passing the dicts from ctx by reference
         shared_data: dict[str, Any] = ctx.data  #  for type checking reasons
+        self._progress = (step_results, shared_data)
 
         # Execute steps sequentially
         for i, spec in enumerate(self._steps, start=1):
@@ -923,6 +1174,10 @@ class SteppedJob(Job[SteppedJobConfig], Generic[JobConfigType]):
 
         # Extract steps and context data from base_results
         raw = base_results.data
+        if raw is None and base_results.error is not None:
+            # `_execute` raised (e.g. a step's condition, defaults or post-processor, or a bad option value): keep
+            #  the steps done so far
+            raw = self._progress
         if not (isinstance(raw, tuple) and len(raw) == 2):
             raise TypeError(
                 f'{self.__class__.__name__}._execute() must return a 2-tuple (steps, data), got {type(raw).__name__!r}'

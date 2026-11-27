@@ -38,7 +38,7 @@ jobs:
       - name: Install XTL and docs dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e . --group docs
+          pip install -e ./packages/xtl-core -e . --group docs  # xtl-core from the repo, not PyPI
 
       # Version detection
       - name: Get package version

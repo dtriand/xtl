@@ -3,22 +3,35 @@ from __future__ import annotations
 import abc
 import asyncio
 import contextlib
-from enum import Enum
+import copy
 import logging
-from logging.handlers import QueueHandler
 import multiprocessing
+import pickle
 import re
 import threading
-from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
-from typing import AsyncIterator, Literal, overload, Type, Iterable, Protocol, runtime_checkable
+import traceback
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, ProcessPoolExecutor
+from typing import Any, AsyncIterator, Literal, overload, Type, Iterable, Protocol, Union, runtime_checkable
 
 from xtl import settings
-from xtl.common.compatibility import PY310_OR_LESS
-from xtl.common.misc import is_picklable
+from xtl_core.system.compatibility.py310 import Self, StrEnum
 from xtl.jobs.config import JobConfig
 from xtl.jobs.jobs import Job
-from xtl.jobs.results import JobResults
-from xtl.jobs.logging import get_logger_config
+from xtl.jobs.dependencies import ensure_dependencies
+from xtl.jobs.exceptions import DependencyError, WorkerError
+from xtl.jobs.results import JobResults, JobStatus, SteppedJobResults
+from xtl.jobs.logging import (
+    HandlerConfig,
+    JobNameFilter,
+    LoggerConfig,
+    RelayHandler,
+    _remove_xtl_handlers,
+    clear_default_level,
+    get_logger_config,
+    pass_through,
+    set_default_level,
+    register_pool_class,
+)
 from xtl.jobs.ipc import (
     IPCBackend,
     IPCHandle,
@@ -30,20 +43,10 @@ from xtl.jobs.ipc import (
     ThreadedIPCBackend,
     ProcessIPCBackend,
 )
-from xtl.jobs.resources import Resources, ResourcesLease, ResourceManager, get_rc_manager
+from xtl.jobs.ipc.processes import ignore_interrupts, shielded_context
+from xtl.jobs.resources import CURRENT_LEASE, Resources, ResourcesLease, ResourceManager, get_rc_manager
 from xtl.jobs.submissions import JobSubmission
-from xtl.logging.config import LoggerConfig
 from xtl.math.uuid import UUIDFactory
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum):
-        pass
-
-    from typing_extensions import Self
-else:
-    from enum import StrEnum
-    from typing import Self
 
 
 __all__ = [
@@ -54,14 +57,31 @@ __all__ = [
     'AsyncPool',
     'ThreadedPool',
     'MultiprocessPool',
-    'JOB_POOL_TYPES',
+    'PoolType',
 ]
 
 
 uuid = UUIDFactory()
 
 
-JOB_POOL_TYPES = Literal['simple', 'async', 'threads', 'processes']
+def _dependency_errors(jobs: list[Job]) -> dict[str, Exception]:
+    """
+    Check the dependencies of jobs, each on the compute site and in the shell that it would run them (see
+    :meth:`BasePool._check_dependencies`).
+
+    :return: The errors of the jobs that can't run, by job id.
+    """
+    errors = {}
+    for job in jobs:
+        dependencies = job.dependencies()
+        if not dependencies:
+            continue
+        try:
+            site, shell = job._select_site_and_shell()
+            ensure_dependencies(dependencies, site, shell)
+        except (DependencyError, ValueError) as error:
+            errors[job.job_id] = error
+    return errors
 
 
 class JobPool(StrEnum):
@@ -89,6 +109,10 @@ class JobPool(StrEnum):
         raise ValueError(f'Unsupported {JobPool.__name__} type: {self!r}')
 
 
+PoolType = Union[JobPool, Literal['simple', 'async', 'threads', 'processes']]
+"""A pool type, as a :class:`JobPool` or its value. The strings match the members of :class:`JobPool` (tested)."""
+
+
 @runtime_checkable
 class PoolProtocol(Protocol):
     """
@@ -103,12 +127,118 @@ class PoolProtocol(Protocol):
     def pool_id(self) -> str: ...
 
 
+def _get_job_logger(name: str) -> logging.Logger:
+    """
+    Get the logger of a job in a worker, from the logging manager rather than ``logging.getLogger``, which a worker
+    started with fork may inherit patched by the application (e.g. to give every logger its own handler).
+
+    :param name: The full name of the job's logger.
+    """
+    return logging.Logger.manager.getLogger(name)
+
+
+def _round_trips(obj: Any) -> bool:
+    """
+    Whether an object survives pickling, there and back.
+    """
+    try:
+        pickle.loads(pickle.dumps(obj))
+    except Exception:
+        return False
+    return True
+
+
+def _worker_error(error: BaseException) -> WorkerError:
+    """
+    A :class:`WorkerError` in place of an error that doesn't survive pickling, with its type, text and traceback.
+    """
+    error_type = f'{type(error).__module__}.{type(error).__qualname__}'
+    text = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+    return WorkerError(str(error), error_type=error_type, traceback=text)
+
+
+def _picklable_results(results: JobResults | None, logger: logging.Logger) -> JobResults | None:
+    """
+    The results of a job in a worker process, made fit to go back to the parent: an error that doesn't survive pickling
+    becomes a :class:`WorkerError`, and data that doesn't is dropped, which fails the job. A stepped job's steps are
+    checked the same way.
+
+    :param results: The job's results.
+    :param logger: The job's logger, for a warning about each replacement.
+    """
+    if results is None or _round_trips(results):
+        return results
+
+    fixed = copy.copy(results)
+    if isinstance(fixed, SteppedJobResults):
+        fixed.steps = {name: _picklable_results(step, logger) for name, step in fixed.steps.items()}
+    if fixed.error is not None and not _round_trips(fixed.error):
+        logger.warning(
+            "The job's error (%s) can't be sent back from its worker process; it is replaced by a %s",
+            type(fixed.error).__name__,
+            WorkerError.__name__,
+        )
+        fixed.error = _worker_error(fixed.error)
+    if not _round_trips(fixed.data):
+        message = f"The job's data ({type(fixed.data).__name__}) can't be sent back from its worker process; dropped"
+        logger.error(message)
+        fixed.data = None
+        if fixed.error is None:
+            fixed.error = WorkerError(message)
+    if not _round_trips(fixed):
+        # E.g. a field added by a subclass of the results
+        message = f"The job's results ({type(results).__name__}) can't be sent back from its worker process"
+        logger.error(message)
+        fixed = JobResults(job_id=results.job_id, error=WorkerError(message))
+    return fixed
+
+
+_CANCEL_STATE = '_xtl_cancel'
+"""Name of the shared state where a pool flags the jobs it cancels in its workers, by job id, with the reason."""
+
+_CANCEL_POLL = 0.25
+"""Seconds between two looks of a worker at its job's cancel flag."""
+
+
+async def _run_watched(job: Job, ipc: IPCBackend | None) -> JobResults | None:
+    """
+    Run a job in a worker thread or process, and cancel it once its pool flags it as cancelled: a cancellation in the
+    pool can't reach the worker's event loop otherwise. The worker looks at the flag every :data:`_CANCEL_POLL`
+    seconds, as long as the job gives its event loop a chance; a job that blocks it isn't cancelled (see
+    :attr:`BasePool._CANCEL_GRACE`).
+
+    :param job: The job, rebuilt in the worker.
+    :param ipc: The worker's view of the pool's IPC backend, with the cancel flags.
+    """
+    run = asyncio.ensure_future(job.run())
+    try:
+        flags = ipc.get_state(_CANCEL_STATE) if ipc is not None else None
+    except KeyError:
+        flags = None
+    if flags is None:
+        return await run
+
+    async def watch() -> None:
+        try:
+            while job.job_id not in flags:
+                await asyncio.sleep(_CANCEL_POLL)
+            reason = flags[job.job_id]
+        except Exception:
+            # E.g. the pool's manager is gone; nothing to watch any more
+            return
+        job.logger.warning('Cancellation received, stopping')
+        run.cancel(reason or None)
+
+    watcher = asyncio.ensure_future(watch())
+    try:
+        return await run
+    finally:
+        watcher.cancel()
+
+
 class BasePool(PoolProtocol, abc.ABC):
     _logging_level = logging.INFO
     """Default logging level for the pool's logger configuration. Setting after initialization has no effect"""
-
-    _logger_config: LoggerConfig = get_logger_config(level=_logging_level)
-    """Default logging config for the pool's logger."""
 
     _executor_cls: Executor | None = None
     """The executor class to use for this pool. If None, the pool does not use an executor and runs jobs in the
@@ -117,6 +247,10 @@ class BasePool(PoolProtocol, abc.ABC):
     _ipc_cls: type[IPCBackend]
     """The IPCBackend class to use for this pool."""
 
+    _CANCEL_GRACE: float = 15.0
+    """Seconds that a pool with workers waits, on exit, for its cancelled jobs to stop: a batch job takes up to 10 s to
+    stop its programs. A process pool then ends the workers that are still busy; a thread pool can only wait."""
+
     def __init__(
         self,
         name: str | None = None,
@@ -124,12 +258,17 @@ class BasePool(PoolProtocol, abc.ABC):
         logger_config: LoggerConfig = None,
         resources: Resources | None = None,
         resources_manager: ResourceManager | None = None,
+        parent_logger: logging.Logger | None = None,
         **kwargs,
     ):
         """
         Abstract base class for job pools.
 
-        :param name: Optional name for pool
+        The pool's logger is the root of a tree: the jobs' loggers are its children (``<pool logger>.<job_id>``), and
+        steps hang under their job. Jobs' loggers have no handlers and propagate, so that the pool's handlers get every
+        record. The pool's logger doesn't propagate further.
+
+        :param name: Optional name for pool; it can't contain dots or #
         :param max_jobs: The maximum number of concurrent jobs to run. This is capped by the available quota
             (default: 1).
         :param logger_config: Optional configuration for the pool's logger.
@@ -137,9 +276,10 @@ class BasePool(PoolProtocol, abc.ABC):
             (default: None, get all available)
         :param resources_manager: Optional ResourceManager to use for resource allocation. If not provided, the default
             global ResourceManager will be used.
-        :param kwargs: Additional keyword arguments:
-            - `job_logger_config`: Configuration for the Job loggers (default: same as pool)
-        :raises ValueError: If an invalid `max_jobs` is provided
+        :param parent_logger: Optional, the logger of the job that creates this pool. The pool's logger then hangs
+            under it and passes its records up, with no handlers of its own, unless a `logger_config` is passed.
+        :param kwargs: Additional keyword arguments.
+        :raises ValueError: If an invalid `max_jobs` is provided, or if `name` contains dots or #
         :raises TypeError: If `logger_config` is not of the correct type
         """
         if max_jobs < 1:
@@ -149,16 +289,29 @@ class BasePool(PoolProtocol, abc.ABC):
                 f'Expected a {LoggerConfig.__name__} instance for `logger_config`, got {type(logger_config).__name__}'
             )
 
+        if name is not None and ('.' in str(name) or '#' in str(name)):
+            raise ValueError(f'Pool names cannot contain dots or #, got {name!r}')
+
         # Set up pool_id and name
         self._pool_id = uuid.random(settings.jobs.job_digits)
         self._name = name
 
         # Configure logger for this pool
-        self._logger = self.get_logger(
-            logger_id=f'{self.__class__.__name__}|{self._name or self._pool_id}',
-            config=logger_config or self._logger_config,
-        )
-        self._job_logger_config = kwargs.get('job_logger_config', self._logger_config)
+        #  NB: A named pool's logger is `<Cls>|<name>#<pool_id>`, an unnamed one's `<Cls>#<pool_id>`: the id keeps
+        #  pools of the same name apart, and isn't shown on screen (see `label`)
+        cls_name = self.__class__.__name__
+        logger_id = f'{cls_name}|{name}#{self._pool_id}' if name is not None else f'{cls_name}#{self._pool_id}'
+        self._logger_config: LoggerConfig = logger_config or self._default_logger_config()
+        self._job_handlers: dict[str, HandlerConfig] = {}  # Managed by add_job_handler()
+        self._added_handlers: list[logging.Handler] = []  # Managed by add_handler() and remove_handler()
+        if parent_logger is None:
+            self._logger = self.get_logger(logger_id=logger_id, config=self._logger_config, label=self.label)
+        else:
+            self._logger = parent_logger.getChild(logger_id)
+            if logger_config is not None:
+                logger_config.configure(self._logger, label=self.label)
+            else:
+                pass_through(self._logger)
 
         # Resources allocation
         self._rc_requested: Resources = self._resolve_resources(max_jobs=max_jobs, requested=resources)
@@ -178,24 +331,23 @@ class BasePool(PoolProtocol, abc.ABC):
 
         # Context manager
         self._in_ctx: bool = False  # Managed by __aenter__ and __aexit__
+        self._used: bool = False  # Pools are single-use; set by __aenter__
 
         # Job tracking
         self._jobs: dict[str, Job] = {}
-        self._running_jobs: set[str] = set()
-        self._completed_jobs: set[str] = set()
+        self._status: dict[str, JobStatus] = {}  # Managed by _set_status(); kept after exit
+        self._counts: dict[JobStatus, int] = {status: 0 for status in JobStatus}
 
         # Task tracking
         self._tasks: dict[str, asyncio.Task] = {}  # Managed by __aexit__ and launchers
+        self._workers: dict[str, Future] = {}  # Jobs sent to a worker, by job id; managed by _send_to_worker()
 
         # Submission tracking
         self._submissions: dict[str, JobSubmission] = {}  # Managed by submit() and launchers
 
-        # Pool state
-        self._is_running = False  # Managed by launcher methods
-        self._error: Exception | None = None
-
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        register_pool_class(cls.__name__)
         if not hasattr(cls, '_ipc_cls') or not issubclass(cls._ipc_cls, IPCBackend):
             raise TypeError(
                 f'Subclasses of {BasePool.__name__} must define an `_ipc_cls` attribute that is a '
@@ -226,6 +378,14 @@ class BasePool(PoolProtocol, abc.ABC):
         return self._name
 
     @property
+    def label(self) -> str:
+        """
+        How this pool's own records are named on screen: its class, plus ``|<name>`` if it was named.
+        """
+        cls_name = self.__class__.__name__
+        return f'{cls_name}|{self._name}' if self._name is not None else cls_name
+
+    @property
     def resources(self) -> Resources | None:
         """
         The resources granted to this pool. Allocation happens within the context manager.
@@ -248,28 +408,116 @@ class BasePool(PoolProtocol, abc.ABC):
         """
         return self._logger
 
+    @property
+    def status(self) -> dict[str, JobStatus]:
+        """
+        The status of each job submitted to this pool, by job id, in submission order. It is a copy, so it can be read
+        from another thread (e.g. a display's), and it stays readable after the pool exits.
+        """
+        return dict(self._status)
+
+    def counts(self) -> dict[JobStatus, int]:
+        """
+        How many of this pool's jobs are in each status, with every status present (0 if none).
+        """
+        return dict(self._counts)
+
+    def _set_status(self, job_id: str, status: JobStatus) -> None:
+        """
+        Set the status of a job and keep the counts up to date. Only called from the pool's event loop.
+        """
+        previous = self._status.get(job_id)
+        if previous is not None:
+            self._counts[previous] -= 1
+        self._status[job_id] = status
+        self._counts[status] += 1
+
+    def add_handler(self, handler: logging.Handler) -> None:
+        """
+        Add a handler to the pool's logger. It gets the records of the pool, of every job and of every step, also from
+        worker processes. The handler gets a filter that sets ``record.job``, the logger's name relative to this pool,
+        for formats to use as ``%(job)s``.
+
+        :param handler: The handler to add.
+        """
+        if not any(isinstance(f, JobNameFilter) for f in handler.filters):
+            handler.addFilter(JobNameFilter(base=self._logger.name, label=self.label))
+        # A handler without a level gets the pool's, so that it doesn't show what only a job's own handlers want;
+        #  it gets NOTSET back when it's removed
+        set_default_level(handler, self._logger_config.level)
+        if handler.level < self._logger.getEffectiveLevel():
+            self._logger.setLevel(handler.level)
+        self._logger.addHandler(handler)
+        if handler not in self._added_handlers:
+            self._added_handlers.append(handler)
+
+    def add_job_handler(self, spec: HandlerConfig, name: str) -> None:
+        """
+        Give every job submitted from now on its own handler, built from `spec` where the job runs, attached to the
+        job's logger while it runs, and closed before its directory is cleaned up. String fields of the spec (except
+        its format) and string values of its options may hold placeholders that each job fills in:
+        ``{job_directory}``, ``{job_id}``, ``{job_class}`` and ``{pool}`` (this pool's label). A job's config can
+        replace the spec, or switch it off, by its name (``JobConfig.log_handlers``).
+
+        Example:
+
+            .. code-block:: python
+
+                pool.add_job_handler(JobFileHandlerConfig(), name='file')  # `<job_directory>/xtl.log`
+
+        :param spec: The handler's config. It travels with each job, so it must survive JSON.
+        :param name: The spec's name; a second spec with the same name replaces the first.
+        """
+        if not isinstance(spec, HandlerConfig):
+            raise TypeError(f'Expected a {HandlerConfig.__name__} instance, got {type(spec).__name__}')
+        self._job_handlers[name] = spec
+
+    def remove_job_handler(self, name: str) -> None:
+        """
+        Stop giving jobs submitted from now on the handler added with :meth:`add_job_handler` under `name`.
+        """
+        self._job_handlers.pop(name, None)
+
+    def remove_handler(self, handler: logging.Handler) -> None:
+        """
+        Remove a handler added with :meth:`add_handler`, the name filter it got from this pool, and the level, if it
+        got the pool's.
+
+        :param handler: The handler to remove.
+        """
+        self._logger.removeHandler(handler)
+        with contextlib.suppress(ValueError):
+            self._added_handlers.remove(handler)
+        for f in list(handler.filters):
+            if isinstance(f, JobNameFilter) and f.base == self._logger.name:
+                handler.removeFilter(f)
+        clear_default_level(handler)
+
     @classmethod
-    def get_logger(
-        cls, logger_id: str, config: LoggerConfig | None = None, update_config: bool = True
-    ) -> logging.Logger:
+    def _default_logger_config(cls) -> LoggerConfig:
+        """
+        The default logging configuration of this pool type, built from the current settings.
+        """
+        return get_logger_config(level=cls._logging_level)
+
+    @classmethod
+    def get_logger(cls, logger_id: str, config: LoggerConfig | None = None, label: str | None = None) -> logging.Logger:
         """
         Get or create a logger for the pool with the specified ID. If a `config` is not specified, the default
-        configuration is chosen.
+        configuration of this pool type is chosen.
 
         :param logger_id: The ID for the logger (e.g., pool name)
         :param config: Optional logging configuration.
-        :param update_config: If True, update the class-level logging configuration with the provided config.
+        :param label: Optional, how the pool's own records are named on screen (default: `logger_id`).
         """
         logger = logging.getLogger(str(logger_id))
 
         if config is not None:
             if not isinstance(config, LoggerConfig):
                 raise TypeError(f'Expected a {LoggerConfig.__name__} instance, got {type(config).__name__}')
-            config.configure(logger)
-            if update_config:
-                cls._logger_config = config
+            config.configure(logger, label=label or str(logger_id))
         else:
-            cls._logger_config.configure(logger)
+            cls._default_logger_config().configure(logger, label=label or str(logger_id))
         return logger
 
     async def __aenter__(self) -> Self:
@@ -280,6 +528,9 @@ class BasePool(PoolProtocol, abc.ABC):
             raise RuntimeError(
                 f'{self.__class__.__name__} is already in a context manager and cannot be entered multiple times'
             )
+        if self._used:
+            raise RuntimeError(f'{self.__class__.__name__} objects are single-use; create a new pool instead')
+        self._used = True
 
         # Acquire resources for this pool
         self.logger.debug('Requesting resources for the pool: %s', self._rc_requested.__dict__)
@@ -297,6 +548,9 @@ class BasePool(PoolProtocol, abc.ABC):
         ipc = self._ipc_cls()
         ipc.start()
         self._ipc = ipc
+        self.get_lock(None)  # Jobs in workers can only use what the pool has registered
+        if self._executor_cls is not None:
+            self.get_state(_CANCEL_STATE)
 
         self._in_ctx = True
         self.logger.debug('Entering the pool context manager')
@@ -304,7 +558,17 @@ class BasePool(PoolProtocol, abc.ABC):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Exit the context manager and handle any exceptions.
+        Exit the context manager and handle any exceptions. Last, the pool removes its loggers (see
+        :meth:`_release_loggers`).
+        """
+        try:
+            return await self._exit_context(exc_type, exc_val, exc_tb)
+        finally:
+            self._release_loggers()
+
+    async def _exit_context(self, exc_type, exc_val, exc_tb):
+        """
+        Handle any exceptions, cancel the running tasks and drain the pool.
         """
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
         # Exception handling
@@ -319,10 +583,19 @@ class BasePool(PoolProtocol, abc.ABC):
                     exc_type.__name__,
                     exc_info=settings.jobs.tracebacks,
                 )
-            self._error = exc_val
 
-            # Request cancellation of all running tasks
-            self.logger.warning('Cancelling all running tasks')
+            # Request cancellation of all running tasks, and say so at once, since stopping takes a while
+            #  NB: A cancelled `launch()` has already cancelled the tasks (a `gather()` waits for them), but jobs in
+            #  workers may still be stopping
+            stopping = {job_id for job_id, status in self._status.items() if status == JobStatus.RUNNING}
+            stopping |= {job_id for job_id, future in self._workers.items() if not future.done()}
+            running = len(stopping)
+            if running and self._executor is not None:
+                self.logger.warning(
+                    'Cancelling %d running jobs; waiting up to %g s for them to stop', running, self._CANCEL_GRACE
+                )
+            elif running:
+                self.logger.warning('Cancelling %d running jobs', running)
             for job_id, task in list(self._tasks.items()):
                 if interrupted:
                     task.cancel('Execution interrupted by user')
@@ -332,7 +605,6 @@ class BasePool(PoolProtocol, abc.ABC):
             # Await cancellation
             pending = [t for t in self._tasks.values() if not t.done()]
             if pending:
-                self.logger.warning('Waiting for %d tasks to cancel', len(pending))
                 done, pending = await asyncio.wait(pending, timeout=5)
                 if pending:
                     for t in pending:
@@ -340,28 +612,78 @@ class BasePool(PoolProtocol, abc.ABC):
                     await asyncio.gather(*pending, return_exceptions=True)
 
             self._in_ctx = False
+            await self._stop_workers(cancelled=True)
             await self._drain_pool()
-            if interrupted:
-                return True  # Suppress the exception
-            return False  # Propagate other exceptions
+            # NB: Exceptions propagate, interrupts too, so that cancellation (e.g. `asyncio.timeout()`) and Ctrl+C
+            #  stop the caller; an application decides what to show (as `LivePool` does)
+            return False
 
-        # Normal exit
+        # Normal exit; jobs cancelled meanwhile (e.g. by a timeout the caller caught) may still be stopping
         self._in_ctx = False
+        await self._stop_workers(cancelled=self._counts[JobStatus.CANCELLED] > 0)
         await self._drain_pool()
         self.logger.debug('Exiting the pool context')
-        return True
+        return False
+
+    def _release_loggers(self) -> None:
+        """
+        Remove this pool's logger and every logger under it (jobs, steps, nested pools, names relayed from workers)
+        from ``logging``, so that a long session doesn't pile them up. Handlers the pool built from its config are
+        closed; handlers added with :meth:`add_handler` are detached, but not closed, since their owner closes them;
+        other handlers stay attached to the logger objects, which remain usable but are no longer registered.
+        """
+        for handler in list(self._added_handlers):
+            self.remove_handler(handler)
+
+        name = self._logger.name
+        prefix = f'{name}.'
+        manager = logging.Logger.manager
+        # NB: The module lock guards `loggerDict`, as in `logging.getLogger()`
+        with logging._lock:  # type: ignore[attr-defined]
+            removed = [manager.loggerDict.pop(k) for k in list(manager.loggerDict) if k == name or k.startswith(prefix)]
+            manager._clear_cache()
+        for logger in removed:
+            if isinstance(logger, logging.Logger):  # Not a placeholder
+                _remove_xtl_handlers(logger)
+
+    async def _stop_workers(self, cancelled: bool = False) -> None:
+        """
+        Shut down the pool's executor, if it has one, once its tasks are done or cancelled. The wait happens in another
+        thread, so that the event loop goes on meanwhile.
+
+        :param cancelled: Whether jobs were cancelled: their workers get :attr:`_CANCEL_GRACE` seconds to stop them,
+            then :meth:`_end_workers`. Otherwise, the running jobs finish.
+        """
+        if self._executor is None:
+            return
+        executor, self._executor = self._executor, None
+        shutdown = asyncio.ensure_future(asyncio.to_thread(executor.shutdown, wait=True))
+        if cancelled:
+            await asyncio.wait({shutdown}, timeout=self._CANCEL_GRACE)
+            busy = sum(not future.done() for future in self._workers.values())
+            if not shutdown.done() and busy:
+                await self._end_workers(executor, busy)
+        await shutdown
+        self._workers.clear()
+
+    async def _end_workers(self, executor: Executor, busy: int) -> None:
+        """
+        Deal with workers whose jobs didn't stop within :attr:`_CANCEL_GRACE` seconds of their cancellation, e.g.
+        because they block their event loop. A thread can't be ended from outside, so the pool warns and keeps waiting.
+
+        :param executor: The pool's executor, shutting down.
+        :param busy: How many workers still run a job.
+        """
+        self.logger.warning(
+            "%d jobs didn't stop within %g s; waiting for their workers to finish", busy, self._CANCEL_GRACE
+        )
 
     async def _drain_pool(self):
         """
         Pool tear down procedure.
         """
         self._tasks.clear()
-
-        # Release job ids from Job._registry, to allow reusing job ids
-        #  NB: This is especially needed when using predictable ids, such as Job1, Job2, etc.
-        for job in self._jobs.values():
-            with contextlib.suppress(Exception):
-                job.clear()
+        self._workers.clear()
         self._jobs.clear()
         self._submissions.clear()
 
@@ -387,16 +709,14 @@ class BasePool(PoolProtocol, abc.ABC):
         :param job_cls: the job class to generate job ids for
         :param n: the number of job ids to generate
         """
-        prefix = f'{job_cls.__name__}|'
+        prefix = f'{job_cls.__name__}-'
         pattern = re.compile(rf'^{re.escape(prefix)}(\d+)$')
 
         # Find the indices of all existing job ids
         taken: set[int] = set()
-        for job in self._jobs.values():
-            if not isinstance(job, job_cls):
-                # Skip for different Job types
-                continue
-            m = pattern.match(job.job_id)
+        for job_id in self._jobs:
+            # NB: Any job's id counts, since a job of another type can be given an id of this pattern
+            m = pattern.match(job_id)
             if not m:
                 # Skip for randomized or user-provided job_ids
                 continue
@@ -421,7 +741,11 @@ class BasePool(PoolProtocol, abc.ABC):
         return job_ids
 
     def submit(
-        self, job_cls: Type[Job], configs: JobConfig | None | Iterable[JobConfig | None] = None, **kwargs
+        self,
+        job_cls: Type[Job],
+        configs: JobConfig | None | Iterable[JobConfig | None] = None,
+        *,
+        job_ids: Iterable[str | None] | None = None,
     ) -> list[Job]:
         """
         Submit a job to the pool for execution. This method must be called from within the pool's context manager.
@@ -436,13 +760,15 @@ class BasePool(PoolProtocol, abc.ABC):
 
         :param job_cls: The job type to submit. Must be a subclass of `Job`.
         :param configs: The configs to submit to the pool.
-        :param kwargs: Additional keyword arguments to pass to `job_cls`.
-            - `job_ids`: Optional list of job IDs to assign to the submitted jobs. If not provided, job IDs will be
-                generated in the format `<job_cls>|<i>`, where i is an incrementing index
+        :param job_ids: Optional, the IDs of the submitted jobs, one per config (None for a random one). If not
+            provided, IDs are generated as ``<job_cls>-<i>``, where ``i`` is an incrementing index; such a job is
+            shown as ``<job_cls>|<i>`` (its :attr:`~xtl.jobs.jobs.Job.label`). Given IDs must be usable in file names
+            and commands (no ``| / \\ : * ? " < >``).
         :raises RuntimeError: If the method is called outside the pool's context manager
         :raises TypeError: If `job_cls` is not a subclass of `Job`.
         :raises TypeError: If one of the `configs` is not a `JobConfig` instance or None.
         :raises ValueError: If `job_ids` is provided but does not have the same length as `configs`
+        :raises ValueError: If a job id is already in the pool, given twice, or not usable in file names and commands
         :return: A list of the configured submitted jobs.
         """
         if not self._in_ctx:
@@ -462,7 +788,7 @@ class BasePool(PoolProtocol, abc.ABC):
             raise TypeError(f'Invalid `configs` type: {type(configs).__name__}')
 
         # Generate job IDs if not provided
-        if (job_ids := kwargs.get('job_ids', None)) is None:
+        if job_ids is None:
             job_ids = self._generate_job_ids(job_cls, len(configs_list))
         job_ids = list(job_ids)
 
@@ -472,31 +798,37 @@ class BasePool(PoolProtocol, abc.ABC):
                 f'Length of `job_ids` ({len(job_ids)}) must match length of `configs` ({len(configs_list)})'
             )
 
+        # In case None was passed explicitly in job_ids
+        job_ids = [str(job_id) if job_id is not None else uuid.random(settings.jobs.job_digits) for job_id in job_ids]
+
+        # Job ids can be used in file names and commands, and are unique within the pool
+        for job_id in job_ids:
+            Job.check_job_id(job_id)
+        taken = sorted({job_id for job_id in job_ids if job_id in self._jobs or job_ids.count(job_id) > 1})
+        if taken:
+            raise ValueError(f'Job ids must be unique within the pool, got duplicates: {", ".join(taken)}')
+
         # Create and register jobs
         created_jobs: list[Job] = []
         for job_id, config in zip(job_ids, configs_list):
-            if job_id is None:
-                # In case None was passed explicitly in job_ids
-                job_id = uuid.random(settings.jobs.job_digits)
-
-            # Create logger
-            logger = job_cls.get_logger(job_id, self._job_logger_config)
+            # The job's logger hangs under the pool's and passes its records up to the pool's handlers
+            logger = self._logger.getChild(job_cls.label_of(job_id))
+            pass_through(logger)
 
             # Create job instance
-            job = job_cls(job_id=job_id, logger=logger)
-            if config is not None:
-                job.configure(config)
+            job = job_cls(config, job_id=job_id, logger=logger)
             job.pool = self
+            job._log_handlers = dict(self._job_handlers)
+            job._pool_label = self.label
 
             # Create submission
             submission = JobSubmission.from_job(job)
-            submission.ipc = self._build_ipc_handle()
 
             # Allocate resources
             job_request = job.get_resources()
             if job_request and self._resources:
                 # Ensure the granted resources for the submission are capped by the pool's resources
-                submission.resources = job_request.cap(self._resources)
+                submission.resources = job_request.cap_to(self._resources)
             elif job_request:
                 # If the pool has no limit, then grant whatever has been requested
                 submission.resources = job_request
@@ -507,6 +839,7 @@ class BasePool(PoolProtocol, abc.ABC):
             # Register submission and job
             self._submissions[submission.submission_id] = submission
             self._jobs[job.job_id] = job
+            self._set_status(job.job_id, JobStatus.SUBMITTED)
             created_jobs.append(job)
             self.logger.debug('Submitted job %s to %s', job.job_id, self.__class__.__name__)
 
@@ -532,18 +865,50 @@ class BasePool(PoolProtocol, abc.ABC):
         if self._semaphore is None:
             raise RuntimeError('Pool semaphore is not initialized')
 
-        async with self._semaphore:
-            job_id = submission.data.job_id
-            self._running_jobs.add(job_id)
-            try:
-                result = await self._execute_submission(submission)
-                self._completed_jobs.add(job_id)
-                return result
-            except Exception as exc:
-                self.logger.error('Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks)
-                return JobResults(job_id=job_id, data=None, error=exc)
-            finally:
-                self._running_jobs.discard(job_id)
+        job_id = submission.data.job_id
+        try:
+            async with self._semaphore:
+                self._set_status(job_id, JobStatus.RUNNING)
+                # Everything registered until the job starts is shared with it
+                submission.ipc = self._build_ipc_handle()
+                try:
+                    result = await self._execute_submission(submission)
+                except Exception as exc:
+                    self.logger.error(
+                        'Job %s failed with exception: %s', job_id, exc, exc_info=settings.jobs.tracebacks
+                    )
+                    result = JobResults(job_id=job_id, data=None, error=exc)
+        except asyncio.CancelledError as e:
+            # Waiting for a slot or running; a job in a worker is told to stop
+            self._set_status(job_id, JobStatus.CANCELLED)
+            self._flag_cancelled(job_id, str(e.args[0]) if e.args else '')
+            raise
+        self._set_status(job_id, JobStatus.DONE if result is not None and result.success else JobStatus.FAILED)
+        return result
+
+    async def _send_to_worker(self, job_id: str, fn, *args) -> Any:
+        """
+        Run ``fn(*args)`` in the pool's executor, for the job `job_id`, and wait for its result. The pool keeps the
+        worker's future, so that it can tell which workers are still busy after a cancellation.
+        """
+        future = self._executor.submit(fn, *args)
+        self._workers[job_id] = future
+        return await asyncio.wrap_future(future)
+
+    def _flag_cancelled(self, job_id: str, reason: str) -> None:
+        """
+        Tell the worker that runs a job to cancel it (see :func:`_run_watched`). Nothing happens for a job that hasn't
+        reached a worker, or has finished there.
+
+        :param job_id: The job's id.
+        :param reason: The reason of the cancellation, passed on to the job's task, or an empty string.
+        """
+        future = self._workers.get(job_id)
+        if future is None or future.done() or self._ipc is None:
+            return
+        with contextlib.suppress(Exception):
+            # NB: A process pool's manager may be unreachable; then the worker is ended on exit
+            self._ipc.get_state(_CANCEL_STATE)[job_id] = reason
 
     @overload
     async def launch(self, mode: Literal['stream']) -> AsyncIterator[JobResults]: ...
@@ -574,59 +939,96 @@ class BasePool(PoolProtocol, abc.ABC):
             return self._launch_stream()
         raise ValueError(f"Invalid mode: {mode!r}. Expected 'all' or 'stream'.")
 
-    async def _launch_all(self) -> list[JobResults]:
+    async def _start_tasks(self) -> list[asyncio.Task]:
         """
-        Launch all submitted jobs and return their aggregated results.
+        Start a task for each job submitted since the last launch, in submission order, after checking their
+        dependencies (see :meth:`_check_dependencies`). Jobs launched before don't run again.
+
+        :return: The new tasks, in submission order.
         """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
+        pending = [s for s in self._submissions.values() if s.submission_id not in self._tasks]
+        if not pending:
+            if self._submissions:
+                self.logger.warning('No jobs submitted to pool since the last launch')
+            else:
+                self.logger.warning('No jobs submitted to pool')
             return []
 
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
+        self.logger.debug('Launching %d jobs', len(pending))
+        for submission in pending:
+            self._set_status(submission.data.job_id, JobStatus.QUEUED)
         try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
+            errors = await self._check_dependencies([self._jobs[s.data.job_id] for s in pending])
+        except asyncio.CancelledError:
+            # Cancelled while checking: none of the jobs started
+            for submission in pending:
+                self._set_status(submission.data.job_id, JobStatus.CANCELLED)
+            raise
 
-            # Wait for all tasks to complete and gather results
-            self.logger.debug('Launching jobs...')
-            results = list(await asyncio.gather(*self._tasks.values()))
-            self.logger.debug('All jobs completed')
-            return results
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
+        tasks = []
+        for submission in pending:
+            error = errors.get(submission.data.job_id)
+            if error is None:
+                task = asyncio.create_task(self._process_submission(submission))
+            else:
+                task = asyncio.create_task(self._fail_submission(submission, error))
+            self._tasks[submission.submission_id] = task
+            tasks.append(task)
+        return tasks
+
+    async def _check_dependencies(self, jobs: list[Job]) -> dict[str, Exception]:
+        """
+        Check the dependencies of jobs about to launch, once for the pool: each dependency is checked once per
+        compute site and shell, and the outcome is remembered in its settings, where the jobs find it when they start
+        (workers of a process pool receive it with the settings), so that they don't check again. Nothing is checked if
+        ``settings.dependencies.check`` is off.
+
+        :param jobs: The jobs.
+        :return: The errors of the jobs that can't run, by job id: a missing dependency, or dependencies that ask for
+            different compute sites or shells.
+        """
+        if not settings.dependencies.check or not any(job.dependencies() for job in jobs):
+            return {}
+        # NB: In a thread, since checks run shells; one job after the other, so that each dependency is checked once
+        return await asyncio.to_thread(_dependency_errors, jobs)
+
+    async def _fail_submission(self, submission: JobSubmission, error: Exception) -> JobResults:
+        """
+        Fail a job without running it, e.g. for a missing dependency.
+
+        :param submission: The job's submission.
+        :param error: Why it can't run.
+        """
+        job_id = submission.data.job_id
+        self.logger.error('Job %s not run: %s', job_id, error)
+        self._set_status(job_id, JobStatus.FAILED)
+        return JobResults(job_id=job_id, data=None, error=error)
+
+    async def _launch_all(self) -> list[JobResults]:
+        """
+        Launch the jobs submitted since the last launch and return their results, in submission order.
+        """
+        tasks = await self._start_tasks()
+        if not tasks:
+            return []
+
+        # No exception handling at this stage, this is managed by __aexit__
+        results = list(await asyncio.gather(*tasks))
+        self.logger.debug('All jobs completed')
+        return results
 
     async def _launch_stream(self) -> AsyncIterator[JobResults]:
         """
-        Launch all submitted jobs and yield the results as they become available.
+        Launch the jobs submitted since the last launch and yield their results as each job completes.
         """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
+        tasks = await self._start_tasks()
+        if not tasks:
             return
 
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            self.logger.debug('Launching jobs...')
-            for task in asyncio.as_completed(self._tasks.values()):
-                self.logger.debug('A job has completed, yielding result...')
-                yield await task
-            self.logger.debug('All jobs completed')
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
+        # No exception handling at this stage, this is managed by __aexit__
+        for task in asyncio.as_completed(tasks):
+            yield await task
+        self.logger.debug('All jobs completed')
 
     def get_lock(self, name: str | None = None) -> IPCLock:
         """
@@ -752,62 +1154,13 @@ class SimplePool(AsyncPool):
     debugging, since it enforces a deterministic operations order.
     """
 
+    # NB: With one job at a time, the jobs run in submission order (a semaphore wakes its waiters first in, first
+    #  out), so both launch modes give the results in submission order
+
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         # Hard cap max_jobs to 1, since this pool is meant for sequential execution
         r = requested or Resources(jobs=1, threads=1, processes=1)
         return Resources(jobs=1, threads=r.threads, processes=r.processes)
-
-    async def _launch_all(self) -> list[JobResults]:
-        """
-        Launch all submitted jobs and return their aggregated results.
-        """
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
-            return []
-
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            # Wait for all tasks to complete and gather results
-            self.logger.debug('Launching jobs...')
-            results = []
-            for task in self._tasks.values():
-                results.append(await task)
-            self.logger.debug('All jobs completed')
-            return results
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
-
-    async def _launch_stream(self) -> AsyncIterator[JobResults]:
-        if not self._submissions:
-            self.logger.warning('No jobs submitted to pool')
-            return
-
-        # Activate the pool
-        self._is_running = True
-        self.logger.debug('Activating pool with %d submissions', len(self._submissions))
-        try:
-            # Create tasks
-            for submission in self._submissions.values():
-                task = asyncio.create_task(self._process_submission(submission))
-                self._tasks[submission.submission_id] = task
-
-            self.logger.debug('Launching jobs...')
-            for task in self._tasks.values():
-                yield await task
-            self.logger.debug('All jobs completed')
-        finally:
-            # No exception handling at this stage, this is managed by __aexit__
-            self.logger.debug('Deactivating pool')
-            self._is_running = False
 
 
 class ThreadedPool(BasePool):
@@ -829,12 +1182,6 @@ class ThreadedPool(BasePool):
         await super().__aenter__()
         self._executor = self._executor_cls(max_workers=self._resources.jobs)  # type: ignore
         return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._executor is not None:
-            self._executor.shutdown(wait=True)
-            self._executor = None
-        await super().__aexit__(exc_type, exc_val, exc_tb)
 
     @staticmethod
     def _rename_current_thread() -> None:
@@ -860,15 +1207,16 @@ class ThreadedPool(BasePool):
         # Initialize the worker thread's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Deserialize the job
-        job = submission.to_job()
+        # Deserialize the job; threads share the parent's loggers, so the job's logger is used as it is
+        job = submission.to_job(logger=_get_job_logger(submission.job_logger_name))
 
         # Reconstruct the IPC backend
+        ipc = None
         if submission.ipc is not None:
             ipc = ThreadedPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-        return await job.run()
+        return await _run_watched(job, ipc)
 
     @staticmethod
     def _run_in_thread(submission: JobSubmission) -> JobResults | None:
@@ -876,13 +1224,7 @@ class ThreadedPool(BasePool):
         return asyncio.run(ThreadedPool._bootstrap_thread(submission))
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        job_id = submission.data.job_id
-        job = self._jobs.get(job_id)
-        if job is None:
-            raise KeyError(f'No job found for submission with job_id={job_id!r}')
-
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self._executor, self._run_in_thread, submission)
+        return await self._send_to_worker(submission.data.job_id, self._run_in_thread, submission)
 
 
 class MultiprocessPool(BasePool):
@@ -900,151 +1242,161 @@ class MultiprocessPool(BasePool):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Eavesdropping task for capturing logs from worker processes
-        self._eavesdropping: asyncio.Task | None = None  # Managed by __aexit__ and _ensure_picklable_log_handlers
-        self._eavesdropping_qname = f'{self.pool_id}_log_queue'
+        # Listener that relays the records of worker processes to the loggers of this process
+        self._listener: asyncio.Task | None = None  # Managed by __aenter__ and __aexit__
+        self._log_qname = f'{self.pool_id}_log_queue'
+        self._flushes: dict[str, asyncio.Event] = {}  # Managed by _flush_logs and the listener
+
+    _FLUSH_KEY = '_xtl_flush'
+    """Key of the marker that :meth:`_flush_logs` puts on the log queue."""
 
     def _resolve_resources(self, max_jobs: int, requested: Resources | None) -> Resources:
         return requested or Resources(jobs=max_jobs, threads=1, processes=max_jobs)
 
-    def _eavesdrop(self) -> None:
+    async def _flush_logs(self, timeout: float = 10.0) -> None:
         """
-        Start an asynchronous task that listens to the log queue for log records emitted by worker processes and handles
-        them with the pool's logger. This allows logs from worker processes to be captured and displayed in the main
-        process.
-        """
-        if self._eavesdropping is not None and not self._eavesdropping.done():
-            # Eavesdropping is already active, no need to start another listener
-            return
+        Wait until the listener has relayed every record that is on the log queue now. A worker puts its records on
+        the queue before its job returns, so, after a job's result, this brings in all of that job's records.
 
-        # Get the log queue for this pool
-        #  NB: The queue is first created in __aenter__, therefore is guaranteed to exist
-        #      on every submit() call
-        log_queue = self.get_queue(self._eavesdropping_qname)
+        :param timeout: How long to wait, in seconds; a warning is logged if the listener doesn't get there in time.
+        """
+        if self._listener is None or self._listener.done():
+            return
+        token = uuid.random(settings.jobs.job_digits)
+        event = self._flushes[token] = asyncio.Event()
+        await self.get_queue(self._log_qname).put({self._FLUSH_KEY: token})
+        try:
+            await asyncio.wait_for(event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self._flushes.pop(token, None)
+            self.logger.warning('Log listener did not catch up within %.0f s', timeout)
+
+    def _start_listener(self) -> None:
+        """
+        Start an asynchronous task that takes the records that worker processes put on the log queue and passes them
+        to :meth:`_relay_log`, which re-emits them through the loggers of this process.
+        """
+        log_queue = self.get_queue(self._log_qname)
 
         async def _listen() -> None:
-            """
-            Continuously listen for log records on the log queue and handle them with the pool's logger.
-            """
             while True:
-                record = await log_queue.get()
-                if record is None:
+                data = await log_queue.get()
+                if data is None:
                     # Sentinel value indicating shutdown
                     break
-                if isinstance(record, dict):
-                    record = logging.makeLogRecord(record)
-                if isinstance(record, logging.LogRecord):
-                    logging.getLogger(record.name).handle(record)
+                if flush := data.get(self._FLUSH_KEY):
+                    # Every record put on the queue before this marker has been relayed
+                    if event := self._flushes.pop(flush, None):
+                        event.set()
+                    continue
+                self._relay_log(data)
 
-        # Start the eavesdropping task
-        self.logger.debug('Starting eavesdropper...')
-        self._eavesdropping = asyncio.create_task(
-            _listen(), name=f'{self.__class__.__name__}:{self.pool_id}-Eavesdropper'
-        )
+        self.logger.debug('Starting the log listener')
+        self._listener = asyncio.create_task(_listen(), name=f'{self.__class__.__name__}:{self.pool_id}-LogListener')
 
-    @contextlib.asynccontextmanager
-    async def _ensure_picklable_log_handlers(self, submission: JobSubmission) -> AsyncIterator[None]:
+    @staticmethod
+    def _relay_log(data: dict[str, Any]) -> None:
         """
-        Ensure job logging handlers are picklable for process execution. If no usable
-        handlers remain (including the case handlers=[]), inject a dummy marker so
-        the worker installs a QueueHandler and forwards logs to this pool.
+        Re-emit a record that a worker sent as a dict through the logger of the same name in this process, if that
+        logger is enabled for its level. From there, the logger tree takes it to the handlers.
+
+        :param data: A dict from :meth:`RelayHandler.record_to_dict`.
         """
-        popped_handlers: list[dict] = []
-        dummy: dict | None = None
+        record = logging.makeLogRecord(data)
+        logger = logging.getLogger(record.name)
+        if logger.isEnabledFor(record.levelno):
+            logger.handle(record)
 
-        # Ensure config structure exists
-        if submission.data.logging_config is None:
-            submission.data.logging_config = {}
-        log_cfg = submission.data.logging_config
-        handlers_configs = list(log_cfg.get('handlers', []))
+    async def _stop_listener(self) -> None:
+        """
+        Stop the log listener, once it has relayed the records already on the queue.
+        """
+        if self._listener is None:
+            return
 
-        # Keep only picklable handlers; stash removed ones for restoration
-        picklable_handlers: list[dict] = []
-        for handler_config in handlers_configs:
-            safe, _ = is_picklable(handler_config)
-            if safe:
-                picklable_handlers.append(handler_config)
-                continue
+        self.logger.debug('Stopping the log listener')
+        with contextlib.suppress(Exception):
+            # The sentinel goes after the records that are already on the queue
+            await self.get_queue(self._log_qname).put(None)
 
-            popped_handlers.append(handler_config)
-            handler = handler_config.get('handler', '<unknown>')
-            handler_name = getattr(handler, '__name__', str(handler))
-            self.logger.debug(
-                'Removed unpicklable log handler <%s> from submission of job: %s',
-                handler_name,
-                submission.data.job_id,
-            )
+        # NB: The listener's error isn't raised here: with Python 3.10, a Ctrl+C that interrupted it is also raised to
+        #  `asyncio.run()`, which then cancels the task that exits the pool
+        await asyncio.wait({self._listener}, timeout=10.0)
 
-        # Update submission to only contain picklable handlers for process handoff
-        log_cfg['handlers'] = picklable_handlers
+        if not self._listener.done():
+            self.logger.warning('Log listener did not shut down within timeout')
+            self._listener.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listener
+        elif not self._listener.cancelled() and (error := self._listener.exception()) is not None:
+            level = logging.DEBUG if isinstance(error, KeyboardInterrupt) else logging.WARNING
+            self.logger.log(level, 'Log listener stopped early: %r', error)
 
-        # Critical: if no handlers remain, still inject queue relay
-        need_relay = bool(popped_handlers) or not picklable_handlers
-        try:
-            if need_relay:
-                dummy = {
-                    'handler': 'XTL_DUMMY_QUEUE_HANDLER',
-                    'config': {'eavesdrop_queue': self._eavesdropping_qname},
-                }
-                log_cfg['handlers'].append(dummy)
-                self._eavesdrop()
-
-            yield
-
-        finally:
-            # Remove dummy relay marker if we added one
-            if dummy is not None and dummy in log_cfg.get('handlers', []):
-                log_cfg['handlers'].remove(dummy)
-
-            # Restore any removed unpicklable handlers
-            if popped_handlers:
-                self.logger.debug(
-                    'Reattaching popped handlers to submission for job: %s',
-                    submission.data.job_id,
-                )
-                log_cfg['handlers'].extend(popped_handlers)
-                popped_handlers.clear()
+        self._listener = None
 
     async def __aenter__(self):
         await super().__aenter__()
 
+        # The log queue must exist before the workers start
+        self.get_queue(self._log_qname)
+        self._start_listener()
+
         # Initialize the process pool executor
         self._executor = self._executor_cls(
             max_workers=self._resources.jobs,  # type: ignore
-            initializer=self._rename_current_process,
+            initializer=self._init_worker,
+            initargs=(self._ipc._raw_queue(self._log_qname),),
+            # The workers ignore Ctrl+C from their start, not only once `_init_worker` runs
+            mp_context=shielded_context(),
         )
-
-        # Ensure that the log queue and default lock are created before any jobs are submitted
-        self.get_queue(self._eavesdropping_qname)
-        self.get_lock(None)
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Check if eavesdropper is running and signal it to stop
-        if self._eavesdropping is not None:
-            self.logger.debug('Stopping eavesdropper')
-            with contextlib.suppress(Exception):
-                # Send sentinel value to unblock the eavesdropper if it's waiting on the queue
-                log_queue = self.get_queue(self._eavesdropping_qname)
-                await log_queue.put(None)
+    async def _stop_workers(self, cancelled: bool = False) -> None:
+        # Stop the listener once the workers are gone, so that they have sent all their records
+        await super()._stop_workers(cancelled=cancelled)
+        await self._stop_listener()
 
-            with contextlib.suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._eavesdropping, timeout=2.0)
+    async def _end_workers(self, executor: Executor, busy: int) -> None:
+        """
+        End the worker processes, since some still run a job that didn't stop after its cancellation: ``terminate()``,
+        then ``kill()`` for those still alive after a few seconds. The executor's processes are private
+        (``ProcessPoolExecutor._processes``); if they can't be found, the pool warns and keeps waiting.
+        """
+        processes = getattr(executor, '_processes', None)
+        if not isinstance(processes, dict):
+            await super()._end_workers(executor, busy)
+            return
 
-            if not self._eavesdropping.done():
-                self.logger.warning('Eavesdropper did not shut down within timeout')
-                self._eavesdropping.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self._eavesdropping
+        self.logger.warning("Ending %d workers that didn't stop", busy)
+        alive = [process for process in list(processes.values()) if process.is_alive()]
+        for process in alive:
+            process.terminate()
+        for process in alive:
+            await asyncio.to_thread(process.join, 5)
+            if process.is_alive():
+                process.kill()
 
-            self._eavesdropping = None
+    @staticmethod
+    def _init_worker(log_queue) -> None:
+        """
+        Set up a worker process: rename it and make the queue of the parent its only log sink.
 
-        # Shutdown the process pool executor
-        if self._executor is not None:
-            self._executor.shutdown(wait=True)
-            self._executor = None
+        :param log_queue: The raw log queue of the pool.
+        """
+        # Ctrl+C is the parent's to handle: it cancels the jobs, which their workers then stop (see `_run_watched`)
+        ignore_interrupts()
+        MultiprocessPool._rename_current_process()
 
-        await super().__aexit__(exc_type, exc_val, exc_tb)
+        # Workers started with fork inherit the parent's loggers: reset them, so that the tree only passes records
+        #  up to the sink
+        for logger in list(logging.root.manager.loggerDict.values()):
+            if isinstance(logger, logging.Logger):
+                logger.handlers.clear()
+                logger.setLevel(logging.NOTSET)
+                logger.propagate = True
+        root = logging.root
+        root.handlers.clear()
+        root.addHandler(RelayHandler(log_queue))
 
     @staticmethod
     def _rename_current_process() -> None:
@@ -1065,69 +1417,55 @@ class MultiprocessPool(BasePool):
         # Initialize the worker process's ResourceManager with the granted budget.
         get_rc_manager(total=submission.resources)
 
-        # Filter out dummy queue handlers from the logging config
-        valid_handlers = []
-        eavesdropper: dict | None = None
-        for h in submission.data.logging_config.get('handlers', []):
-            if h['handler'] == 'XTL_DUMMY_QUEUE_HANDLER':
-                eavesdropper = h
-                continue
-            valid_handlers.append(h)
-        # Update the logging config to only include valid handlers
-        submission.data.logging_config['handlers'] = valid_handlers
+        # The job's logger only filters by level; its records propagate to the sink on the root logger, which
+        #  sends only what the pool's handlers want (the job may lower its logger for handlers of its own)
+        logger = _get_job_logger(submission.job_logger_name)
+        logger.setLevel(submission.log_level)
+        for handler in logging.root.handlers:
+            if isinstance(handler, RelayHandler):
+                handler.setLevel(submission.log_level)
 
         # Deserialize the job
-        job = submission.to_job()
+        job = submission.to_job(logger=logger)
 
         # Reconstruct the IPC backend
+        ipc = None
         if submission.ipc is not None:
             ipc = MultiprocessPool._ipc_cls.from_handle(submission.ipc)
             job._pool = ProxyPool(ipc)
 
-            # Install relay queue handler if eavesdropper config was found
-            if eavesdropper is not None:
-                config: dict = eavesdropper.get('config', {})
-                qname: str | None = config.get('eavesdrop_queue', None)
-                if qname is None:
-                    raise ValueError('Eavesdropper config is missing the required "eavesdrop_queue" field')
-
-                # Get the actual queue object from the IPC backend
-                try:
-                    queue = submission.ipc.queues[qname]
-                except KeyError as e:
-                    raise KeyError(f'Eavesdropper queue {qname!r} not found in IPC') from e
-
-                # Add a QueueHandler to the job's logger to forward logs
-                handler = QueueHandler(queue)
-                job.logger.addHandler(handler)
-
-        return await job.run()
+        return await _run_watched(job, ipc)
 
     @staticmethod
     def _run_in_process(payload: dict) -> JobResults | None:
         submission = JobSubmission.from_dict(payload)
 
-        # NB: No need to clear CURRENT_LEASE here, because we are not
-        #  using copy_context to propagate the lease
+        # A worker started with spawn reads the settings from `xtl.toml`; the job runs with the parent's instead
+        submission.apply_settings()
 
-        return asyncio.run(MultiprocessPool._bootstrap_process(submission))
+        # A worker started with fork inherits the context of the thread that started it, including the lease of
+        #  the parent's pool, which belongs to another ResourceManager. Pools opened by the job must start a new tree.
+        CURRENT_LEASE.set(None)
+
+        # What goes back to the parent must survive pickling: the executor marks itself broken, for every job, if the
+        #  parent can't unpickle a result or an exception
+        logger = _get_job_logger(submission.job_logger_name)
+        try:
+            results = asyncio.run(MultiprocessPool._bootstrap_process(submission))
+        except Exception as error:
+            if _round_trips(error):
+                raise
+            raise _worker_error(error) from None
+        return _picklable_results(results, logger)
 
     async def _execute_submission(self, submission: JobSubmission) -> JobResults | None:
-        job_id = submission.data.job_id
-        job = self._jobs.get(job_id)
-        if job is None:
-            raise KeyError(f'No job found for submission with job_id={job_id!r}')
+        # The job runs with the settings as they are when it starts, as in the other pools, and with the dependency
+        #  checks made so far, so that it doesn't check again
+        submission.xtl_settings = settings.to_dict()
+        submission.dependency_checks = settings.dependencies.checks_to_dict()
 
-        async with self._ensure_picklable_log_handlers(submission):
-            payload = submission.to_dict()
-            pickle_safe, reason = is_picklable(payload, path=JobSubmission.__name__)
-            if not pickle_safe:
-                path, obj_type, obj_repr = reason
-                raise TypeError(
-                    f'Job submission with job_id={job_id!r} contains an unpicklable object and cannot be executed in a '
-                    f'process pool\n'
-                    f'Offending object found at {path}: type={obj_type}, repr={obj_repr}'
-                )
+        result = await self._send_to_worker(submission.data.job_id, self._run_in_process, submission.to_dict())
 
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(self._executor, self._run_in_process, payload)
+        # Relay the job's records before reporting its result, e.g. while a live display still shows them
+        await self._flush_logs()
+        return result

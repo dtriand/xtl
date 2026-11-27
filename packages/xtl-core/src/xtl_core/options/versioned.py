@@ -1,0 +1,528 @@
+"""
+|Options| models whose data layout carries a version of its own.
+
+.. |Options| replace:: :class:`Options <xtl_core.options.base.Options>`
+"""
+
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+import copy
+import importlib
+import inspect
+from dataclasses import dataclass
+import logging
+from pathlib import Path
+import typing
+from typing import Any, ClassVar, Callable, TypeVar, overload
+
+import tomlkit
+from tomlkit.container import Container
+from tomlkit.items import AoT, Table
+from typing_extensions import Self
+
+from xtl_core.options.base import _TOML_SKIP, Options
+from xtl_core.options.toml import comment_text, toml_item, toml_scalar
+from xtl_core.version_info import VersionInfo
+from xtl_core.utils.docs import extend_docstring
+
+
+logger = logging.getLogger(__name__)
+
+
+_Data = dict[str, Any]
+_Options = TypeVar('_Options', bound=Options)
+_StepFuncRaw = TypeVar('_StepFuncRaw', bound=Callable[[_Data], _Data])
+
+
+def _func_name(func: Callable) -> str:
+    """The name of a step function for messages: its qualified name, or its ``repr()`` for callables without one
+    (e.g. :func:`functools.partial`)."""
+    return getattr(func, '__qualname__', None) or repr(func)
+
+
+@dataclass(frozen=True)
+class UpgradeStep:
+    """
+    Represents a single step in the upgrade path of a versioned model's data layout.
+
+    :param to: The version that this step upgrades to.
+    :param func: The function that performs the upgrade.
+    :param model: Optional frozen |Options| model of the old layout; if given, the data is
+        validated as this model first and the step gets the model instance.
+    """
+
+    to: VersionInfo
+    func: Callable[[Any], _Data]
+    model: type[Options] | None = None
+
+
+def _field_keys(model: type[Options]) -> set[str]:
+    """
+    The top-level keys a model reads: its field names and their string aliases (``Option(alias=...)`` sets the
+    serialization alias, which is the key in saved data).
+    """
+    keys = set()
+    for name, field in model.model_fields.items():
+        keys.add(name)
+        for alias in (field.alias, field.validation_alias, field.serialization_alias):
+            if isinstance(alias, str):
+                keys.add(alias)
+    return keys
+
+
+def _field_of(model: type[Options] | None, key: str) -> tuple[type[Options] | None, str | None]:
+    """
+    The model of a key's value, if it is a nested |Options|, and the description of its field, for a key of a
+    model's data (a field name or its serialization alias).
+    """
+    if model is None:
+        return None, None
+    for name, field in model.model_fields.items():
+        if key in (name, field.serialization_alias):
+            # The model itself, or one in a union (e.g. `Inner | None`)
+            candidates = (field.annotation, *typing.get_args(field.annotation))
+            nested = next((c for c in candidates if isinstance(c, type) and issubclass(c, Options)), None)
+            return nested, field.description
+    return None, None
+
+
+def _plain(value: Any) -> Any:
+    """A value of upgraded data that ``tomlkit`` can write, inside dicts and lists too."""
+    if isinstance(value, dict):
+        return {str(k): _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    return toml_scalar(value)
+
+
+def _update_toml(container: MutableMapping, old: _Data, new: _Data, model: type[Options] | None) -> None:
+    """
+    Turn the ``tomlkit`` container of ``old`` into ``new``, in place: keys that are gone are removed, changed values
+    are replaced where they were (keeping their inline comment), nested tables are updated key by key, and new keys
+    are added with the description of their field as a comment. Everything else keeps its comments and formatting.
+
+    :param container: The parsed TOML that holds ``old``.
+    :param old: The data before the upgrade.
+    :param new: The data after it.
+    :param model: The model of the data, for the descriptions of new keys and the models of nested tables.
+    """
+    for key in [key for key in old if key not in new]:
+        del container[key]
+    for key, value in new.items():
+        nested, description = _field_of(model, key)
+        if key not in old:
+            container[key] = toml_item(_plain(value), description)
+        elif isinstance(value, dict) and isinstance(old[key], dict) and isinstance(container[key], MutableMapping):
+            _update_toml(container[key], old[key], value, nested)
+        elif old[key] != value:
+            # tomlkit keeps the replaced item's inline comment
+            container[key] = toml_item(_plain(value))
+
+
+def _add_placeholder(container: Container | Table, key: str, description: str | None) -> None:
+    """
+    Add a commented-out line for a setting that has no value (``# key = ...  # description``), unless the container
+    has one already. It goes after the container's last value, so that it stays above any of its sub-tables
+    (``tomlkit`` adds comments at the end, after them), as part of that line's trailing text.
+    """
+    text = f'# {key} = ...' + (f'  # {comment_text(description)}' if description else '')
+    body = container.value.body if isinstance(container, Table) else container.body
+    # The container's own lines, before its sub-tables (which may have a line for the same key)
+    values, own = [], ''
+    for k, item in body:
+        if isinstance(item, (Table, AoT)):
+            break
+        if k is not None:
+            values.append(item)
+            own += item.trivia.trail
+        else:
+            own += item.as_string()
+    if own.startswith(f'# {key} = ') or f'\n# {key} = ' in own:
+        return
+    if not values:
+        container.add(tomlkit.comment(text[2:]))
+        return
+    trail = values[-1].trivia.trail
+    values[-1].trivia.trail = (trail if trail.endswith('\n') else trail + '\n') + text + '\n'
+
+
+def _add_missing(container: Container | Table, options: Options) -> None:
+    """
+    Add the fields of ``options`` that ``container`` doesn't have, with their values and descriptions, as
+    ``to_toml(comments=True)`` writes them; fields without a TOML value (``None``, unset) become commented-out lines.
+    Nested tables that are there get the same (not a table split across the file, which ``tomlkit`` gives as a
+    proxy).
+    """
+    model = type(options)
+    placeholders = []
+    for name, field in model.model_fields.items():
+        if field.exclude:
+            continue
+        key = model._toml_key(name, field)
+        value = getattr(options, name)
+        if key not in container:
+            item = model._value_to_toml(value, field=field, keep_comments=True, path=key)
+            if item is _TOML_SKIP:
+                placeholders.append((key, field.description))
+                continue
+            container[key] = item
+        if isinstance(value, Options) and isinstance(table := container[key], Table):
+            _add_missing(table, value)
+    for key, description in placeholders:
+        _add_placeholder(container, key, description)
+
+
+_UPGRADE_NOTE = (
+    'Data from an older version is upgraded to the current one first (see :meth:`upgrade`); '
+    'newer data logs a warning, and data without a version loads as current.'
+)
+_UPGRADE_PARAM = {'upgrade': 'Upgrade older data first. If ``False``, the data are validated as they are.'}
+
+
+class VersionedOptions(Options):
+    """
+    An |Options| model whose data carries a version tag of its own, so that data saved with an older layout is
+    upgraded to the current one when loaded, one version at a time.
+
+    A model sets ``_version_path`` (where the tag lives in the data), ``_current_version`` (its current layout) and
+    ``_upgrades`` (the module with its upgrade steps, registered with :meth:`upgrade_step`). Older data is upgraded
+    in :meth:`from_dict`, :meth:`from_json` and :meth:`from_toml`; subclasses run their parents' steps too. See
+    :ref:`the Options guide <versioned-data>` for a full example.
+    """
+
+    _version_path: ClassVar[str | None] = None
+    """The path to the version tag in the data, as a dot-separated string."""
+
+    _current_version: ClassVar[VersionInfo | str | None] = None
+    """The model's current layout version, as set by the model (a ``str`` or :class:`VersionInfo`). If ``None``,
+    the data's version is neither checked nor upgraded."""
+
+    _current: ClassVar[VersionInfo | None] = None
+    """``_current_version`` as a :class:`VersionInfo`, set when the subclass is created; the methods use this one."""
+
+    _upgrades: ClassVar[str | None] = None
+    """Dotted path to the module with this class's own upgrade steps, imported the first time they're needed.
+    Subclasses also run the steps of their parents."""
+
+    _upgrade_steps: ClassVar[dict[tuple[int, int, int], UpgradeStep]] = {}
+    """This class's own upgrade steps, keyed by the version they upgrade to (its parents' are in their own)."""
+
+    _upgrades_loaded: ClassVar[bool] = False
+    """Whether this class's own ``_upgrades`` module has been imported."""
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        super().__pydantic_init_subclass__(**kwargs)
+        cls._upgrade_steps = {}
+        cls._upgrades_loaded = False
+        cls._current = None if cls._current_version is None else VersionInfo.from_value(cls._current_version)
+        if (cls._current is not None or cls._upgrades) and not cls._version_path:
+            raise TypeError(
+                f'{cls.__name__} must define a `_version_path` class variable if it defines a '
+                '`_current_version` or `_upgrades`.'
+            )
+
+        # A subclass extends its parents' version history: it runs their steps, so it can't go back to an
+        #  older version or move the version tag
+        for base in cls.__bases__:
+            if not (issubclass(base, VersionedOptions) and base._current is not None):
+                continue
+            if cls._current is None or cls._current.tuple_safe < base._current.tuple_safe:
+                raise TypeError(
+                    f'{cls.__name__} cannot lower `_current_version` below that of {base.__name__} '
+                    f'({base._current.pep440}).'
+                )
+            if cls._version_path != base._version_path:
+                raise TypeError(
+                    f'{cls.__name__} cannot change `_version_path` of {base.__name__} ({base._version_path!r}).'
+                )
+
+    @classmethod
+    def _get_version(cls, data: Any) -> VersionInfo | None:
+        if cls._version_path is None:
+            return None
+        node = data
+        for part in cls._version_path.split('.'):
+            if not isinstance(node, dict) or part not in node:
+                return None
+            node = node[part]
+        return VersionInfo.from_value(node)
+
+    @classmethod
+    def _set_version(cls, data: _Data, version: VersionInfo) -> None:
+        if cls._version_path is None:
+            return
+        node = data
+        parts = cls._version_path.split('.')
+        for part in parts[:-1]:
+            if part not in node or not isinstance(node[part], dict):
+                node[part] = {}
+            node = node[part]
+        node[parts[-1]] = version.pep440
+
+    @classmethod
+    def _check_version(cls, version: VersionInfo | None) -> None:
+        current = cls._current
+        if version is None or current is None:
+            return
+        if version.tuple_safe > current.tuple_safe:
+            logger.warning(
+                "%(model_cls)s data is from version %(version)s, which is newer than the model's current version "
+                '%(current)s.',
+                {'model_cls': cls.__name__, 'version': version.pep440, 'current': current.pep440},
+            )
+
+    @classmethod
+    def _load_upgrades(cls) -> None:
+        """
+        Import this class's own ``_upgrades`` module once, which registers its steps. An
+        inherited ``_upgrades`` belongs to the parent, which loads it.
+
+        :raises ImportError: If the module can't be imported; the next call tries again.
+        """
+        module = cls.__dict__.get('_upgrades')
+        if module is None or cls._upgrades_loaded:
+            return
+        importlib.import_module(module)
+        cls._upgrades_loaded = True
+        if not cls._upgrade_steps:
+            logger.warning(
+                '%(model)s: importing %(module)s registered no upgrade steps for it.',
+                {'model': cls.__name__, 'module': module},
+            )
+
+    @classmethod
+    def _versioned_bases(cls) -> list[type[VersionedOptions]]:
+        """This class and its versioned parents, from the furthest parent to this class."""
+        return [
+            klass
+            for klass in reversed(cls.__mro__)
+            if isinstance(klass, type) and issubclass(klass, VersionedOptions) and klass is not VersionedOptions
+        ]
+
+    @classmethod
+    def upgrade_steps(cls) -> list[UpgradeStep]:
+        """
+        All upgrade steps that apply to this model, its parents' included, in the order they
+        run: by the version they upgrade to and, for the same version, a parent's before its
+        subclass's. The ``_upgrades`` modules are imported first.
+
+        :return: A list of :class:`UpgradeStep` instances, in the order they run.
+        """
+        steps = []
+        for klass in cls._versioned_bases():
+            klass._load_upgrades()
+            steps.extend(klass._upgrade_steps[key] for key in sorted(klass._upgrade_steps))
+        # sorted() is stable, so parents' steps stay before their subclasses' for the same version
+        return sorted(steps, key=lambda step: step.to.tuple_safe)
+
+    @overload
+    @classmethod
+    def upgrade_step(cls, *, to: VersionInfo | str, model: None = None) -> Callable[[_StepFuncRaw], _StepFuncRaw]: ...
+
+    @overload
+    @classmethod
+    def upgrade_step(
+        cls, *, to: VersionInfo | str, model: type[Options]
+    ) -> Callable[[Callable[[_Options], _Data]], Callable[[_Options], _Data]]: ...
+
+    @classmethod
+    def upgrade_step(
+        cls, *, to: VersionInfo | str, model: type[Options] | None = None
+    ) -> Callable[[Any], Any]:  # the decorator, typed by the overloads
+        """
+        Decorator to register an upgrade step on this model. The step takes the data in the layout before ``to`` and
+        returns it in the layout of ``to``; the function itself is returned unchanged.
+
+        :param to: The version that this step upgrades to. It can be a :class:`VersionInfo` instance or a string that can be
+            parsed into a :class:`VersionInfo`.
+        :param model: Optional frozen |Options| model of the old layout. If given, the data is validated as this model
+            first and the step gets the model instance; keys the model doesn't know are carried over into the result.
+        :return: The decorator.
+        :raises TypeError: If registered on :class:`VersionedOptions` itself or on a model without a
+            ``_current_version``, if ``model`` isn't a plain |Options| subclass, or if the function doesn't take
+            exactly one positional argument.
+        :raises ValueError: If ``to`` is newer than the model's current version, or the model already has a step to
+            ``to``.
+        """
+
+        if cls is VersionedOptions:
+            raise TypeError(f'Upgrade steps can only be registered on subclasses of {VersionedOptions.__name__}.')
+        if cls._current is None:
+            raise TypeError(
+                f'{cls.__name__} does not define a `_current_version`, so upgrade steps cannot be registered.'
+            )
+
+        to = VersionInfo.from_value(to)
+        if to.tuple_safe > cls._current.tuple_safe:
+            raise ValueError(
+                f"Upgrade step to version {to.pep440} is newer than the model's current version {cls._current.pep440}."
+            )
+        if model is not None:
+            if not (isinstance(model, type) and issubclass(model, Options)):
+                raise TypeError(f'Upgrade step model must be a subclass of {Options.__name__}, got {model!r}.')
+            if issubclass(model, VersionedOptions):
+                raise TypeError(
+                    f'Upgrade step model {model.__name__} cannot be a subclass of {VersionedOptions.__name__}.'
+                )
+
+        def decorator(func: Callable[[Any], _Data]) -> Callable[[Any], _Data]:
+            if not callable(func):
+                raise TypeError(f'Upgrade step function must be callable, got {type(func).__name__}.')
+
+            try:
+                # Check that the function accepts a single positional argument
+                inspect.signature(func).bind(None)
+            except TypeError:
+                raise TypeError(
+                    f'Upgrade step function {_func_name(func)} must accept a single positional argument, '
+                    'the data to upgrade.'
+                ) from None
+
+            if (existing := cls._upgrade_steps.get(to.tuple_safe)) is not None:
+                raise ValueError(
+                    f'{cls.__name__} already has an upgrade step to version {to.pep440}: {_func_name(existing.func)}.'
+                )
+            cls._upgrade_steps[to.tuple_safe] = UpgradeStep(to=to, func=func, model=model)
+            return func
+
+        return decorator
+
+    @classmethod
+    def upgrade(cls, data: _Data) -> _Data:
+        """
+        Upgrade data from an older version of this model to the current version, running the steps of this model and
+        its parents in order. The result is not validated against the model, and ``data`` is left unchanged. Data
+        without a version, from the current version or from a newer one (which logs a warning) is returned as a copy,
+        without running any steps.
+
+        :param data: The data to upgrade.
+        :return: The upgraded data, with the version tag set to the model's current version.
+        :raises TypeError: If a step doesn't return a dict.
+        """
+
+        # Deep-copying allows the steps to modify the data in place
+        data = copy.deepcopy(data)
+
+        # The model contains no versioning information
+        if cls._current is None:
+            return data
+
+        # The data contain no versioning information
+        version = cls._get_version(data)
+        if version is None:
+            return data
+
+        # Check if the data come from a newer version than the model's current version
+        cls._check_version(version)
+        current = cls._current
+        if version.tuple_safe >= current.tuple_safe:
+            return data
+
+        # Run upgrade steps in order
+        at = version
+        for step in cls.upgrade_steps():
+            # Only run the steps newer than the data's original version; comparing with the version
+            #  after the previous step would skip a subclass's step to the same version as its parent's
+            if step.to.tuple_safe <= version.tuple_safe:
+                continue
+
+            logger.debug(
+                'Running upgrade step from version %(from)s to %(to)s: %(func)s',
+                {'from': at.pep440, 'to': step.to.pep440, 'func': _func_name(step.func)},
+            )
+
+            # Typed steps get the data validated as their frozen model, which only sees the keys it
+            #  knows; the rest (e.g. fields of a subclass) are carried over into the result
+            if step.model is not None:
+                known = _field_keys(step.model)
+                arg = step.model.from_dict({k: v for k, v in data.items() if k in known})
+                unknown = {k: v for k, v in data.items() if k not in known}
+            else:
+                arg, unknown = data, {}
+
+            # Run the upgrade step
+            result = step.func(arg)
+            if not isinstance(result, dict):
+                raise TypeError(
+                    f'Upgrade step {step.func.__qualname__} (to {step.to.pep440}) returned {type(result).__name__}, '
+                    f'expected a dict.'
+                )
+            result = {**unknown, **result}
+
+            # Update the data's version
+            data = result
+            cls._set_version(data, step.to)
+            at = step.to
+
+        cls._set_version(data, current)
+        logger.info(
+            'Upgraded %(model)s data from version %(from)s to %(to)s.',
+            {'model': cls.__name__, 'from': version.pep440, 'to': current.pep440},
+        )
+        return data
+
+    @classmethod
+    def upgrade_toml(cls, s: str, /, *, clean: bool = False, add_missing: bool = False) -> str:
+        """
+        Upgrade TOML text from an older version of this model to the current one, keeping its comments and
+        formatting: only what the upgrade steps change is edited, and the version tag is set to the current version
+        (also when the text has none). New keys get their field's description as a comment; comments on the lines
+        above a removed key stay where they were. Text from the current version comes back unchanged.
+
+        :param s: The TOML text.
+        :param clean: Write the upgraded data afresh instead (``to_toml(comments=True)``): the text's own comments,
+            formatting and unknown keys are dropped.
+        :param add_missing: Also add the fields that the text doesn't have, with their values (the defaults, so the
+            data stay the same) and descriptions; fields without a TOML value (``None``, unset) become
+            commented-out lines (``# key = ...  # description``). Running it again adds nothing.
+        :return: The upgraded TOML text.
+        :raises TypeError: If the model doesn't define a ``_current_version``.
+        :raises ValueError: If the text isn't valid TOML, or is from a version newer than the current one, which
+            can't be downgraded.
+        :raises OptionsValidationError: If the upgraded data isn't valid for the model.
+        """
+        current = cls._current
+        if current is None:
+            raise TypeError(f'{cls.__name__} does not define a `_current_version`, so its data cannot be upgraded.')
+
+        document = tomlkit.parse(s)
+        data = document.unwrap()
+        version = cls._get_version(data)
+        if version is not None and version.tuple_safe > current.tuple_safe:
+            raise ValueError(
+                f'{cls.__name__} data is from version {version.pep440}, newer than the current version '
+                f'{current.pep440}; it cannot be downgraded.'
+            )
+
+        upgraded = cls.upgrade(data)
+        cls._set_version(upgraded, current)
+        # Checks the upgraded data, before anything is written
+        model = cls.from_dict(upgraded, upgrade=False)
+        if clean:
+            document = tomlkit.parse(model.to_toml(comments=True))
+        else:
+            _update_toml(document, data, upgraded, cls)
+        if add_missing:
+            _add_missing(document, model)
+        return document.as_string()
+
+    @classmethod
+    @extend_docstring(Options.from_dict, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_dict(cls, data: _Data, /, *, upgrade: bool = True) -> Self:
+        if upgrade:
+            data = cls.upgrade(data)
+        else:
+            cls._check_version(cls._get_version(data))
+        return super().from_dict(data)
+
+    @classmethod
+    @extend_docstring(Options.from_json, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_json(cls, s: str | Path, /, *, encoding: str = 'utf-8', upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='json', encoding=encoding), upgrade=upgrade)
+
+    @classmethod
+    @extend_docstring(Options.from_toml, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)
+    def from_toml(cls, s: str | Path, /, *, encoding: str = 'utf-8', upgrade: bool = True) -> Self:
+        return cls.from_dict(cls._read_contents(s, mode='toml', encoding=encoding), upgrade=upgrade)

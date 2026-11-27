@@ -59,18 +59,29 @@ The file is organised in tables, one per area of XTL, *e.g.*:
    [jobs.resources]
    max_jobs = 8
 
+   [dependencies]
+   modules = ["gcc/12"]
+
    [dependencies.atsas]
-   path = "/opt/atsas/bin"
    modules = ["atsas/4.1.3"]
+   compute_site = "modules"
+
+   [dependencies.easybragg]
+   path = "/opt/easybragg/bin"
 
 The main tables are:
 
 - ``[units]``: physical units
 - ``[jobs]``: jobs run by :mod:`xtl.jobs`, *e.g.* compute site, permissions and
   resources
-- ``[dependencies]``: external programs used by XTL (*e.g.* ATSAS, autoPROC), with the
+- ``[dependencies]``: external programs used by XTL (*e.g.* ATSAS, autoPROC): the
   directory of their executables (``path``) or the modules that provide them
-  (``modules``)
+  (``modules``, loaded in that order; not both), and optionally the ``compute_site``, ``shell``
+  and ``policy`` they run with. In ``[dependencies]`` itself, ``path`` is a directory
+  that every job finds executables in, ``modules`` lists the modules that every job
+  loads first on a ``modules`` compute site (these two can be set together), and ``check``
+  whether jobs check that their dependencies can be found before they run (see
+  :doc:`dependencies`)
 - ``[cli]``: options for the command line utilities
 
 All settings, with their descriptions and default values, are listed in
@@ -87,6 +98,28 @@ runs with the default settings instead; the file is left unchanged. Unknown keys
 version mismatch are only reported as warnings. ``xtl.config validate`` checks a file
 and lists all of its problems.
 
+Versions
+--------
+A config file records the version of XTL that wrote it (``version``). A file from an older version still loads: its
+settings are upgraded to the current layout as they are read, and a warning suggests updating the file itself:
+
+.. code-block:: console
+
+   $ xtl.config upgrade
+
+This edits only what changed (and the version), so your comments and formatting stay; ``--diff`` shows the changes
+first, and the old file is kept as ``xtl.toml.bak``. ``--clean`` writes the file afresh instead. A file from a newer
+version of XTL loads as it is, with a warning, and can't be upgraded.
+
+A file only needs the settings you change. To see all the others in your file, with their descriptions, add them
+(settings without a value become commented-out lines to fill in):
+
+.. code-block:: console
+
+   $ xtl.config upgrade --add-missing
+
+Starting over
+-------------
 To start over from the default settings, overwrite the file with a clean one, *e.g.* for
 the ``user`` location (see :doc:`../cli/xtl.config`):
 

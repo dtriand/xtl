@@ -81,7 +81,7 @@ def cli_math_spacing(
         cli.print('Wavelength required to calculate all units', style='red')
         raise typer.Abort()
 
-    from xtl.exceptions.utils import Catcher
+    from xtl.cli.utils import Catcher
 
     r = RadialValue(value=value, kind=from_type)
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback, silent=False) as catcher:

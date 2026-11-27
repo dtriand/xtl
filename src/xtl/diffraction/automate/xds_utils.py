@@ -6,7 +6,7 @@ import re
 import traceback
 import warnings
 
-from xtl.exceptions.warnings import RegexWarning
+from xtl.exceptions import XTLWarning
 
 
 @dataclass
@@ -48,7 +48,7 @@ class XdsLpParser:
             warnings.warn(
                 f'Regex failed while parsing {"block " + block + " " if isinstance(block, str) else ""}: '
                 f'{line}\nPattern: {pattern}',
-                category=RegexWarning,
+                category=XTLWarning,
             )
             return None
         return match
@@ -58,7 +58,7 @@ class XdsLpParser:
             f'Processing failed while parsing {"block " + block + " " if isinstance(block, str) else ""}: '
             f'{line}: {exception}\n'
             + '\n'.join(traceback.format_exception(type(exception), exception, exception.__traceback__)),
-            category=RegexWarning,
+            category=XTLWarning,
         )
 
     def _parse_line_key_value(self, line: str, key: str, value_type: str, sep: str = '', block: str = None):

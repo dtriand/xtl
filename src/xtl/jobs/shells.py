@@ -66,22 +66,21 @@ the default class variables to match the desired shell's properties.
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 import re
 import shlex
-from typing import Iterable, Optional
+import subprocess
+from typing import ClassVar, Iterable, Optional
 
-from xtl.common.compatibility import OS_WINDOWS, PY310_OR_LESS
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+from xtl_core.system.compatibility import OS_WINDOWS
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
-__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell']
+__all__ = ['Shell', 'ShellType', 'BaseShell', 'BashShell', 'CmdShell', 'PowerShell', 'DefaultShell', 'CHECK_MARKER']
+
+
+CHECK_MARKER = 'xtl-check'
+"""The first word of the lines that a dependency check prints, e.g. ``xtl-check executable datcmp 0`` (0 if found)"""
 
 
 class Shell(StrEnum):
@@ -144,19 +143,22 @@ class BaseShell:
 
     # Shell syntax properties
     shebang: str = field(init=False, repr=False)
-    """The shebang line for the shell
-    (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_)"""
+    """The first line of a batch file: the shebang line for POSIX shells
+    (see `here <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_), or any setup line the shell needs first"""
     comment_char: str = field(init=False, repr=False)
     """The character used to denote comments in the shell"""
     new_line_char: str = field(init=False, repr=False)
-    """The character used to denote new lines in the shell"""
+    """The line ending of the shell's batch files"""
     batch_extension: str = field(init=False, repr=False)
     """The file extension for scripts"""
+    file_encoding: ClassVar[str] = 'utf-8'
+    """The encoding of the shell's batch files, as Python names it"""
 
     # Commands
     batch_command: str = field(init=False, repr=False)
     """The command used to execute the batch file. This is an f-string that should
-    contain the keys ``executable``, ``batch_file`` and ``batch_arguments``."""
+    contain the keys ``executable``, ``batch_file`` and ``batch_arguments``, the last one
+    as a word of its own."""
     _batch_command_fstring_keys: frozenset[str] = field(
         init=False, repr=False, default_factory=lambda: frozenset({'executable', 'batch_file', 'batch_arguments'})
     )
@@ -184,6 +186,11 @@ class BaseShell:
         self._validate_fstring(
             fstring=self.batch_command, name='batch_command', required_keys=self._batch_command_fstring_keys
         )
+        if '{batch_arguments}' not in self.batch_command.split():
+            raise ValueError(
+                f'Invalid f-string for `batch_command`: {self.batch_command}. '
+                f'The key batch_arguments must be a word of its own'
+            )
         self._validate_fstring(
             fstring=self.dependency_command,
             name='dependency_command',
@@ -240,35 +247,49 @@ class BaseShell:
         :param as_list: Whether to return the command as a list of strings
         :return: The command as a single string or list of strings
         """
-        # Prepare the batch arguments string
-        if arguments is None:
-            arguments = []
-
-        batch_arguments = ''
-        for argument in arguments:
-            # Map each argument to a string
-            arg = str(argument)
-            # Escape arguments with spaces
-            if ' ' in arg:
-                arg = f"'{arg}'"
-            # Append to the batch arguments string
-            if arg:
-                batch_arguments += f'{arg} '
-        # Trim trailing whitespace
-        batch_arguments = batch_arguments.rstrip()
-
-        # Substitute values into the batch command f-string
-        command = self.batch_command.format(
-            executable=self.executable, batch_file=str(file), batch_arguments=batch_arguments
+        bits = self._fill(
+            self.batch_command,
+            values={'executable': self.executable, 'batch_file': str(file)},
+            items={'batch_arguments': [str(argument) for argument in arguments or []]},
         )
-        # Remove trailing space when there are no arguments
-        command = command.rstrip()
 
         # Return as list or string
         if as_list:
-            bits = shlex.split(command, posix=self.is_posix)
             return bits
-        return command
+        return self.join(bits)
+
+    @staticmethod
+    def _fill(template: str, values: dict[str, str], items: dict[str, list[str]]) -> list[str]:
+        """
+        Build a command as a list from one of the f-strings: values are substituted into each word, and a word that is
+        only a key of ``items`` (bare or in double quotes) is replaced by those items.
+
+        NB: The list is built directly, so that paths, arguments and commands with spaces or quotes stay one item each,
+        and the quotes around a placeholder in the f-string don't end up in the item.
+
+        :param template: The f-string
+        :param values: Values substituted into words
+        :param items: Lists of items that take the place of their word
+        """
+        bits = []
+        for word in template.split():
+            key = word.strip('"')
+            if key.startswith('{') and key.endswith('}') and key[1:-1] in items:
+                bits.extend(items[key[1:-1]])
+            else:
+                bits.append(word.format(**values))
+        return bits
+
+    def join(self, bits: Iterable[str]) -> str:
+        """
+        Join a command's items into a string, quoted for this shell: as by :func:`shlex.join` for POSIX shells, and
+        as Windows does when it starts a process otherwise.
+
+        :param bits: The items of the command
+        """
+        if self.is_posix:
+            return shlex.join(bits)
+        return subprocess.list2cmdline(bits)
 
     def get_dependency_resolution_command(self, dependency: str, as_list: bool = False) -> str | list[str]:
         """
@@ -287,15 +308,8 @@ class BaseShell:
                 f'characters, dashes, underscores, and dots.'
             )
 
-        # Substitute values into the dependency command f-string
-        dep_command = self.dependency_command.format(dependency=dependency)
-        command = self.execute_command.format(executable=self.executable, command=dep_command)
-
-        # Return as list or string
-        if as_list:
-            bits = shlex.split(command, posix=self.is_posix)
-            return bits
-        return command
+        # Substitute values into the dependency command f-string, then run it in the shell
+        return self.get_execute_command(self.dependency_command.format(dependency=dependency), as_list=as_list)
 
     @staticmethod
     def _is_dependency_name_safe(dependency: str) -> bool:
@@ -323,29 +337,35 @@ class BaseShell:
         """
         Get the command required to execute a command directly in this shell.
 
-        :param command: The command to execute
+        :param command: The command to execute, passed to the shell as one argument
         :param as_list: Whether to return the command as a list of strings
         :return: The command as a single string or list of strings
         """
-        # Substitute values into the execute command f-string
-        full_command = self.execute_command.format(executable=self.executable, command=command)
+        bits = self._fill(self.execute_command, values={'executable': self.executable}, items={'command': [command]})
 
         # Return as list or string
         if as_list:
-            bits = shlex.split(full_command, posix=self.is_posix)
             return bits
-        return full_command
+        return self.join(bits)
 
     def sanitize_value(self, value):
+        """
+        A value as it goes into a batch file of this shell: a path quoted, the items of a list or tuple each
+        sanitized and joined by spaces (*e.g.* several paths, or an option and its path), anything else as it is.
+
+        :param value: The value
+        """
         match value:
+            case list() | tuple():
+                return ' '.join(str(self.sanitize_value(item)) for item in value)
             case Path():
                 path_str = str(value)
                 if self.is_posix:
                     # Use shlex.quote to properly escape the path for POSIX shells
                     return shlex.quote(path_str)
                 elif self == Shell.CMD:  # CMD requires double quotes for escaping
-                    # Escape internal quotes by doubling them
-                    path_str = path_str.replace('"', '""')
+                    # Escape internal quotes by doubling them, and % too, which a batch file expands even in quotes
+                    path_str = path_str.replace('"', '""').replace('%', '%%')
                     return f'"{path_str}"'
                 elif self == Shell.POWERSHELL:  # PWSH requires single quotes for escaping
                     # Escape internal quotes by doubling them
@@ -355,6 +375,112 @@ class BaseShell:
                     raise ValueError(f'Unsupported shell for path sanitization: {self.__class__.__name__}')
             case _:
                 return value
+
+    # Dependencies: the lines that set them up, check them and guard a batch file against missing executables. Names
+    #  of executables and modules are checked before they go into a line (see `_is_dependency_name_safe()` and
+    #  `_is_module_name_safe()`)
+
+    module_setup: ClassVar[str] = ''
+    """A line that makes the module command available, if the shell may lack it (see :meth:`get_module_command`)"""
+
+    module_command: ClassVar[str] = 'module'
+    """The name of the module command in the shell (see :meth:`get_module_command`)"""
+
+    def get_path_command(self, directory: str | Path) -> str:
+        """
+        A line that puts a directory first on ``PATH``.
+
+        :param directory: The directory
+        """
+        raise NotImplementedError
+
+    def get_module_command(self, arguments: str) -> str:
+        """
+        A line that runs the module command of `Environment Modules <https://modules.readthedocs.io/en/latest/>`_,
+        e.g. ``module purge``.
+
+        :param arguments: The arguments of the command
+        """
+        raise NotImplementedError
+
+    def get_load_command(self, modules: Iterable[str]) -> str:
+        """
+        A line that loads modules, in the given order.
+
+        :param modules: Names of modules
+        :raises ValueError: If a module name is unsafe
+        """
+        return self.get_module_command(f'load {" ".join(self._safe_module_name(module) for module in modules)}')
+
+    def get_load_report_command(self, module: str) -> str:
+        """
+        A line that loads a module and reports whether it loaded: ``xtl-check module <module> 0`` if it did, ``1``
+        otherwise.
+
+        :param module: The name of the module
+        :raises ValueError: If the module name is unsafe
+        """
+        raise NotImplementedError
+
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
+        """
+        A line that reports whether an executable (or a command, e.g. the module command) is found:
+        ``xtl-check <kind> <executable> 0`` if it is, ``1`` otherwise.
+
+        :param executable: The name of the executable
+        :param kind: What it is, for the report: ``'executable'`` or ``'command'``
+        :raises ValueError: If the name is unsafe
+        """
+        raise NotImplementedError
+
+    def get_guard_command(self, executable: str) -> str:
+        """
+        A line that ends a batch file with exit code 127 and ``xtl: <executable> not found`` on stderr, if an
+        executable isn't found.
+
+        :param executable: The name of the executable
+        :raises ValueError: If the name is unsafe
+        """
+        raise NotImplementedError
+
+    def _safe_executable_name(self, executable: str) -> str:
+        executable = str(executable).strip()
+        if not self._is_dependency_name_safe(executable):
+            raise ValueError(
+                f'Invalid executable name: {executable!r}. Executables may only contain alphanumeric characters, '
+                f'dashes, underscores, and dots.'
+            )
+        return executable
+
+    def _safe_module_name(self, module: str) -> str:
+        module = str(module).strip()
+        if not self._is_module_name_safe(module):
+            raise ValueError(
+                f'Invalid module name: {module!r}. Module names may only contain alphanumeric characters, hyphens, '
+                f'underscores, periods and slashes.'
+            )
+        return module
+
+    @staticmethod
+    def _is_module_name_safe(module: str) -> bool:
+        """
+        Check if the module name is safe to use in shell commands. A safe module name
+        contains only alphanumeric characters, hyphens, underscores, periods and
+        slashes, and no part of it starts with a hyphen (which would read as an option).
+
+        :param module: The module name to check.
+        :return: True if the module name is safe, False otherwise.
+        """
+        # Check length constraints
+        if len(module) == 0:
+            return False
+        elif len(module) > 255:
+            # Prevent potential buffer overflow attacks
+            return False
+        # Pattern for a safe module name: slash separated segments of alphanumeric, dot, dash and underscore
+        #  characters, none starting with a dash
+        segment = r'[A-Za-z0-9_.][A-Za-z0-9_.-]*'
+        return re.fullmatch(rf'{segment}([/\\]{segment})*', module) is not None
 
 
 class BashShell(BaseShell):
@@ -371,8 +497,33 @@ class BashShell(BaseShell):
     new_line_char = '\n'
     batch_extension = '.sh'
     batch_command = '{executable} {batch_file} {batch_arguments}'
-    dependency_command = r'command -v {dependency} > /dev/null 2>&1; echo \$?'
+    dependency_command = 'command -v {dependency} > /dev/null 2>&1; echo $?'
     execute_command = '{executable} --noprofile --norc -c "{command}"'
+    # NB: `module` is a shell function, which a batch file has if the shell that started it exported it (as
+    #  Environment Modules does); otherwise the init script of the installation that `MODULESHOME` names
+    module_setup = 'type module > /dev/null 2>&1 || { [ -f "$MODULESHOME/init/bash" ] && . "$MODULESHOME/init/bash"; }'
+
+    def get_path_command(self, directory: str | Path) -> str:
+        return f'export PATH={shlex.quote(str(directory))}:"$PATH"'
+
+    def get_module_command(self, arguments: str) -> str:
+        return f'module {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return f"module load {module} && echo '{CHECK_MARKER} module {module} 0' || echo '{CHECK_MARKER} module {module} 1'"
+
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
+        # NB: `command -v` finds shell functions too, e.g. `module`
+        exe = self._safe_executable_name(executable)
+        return (
+            f"command -v {exe} > /dev/null 2>&1 && echo '{CHECK_MARKER} {kind} {exe} 0' "
+            f"|| echo '{CHECK_MARKER} {kind} {exe} 1'"
+        )
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return f"command -v {exe} > /dev/null 2>&1 || {{ echo 'xtl: {exe} not found' >&2; exit 127; }}"
 
 
 class CmdShell(BaseShell):
@@ -384,13 +535,41 @@ class CmdShell(BaseShell):
     name = 'cmd'
     executable = r'C:\Windows\System32\cmd.exe'
     is_posix = False
-    shebang = ''
+    # Batch files are written in UTF-8, which cmd reads in the console's code page unless switched to UTF-8 first
+    #  (the console keeps the code page after the batch file ends)
+    shebang = 'chcp 65001 > nul'
     comment_char = 'rem'
-    new_line_char = '\n'
+    # NB: cmd's labels (goto, call :label) can misbehave in files with LF line endings
+    new_line_char = '\r\n'
     batch_extension = '.bat'
-    batch_command = '{executable} /Q /C {batch_file} {batch_arguments}'
+    # NB: `call` keeps `/C` from stripping the quotes of a batch file path with spaces, if an argument is quoted too
+    batch_command = '{executable} /Q /C call {batch_file} {batch_arguments}'
     dependency_command = 'where {dependency} > nul 2>&1 && echo 0 || echo 1'
     execute_command = '{executable} /C {command}'
+
+    def get_path_command(self, directory: str | Path) -> str:
+        # In `set "..."`, everything up to the last quote is literal, except %, which a batch file expands
+        directory = str(directory)
+        if '"' in directory:
+            raise ValueError(f'Invalid directory for PATH: {directory!r}')
+        directory = directory.replace('%', '%%')
+        return f'set "PATH={directory};%PATH%"'
+
+    def get_module_command(self, arguments: str) -> str:
+        # `module` is a batch file (`module.cmd`), which returns to this one only through `call`
+        return f'call module {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return f'call module load {module} && echo {CHECK_MARKER} module {module} 0 || echo {CHECK_MARKER} module {module} 1'
+
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
+        exe = self._safe_executable_name(executable)
+        return f'where {exe} > nul 2>&1 && echo {CHECK_MARKER} {kind} {exe} 0 || echo {CHECK_MARKER} {kind} {exe} 1'
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return f'where {exe} > nul 2>&1 || (echo xtl: {exe} not found 1>&2 & exit /b 127)'
 
 
 class PowerShell(BaseShell):
@@ -406,6 +585,9 @@ class PowerShell(BaseShell):
     comment_char = '#'
     new_line_char = '\n'
     batch_extension = '.ps1'
+    # Windows PowerShell 5.1 reads a script without a byte order mark in the ANSI code page, so that e.g. `données`
+    #  becomes `donnÃ©es`; with one, as UTF-8
+    file_encoding = 'utf-8-sig'
     batch_command = '{executable} -File {batch_file} {batch_arguments}'
     dependency_command = 'Get-Command {dependency} -ErrorAction SilentlyContinue | Out-Null; [int](-not $?)'
     # NB: PowerShell returns True/1 if the command is found, so we negate it to match
@@ -413,6 +595,36 @@ class PowerShell(BaseShell):
     execute_command = '{executable} -NoProfile -NonInteractive -Command "{command}"'
     # We are also running PowerShell in -NoProfile and -NonInteractive mode to avoid
     #  loading user profiles or interactive prompts.
+    # NB: Environment Modules' command is `envmodule` (`module` is PowerShell's own), which the user's profile sets up
+    #  with Environment Modules' init script; batch files run with the profile (see `batch_command`)
+    module_command = 'envmodule'
+
+    def get_path_command(self, directory: str | Path) -> str:
+        return f'$env:PATH = {self.sanitize_value(Path(directory))} + [IO.Path]::PathSeparator + $env:PATH'
+
+    def get_module_command(self, arguments: str) -> str:
+        return f'envmodule {arguments}'
+
+    def get_load_report_command(self, module: str) -> str:
+        module = self._safe_module_name(module)
+        return (
+            f"envmodule load {module}; if ($?) {{ '{CHECK_MARKER} module {module} 0' }} "
+            f"else {{ '{CHECK_MARKER} module {module} 1' }}"
+        )
+
+    def get_found_report_command(self, executable: str, kind: str = 'executable') -> str:
+        exe = self._safe_executable_name(executable)
+        return (
+            f"if (Get-Command {exe} -ErrorAction SilentlyContinue) {{ '{CHECK_MARKER} {kind} {exe} 0' }} "
+            f"else {{ '{CHECK_MARKER} {kind} {exe} 1' }}"
+        )
+
+    def get_guard_command(self, executable: str) -> str:
+        exe = self._safe_executable_name(executable)
+        return (
+            f'if (-not (Get-Command {exe} -ErrorAction SilentlyContinue)) '
+            f"{{ [Console]::Error.WriteLine('xtl: {exe} not found'); exit 127 }}"
+        )
 
 
 # Set the default shell based on the OS

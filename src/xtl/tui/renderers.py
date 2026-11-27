@@ -39,7 +39,14 @@ class LogRenderer:
         )
 
     def _create_renderables(self, record: logging.LogRecord):
-        formatted = self._formatter.format(record)
+        if record.exc_info:
+            # The rich traceback below shows the exception, so the text leaves it out
+            plain = logging.makeLogRecord(record.__dict__)
+            plain.exc_info, plain.exc_text = None, None
+            formatted = self._formatter.format(plain)
+        else:
+            # Records relayed from worker processes carry their traceback as text only
+            formatted = self._formatter.format(record)
         message = rich.text.Text(formatted)
 
         for highlighter in self._highlighters.values():

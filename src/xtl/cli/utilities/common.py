@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import typer
 
 from xtl import settings
-from xtl.common.os import FilePermissions
+from xtl_core.system.os.permissions import FilePermissions
 from xtl.jobs.sites import ComputeSite
 
 
@@ -25,14 +25,6 @@ def get_console_options(
     ),
 ):
     return ConsoleOptions(verbose=verbose, debug=debug)
-
-
-# Modified by `xtl.cli.utilities.decorators.job_options`
-REQUIRED_DEPENDENCIES: dict[str, list[str]] = {'extra': []}
-"""Dictionary of required dependencies and their modules for job execution, modified by decorators."""
-
-REQUIRED_MODULES: list[str] = list()
-"""List of required modules for job execution, modified by decorators."""
 
 
 @dataclass(frozen=True)
@@ -63,16 +55,14 @@ class JobOptions:
     keep_temp: bool
 
     @staticmethod
-    def _ignore_default_modules(value: str | list[str]) -> str:
-        if isinstance(value, list):
-            return ''
-        elif isinstance(value, str):
-            return value
-        else:
-            raise ValueError(f'Could not cast {value!r} to string')
+    def parse_module_names(value: str | None) -> dict[str, list[str]]:
+        """
+        Modules from ``--modules``: ``<module>`` for the modules that every job loads, ``<dependency>=<module>`` for
+        those of a dependency, separated by commas, *e.g.* ``gcc/12,atsas=atsas/4.1.3``.
 
-    @staticmethod
-    def parse_module_names(value: str) -> dict[str, list[str]]:
+        :param value: The option's value, or None.
+        :return: The modules by dependency name, and those of every job under ``'extra'``.
+        """
         modules = {'extra': []}
 
         if not value:
@@ -108,12 +98,13 @@ def get_job_options(
         help='Compute site for configuring job execution',
     ),
     modules: str = typer.Option(
-        REQUIRED_MODULES,
+        None,
         '--modules',
-        parser=JobOptions._ignore_default_modules,
-        metavar='',  # This hides the parser signature
+        show_default='from xtl.toml',
+        metavar='MODULES',
         rich_help_panel=job_options_panel,
-        help='Module to load before job execution (only for `modules` site)',
+        help='Modules to load before job execution, on the `modules` site: <module> for every job, '
+        '<dependency>=<module> for a dependency, separated by commas',
     ),
     update_permissions: bool = typer.Option(
         settings.jobs.permissions.update,

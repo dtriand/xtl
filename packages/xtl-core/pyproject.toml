@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xtl-core"
+dynamic = ["version"]
+authors = [
+    {name = "Dimitris P. Triandafillidis", email = "64985525+dtriand@users.noreply.github.com"}
+]
+description = "Core functionality for XTL"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "annotated-types>=0.6.0",
+    "distro>=1.9.0",
+    "pydantic>=2.14.0",
+    "tomlkit>=0.15.3",
+    "typing-extensions>=4.12.2",
+]
+
+[project.optional-dependencies]
+extra = [
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "rich>=15.0.0",
+]
+
+[project.urls]
+homepage = "https://github.com/dtriand/xtl"
+
+[dependency-groups]
+test = [
+    "hypothesis>=6.115.0",
+    "pytest>=7.2.0",
+    "pytest-asyncio>=0.24.0",
+]
+lint = [
+    "basedpyright>=1.40.2",
+    "import-linter>=2.1",
+    "ty>=0.0.112",
+]
+
+[tool.hatch.version]
+source = "regex"
+path = "src/xtl_core/__init__.py"
+pattern = '''VersionInfo\.from_str\('(?P<version>[^']+)'''
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xtl_core"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/README.md", "/LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "session"  # same as the root config
+
+[tool.basedpyright]
+include = ["src"]
+pythonVersion = "3.10"  # the oldest supported
+typeCheckingMode = "basic"
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.src]
+include = ["src"]
+
+[tool.importlinter]
+root_package = "xtl_core"
+include_external_packages = true  # so that `xtl` can be forbidden without being installed
+
+[[tool.importlinter.contracts]]
+name = "xtl-core never imports xtl"
+type = "forbidden"
+source_modules = ["xtl_core"]
+forbidden_modules = ["xtl"]

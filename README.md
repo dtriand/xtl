@@ -13,9 +13,9 @@ XTL is a collection of library code for everyday tasks in the workflow of the ma
   - [`Client`](https://github.com/dtriand/xtl/tree/master/src/xtl/pdbapi/client.py) : Client for search or data queries to RCSB PDB
 - [`xtl.files`](https://github.com/dtriand/xtl/tree/master/src/xtl/files) : Custom file formats
   - [`NpxFile`](https://github.com/dtriand/xtl/tree/master/src/xtl/files/npx.py) : NPX file format (storing Numpy arrays w/ metadata)
-- [`xtl.common`](https://github.com/dtriand/xtl/tree/master/src/xtl/common) : Shared utilities
-  - [`Options`](https://dtriand.github.io/xtl/common/options.html) : API around [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/concepts/models/)
-  - [`Table`](https://dtriand.github.io/xtl/common/tables.html) : Structured tabular data
+- [`xtl_core`](https://github.com/dtriand/xtl/tree/master/packages/xtl-core) : Foundations, also on their own as `xtl-core` ([docs](https://dtriand.github.io/xtl/core/index.html))
+  - [`Options`](https://dtriand.github.io/xtl/core/options.html) : API around [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/concepts/models/)
+  - [`Table`](https://dtriand.github.io/xtl/core/tables.html) : Structured tabular data
 
 ### CLIs
 - [`xtl.autoproc`](https://dtriand.github.io/xtl/cli/xtl.autoproc.html) : Run multiple [autoPROC](https://www.globalphasing.com/autoproc/) jobs in parallel

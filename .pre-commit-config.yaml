@@ -33,6 +33,7 @@ repos:
     rev: 0.13.7
     hooks:
       - id: uv-lock
+        files: ^(uv\.lock|uv\.toml|(packages/[^/]+/)?pyproject\.toml)$  # the workspace members' too
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12

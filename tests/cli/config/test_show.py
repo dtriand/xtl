@@ -1,8 +1,6 @@
 import json
 
-import toml
-
-from tests.cli.config.conftest import INVALID, VALID, defaults
+from tests.cli.config.conftest import INVALID, VALID, WARNINGS, defaults, loads
 from xtl.config.settings import XTLSettings
 
 
@@ -16,24 +14,24 @@ class TestShow:
     def test_defaults(self, cli):
         out = self._show(cli).stdout
         assert out.startswith('# Source: in-memory defaults\n')
-        assert toml.loads(out) == defaults()
+        assert loads(out) == defaults()
         assert '# C for Celsius' in out  # field descriptions
 
     def test_source(self, cli, locs):
         locs.write(locs.user, VALID)
         out = self._show(cli).stdout
         assert out.startswith(f'# Source: user ({locs.user})\n')
-        assert toml.loads(out)['units'] == {'temperature': 'K'}
+        assert loads(out)['units'] == {'temperature': 'K'}
 
     def test_section(self, cli):
-        assert toml.loads(self._show(cli, 'units').stdout) == {'units': {'temperature': 'C'}}
-        data = toml.loads(self._show(cli, 'dependencies.atsas').stdout)
+        assert loads(self._show(cli, 'units').stdout) == {'units': {'temperature': 'C'}}
+        data = loads(self._show(cli, 'dependencies.atsas').stdout)
         assert list(data) == ['dependencies']
         assert list(data['dependencies']) == ['atsas']
 
     def test_key(self, cli):
         # Without the parent tables
-        assert toml.loads(self._show(cli, 'units.temperature').stdout) == {'temperature': 'C'}
+        assert loads(self._show(cli, 'units.temperature').stdout) == {'temperature': 'C'}
 
     def test_unknown_key(self, cli):
         result = self._show(cli, 'units.temp', code=2)
@@ -59,26 +57,26 @@ class TestShow:
     def test_diff(self, cli, locs):
         locs.write(locs.local, VALID)
         out = self._show(cli, '--diff').stdout
-        assert toml.loads(out) == {'units': {'temperature': 'K'}}
+        assert loads(out) == {'units': {'temperature': 'K'}}
         assert '# default: "C"' in out
         assert '# default:' not in self._show(cli, '--diff', '--no-comments').stdout
 
     def test_diff_key(self, cli, locs):
         locs.write(locs.local, VALID + '[cli]\nmax_fps = 20\n')
         out = self._show(cli, '--diff', 'cli').stdout
-        assert toml.loads(out) == {'cli': {'max_fps': 20}}
+        assert loads(out) == {'cli': {'max_fps': 20}}
         assert '# default: 10' in out  # not a string
 
     def test_diff_none(self, cli, locs):
         out = self._show(cli, '--diff').stdout
         assert '# Same as the defaults' in out
-        assert toml.loads(out) == {}
+        assert loads(out) == {}
 
     def test_diff_unset_default(self, cli, locs):
         # Unset by default, set in the file
         locs.write(locs.local, '[dependencies.atsas]\npath = "/opt/atsas"\n')
         out = self._show(cli, '--diff').stdout
-        assert toml.loads(out) == {'dependencies': {'atsas': {'path': '/opt/atsas'}}}
+        assert loads(out) == {'dependencies': {'atsas': {'path': '/opt/atsas'}}}
         assert '# default: not set' in out
 
     def test_file(self, cli, locs):
@@ -86,7 +84,7 @@ class TestShow:
         path = locs.write(locs.root / 'other.cfg', '[units]\ntemperature = "F"\n')
         out = self._show(cli, '--file', str(path)).stdout
         assert out.startswith(f'# Source: {path}\n')
-        assert toml.loads(out)['units'] == {'temperature': 'F'}
+        assert loads(out)['units'] == {'temperature': 'F'}
 
     def test_file_invalid(self, cli, locs):
         path = locs.write(locs.root / 'other.toml', INVALID)
@@ -102,7 +100,15 @@ class TestShow:
         result = self._show(cli)
         assert 'Warning:' in result.stderr
         assert result.stdout.startswith('# Source: in-memory defaults (local config is invalid)\n')
-        assert toml.loads(result.stdout) == defaults()
+        assert loads(result.stdout) == defaults()
+
+    def test_warnings(self, cli, locs):
+        # As when XTL loads the file: an older one is shown upgraded, and the warning says so
+        locs.write(locs.local, WARNINGS)
+        result = self._show(cli)
+        assert 'older version of XTL' in result.stderr
+        assert 'units.colour' in result.stderr
+        assert 'Warning' not in result.stdout
 
     def test_json(self, cli, locs):
         locs.write(locs.local, VALID)

@@ -2,20 +2,22 @@ import queue
 import threading
 from typing import Any
 
-from .base import IPCLock, IPCQueue, IPCState, IPCBackend, IPCHandle
+from .base import IPCLock, IPCQueue, IPCState, IPCBackend, IPCHandle, NOT_YET, poll
 
 
 class ThreadedLock(IPCLock):
     """
     Threaded context manager for locks
+
+    Not reentrant, like the asyncio and process locks: it excludes coroutines on the same thread too.
     """
 
     def __init__(self, name: str):
         super().__init__(name)
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
 
     async def acquire(self) -> None:
-        self._lock.acquire()
+        await poll(lambda: True if self._lock.acquire(blocking=False) else NOT_YET)
 
     async def release(self) -> None:
         self._lock.release()
@@ -29,11 +31,23 @@ class ThreadedQueue(IPCQueue):
     def __init__(self, maxsize: int = 0):
         self._q: queue.Queue = queue.Queue(maxsize=maxsize)
 
+    def _try_put(self, item: Any) -> Any:
+        try:
+            self._q.put_nowait(item)
+        except queue.Full:
+            return NOT_YET
+
+    def _try_get(self) -> Any:
+        try:
+            return self._q.get_nowait()
+        except queue.Empty:
+            return NOT_YET
+
     async def put(self, item: Any) -> None:
-        self._q.put(item)
+        await poll(lambda: self._try_put(item))
 
     async def get(self) -> Any:
-        return self._q.get()
+        return await poll(self._try_get)
 
     def empty(self) -> bool:
         return self._q.empty()
@@ -93,6 +107,8 @@ class ThreadedIPCBackend(IPCBackend):
         self._locks: dict[str, ThreadedLock] = {}
         self._queues: dict[str, ThreadedQueue] = {}
         self._states: dict[str, ThreadedState] = {}
+        # A worker's backend (see from_handle) only gives out what the pool registered
+        self._shim: bool = False
 
     def start(self) -> None:
         pass
@@ -106,16 +122,22 @@ class ThreadedIPCBackend(IPCBackend):
         if name is None:
             name = self._default_lock_name
         if name not in self._locks:
+            if self._shim:
+                raise self._unregistered('lock', name)
             self._locks[name] = ThreadedLock(name=name)
         return self._locks[name]
 
     def get_queue(self, name: str, maxsize: int = 0) -> ThreadedQueue:
         if name not in self._queues:
+            if self._shim:
+                raise self._unregistered('queue', name)
             self._queues[name] = ThreadedQueue(maxsize=maxsize)
         return self._queues[name]
 
     def get_state(self, name: str) -> ThreadedState:
         if name not in self._states:
+            if self._shim:
+                raise self._unregistered('state', name)
             self._states[name] = ThreadedState()
         return self._states[name]
 
@@ -133,6 +155,7 @@ class ThreadedIPCBackend(IPCBackend):
     @classmethod
     def from_handle(cls, handle: IPCHandle) -> 'ThreadedIPCBackend':
         backend = cls()
+        backend._shim = True
         # Iterate over lists to ensure atomic operations
         for name, lock in handle.locks.items():
             backend._locks[name] = lock

@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 
-from xtl.common.options import Option
+from xtl_core.options import Option
 from xtl.jobs.jobs import Job
 from xtl.jobs.config import JobConfig
 from xtl.math.clustering import find_maximal_cliques

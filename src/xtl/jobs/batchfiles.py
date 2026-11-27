@@ -2,29 +2,22 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from enum import Enum
+import logging
 from pathlib import Path
 from string import Template
 from typing import Callable, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from xtl.config.settings import DependencySettings
-    from xtl.jobs.sites import ComputeSiteType, SchedulerSite
+    from xtl.jobs.sites import ComputeSiteType
     from xtl.jobs.config import BatchJobConfig
 from xtl import version
-from xtl.common.compatibility import PY310_OR_LESS
-from xtl.common.os import FilePermissions
-from xtl.jobs.shells import Shell, ShellType, DefaultShell
+from xtl_core.system.compatibility.py310 import StrEnum
+from xtl_core.system.os.permissions import FilePermissions
+from xtl.jobs.shells import ShellType, DefaultShell
 
 
 __all__ = ['BatchFile', 'BatchFileStatus']
-
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
 
 
 class BatchFileStatus(StrEnum):
@@ -42,10 +35,10 @@ class BatchFileStatus(StrEnum):
     """The batch file is currently being executed on a compute site."""
 
     COMPLETED = 'completed'
-    """The batch file has completed execution successfully."""
+    """The batch file ran to the end with exit code 0."""
 
     FAILED = 'failed'
-    """The batch file execution has failed."""
+    """The batch file ended with a non-zero exit code, or couldn't be run."""
 
     CANCELLED = 'cancelled'
     """The batch file execution has been cancelled."""
@@ -81,6 +74,7 @@ class BatchFile:
         shell: ShellType = None,
         dependencies: str | DependencySettings | Iterable[str | DependencySettings] = None,
         permissions: str | FilePermissions = None,
+        logger: logging.Logger | None = None,
     ):
         """
         A class for programmatically creating batch/script files. The behavior of the
@@ -94,6 +88,8 @@ class BatchFile:
                                 file.
         :param permissions: The file permissions for the batch file in octal format
                             (e.g., '700').
+        :param logger: The logger that the compute site reports to while running the
+                            batch file, e.g. a job's logger (default: this module's logger).
         :raises TypeError: If `compute_site` or `shell` are of incorrect types.
         :raises ValueError: If `permissions` do not allow owner execute access.
         """
@@ -126,6 +122,7 @@ class BatchFile:
         self._saved = False
         self._process: asyncio.subprocess.Process | None = None
         self._config: BatchJobConfig | None = None
+        self._logger: logging.Logger = logger or logging.getLogger(__name__)
 
     @property
     def file(self) -> Path:
@@ -133,6 +130,17 @@ class BatchFile:
         Returns the batch file `Path` object.
         """
         return self._filename
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        Returns the logger that the compute site reports to while running the batch file.
+        """
+        return self._logger
+
+    @logger.setter
+    def logger(self, logger: logging.Logger) -> None:
+        self._logger = logger
 
     @property
     def shell(self) -> ShellType:
@@ -178,12 +186,11 @@ class BatchFile:
         return self._process
 
     def _add_line(self, line: str) -> None:
-        if line:
-            self._lines.append(str(line))
+        self._lines.append(str(line))
 
     def add_line(self, line: str) -> None:
         """
-        Add a single line to the batch file.
+        Add a single line to the batch file. An empty string adds a blank line.
 
         :param line: The line to add to the batch file.
         """
@@ -223,7 +230,8 @@ class BatchFile:
         """
         Returns the main content of the batch file.
         """
-        commands = [self.compute_site.prepare_command(line) for line in self._lines]
+        # Blank lines aren't commands, e.g. for a policy that prefixes each command
+        commands = [self.compute_site.prepare_command(line) if line.strip() else line for line in self._lines]
         content = self.shell.new_line_char.join(commands)
         return self.compute_site.prepare_content(content)
 
@@ -255,8 +263,8 @@ class BatchFile:
         if postamble := self.get_postamble():
             text += postamble + self.shell.new_line_char
 
-        # Write contents to file
-        self.file.write_text(data=text, encoding='utf-8', newline=self.shell.new_line_char)
+        # Write contents to file, as they are: the lines already end with the shell's line ending
+        self.file.write_text(data=text, encoding=self.shell.file_encoding, newline='')
 
         # Update file permissions
         if update_permissions:
@@ -275,6 +283,8 @@ class BatchFile:
                          (if supported by the compute site).
         :raises RuntimeError: If the batch file has not been saved yet.
         """
+        from xtl.jobs.sites import SchedulerSite
+
         if not self._saved:
             raise RuntimeError('Batch file has not been saved yet. Call `save()` before `execute()`.')
         if schedule and isinstance(self.compute_site, SchedulerSite):
@@ -328,7 +338,14 @@ class BatchFile:
             raise KeyError(f'Missing required key for {BatchFile.__name__} template: {missing_key}')
 
     @classmethod
-    def from_config(cls, config: BatchJobConfig | dict, context: dict = None) -> BatchFile:
+    def from_config(
+        cls,
+        config: BatchJobConfig | dict,
+        context: dict = None,
+        compute_site: ComputeSiteType = None,
+        shell: ShellType = None,
+        dependencies: str | DependencySettings | Iterable[str | DependencySettings] = None,
+    ) -> BatchFile:
         """
         Create a pre-configured BatchFile instance from a BatchJobConfig. If the config
         includes an appropriate template, the batch file contents will be populated and
@@ -339,22 +356,28 @@ class BatchFile:
 
         :param config: A BatchJobConfig instance or dictionary.
         :param context: A dictionary of context variables for rendering the template.
+        :param compute_site: The compute site; if it or ``shell`` isn't given, both are
+            chosen from the configuration and the dependencies (see
+            :meth:`~xtl.jobs.config.BatchJobConfig.select_site_and_shell`).
+        :param shell: The shell.
+        :param dependencies: Names or settings of the job's dependencies.
         :return: A BatchFile instance configured according to the provided config.
-        ️ :raises KeyError: If a placeholder in the template is not found in the
+        :raises KeyError: If a placeholder in the template is not found in the
             context.
         :raises ValueError: If the template contains invalid placeholders.
         """
         from xtl.jobs.config import BatchJobConfig
-        from xtl.jobs.sites import ComputeSite
 
         if isinstance(config, dict):
             config = BatchJobConfig(**config)
+        if compute_site is None or shell is None:
+            compute_site, shell = config.select_site_and_shell(dependencies)
 
         batch = cls(
-            filename=config.file,
-            compute_site=ComputeSite(config.compute_site).get(),
-            shell=Shell(config.shell).get(),
-            dependencies=config.dependencies,
+            filename=config.get_file(shell),
+            compute_site=compute_site,
+            shell=shell,
+            dependencies=dependencies,
             permissions=config.permissions,
         )
 
@@ -362,7 +385,7 @@ class BatchFile:
         batch._config = config
 
         # Render template if provided
-        if template := config.get_template():
+        if template := config.get_template(shell):
             content = batch._render_template(template, context or {})
             batch.add_lines(content.splitlines())
 

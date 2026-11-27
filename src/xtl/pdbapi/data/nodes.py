@@ -3,14 +3,13 @@ from typing import overload
 
 from xtl.pdbapi.attributes import DataAttribute, DataAttributeGroup
 from xtl.pdbapi.data.options import DataService
-from xtl.exceptions import InvalidArgument
 
 
 @dataclass
 class DataQueryField:
     def __init__(self, attribute: DataAttribute):
         if not isinstance(attribute, DataAttribute):
-            raise InvalidArgument(raiser='attribute', message=f"Must be of type 'DataAttribute' not {type(attribute)}")
+            raise TypeError(f"attribute: Must be of type 'DataAttribute' not {type(attribute)}")
         self.attribute = attribute
 
     def to_gql(self):
@@ -36,19 +35,14 @@ class DataQueryGroup:
     def __init__(self, nodes: list[DataQueryField]):
         for i, node in enumerate(nodes):
             if not isinstance(node, DataQueryField):
-                raise InvalidArgument(
-                    raiser=f'nodes[{i}]', message=f"Must be of type 'DataQueryField' not '{type(nodes[i])}'"
-                )
+                raise TypeError(f"nodes[{i}]: Must be of type 'DataQueryField' not '{type(nodes[i])}'")
         self._data_service: DataService = nodes[0].attribute._schema._data_service
         for i, node in enumerate(nodes):
             if node.attribute._schema._data_service != self._data_service:
-                raise InvalidArgument(
-                    raiser=f'nodes[{i}]',
-                    message=f'DataQueryGroup already initialized as with '
-                    f'data_service={self._data_service.value}. Cannot '
-                    f'add a node from a different data_service ('
-                    f'nodes[{i}]->'
-                    f'{node.attribute._schema._data_service})',
+                raise ValueError(
+                    f'nodes[{i}]: DataQueryGroup already initialized as with data_service={self._data_service.value}. '
+                    'Cannot add a node from a different data_service '
+                    f'(nodes[{i}]->{node.attribute._schema._data_service})'
                 )
         self.nodes = nodes
         self._attributes = [node.attribute.fullname for node in self.nodes]
@@ -115,9 +109,7 @@ class DataQueryGroup:
         elif isinstance(obj, DataAttributeGroup):
             return cls(nodes=[DataQueryField(attribute=child) for child in obj.attributes])
         else:
-            raise InvalidArgument(
-                raiser='obj', message="Must be of type 'DataAttribute', 'DataAttributeGroup' or 'DataQueryField'."
-            )
+            raise TypeError("obj: Must be of type 'DataAttribute', 'DataAttributeGroup' or 'DataQueryField'.")
 
     @classmethod
     def from_list(cls, attributes: list or tuple):
@@ -127,9 +119,8 @@ class DataQueryGroup:
                 and not isinstance(attr, DataAttributeGroup)
                 and not isinstance(attr, DataQueryField)
             ):
-                raise InvalidArgument(
-                    raiser=f'attributes[{i}]',
-                    message="Must be of type 'DataAttribute', 'DataAttributeGroup' or 'DataQueryField'.",
+                raise TypeError(
+                    f"attributes[{i}]: Must be of type 'DataAttribute', 'DataAttributeGroup' or 'DataQueryField'."
                 )
         group = cls.from_object(attributes[0])
         for attr in attributes[1:]:
@@ -148,24 +139,18 @@ class DataQueryGroup:
     def __add__(self, other: DataAttribute or DataQueryField or 'DataQueryGroup') -> 'DataQueryGroup':
         if isinstance(other, DataAttribute):
             if other._schema.data_service != self.data_service:
-                raise InvalidArgument(
-                    raiser='other',
-                    message=f'Cannot append DataAttribute with data_service='
-                    f"'{other._schema.data_service}' to an "
-                    f'instance of DataQueryGroup with data_service='
-                    f"'{self.data_service}'",
+                raise ValueError(
+                    f"other: Cannot append DataAttribute with data_service='{other._schema.data_service}' to an "
+                    f"instance of DataQueryGroup with data_service='{self.data_service}'"
                 )
             if other.fullname not in self._attributes:
                 self.nodes.append(DataQueryField(attribute=other))
                 self._attributes.append(other.fullname)
         elif isinstance(other, DataAttributeGroup):
             if other._schema.data_service != self.data_service:
-                raise InvalidArgument(
-                    raiser='other',
-                    message=f'Cannot append DataAttributeGroup with data_service='
-                    f"'{other._schema.data_service}' to an "
-                    f'instance of DataQueryGroup with data_service='
-                    f"'{self.data_service}'",
+                raise ValueError(
+                    f"other: Cannot append DataAttributeGroup with data_service='{other._schema.data_service}' to an "
+                    f"instance of DataQueryGroup with data_service='{self.data_service}'"
                 )
             for attr in other.attributes:
                 if attr.fullname not in self._attributes:
@@ -173,23 +158,18 @@ class DataQueryGroup:
                     self._attributes.append(attr.fullname)
         elif isinstance(other, DataQueryField):
             if other.attribute._schema.data_service != self.data_service:
-                raise InvalidArgument(
-                    raiser='other',
-                    message=f'Cannot append DataQueryField with data_service='
-                    f"'{other.attribute._schema.data_service}' to an "
-                    f'instance of DataQueryGroup with data_service='
-                    f"'{other.data_service}'",
+                raise ValueError(
+                    f"other: Cannot append DataQueryField with data_service='{other.attribute._schema.data_service}' "
+                    f"to an instance of DataQueryGroup with data_service='{other.data_service}'"
                 )
             if other.attribute.fullname not in self._attributes:
                 self.nodes.append(other)
                 self._attributes.append(other.attribute.fullname)
         elif isinstance(other, self.__class__):
             if other.data_service != self.data_service:
-                raise InvalidArgument(
-                    raiser='other',
-                    message=f'Cannot append DataQueryGroup instances of different '
-                    f'data services. '
-                    f'{self.data_service=} {other.data_service=}',
+                raise ValueError(
+                    'other: Cannot append DataQueryGroup instances of different data services. '
+                    f'self.data_service={self.data_service!r} other.data_service={other.data_service!r}'
                 )
             for node in other.nodes:
                 attr = node.attribute

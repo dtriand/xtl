@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import asyncio
-from enum import Enum
+import contextlib
+import logging
+import os
 from pathlib import Path
-import re
+import signal
 import subprocess
+import tempfile
 from typing import Optional, Iterable, Sequence, TYPE_CHECKING
 
 import aiofiles
@@ -13,49 +16,44 @@ import aiofiles
 if TYPE_CHECKING:
     from xtl.jobs.config import BatchJobConfig
     from xtl.config.settings import DependencySettings
-from xtl.common.compatibility import PY310_OR_LESS
-from xtl.common.environment import XTL_COMPUTE_SITE
+from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS, PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
+from xtl.shared.environment import XTL_COMPUTE_SITE
 from xtl.jobs.batchfiles import BatchFile, BatchFileStatus
+from xtl.jobs.dependencies import DependencyCheck, dependency_name
 from xtl.jobs.policies import CommandPolicy, CommandPolicyType
-from xtl.jobs.shells import Shell, ShellType
-from xtl.logging import Logger
-from xtl.exceptions.base import SubprocessError
+from xtl.jobs.shells import CHECK_MARKER, Shell, ShellType
+from xtl.jobs.exceptions import SubprocessError
 
 
 __all__ = ['ComputeSite', 'ComputeSiteType', 'BaseComputeSite', 'LocalSite', 'ModulesSite']
 
 
-logger = Logger(__name__)
-
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+logger = logging.getLogger(__name__)
 
 
 class ComputeSite(StrEnum):
     # General purpose compute sites
     LOCAL = 'local'
     MODULES = 'modules'
-    SLURM = 'slurm'
-    SLURM_LOCAL = 'slurm_local'
 
     # Specialized compute sites
     if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
         BIOTIX = 'biotix'
 
-    def get(self) -> ComputeSiteType:
+    def get(self, **kwargs) -> ComputeSiteType:
+        """
+        An instance of the compute site.
+
+        :param kwargs: Passed to the site, e.g. ``policy`` (see :class:`BaseComputeSite`).
+        """
         mapping: dict[str, type] = {
             ComputeSite.LOCAL: LocalSite,
             ComputeSite.MODULES: ModulesSite,
-            ComputeSite.SLURM: SlurmModulesSite,
-            ComputeSite.SLURM_LOCAL: SlurmLocalSite,
         }
         if XTL_COMPUTE_SITE.value == 'BIOTIX_HPC':
             mapping[ComputeSite.BIOTIX] = BiotixHPC
-        return mapping[self]()
+        return mapping[self](**kwargs)
 
     def __eq__(self, other):
         if isinstance(other, BaseComputeSite):
@@ -71,8 +69,31 @@ class BaseComputeSite(ABC):
     _supported_shells: frozenset[Shell] = frozenset()
     _policy: Optional[CommandPolicyType] = None
 
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        default_shell: Optional[Shell | ShellType] = None,
+        shells: Optional[Iterable[Shell | ShellType]] = None,
+        policy: Optional[CommandPolicy | CommandPolicyType] = None,
+    ):
+        """
+        :param default_shell: The shell to prefer, instead of the site's own default
+        :param shells: The shells that the site supports, instead of its own
+        :param policy: The command policy, instead of the site's own
+        :raises ValueError: If the default shell isn't one of the supported shells
+        """
+        if shells is not None:
+            self._supported_shells = frozenset(self._as_shell(shell) for shell in shells)
+        if default_shell is not None:
+            self._default_shell = self._as_shell(default_shell)
+            if not self.is_valid_shell(self._default_shell):
+                raise ValueError(f'Shell {self._default_shell!r} is not one of the shells that the site supports')
+        if policy is not None:
+            self._policy = policy.get() if isinstance(policy, CommandPolicy) else policy
+
+    @staticmethod
+    def _as_shell(shell: Shell | ShellType) -> Shell:
+        # Shells as enum members, which hash alike in sets
+        return Shell(shell.name) if not isinstance(shell, Shell) else shell
 
     @property
     def default_shell(self) -> Optional[Shell]:
@@ -98,16 +119,17 @@ class BaseComputeSite(ABC):
             return self == other.get()
         elif isinstance(other, BaseComputeSite):
             return (
-                self.default_shell == other.default_shell
+                type(self) is type(other)
+                and self.default_shell == other.default_shell
                 and self.supported_shells == other.supported_shells
                 and self.policy == other.policy
             )
-        raise NotImplementedError(f'Cannot compare {type(self)} with {type(other)}')
+        return NotImplemented
 
-    def is_valid_shell(self, shell: Shell) -> bool:
+    def is_valid_shell(self, shell: Shell | ShellType) -> bool:
         if not self.supported_shells:
             return True
-        return shell in self.supported_shells
+        return self._as_shell(shell) in {self._as_shell(supported) for supported in self.supported_shells}
 
     @abstractmethod
     def prepare_preamble(
@@ -145,7 +167,7 @@ class BaseComputeSite(ABC):
     @abstractmethod
     def check_dependencies(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool: ...
+    ) -> list[DependencyCheck]: ...
 
     @staticmethod
     def execute_command(command: Sequence[str], timeout: int = 20) -> subprocess.CompletedProcess | None:
@@ -155,12 +177,19 @@ class BaseComputeSite(ABC):
         :param command: The command to execute as a list of strings.
         :param timeout: The timeout in seconds for the command execution.
         :return: The CompletedProcess object if the command executed successfully,
-            None if the command timed out.
+            None if the command timed out or couldn't be started (e.g. the program
+            doesn't exist).
         """
         try:
-            result = subprocess.run(command, capture_output=True, text=True, shell=False, timeout=timeout)
-        except TimeoutError:
+            # NB: Output that isn't text in the expected encoding (e.g. a program's banner) is replaced, not an error
+            result = subprocess.run(
+                command, capture_output=True, text=True, errors='replace', shell=False, timeout=timeout
+            )
+        except subprocess.TimeoutExpired:
             logger.error('Command `%s` timed out', ' '.join(command))
+            return None
+        except OSError as e:
+            logger.error('Command `%s` could not be started: %s', ' '.join(command), e)
             return None
         return result
 
@@ -174,16 +203,91 @@ class BaseComputeSite(ABC):
         return ''
 
 
+async def _uninterrupted(coro) -> None:
+    """
+    Run a coroutine to its end, even if the task that awaits it is cancelled meanwhile; such a cancellation is raised
+    once the coroutine is done.
+    """
+    task = asyncio.ensure_future(coro)
+    cancelled = False
+    while True:
+        try:
+            await asyncio.shield(task)
+            break
+        except asyncio.CancelledError:
+            if task.done():
+                raise
+            cancelled = True
+    if cancelled:
+        raise asyncio.CancelledError
+
+
 class LocalSite(BaseComputeSite):
     """
-    A compute site that represents the local machine. It assumes that all required
-    executables are available on PATH.
+    A compute site that represents the local machine. The executables of dependencies are found on ``PATH``, after
+    the directories of ``settings.dependencies.path`` and of each dependency's ``path`` are put first on it.
     """
 
-    def prepare_preamble(
+    _CHECK_TIMEOUT: int = 60
+    """Seconds that the check of a dependency may take, e.g. to load its modules."""
+
+    def prepare_setup(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
     ) -> str:
-        preamble = self._prepare_shebang(shell)
+        """
+        The lines that set up dependencies in a shell, each ending with the shell's line ending: on this site, the
+        common ``path`` and then each dependency's are put first on ``PATH`` (so a dependency's directory comes first).
+
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to write the lines for.
+        :raises ValueError: If a name or a directory can't be written safely in the shell.
+        """
+        lines = self._setup_lines(self.resolve_dependencies(dependencies), shell)
+        return ''.join(line + shell.new_line_char for line in lines)
+
+    def _setup_lines(self, dependencies: list[DependencySettings], shell: ShellType, report: bool = False) -> list[str]:
+        """
+        The lines of :meth:`prepare_setup`; with ``report``, as a check runs them, reporting what didn't work.
+        """
+        from xtl import settings
+
+        directories = [settings.dependencies.path, *(dep.path for dep in dependencies)]
+        return [shell.get_path_command(directory) for directory in directories if directory is not None]
+
+    @staticmethod
+    def _guard_lines(dependencies: list[DependencySettings], shell: ShellType) -> list[str]:
+        """
+        One line per executable of the dependencies, which ends the batch file if the executable isn't found.
+        """
+        executables = sorted({exe for dep in dependencies for exe in dep.provides})
+        return [shell.get_guard_command(exe) for exe in executables]
+
+    def _prepare_directives(self, shell: ShellType, **kwargs) -> str:
+        """
+        Lines that follow the shebang, before the setup, e.g. a scheduler's directives; none on this site.
+        """
+        return ''
+
+    def prepare_preamble(
+        self,
+        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
+        shell: ShellType,
+        **kwargs,
+    ) -> str:
+        """
+        The preamble of a batch file: the shebang, the site's directives (if any), the setup of the dependencies
+        (see :meth:`prepare_setup`), and a guard line for each executable they provide, which ends the batch file with
+        exit code 127 if the executable isn't found, before any command runs. Then passed through the policy, if any.
+
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to write the preamble for.
+        :param kwargs: Passed to the site's directives, e.g. ``config`` on a Slurm site.
+        :raises ValueError: If a name or a directory can't be written safely in the shell.
+        """
+        resolved = self.resolve_dependencies(dependencies)
+        lines = [*self._setup_lines(resolved, shell), *self._guard_lines(resolved, shell)]
+        preamble = self._prepare_shebang(shell) + self._prepare_directives(shell, **kwargs)
+        preamble += ''.join(line + shell.new_line_char for line in lines)
         return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
     def prepare_command(self, command: str) -> str:
@@ -197,35 +301,92 @@ class LocalSite(BaseComputeSite):
 
     def check_dependencies(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool:
+    ) -> list[DependencyCheck]:
+        """
+        Check that dependencies can be found in a shell: for each dependency, a short script in the shell sets up the
+        common settings and the dependency's own (see :meth:`prepare_setup`), then looks up every executable that the
+        dependency provides. A dependency is found only if all of them are; a module that doesn't load is reported
+        too. Each dependency is checked on its own, and the outcome is remembered in its settings, so that it isn't
+        checked again on this site and in this shell until its settings change.
 
+        :param dependencies: Dependency names or settings, or None.
+        :param shell: The shell to check in.
+        :return: One check per dependency, in the given order.
+        """
+        checks = []
         for dep in self.resolve_dependencies(dependencies):
-            # Check if the dependency executables are available
-            for exe in dep.provides:
-                try:
-                    cmd = shell.get_dependency_resolution_command(dependency=exe, as_list=True)
-                except ValueError as e:
-                    # ValueError indicates an unsafe dependency name
-                    logger.error(e)
-                    return False
+            check = dep.get_check(self, shell)
+            if check is None:
+                check = self._check_dependency(dep, shell)
+                dep.remember_check(self, shell, check)
+            checks.append(check)
+        return checks
 
-                result = self.execute_command(command=cmd, timeout=20)
-                if result is None:
-                    return False
-                if result.stdout.strip() == '0':
-                    logger.debug(
-                        'Found executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': dep.name},
-                    )
-                else:
-                    logger.error(
-                        'Missing executable `%(exe)s` for dependency `%(dependency)s`',
-                        {'exe': exe, 'dependency': dep.name},
-                    )
-                    return False
+    def _check_dependency(self, dependency: DependencySettings, shell: ShellType) -> DependencyCheck:
+        name = dependency_name(dependency)
+        executables = sorted(dependency.provides)
+        try:
+            lines = [
+                *self._setup_lines([dependency], shell, report=True),
+                *(shell.get_found_report_command(exe) for exe in executables),
+            ]
+        except ValueError as e:
+            logger.error('Cannot check dependency `%(dependency)s`: %(error)s', {'dependency': name, 'error': e})
+            return DependencyCheck(dependency=name, found=False, error=str(e))
+
+        script = self._prepare_shebang(shell) + ''.join(line + shell.new_line_char for line in lines)
+        result = self._run_script(script, shell)
+        if result is None:
+            return DependencyCheck(
+                dependency=name,
+                found=False,
+                error=f'the check in {shell.name} did not finish within {self._CHECK_TIMEOUT} s, or could not start',
+            )
+
+        # What the lines reported, by kind (command, module, executable) and name; the rest is what the setup printed
+        reported, printed = {}, []
+        for line in result.stdout.splitlines():
+            words = line.split()
+            if len(words) == 4 and words[0] == CHECK_MARKER:
+                reported[(words[1], words[2])] = words[3]
+            elif line.strip():
+                printed.append(line.rstrip())
+        missing_command = next(
+            (command for (kind, command), code in reported.items() if kind == 'command' and code != '0'), ''
+        )
+        missing_modules = tuple(m for (kind, m), code in reported.items() if kind == 'module' and code != '0')
+        missing_executables = tuple(exe for exe in executables if reported.get(('executable', exe)) != '0')
+        found = not (missing_command or missing_modules or missing_executables)
+
+        details = '\n'.join([*printed, *(line.rstrip() for line in result.stderr.splitlines() if line.strip())])
+        check = DependencyCheck(
+            dependency=name,
+            found=found,
+            missing_executables=missing_executables,
+            missing_modules=missing_modules,
+            missing_command=missing_command,
+            details=details,
+        )
+        if found:
+            logger.debug('Found dependency `%(dependency)s`', {'dependency': name})
         else:
-            logger.debug('All dependencies are met.')
-            return True
+            logger.debug(
+                'Dependency `%(dependency)s`: %(problems)s', {'dependency': name, 'problems': check.problems()}
+            )
+        return check
+
+    def _run_script(self, script: str, shell: ShellType) -> subprocess.CompletedProcess | None:
+        """
+        Run a script in a shell, as a batch file would run, from a temporary file.
+        """
+        fd, file = tempfile.mkstemp(prefix='xtl-check-', suffix=shell.batch_extension)
+        try:
+            with os.fdopen(fd, 'w', encoding=shell.file_encoding, newline='') as f:
+                f.write(script)
+            command = shell.get_execute_batch_command(file, as_list=True)
+            return self.execute_command(command=command, timeout=self._CHECK_TIMEOUT)
+        finally:
+            Path(file).unlink(missing_ok=True)
 
     async def execute_batch(self, batch: BatchFile, stdout: Path = None, stderr: Path = None, **kwargs):
         # Get command to execute the batch file
@@ -240,9 +401,19 @@ class LocalSite(BaseComputeSite):
         # Initialize stream logging tasks
         stdout_task, stderr_task = None, None
         try:
-            # Start batch execution
+            # Start batch execution; in a session (POSIX) or process group (Windows) of its own, so that the programs
+            #  it starts can be stopped together (see `_terminate_batch`), and that Ctrl+C on the terminal or console
+            #  reaches only the application, which cancels the job and stops them. Without input: a batch file isn't interactive, and the console's
+            #  input belongs to the application (e.g. cmd's "Terminate batch job (Y/N)?" after Ctrl+C would wait for
+            #  the keyboard, competing with the application's own prompts)
             batch._process = await asyncio.create_subprocess_exec(
-                *cmd, shell=False, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                *cmd,
+                shell=False,
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=OS_POSIX,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if OS_WINDOWS else 0,
             )
             batch._status = BatchFileStatus.RUNNING
 
@@ -259,55 +430,136 @@ class LocalSite(BaseComputeSite):
 
             # Check if the batch was cancelled by .cancel_batch()
             if batch.status != BatchFileStatus.CANCELLED:
-                batch._status = BatchFileStatus.COMPLETED
+                failed = batch.process.returncode != 0
+                batch._status = BatchFileStatus.FAILED if failed else BatchFileStatus.COMPLETED
         except asyncio.CancelledError as e:
-            # Raise cancellation up the stack after marking the batch as cancelled
-            logger.error('Batch execution was cancelled by user')
+            # Raise cancellation up the stack after marking the batch as cancelled; said before the clean-up, which
+            #  takes a while
+            batch.logger.warning('Stopping the batch file and the programs it started')
             batch._status = BatchFileStatus.CANCELLED
             raise e
         except Exception as e:
             # Log any other exceptions during execution
-            logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
+            batch.logger.error('Error executing batch file %(file)s: %(exc)s', {'file': batch.file, 'exc': str(e)})
             batch._status = BatchFileStatus.FAILED
-            raise SubprocessError(f'Error executing file {batch.file}', raiser=batch, command=cmd) from e
+            raise SubprocessError(f'Error executing file {batch.file}', command=cmd) from e
         finally:
-            # Terminate batch if still running
-            if batch.process and batch.process.returncode is None:
-                logger.debug('Terminating batch file %{file}s', {'file': batch.file})
-                await self._terminate_batch(batch)
+            # The clean-up runs to its end, even if the task is cancelled again meanwhile (a pool cancels its jobs on
+            #  exit, after a `gather()` of them has already done so), since stopping the programs takes a moment
+            await _uninterrupted(self._finish_batch(batch, stdout_task, stderr_task))
 
-            # Terminate logging tasks
-            for task in (stdout_task, stderr_task):
-                if task and not task.done():
-                    logger.debug('Cancelling async task %{name}s', {'name': task.get_name()})
-                    task.cancel()
-                    try:
-                        await task
-                    except asyncio.CancelledError:
-                        pass
+    async def _finish_batch(
+        self, batch: BatchFile, stdout_task: asyncio.Task | None, stderr_task: asyncio.Task | None
+    ) -> None:
+        """
+        Stop what's left of a batch file after it ran: the batch itself if it still runs, or the programs it started if
+        it didn't complete (e.g. the shell ended, but a program it started still holds the output streams), then the
+        tasks that copy its output.
+        """
+        if batch.process and (batch.process.returncode is None or batch.status != BatchFileStatus.COMPLETED):
+            batch.logger.debug('Terminating batch file %(file)s', {'file': batch.file})
+            await self._terminate_batch(batch)
+
+        # Once the programs are gone, the streams end: let the logging tasks read what's left, so that the pipes close,
+        #  then cancel any that still wait
+        pending = [task for task in (stdout_task, stderr_task) if task and not task.done()]
+        if pending:
+            await asyncio.wait(pending, timeout=1)
+        for task in pending:
+            if not task.done():
+                batch.logger.debug('Cancelling async task %(name)s', {'name': task.get_name()})
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
 
     async def cancel_batch(self, batch: BatchFile, **kwargs):
         if batch.status != BatchFileStatus.RUNNING:
-            logger.warning('Cannot cancel batch file %{file}s; it is not running', {'file': batch.file})
+            batch.logger.warning('Cannot cancel batch file %(file)s; it is not running', {'file': batch.file})
             return
-        logger.info('Cancelling batch file %{file}s', {'file': batch.file})
+        batch.logger.info('Cancelling batch file %(file)s', {'file': batch.file})
         batch._status = BatchFileStatus.CANCELLED
         await self._terminate_batch(batch)
 
+    _TERMINATE_GRACE: float = 5.0
+    """Seconds that a batch file's programs get to stop after each request, before a firmer one."""
+
     @staticmethod
     async def _terminate_batch(batch: BatchFile, **kwargs):
-        if batch.process and batch.process.returncode is None:
-            # Request graceful termination of the process
-            logger.debug('Sending SIGTERM to batch process PID %{pid}d', {'pid': batch.process.pid})
-            batch.process.terminate()
-            try:
-                # Wait 10 s for a graceful shutdown
-                await asyncio.wait_for(batch.process.wait(), timeout=10)
-            except asyncio.TimeoutError:
-                # Force kill the process
-                logger.debug('Sending SIGKILL to batch process PID %{pid}d', {'pid': batch.process.pid})
-                batch.process.kill()
-                await batch.process.wait()
+        """
+        Stop a batch file and every program it started: on POSIX, its process group gets ``SIGINT`` (what Ctrl+C in a
+        terminal sends), then ``SIGTERM``, then ``SIGKILL``, each after a grace period if something still runs; on
+        Windows, its process group gets ``CTRL_BREAK_EVENT`` (Ctrl+C doesn't reach a group of its own), then, if the
+        shell still runs after the grace period, ``taskkill /T /F`` ends it and its tree.
+        """
+        process = batch.process
+        if process is None:
+            return
+        if OS_POSIX:
+            await LocalSite._signal_group(batch)
+        elif process.returncode is None:
+            await LocalSite._break_group(batch)
+            if process.returncode is None:
+                await LocalSite._kill_tree(batch)
+
+    @staticmethod
+    def _group_alive(pgid: int) -> bool:
+        try:
+            os.killpg(pgid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
+
+    @staticmethod
+    async def _signal_group(batch: BatchFile) -> None:
+        # The shell leads a session of its own, so its process group is its pid
+        pgid = batch.process.pid
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
+            if not LocalSite._group_alive(pgid):
+                break
+            batch.logger.debug(
+                'Sending %(signal)s to the processes of batch file %(file)s', {'signal': sig.name, 'file': batch.file}
+            )
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(pgid, sig)
+            deadline = asyncio.get_running_loop().time() + LocalSite._TERMINATE_GRACE
+            while LocalSite._group_alive(pgid) and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(0.05)
+        await batch.process.wait()
+
+    @staticmethod
+    async def _break_group(batch: BatchFile) -> None:
+        # The shell leads a process group of its own, so the group's id is its pid
+        process = batch.process
+        batch.logger.debug('Sending CTRL_BREAK_EVENT to the processes of batch file %(file)s', {'file': batch.file})
+        try:
+            os.kill(process.pid, signal.CTRL_BREAK_EVENT)
+        except OSError:
+            # E.g. no console to send it through: the tree is ended instead
+            return
+        deadline = asyncio.get_running_loop().time() + LocalSite._TERMINATE_GRACE
+        while process.returncode is None and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.05)
+
+    @staticmethod
+    async def _kill_tree(batch: BatchFile) -> None:
+        pid = batch.process.pid
+        batch.logger.debug('Ending the process tree of batch file %(file)s', {'file': batch.file})
+        taskkill = await asyncio.create_subprocess_exec(
+            'taskkill',
+            '/T',
+            '/F',
+            '/PID',
+            str(pid),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await taskkill.wait()
+        if taskkill.returncode != 0 and batch.process.returncode is None:
+            # E.g. the shell ended meanwhile, or taskkill isn't available: at least end the shell
+            batch.process.kill()
+        await batch.process.wait()
 
     @staticmethod
     async def _log_stream_to_file(stream: asyncio.StreamReader, file: Optional[Path] = None):
@@ -339,132 +591,28 @@ class ModulesSite(LocalSite):
     software dependencies.
     """
 
-    @staticmethod
-    def _purge_modules(shell: ShellType) -> str:
+    def _setup_lines(self, dependencies: list[DependencySettings], shell: ShellType, report: bool = False) -> list[str]:
         """
-        Prepare the command to purge all loaded modules.
-
-        :param shell: The shell type to generate the command for.
-        :return: The command string to purge modules.
+        On this site: the module command made available if the shell needs it, ``module purge``, the common modules
+        and then each dependency's, in their order (one line per dependency, or per module with ``report``), then the
+        directories put first on ``PATH`` (see :meth:`LocalSite.prepare_setup`).
         """
-        cmd = 'module purge'
-        if shell == Shell.CMD:
-            # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd + shell.new_line_char
+        from xtl import settings
 
-    @staticmethod
-    def _load_modules(modules: str | Iterable[str], shell: ShellType) -> str:
-        """
-        Prepare the command to load specified modules.
-
-        :param modules: An iterable of module names to load.
-        :param shell: The shell type to generate the command for.
-        :return: The command string to load the modules.
-        """
-        if isinstance(modules, str):
-            modules = [modules]
-        cmd = f'module load {" ".join(modules)}'
-        if shell == Shell.CMD:
-            # For Windows CMD, we need to use 'call' to execute the module commands
-            cmd = f'call {cmd}'
-        return cmd + shell.new_line_char
-
-    def _prepare_modules_preamble(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> str:
-        from xtl.cli.utilities.common import REQUIRED_DEPENDENCIES
-
-        preamble = self._purge_modules(shell=shell)
-        if extra := REQUIRED_DEPENDENCIES.get('extra', []):
-            # Inject extra modules declared during runtime from the CLI
-            preamble += self._load_modules(modules=extra, shell=shell)
-        for dep in self.resolve_dependencies(dependencies):
-            if dep.modules:
-                preamble += self._load_modules(modules=dep.modules, shell=shell)
-        return preamble
-
-    def prepare_preamble(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> str:
-        """
-        Prepare the preamble for loading required modules based on dependencies. The
-        preamble has the following structure:
-
-        .. code-block:: text
-            module purge
-            module load <module1> <module2> ...
-
-        :param dependencies: An iterable of dependency names (str) or DependencySettings
-            instances, or None.
-        :param shell: The shell type to generate the commands for.
-        :return: The preamble string.
-        """
-        preamble = self._prepare_shebang(shell)
-        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
-
-    def check_dependencies(
-        self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None, shell: ShellType
-    ) -> bool:
-        # Check if the `module` command is available
-        cmd = shell.get_dependency_resolution_command(dependency='module', as_list=True)
-        result = self.execute_command(command=cmd, timeout=20)
-        if result is None:
-            return False
-        if result.stdout.strip() == '0':
-            logger.debug('Found `module` command for dependency resolution')
-        else:
-            logger.error('Missing `module` command for dependency resolution')
-            return False
-
-        # Run `module avail -t -a <module>` to check if modules are available
-        for dep in self.resolve_dependencies(dependencies):
-            if not dep.modules:
+        lines = [shell.module_setup] if shell.module_setup else []
+        groups = [settings.dependencies.modules, *(dep.modules for dep in dependencies)]
+        if report and any(groups):
+            # Whether the shell has the module command, so that a missing one is told apart from missing modules
+            lines.append(shell.get_found_report_command(shell.module_command, kind='command'))
+        lines.append(shell.get_module_command('purge'))
+        for modules in groups:
+            if not modules:
                 continue
-            for module in dep.modules:
-                module = str(module).strip()
-                if not self._is_module_name_safe(module):
-                    logger.error(
-                        'Invalid module name `%(module)s`. Module names may '
-                        'only contain alphanumeric characters, hyphens, '
-                        'underscores, periods and slashes.',
-                        {'module': module},
-                    )
-                    return False
-                cmd = shell.get_execute_command(f'module avail -t -a {module}', as_list=True)
-                result = self.execute_command(command=cmd, timeout=20)
-                if result is None:
-                    return False
-                if module in result.stdout:
-                    logger.debug('Found module `%(module)s`', {'module': module})
-                else:
-                    logger.error('Missing module `%(module)s`', {'module': module})
-                    return False
-        else:
-            logger.debug('All dependencies are met.')
-            return True
-
-    @staticmethod
-    def _is_module_name_safe(module: str) -> bool:
-        """
-        Check if the module name is safe to use in shell commands. A safe module name
-        contains only alphanumeric characters, hyphens, underscores, periods and
-        slashes.
-
-        :param module: The module name to check.
-        :return: True if the module name is safe, False otherwise.
-        """
-        # Check length constraints
-        if len(module) == 0:
-            return False
-        elif len(module) > 255:
-            # Prevent potential buffer overflow attacks
-            return False
-        # Pattern for a safe module name (slash separated segments of alphanumeric,
-        #  dash, and underscore characters plus optional leading dot)
-        pattern = r'^\.?[A-Za-z0-9_-]+([/\\]\.?[A-Za-z0-9_-]+)*$'
-        return re.match(pattern, module) is not None
+            if report:
+                lines.extend(shell.get_load_report_command(module) for module in modules)
+            else:
+                lines.append(shell.get_load_command(modules))
+        return lines + super()._setup_lines(dependencies, shell, report=report)
 
 
 class SchedulerSite(BaseComputeSite):
@@ -506,6 +654,10 @@ class SlurmSite(SchedulerSite, ABC):
             return nl.join(f'#SBATCH {arg}' for arg in args) + nl
         return ''
 
+    def _prepare_directives(self, shell: ShellType, config: BatchJobConfig | dict = None, **kwargs) -> str:
+        # The `#SBATCH` lines, which must come before any command
+        return self._prepare_slurm_preamble(shell=shell, config=config) if config else ''
+
     async def validate_submission(self, batch: BatchFile, **kwargs) -> bool:
         # Run `sbatch --test-only <batchfile>` to check if allocation is possible
         #  and check the exit code
@@ -527,44 +679,20 @@ class SlurmSite(SchedulerSite, ABC):
 class SlurmLocalSite(SlurmSite, LocalSite):
     """
     A compute site that utilizes the `SLURM <https://slurm.schedmd.com/>`_ job scheduler
-    and assumes that all required executables are available on PATH.
+    and finds executables on PATH, as :class:`LocalSite` does. Dependencies are checked on
+    the submit host, and the guard lines of the batch file check them again on the
+    compute node, where the job runs.
     """
-
-    def prepare_preamble(
-        self,
-        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
-        shell: ShellType,
-        config: BatchJobConfig | dict = None,
-        **kwargs,
-    ) -> str:
-        preamble = self._prepare_shebang(shell=shell)
-        # SBATCH preamble
-        if config:
-            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class SlurmModulesSite(SlurmSite, ModulesSite):
     """
     A compute site that utilizes the `SLURM <https://slurm.schedmd.com/>`_ job scheduler
     and `Environment Modules <https://modules.readthedocs.io/en/latest/>`_ to manage
-    software dependencies.
+    software dependencies, as :class:`ModulesSite` does. Dependencies are checked on the
+    submit host, and the guard lines of the batch file check them again on the compute
+    node, where the job runs.
     """
-
-    def prepare_preamble(
-        self,
-        dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None,
-        shell: ShellType,
-        config: BatchJobConfig | dict = None,
-        **kwargs,
-    ) -> str:
-        preamble = self._prepare_shebang(shell=shell)
-        # SBATCH preamble
-        if config:
-            preamble += self._prepare_slurm_preamble(shell=shell, config=config)
-        # Modules preamble
-        preamble += self._prepare_modules_preamble(dependencies=dependencies, shell=shell)
-        return self.policy.intercept_preamble(preamble) if self.policy else preamble
 
 
 class VirtualizationSite(BaseComputeSite, ABC): ...

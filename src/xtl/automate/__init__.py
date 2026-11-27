@@ -1,15 +1,8 @@
-from enum import Enum
 import socket
 
-from xtl.common.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
 from .sites import LocalSite, ModulesSite, BiotixHPC
 from .sites import ComputeSite as _ComputeSite
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
 
 
 # Get the current hostname

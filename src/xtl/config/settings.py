@@ -1,29 +1,37 @@
 """
-This module defines a set of :class:`Options <xtl.common.options.Options>` `Pydantic`
+This module defines a set of :class:`Options <xtl_core.options.base.Options>` `Pydantic`
 models that are used to configure various aspects of XTL. The main class that holds all
 settings is :class:`XTLSettings`.
 """
 
 from __future__ import annotations
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional, Literal
+import threading
+from typing import Any, ClassVar, Iterable, Optional, Literal, get_origin, TYPE_CHECKING
 
-from pydantic import PrivateAttr
+from pydantic import PrivateAttr, model_validator
 
-from xtl import Logger
 from xtl import version as current_version
 from xtl.automate import ComputeSite
+from xtl.jobs.dependencies import DependencyCheck, site_key
 from xtl.jobs.sites import ComputeSite as ComputeSite2
-from xtl.config.version import VersionInfo
-from xtl.common.environment import XTL_CONFIG
-from xtl.common.os import FilePermissions, CPU_CORES
-from xtl.common.options import Option, Options
-from xtl.common.serializers import PermissionOctal
-from xtl.common.validators import CastAsNoneIfEmpty, CastAsPathOrNone
-from xtl.exceptions.pydantic import OptionsValidationError
+from xtl.jobs.shells import Shell
+from xtl.jobs.policies import CommandPolicy
+from xtl_core.version_info import VersionInfo
+from xtl.shared.environment import XTL_CONFIG
+from xtl_core.system.os import CPU_CORES
+from xtl_core.system.os.permissions import FilePermissions
+from xtl_core.options import Option, Options, VersionedOptions
+from xtl_core.options.serializers import PermissionOctal
+from xtl_core.options.validators import CastAsNoneIfEmpty, CastAsPathOrNone
+from xtl_core.options.exceptions import OptionsValidationError
 
-logger = Logger(__name__)
+if TYPE_CHECKING:
+    from xtl.jobs.shells import ShellType
+
+logger = logging.getLogger(__name__)
 
 
 def _get_extra_keys(options: Options) -> dict:
@@ -69,6 +77,20 @@ class Settings(Options):
     #   all options should have a default value, ensuring that the model can be
     #   instantiated without any input file. Any unknown options will then be stored
     #   in the model's `__pydantic_extra__` attribute.
+
+    def update_from(self, other: Settings) -> None:
+        """
+        Take the values of `other`, in place: nested settings are updated rather than replaced, so that code holding
+        this object, or one of its sections, sees the new values.
+
+        :param other: Settings of the same type.
+        """
+        for name in type(self).model_fields:
+            mine, theirs = getattr(self, name), getattr(other, name)
+            if isinstance(mine, Settings) and type(mine) is type(theirs):
+                mine.update_from(theirs)
+            elif mine != theirs:
+                setattr(self, name, theirs)
 
 
 class UnitsSettings(Settings):
@@ -169,9 +191,37 @@ class DependencySettings(Settings):
     _provides: ClassVar[frozenset[str]] = frozenset()
 
     # Model attributes
-    path: Optional[Path] = Option(default=None, desc='Directory containing binaries', validator=CastAsNoneIfEmpty())
+    path: Optional[Path] = Option(
+        default=None,
+        desc="Directory of the dependency's programs, put first on PATH (mutually exclusive with ``modules``)",
+        validator=CastAsNoneIfEmpty(),
+    )
 
-    modules: set[str] = Option(default_factory=set, desc='Modules that provide the dependency')
+    modules: list[str] = Option(
+        default_factory=list,
+        desc='Modules that provide the dependency, loaded in this order on a modules site (mutually exclusive with ``path``)',
+    )
+
+    compute_site: Optional[ComputeSite2] = Option(
+        default=None, desc='Compute site that runs the dependency (default: jobs.compute_site)'
+    )
+
+    shell: Optional[Shell] = Option(default=None, desc="Shell that runs the dependency (default: the compute site's)")
+
+    policy: Optional[CommandPolicy] = Option(
+        default=None, desc="Command policy for the dependency's commands (default: the compute site's)"
+    )
+
+    # Checks made in this process, or received with the settings, by (compute site, shell name), each with the
+    #  settings of the dependency when it was checked; not settings, so never written to the config file
+    _checks: dict[tuple[str, str], tuple[str, DependencyCheck]] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode='after')
+    def _path_or_modules(self) -> DependencySettings:
+        # A dependency is found one way: in a directory, or by loading modules
+        if self.path is not None and self.modules:
+            raise ValueError('Cannot specify both `path` and `modules`')
+        return self
 
     @property
     def provides(self) -> frozenset[str]:
@@ -181,13 +231,80 @@ class DependencySettings(Settings):
         """
         return self._provides
 
+    def __eq__(self, other: object) -> bool:
+        # The checks are a record, not settings: equal settings with different checks are equal
+        if type(other) is not type(self):
+            return NotImplemented
+        return self.__dict__ == other.__dict__ and self.__pydantic_extra__ == other.__pydantic_extra__
+
+    def get_check(self, site: Any, shell: ShellType) -> Optional[DependencyCheck]:
+        """
+        The outcome of an earlier check of this dependency on a compute site, in a shell, or ``None`` if there is none,
+        or if the settings of the dependency (*e.g.* its ``modules``) have changed since.
+
+        :param site: The compute site that checked it.
+        :param shell: The shell it was checked in.
+        """
+        with _checks_lock:
+            record = self._checks.get((site_key(site), shell.name))
+        if record is None:
+            return None
+        checked_settings, check = record
+        return check if checked_settings == self.model_dump_json() else None
+
+    def remember_check(self, site: Any, shell: ShellType, check: DependencyCheck) -> None:
+        """
+        Remember the outcome of a check of this dependency on a compute site, in a shell. Missing dependencies are
+        remembered too, so that the other jobs that need them fail at once.
+
+        :param site: The compute site that checked it.
+        :param shell: The shell it was checked in.
+        :param check: Its outcome.
+        """
+        with _checks_lock:
+            self._checks[(site_key(site), shell.name)] = (self.model_dump_json(), check)
+
+    def clear_checks(self) -> None:
+        """
+        Forget every check of this dependency, *e.g.* after installing it in a running session.
+        """
+        with _checks_lock:
+            self._checks.clear()
+
+    def checks_to_list(self) -> list[dict[str, Any]]:
+        """
+        The checks of this dependency as plain values, *e.g.* to send them to another process with the settings.
+        """
+        with _checks_lock:
+            return [
+                {'site': site, 'shell': shell, 'settings': checked_settings, 'check': check.to_dict()}
+                for (site, shell), (checked_settings, check) in self._checks.items()
+            ]
+
+    def update_checks(self, checks: list[dict[str, Any]]) -> None:
+        """
+        Add checks from the output of :meth:`checks_to_list`, replacing those for the same compute site and shell.
+
+        :param checks: Checks as plain values.
+        """
+        with _checks_lock:
+            for record in checks:
+                self._checks[(record['site'], record['shell'])] = (
+                    record['settings'],
+                    DependencyCheck.from_dict(record['check']),
+                )
+
+
+# One lock for the checks of all dependencies: checks are rare, and a pool's threads may share a dependency
+_checks_lock = threading.Lock()
+
 
 class AtsasSettings(DependencySettings):
     """
-    Settings for `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_
+    Settings for `ATSAS <https://biosaxs.com/software.html>`_
     """
 
-    _provides = frozenset({'datcmp'})
+    _provides = frozenset({'datcmp', 'datop'})
 
 
 class AutoprocSettings(DependencySettings):
@@ -195,12 +312,12 @@ class AutoprocSettings(DependencySettings):
     Settings for `autoPROC <https://www.globalphasing.com/autoproc/>`_
     """
 
-    _provides = frozenset({'process', 'process_wf'})
+    _provides = frozenset({'process', 'aP_wf_process'})
 
 
 class EasyBraggSettings(DependencySettings):
     """
-    Settings for easyBragg
+    Settings for `easyBragg <https://github.com/pixel-modelers/easyBragg>`_
     """
 
     _provides = frozenset({'easyBragg.python'})
@@ -220,6 +337,23 @@ class DependenciesSettings(Settings):
         'If "loose", missing dependencies will be ignored.',
     )
 
+    path: Optional[Path] = Option(
+        default=None,
+        desc='Directory of binaries that every job finds, before the directories of its dependencies',
+        validator=CastAsNoneIfEmpty(),
+    )
+
+    modules: list[str] = Option(
+        default_factory=list,
+        desc='Modules that every job loads on a modules compute site, in this order, before the modules of its '
+        'dependencies',
+    )
+
+    check: bool = Option(
+        default=True,
+        desc='Check that the dependencies of jobs can be found before running them (once per job, pool or command)',
+    )
+
     atsas: AtsasSettings = Option(default=AtsasSettings())
     autoproc: AutoprocSettings = Option(default=AutoprocSettings())
     easybragg: EasyBraggSettings = Option(default=EasyBraggSettings())
@@ -229,10 +363,14 @@ class DependenciesSettings(Settings):
         """
         Names of the known dependencies, in definition order.
         """
+        # NB: `get_origin()` leaves out generic aliases (e.g. `list[str]`), which pass `isinstance(..., type)` on
+        #  Python 3.10, but not `issubclass()`
         return [
             name
             for name, field in cls.model_fields.items()
-            if isinstance(field.annotation, type) and issubclass(field.annotation, DependencySettings)
+            if get_origin(field.annotation) is None
+            and isinstance(field.annotation, type)
+            and issubclass(field.annotation, DependencySettings)
         ]
 
     def __contains__(self, name: object) -> bool:
@@ -252,6 +390,30 @@ class DependenciesSettings(Settings):
         The known dependencies as ``(name, settings)`` pairs, in definition order.
         """
         return [(name, getattr(self, name)) for name in self.names()]
+
+    def clear_checks(self) -> None:
+        """
+        Forget every check of every known dependency.
+        """
+        for _, dependency in self.items():
+            dependency.clear_checks()
+
+    def checks_to_dict(self) -> dict[str, list[dict[str, Any]]]:
+        """
+        The checks of the known dependencies as plain values, by name, *e.g.* to send them to another process with the
+        settings. Dependencies without checks are left out.
+        """
+        return {name: checks for name, dependency in self.items() if (checks := dependency.checks_to_list())}
+
+    def update_checks(self, checks: dict[str, list[dict[str, Any]]]) -> None:
+        """
+        Add checks from the output of :meth:`checks_to_dict` to the known dependencies; unknown names are skipped.
+
+        :param checks: Checks as plain values, by name.
+        """
+        for name, records in checks.items():
+            if (dependency := self.get(name)) is not None:
+                dependency.update_checks(records)
 
     def resolve(
         self, dependencies: Iterable[DependencySettings | str] | DependencySettings | str | None
@@ -323,6 +485,8 @@ class CLISettings(Settings):
 
     max_fps: int = Option(default=10, gt=1, lt=60, desc='Maximum refreshes (per s) for live console elements')
 
+    job_log_files: bool = Option(default=True, desc='Write a log file (xtl.log) in the directory of each job')
+
 
 @dataclass(frozen=True)
 class ConfigFileInfo:
@@ -339,10 +503,17 @@ class ConfigFileInfo:
         return self.path.is_file()
 
 
-class XTLSettings(Settings):
+class XTLSettings(Settings, VersionedOptions):
     """
-    Settings for XTL
+    Settings for XTL. A file is tagged with the version of XTL that wrote it, and a file from an older version is
+    upgraded when it is loaded (see :class:`~xtl_core.options.VersionedOptions`); :meth:`check` reports files from
+    another version, and ``xtl.config upgrade`` updates them.
     """
+
+    # Versioning: the tag is XTL's version, so that every release is a new layout, with upgrade steps only for
+    #  releases that change it
+    _version_path: ClassVar[str] = 'version'
+    _current_version: ClassVar[VersionInfo] = current_version
 
     # Class variables are ignored by Pydantic validation/serialization
     _toml: ClassVar[str] = 'xtl.toml'
@@ -357,9 +528,11 @@ class XTLSettings(Settings):
     # Private attributes are also ignored by Pydantic
     _parse_env: bool = PrivateAttr(default=False)
     _source: Optional[ConfigFileInfo] = PrivateAttr(default=None)  # source of settings
+    # The version the data were loaded with, before they were upgraded to the current one
+    _source_version: Optional[VersionInfo] = PrivateAttr(default=None)
 
     # Model attributes
-    version: str = Option(default=current_version.string)
+    version: str = Option(default=current_version.pep440, desc='Version of XTL that wrote this file')
     """Version string of the XTL package"""
 
     units: UnitsSettings = Option(default=UnitsSettings())
@@ -385,6 +558,33 @@ class XTLSettings(Settings):
         defaults.
         """
         return self._source
+
+    @classmethod
+    def _get_version(cls, data: Any) -> Optional[VersionInfo]:
+        # An invalid version loads as current, as if there were none; `check()` reports it
+        try:
+            return super()._get_version(data)
+        except (ValueError, TypeError):
+            return None
+
+    @classmethod
+    def _check_version(cls, version: Optional[VersionInfo]) -> None:
+        # Reported by `check()` instead, for older files too
+        pass
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], /, *, upgrade: bool = True) -> XTLSettings:
+        """
+        Create settings from a dictionary, upgrading data from an older version first (see
+        :meth:`VersionedOptions.from_dict() <xtl_core.options.VersionedOptions.from_dict>`). The version that the
+        data were written with is kept for :meth:`check`.
+
+        :param data: The settings, as loaded from a file.
+        :param upgrade: Upgrade older data first. If ``False``, the data are validated as they are.
+        """
+        settings = super().from_dict(data, upgrade=upgrade)
+        settings._source_version = cls._get_version(data)
+        return settings
 
     @classmethod
     def _load(cls, location: ConfigFileInfo) -> XTLSettings:
@@ -445,22 +645,23 @@ class XTLSettings(Settings):
         """
         problems = []
 
-        # Check settings version
-        try:
-            _v = VersionInfo.from_str(self.version)
-        except ValueError:
-            problems.append(f'Invalid settings version: {self.version!r}')
-        else:
-            if _v.tuple_safe < current_version.tuple_safe:
+        # Check the version of the file (loaded data have been upgraded to the current version already)
+        version = self._source_version
+        if version is None:
+            try:
+                version = VersionInfo.from_str(self.version)
+            except ValueError:
+                problems.append(f'Invalid settings version: {self.version!r}')
+        if version is not None:
+            if version.tuple_safe < current_version.tuple_safe:
                 problems.append(
-                    f'Using settings from an older version of XTL ({_v.string}, current {current_version.string}).'
+                    f'Using settings from an older version of XTL ({version.pep440}, current '
+                    f'{current_version.pep440}); run `xtl.config upgrade` to update the file.'
                 )
-            elif _v.tuple_safe > current_version.tuple_safe:
+            elif version.tuple_safe > current_version.tuple_safe:
                 problems.append(
-                    f'Using settings from a newer version of XTL '
-                    f'({_v.string}, current {current_version.string}). '
-                    'XTL might not behave as intended. '
-                    'Use at your own risk!'
+                    f'Using settings from a newer version of XTL ({version.pep440}, current '
+                    f'{current_version.pep440}). XTL might not behave as intended. Use at your own risk!'
                 )
 
         # Check for extra keys in the nested Options

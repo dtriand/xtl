@@ -1,5 +1,5 @@
 import pytest
-import toml
+import tomlkit
 from typer.testing import CliRunner
 
 
@@ -9,11 +9,16 @@ WARNINGS = 'version = "0.0.1"\n[units]\ncolour = "blue"\n'  # 2 warnings
 INVALID = '[units]\ntemperature = "X"\n'
 
 
+def loads(text: str) -> dict:
+    """TOML text as plain Python data."""
+    return tomlkit.parse(text).unwrap()
+
+
 def defaults() -> dict:
     """The default settings, as TOML data."""
     from xtl.config.settings import XTLSettings
 
-    return toml.loads(XTLSettings().to_toml())
+    return loads(XTLSettings().to_toml())
 
 
 @pytest.fixture

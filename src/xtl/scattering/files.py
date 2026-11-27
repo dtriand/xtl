@@ -1,25 +1,18 @@
+import logging
 import abc
-from enum import Enum
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING
 
-from xtl import Logger
-from xtl.common.compatibility import PY310_OR_LESS
+from xtl_core.system.compatibility.py310 import StrEnum
 from xtl.datasets.scattering import AngleQInverseNanometerDtype, IntensityArbitraryDtype, IntensitySigmaArbitraryDtype
 from xtl.files.meta import FileContainer, FileReaderMeta
 
 if TYPE_CHECKING:
     from xtl.scattering.profiles import ScatteringProfile
 
-if PY310_OR_LESS:
 
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
-
-
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Scattering1DFileType(StrEnum):

@@ -165,10 +165,21 @@ class TestRCSBSchema:
         assert attr.schema_version == '0.0.0'
 
 
+TIMEOUT = 30
+"""Seconds to wait for RCSB's servers."""
+
+
+@pytest.fixture(scope='module')
+def search_schema():
+    # Downloaded by the tests that need it, not on collection: an outage then skips them (see `tests/conftest.py`)
+    #  rather than aborting the run
+    return SearchSchema()
+
+
 @pytest.mark.requires_network
 class TestURLs:
     def test_search_schema_urls(self):
-        assert requests.head(SearchSchema._base_url).ok
+        requests.head(SearchSchema._base_url, timeout=TIMEOUT).raise_for_status()
 
     @pytest.mark.parametrize(
         'service',
@@ -186,16 +197,14 @@ class TestURLs:
     )
     def test_data_schema_urls(self, service):
         # Data API does not support HEAD requests
-        assert requests.options(f'{DataSchema._base_url}/{service.value}').ok
+        requests.options(f'{DataSchema._base_url}/{service.value}', timeout=TIMEOUT).raise_for_status()
 
 
 @pytest.mark.requires_network
 class TestSearchSchema:
-    attr = SearchSchema()
-
-    def test_schema_version(self):
-        assert self.attr.schema_version != 'UNK'
-        assert tuple(int(i) for i in self.attr.schema_version.split('.')) >= (1, 36, 0)
+    def test_schema_version(self, search_schema):
+        assert search_schema.schema_version != 'UNK'
+        assert tuple(int(i) for i in search_schema.schema_version.split('.')) >= (1, 36, 0)
 
 
 @pytest.mark.requires_network

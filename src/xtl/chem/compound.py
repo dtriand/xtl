@@ -4,7 +4,6 @@ import string
 from pathlib import Path
 
 from xtl.units import smart_units, Q_
-from xtl.exceptions import InvalidArgument
 
 
 class Compound:
@@ -29,7 +28,7 @@ class Compound:
         self._formula = formula
 
         if type not in self.COMPOUND_TYPES:
-            raise InvalidArgument(raiser='type', message=f'{type}. Must be one of: {", ".join(self.COMPOUND_TYPES)}')
+            raise ValueError(f'type: {type}. Must be one of: {", ".join(self.COMPOUND_TYPES)}')
         self._type = type
 
         flat_name = self._name if 'Compound_' in self._name and len(self._name) == 15 else self._name.lower()

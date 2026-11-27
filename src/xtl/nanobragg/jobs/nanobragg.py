@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Optional
 
-from xtl.common.options import Option
-from xtl.common.validators import cast_as_temp_dir_if_none
+from xtl_core.options import Option
+from xtl_core.options.validators import cast_as_temp_dir_if_none
 from xtl.jobs.jobs import BatchJob, SteppedJob
 from xtl.jobs.steps import StepSpec
 from xtl.jobs.config import BatchJobConfig, SteppedJobConfig
@@ -22,9 +22,6 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
     filename: str = 'nanobragg'
     name: Optional[str] = 'xtl.NanoBraggBatchJob'
     description: Optional[str] = 'nanoBragg batch job'
-    dependencies: set[str] = Option(
-        default_factory=lambda: {'easybragg'}, desc='List of dependencies required for this batch job'
-    )
     templates: dict[Shell, str] = Option(
         default_factory=lambda: {
             Shell.BASH: '__XTL_COMMENT__ __XTL_DOCSTRING____XTL_NL__'
@@ -62,6 +59,7 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
     def get_context(self):
         context = super().get_context()
+        context['NANOBRAGG_SCRIPT'] = Path(__file__).parent / 'scripts' / 'nanobragg.py'
         context['NANOBRAGG_CONFIG'] = self.input
         context['NANOBRAGG_OUTPUT_DIR'] = self.job_directory
         context['NANOBRAGG_EXTRA_ARGS'] = self.get_extra_args()
@@ -70,10 +68,7 @@ class NanoBraggBatchJobConfig(BatchJobConfig):
 
 class NanoBraggBatchJob(BatchJob[NanoBraggBatchJobConfig]):
     _keep_files = True
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._batch_context |= {'NANOBRAGG_SCRIPT': str(Path(__file__).parent / 'scripts' / 'nanobragg.py')}
+    _dependencies = {'easybragg'}
 
 
 class NanoBraggJobConfig(SteppedJobConfig): ...

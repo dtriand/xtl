@@ -1,28 +1,33 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
-from pydantic import computed_field, PrivateAttr, model_validator, field_serializer
+from pydantic import computed_field, field_serializer, field_validator
 
-from xtl import settings, Logger
-from xtl.common.options import Option, Options
-from xtl.common.os import FilePermissions
-from xtl.common.serializers import PermissionOctal
-from xtl.common.validators import cast_as_temp_dir_if_none
+from xtl import settings
+from xtl_core.options import Option, Options
+from xtl_core.system.os.permissions import FilePermissions
+from xtl_core.options.serializers import PermissionOctal
+from xtl_core.options.validators import cast_as_temp_dir_if_none
 from xtl.jobs.shells import Shell
 from xtl.jobs.sites import ComputeSite
 from xtl.jobs.resources import Resources
+from xtl.jobs.logging import HandlerConfig
 
 if TYPE_CHECKING:
+    from xtl.config.settings import DependencySettings
     from xtl.jobs.batchfiles import BatchFile
+    from xtl.jobs.shells import ShellType
+    from xtl.jobs.sites import ComputeSiteType
 
 
 __all__ = ['JobConfig', 'BatchJobConfig', 'SteppedJobConfig']
 
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class JobConfig(Options):
@@ -36,12 +41,35 @@ class JobConfig(Options):
         default=None, desc='Resources to allocate for this job. Overrides job-defined resources'
     )
 
+    log_handlers: dict[str, Optional[HandlerConfig]] = Option(
+        default_factory=dict,
+        desc="Handlers of this job's own, by name: a spec adds a handler, or replaces the pool's of the same name; "
+        "None switches the pool's off",
+    )
 
-class ResourcesConfig(Options):
+    @field_validator('log_handlers', mode='before')
+    @classmethod
+    def _restore_log_handlers(cls, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {k: HandlerConfig.from_spec(v) if isinstance(v, dict) else v for k, v in value.items()}
+        return value
+
+    @field_serializer('log_handlers')
+    def _dump_log_handlers(self, value: dict[str, Optional[HandlerConfig]], info) -> dict[str, Any]:
+        mode = 'json' if info.mode_is_json() else 'python'
+        return {k: v.to_spec(mode=mode) if v is not None else None for k, v in value.items()}
+
+
+class SiteResources(Options):
+    """
+    Resources that a job asks of its compute site (e.g. a Slurm allocation), as opposed to
+    ``JobConfig.resources``, which it asks of its pool.
+    """
+
     # TODO: Custom formatters & aliases for SLURM
     # TODO: Custom validators for SLURM-like input
     # Formatting should be handled within different methods, e.g. to_slurm()
-    # Maybe we implement a _aliases and _formatters PrivateAttr in the ResourcesConfig for this purpose?
+    # Maybe we implement a _aliases and _formatters PrivateAttr in the SiteResources for this purpose?
     cpus: int = Option(
         default=1,
         ge=1,
@@ -104,66 +132,29 @@ class BatchJobConfig(JobConfig):
     name: Optional[str] = Option(default=None, desc='Name of the batch job')  # for slurm --job-name
     description: Optional[str] = Option(default=None, desc='Description of the batch job')  # for slurm --comment
     permissions: FilePermissions | str | int = Option(
-        default=settings.jobs.permissions.scripts,
+        default_factory=lambda: settings.jobs.permissions.scripts,
         desc='Permissions for the batch file in octal format (e.g., 700)',
         cast_as=FilePermissions,
         formatter=PermissionOctal,
     )
-    compute_site: ComputeSite = Option(
-        default_factory=lambda: ComputeSite(settings.jobs.compute_site), desc='Compute site', cast_as=ComputeSite
+    compute_site: Optional[ComputeSite] = Option(
+        default=None,
+        desc="Compute site (default: the one the job's dependencies set in the settings, else jobs.compute_site)",
     )
-    dependencies: set[str] = Option(default_factory=set, desc='List of dependencies required for this batch job')
-    default_shell: Optional[Shell] = Option(default=None, desc='Default shell to use for batch execution')
+    default_shell: Optional[Shell] = Option(
+        default=None,
+        desc="Shell to use for batch execution (default: the one the job's dependencies set in the settings, else "
+        "the compute site's, else the system's)",
+    )
     templates: dict[Shell, str] = Option(
         default_factory=dict, desc='Templates for the content of the batch file for different shells'
     )
-    resources: ResourcesConfig = Option(default_factory=ResourcesConfig, desc='Resources required for the batch job')
-
-    _shell: Shell | None = PrivateAttr(None)
-    """The shell that will be used to execute the batch file"""
-
-    @model_validator(mode='after')
-    def _determine_shell(self):
-        compute_site = ComputeSite(self.compute_site).get()
-        # Set the default shell if not provided
-        if self._shell is None:
-            if not compute_site.supported_shells:
-                # If the compute site doesn't have any requirements, use the default
-                #  from the job
-                self._shell = self.default_shell
-            elif not self.compatible_shells:
-                # If the job doesn't have any compatible shells, use the default one
-                self._shell = compute_site.default_shell
-            else:
-                # Both job and compute site specify compatible shells
-                common = self.compatible_shells & set(compute_site.supported_shells)
-                if self.default_shell in common:
-                    # Choose the default shell if it is supported by both
-                    self._shell = self.default_shell
-                elif common:
-                    # Otherwise, choose one of the common shells
-                    self._shell = next(iter(common))
-
-            # If still no shell is found
-            if self._shell is None:
-                # Workaround to ensure that we get the actual underlying shell saved
-                self._shell = Shell(Shell.DEFAULT.get().name)
-        elif not isinstance(self._shell, Shell):
-            raise ValueError(f'`_shell` must be an instance of {Shell.__name__}')
-
-        # Raise warnings for incompatible shells
-        if self.compatible_shells and self._shell not in self.compatible_shells:
-            raise RuntimeError(
-                f'Incompatible shell selected: {self._shell}. Compatible shells are: {self.compatible_shells}'
-            )
-        if not compute_site.is_valid_shell(self._shell):
-            logger.warning('Shell %s is not supported by compute site %s', self._shell, self.compute_site)
-
-        # Ensure _shell is a Shell enum
-        self._shell = Shell(self._shell)
-
-        # Model validators must return self
-        return self
+    arguments: list[str] = Option(
+        default_factory=list, desc='Arguments of the batch file on its command line, each passed as one argument'
+    )
+    site_resources: SiteResources = Option(
+        default_factory=SiteResources, desc='Resources that the batch job asks of its compute site'
+    )
 
     @property
     def compatible_shells(self) -> set[Shell]:
@@ -175,25 +166,31 @@ class BatchJobConfig(JobConfig):
             return set()
         return set(self.templates.keys())
 
-    @computed_field
-    @property
-    def shell(self) -> Shell:
+    def select_site_and_shell(
+        self, dependencies: Iterable[DependencySettings | str] | None = None
+    ) -> tuple[ComputeSiteType, ShellType]:
         """
-        Returns the underlying Shell that will be used to execute the batch file.
-        """
-        return self._shell
+        The compute site and shell that run this batch job, from the configuration (``compute_site``,
+        ``default_shell``, the shells of the ``templates``) and the job's dependencies (see
+        :func:`~xtl.jobs.dependencies.select_site_and_shell`).
 
-    @field_serializer('shell')
-    def _serialize_shell(self, shell: Shell, _info) -> str:
-        return shell.value
+        :param dependencies: Names or settings of the job's dependencies.
+        :raises DependencyError: If the dependencies ask for different compute sites, shells or policies.
+        :raises ValueError: If the shell asked for isn't one that the site and the templates allow.
+        """
+        from xtl.jobs.dependencies import select_site_and_shell
 
-    @computed_field
-    @property
-    def file(self) -> Path:
+        return select_site_and_shell(
+            dependencies, compute_site=self.compute_site, default_shell=self.default_shell, shells=self.templates
+        )
+
+    def get_file(self, shell: ShellType) -> Path:
         """
-        Returns the Path object for the batch file.
+        The path of the batch file in a shell: the job directory, the ``filename`` and the shell's extension.
+
+        :param shell: The shell.
         """
-        return self.job_directory / f'{self.filename}{self.shell.get().batch_extension}'
+        return self.job_directory / f'{self.filename}{shell.batch_extension}'
 
     @computed_field
     @property
@@ -217,23 +214,38 @@ class BatchJobConfig(JobConfig):
             f = f'{self.filename}.{f}'
         return self.job_directory / f
 
-    def get_batch(self, context: dict = None) -> 'BatchFile':
+    def get_batch(
+        self,
+        context: dict = None,
+        dependencies: Iterable[DependencySettings | str] | None = None,
+        compute_site: Optional[ComputeSiteType] = None,
+        shell: Optional[ShellType] = None,
+    ) -> 'BatchFile':
         """
-        Returns a preconfigure BatchFile instance.
+        A batch file for this configuration, with the template of its shell rendered.
 
         :param context: Optional dictionary of additional context variables to be used when rendering the batch file
             template.
+        :param dependencies: Names or settings of the job's dependencies, set up and guarded in the preamble.
+        :param compute_site: The compute site, if already chosen; otherwise chosen with the shell (see
+            :meth:`select_site_and_shell`).
+        :param shell: The shell, if already chosen (together with ``compute_site``).
         """
         from xtl.jobs.batchfiles import BatchFile
 
-        batch = BatchFile.from_config(self, context=context)
-        return batch
+        if compute_site is None or shell is None:
+            compute_site, shell = self.select_site_and_shell(dependencies)
+        return BatchFile.from_config(
+            self, context=context, compute_site=compute_site, shell=shell, dependencies=dependencies
+        )
 
-    def get_template(self) -> Optional[str]:
+    def get_template(self, shell: Shell | ShellType) -> Optional[str]:
         """
-        Get the template for the content of the batch file for the selected shell.
+        The template for the content of the batch file in a shell, if there is one.
+
+        :param shell: The shell.
         """
-        return self.templates.get(self.shell, None)
+        return self.templates.get(Shell(shell.name) if not isinstance(shell, str) else Shell(shell), None)
 
     def get_context(self) -> dict:
         """
@@ -250,7 +262,7 @@ class BatchJobConfig(JobConfig):
             args.append(f'--job-name={self.name}')
         if self.description:
             args.append(f'--comment={self.description}')
-        args.extend(self.resources.to_slurm())
+        args.extend(self.site_resources.to_slurm())
         args.append(f'--output={self.stdout}')
         args.append(f'--error={self.stderr}')
         return args

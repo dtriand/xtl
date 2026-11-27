@@ -1,15 +1,8 @@
 import abc
-from enum import Enum
 from pathlib import Path
 from typing import TypeVar, Generic, Dict, List, Set, Type
 
-from xtl.common.compatibility import PY310_OR_LESS
-
-if PY310_OR_LESS:
-
-    class StrEnum(str, Enum): ...
-else:
-    from enum import StrEnum
+from xtl_core.system.compatibility.py310 import StrEnum
 
 
 # Type variables for generic typing

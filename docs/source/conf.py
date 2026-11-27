@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import atexit
+import builtins
 import importlib
 import inspect
 import os
@@ -10,6 +11,8 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+
+from sphinx import addnodes
 
 sys.path.insert(0, os.path.abspath('.'))  # for custom lexers and extensions
 sys.path.insert(0, os.path.abspath('../../src'))  # for xtl
@@ -49,6 +52,7 @@ extensions = [
     'sphinxcontrib.autodoc_pydantic',  # Pydantic models autodoc
     'sphinx_design',  # Tabs, cards, ...
     'shell_tabs',  # Shell-specific commands as tabs (local)
+    'settings_tables',  # Tables generated from the settings (local)
 ]
 
 templates_path = ['_templates']
@@ -67,6 +71,7 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
     'pydantic': ('https://docs.pydantic.dev/latest/', None),
+    'python': ('https://docs.python.org/3', None),
     'rich': ('https://rich.readthedocs.io/en/stable/', None),
 }
 
@@ -95,19 +100,39 @@ favicons = [
     'favicon-16x16.png',
 ]
 
-# Add custom JavaScript to all pages
+# Add custom JavaScript and CSS to all pages
 html_js_files = [
     'js/version-selector.js',
+    'js/checklist.js',
 ]
+html_css_files = [
+    'css/checklist.css',
+]
+
+
+_BUILTIN_TYPES = {name for name, obj in vars(builtins).items() if isinstance(obj, type)}
+
+
+def _link_builtins_to_python(app, doctree):
+    """
+    Link builtin types in annotations (e.g. ``tuple``) to Python's docs. Sphinx otherwise
+    looks for them among our objects too, and finds members of the same name (e.g.
+    ``FilePermissions.tuple``).
+    """
+    for node in doctree.findall(addnodes.pending_xref):
+        if node.get('refdomain') == 'py' and node.get('reftype') == 'class' and node['reftarget'] in _BUILTIN_TYPES:
+            for attribute in ('refspecific', 'py:module', 'py:class'):
+                node.attributes.pop(attribute, None)
 
 
 def setup(sphinx):
     """
-    Register custom lexers
+    Register custom lexers, and link builtin types to Python's docs
     """
     import lexers
 
     sphinx.add_lexer('csv', lexers.CsvLexer)
+    sphinx.connect('doctree-read', _link_builtins_to_python)
 
 
 # -- Options for linkcode extension ----------------------------------------
@@ -161,8 +186,8 @@ def linkcode_resolve(domain, info):
         # Convert to POSIX path for URLs (always uses forward slashes)
         filepath = rel_path.as_posix()
 
-        # Only link to source files within the project
-        if not str(filepath).startswith('src'):
+        # Only link to source files within the project (xtl and xtl-core)
+        if not filepath.startswith(('src/', 'packages/xtl-core/src/')):
             return None
     except ValueError:
         # This happens when the file is not within the project directory

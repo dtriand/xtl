@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import pytest
-import toml
 
-from tests.cli.config.conftest import INVALID, VALID, defaults
+from tests.cli.config.conftest import INVALID, VALID, defaults, loads
 from xtl.config.settings import XTLSettings
 
 
@@ -13,7 +12,7 @@ class TestCreate:
         assert result.exit_code == 0, result.output
         assert locs.files() == {Path('cwd/xtl.toml')}
         assert 'from the default settings (no config file found)' in result.stdout
-        assert toml.loads(locs.local.read_text(encoding='utf-8')) == defaults()
+        assert loads(locs.local.read_text(encoding='utf-8')) == defaults()
         assert XTLSettings.check_file(locs.local) == ([], [])
         # The new file is the active one: no notes
         assert 'Note:' not in result.stdout
@@ -83,14 +82,14 @@ class TestCreate:
         locs.write(locs.local, VALID)
         result = cli('create', '--clean', '--force', writes=True)
         assert result.exit_code == 0, result.output
-        assert toml.loads(locs.local.read_text(encoding='utf-8')) == defaults()
+        assert loads(locs.local.read_text(encoding='utf-8')) == defaults()
 
     def test_copies_active(self, cli, locs):
         locs.write(locs.user, VALID + 'colour = "blue"\n')
         result = cli('create', writes=True)
         assert result.exit_code == 0, result.output
         assert 'from the user config' in result.stdout
-        data = toml.loads(locs.local.read_text(encoding='utf-8'))
+        data = loads(locs.local.read_text(encoding='utf-8'))
         assert data['units'] == {'temperature': 'K'}  # unknown keys dropped
         assert data == defaults() | {'units': {'temperature': 'K'}}
 
@@ -99,7 +98,7 @@ class TestCreate:
         result = cli('create', '--clean', writes=True)
         assert result.exit_code == 0, result.output
         assert 'from the default settings' in result.stdout
-        assert toml.loads(locs.local.read_text(encoding='utf-8')) == defaults()
+        assert loads(locs.local.read_text(encoding='utf-8')) == defaults()
 
     def test_invalid_active(self, cli, locs):
         locs.write(locs.user, INVALID)

@@ -11,23 +11,18 @@ import rich.text
 import rich.theme
 from typer import BadParameter
 
-from xtl.logging.config import LoggerConfig
-from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, JOB_POOL_TYPES
-from xtl.common.compatibility import PY310_OR_LESS
+from xtl.jobs.logging import JobFileHandlerConfig, LoggerConfig
+from xtl.jobs.pools import PoolProtocol, JobPool, BasePool, PoolType
+from xtl.jobs.results import JobStatus
+from xtl_core.system.compatibility.py310 import Self
 from xtl.tui.highlighters import JobHighlighter, PoolHighlighter
-from xtl.tui.logging.handlers import BufferingHandler, LoggerHandlerPatcher
+from xtl.tui.logging.handlers import BufferingHandler
 from xtl.tui.renderers import LogRenderer
 from xtl.tui.progress import ProgressBar
 from xtl.tui.styles import JOB_STYLES
 
-if PY310_OR_LESS:
-    from typing_extensions import Self
-else:
-    from typing import Self
-
 if TYPE_CHECKING:
     from xtl.jobs import Job, JobConfig
-    from xtl.jobs.results import JobResults
     from xtl.tui.console import ConsoleIO
 
 
@@ -43,11 +38,12 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
 
         success = int(task.fields.get('success', 0))
         failed = int(task.fields.get('failed', 0))
+        running = int(task.fields.get('running', 0))
+        text = f'[dim]({running:{fmt}} running)[/dim] ' if running else ''
         if (success + failed != completed) or (completed == 0):
             # Assume the fields are not getting updated properly
-            text = f'[dim]{completed}{self._sep}{total}[/dim]'
+            text += f'[dim]{completed}{self._sep}{total}[/dim]'
         else:
-            text = ''
             if success:
                 text += f'[green]{success:{fmt}}[/green][dim]{self._sep}[/dim]'
             if failed:
@@ -58,9 +54,16 @@ class JobOverviewColumn(rich.progress.ProgressColumn):
 
 
 class PoolProgress(ProgressBar):
-    def __init__(self, *, console: 'ConsoleIO') -> None:
+    def __init__(self, *, console: 'ConsoleIO', pool: BasePool) -> None:
+        """
+        A progress bar of a pool's jobs, drawn from the pool's job counts each time it is rendered.
+
+        :param console: The console to render the bar in.
+        :param pool: The pool whose jobs to show.
+        """
         # Setting transient=False, since it's managed by the Live instance
         super().__init__(console=console, transient=False)
+        self._pool = pool
 
         # Expand the BarColumn to the console width
         col: rich.progress.BarColumn = self.columns[2]  # type: ignore
@@ -73,6 +76,7 @@ class PoolProgress(ProgressBar):
             description='Waiting for jobs...',
             success=0,
             failed=0,
+            running=0,
         )
 
     @classmethod
@@ -90,20 +94,23 @@ class PoolProgress(ProgressBar):
         self._job_task.description = 'Running jobs'
         self._job_task.start()
 
-    def complete_job(self, result: 'JobResults'):
-        self._job_task.advance(1)
-        if result.success:
-            self._job_task.advance(1, field='success')
-        else:
-            self._job_task.advance(1, field='failed')
+    def sync(self) -> None:
+        """
+        Update the bar from the pool's job counts. Called on every render, from the display's thread.
+        """
+        counts = self._pool.counts()
+        failed = counts[JobStatus.FAILED] + counts[JobStatus.CANCELLED]
+        self._job_task.update(
+            total=sum(counts.values()) or None,
+            completed=counts[JobStatus.DONE] + failed,
+            success=counts[JobStatus.DONE],
+            failed=failed,
+            running=counts[JobStatus.RUNNING],
+        )
 
-    @property
-    def total(self) -> float | None:
-        return self._job_task.total
-
-    @total.setter
-    def total(self, total: float) -> None:
-        self._job_task.total = total
+    def __rich__(self):
+        self.sync()
+        return super().__rich__()
 
     @property
     def description(self) -> str:
@@ -164,7 +171,7 @@ class LivePool(PoolProtocol):
     def __init__(
         self,
         console: 'ConsoleIO',
-        pool_type: JobPool | JOB_POOL_TYPES | None = None,
+        pool_type: PoolType | None = None,
         max_jobs: int = 1,
         progress: bool = True,
     ) -> None:
@@ -184,45 +191,44 @@ class LivePool(PoolProtocol):
         self._buffer_size = min(20, max(10, self._console.height - 8))
         self._buffer = BufferingHandler(tail_size=self._buffer_size)
 
-        # Log formatting
+        # Log formatting: names relative to the pool, or the full logger names when debugging
         if settings.jobs.threading_debug:
             log_fmt = '[%(name)s<%(processName)s:%(threadName)s>] %(message)s'
-        else:
+        elif self._console.verbose >= 2:
             log_fmt = '[%(name)s] %(message)s'
+        else:
+            log_fmt = '[%(job)s] %(message)s'
 
         # Rich components
         self._log_panel = LogPanel(console=self._console, handler=self._buffer, title='Job logs', log_fmt=log_fmt)
-        self._progress = (
-            PoolProgress(
-                console=self._console,
-            )
-            if progress
-            else None
-        )
+        self._pool = self._create_pool(pool_type, max_jobs)
+        self._progress = PoolProgress(console=self._console, pool=self._pool) if progress else None
         self._live: rich.live.Live | None = None
 
-        # Pool and loggers
-        self._pool = self._create_pool(pool_type, max_jobs)
-        self._patcher = LoggerHandlerPatcher(handler=self._buffer)
+        # Loggers
+        self._root_handlers: list[logging.Handler] | None = None  # Managed by _install_buffer and _remove_buffer
 
-        # Job submissions
-        self._tasks: dict[str, str] = {}
-        self._results = []
-
-    def _create_pool(self, pool_type: JobPool | JOB_POOL_TYPES | None = None, max_jobs: int = 1) -> BasePool:
+    def _create_pool(self, pool_type: PoolType | None = None, max_jobs: int = 1) -> BasePool:
         """
         Create a preconfigured job pool.
 
         :param pool_type: The type of the pool to use. If None, a simple pool is created.
         :param max_jobs: The maximum number of jobs to run concurrently in the pool.
         """
+        from xtl import settings
+
         logger_config = LoggerConfig(
             level=logging.DEBUG if self._console.debug else logging.INFO, propagate=False, handlers=[]
         )
         if pool_type is None:
             pool_type = JobPool.SIMPLE
         pool_cls = JobPool(pool_type).get()
-        return pool_cls(name='root', max_jobs=max_jobs, logger_config=logger_config, job_logger_config=logger_config)
+        pool = pool_cls(max_jobs=max_jobs, logger_config=logger_config)
+
+        # Each job keeps a log file in its directory, which stays if the job fails
+        if settings.cli.job_log_files:
+            pool.add_job_handler(JobFileHandlerConfig(), name='file')
+        return pool
 
     async def __aenter__(self) -> Self:
         from xtl import settings
@@ -247,8 +253,14 @@ class LivePool(PoolProtocol):
         # Install special buffer handler for redirecting logs
         self._install_buffer()
 
-        # Enter the actual pool
-        await self._pool.__aenter__()
+        # Enter the actual pool; if it can't start, undo the display, the buffer and the theme
+        try:
+            await self._pool.__aenter__()
+        except BaseException:
+            live.stop()
+            self._remove_buffer()
+            self._console.pop_theme()
+            raise
 
         # Resources allocation
         #  NB: This is only available from within the pool context
@@ -263,32 +275,37 @@ class LivePool(PoolProtocol):
         # Check if the exit was caused by Ctrl+C
         interrupted = bool(exc_type and issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)))
 
-        # Check for job errors
-        job_errors = self._results and any(r.error for r in self._results)
-
         suppressed = False
         try:
-            # Stop rich.Live and clear output
-            if live := self._live:
-                live.stop()
+            # The pool stops its running jobs, which can take a while: say so at once, and keep the display up
+            #  meanwhile, with the jobs' messages
+            if interrupted:
+                self._console.print('Ctrl+C received: stopping the running jobs...', style='yellow')
+            if exc_val and self._progress:
+                self._progress.description = 'Cancelling jobs'
 
-            # Replay logs if there were any errors on the jobs
+            # Let the pool exit, then stop rich.Live and clear output
+            try:
+                suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
+            finally:
+                if live := self._live:
+                    live.stop()
+
+            # Replay logs if there were any errors on the jobs; asked once the jobs have stopped, so that nothing else
+            #  competes for the console
+            job_errors = self._pool.counts()[JobStatus.FAILED] > 0
             if exc_val or job_errors:
                 self._console.print('An error occurred while executing jobs', style='red')
                 if not self._console.is_terminal or self._console.confirm(
                     'Would you like to print the job logs?', default=True
                 ):
                     self._replay_logs()
-
-            # Let the pool exit normally
-            suppressed = await self._pool.__aexit__(exc_type, exc_val, exc_tb)
         finally:
             # Empty the handler's buffer
             self._buffer.clear()
 
-            # Restore patched loggers
-            self._patcher.restore()
-            self._patcher.remove_handler()
+            # Detach the buffer and give the root logger back its handlers
+            self._remove_buffer()
 
             # Remove console theme
             self._console.pop_theme()
@@ -302,24 +319,30 @@ class LivePool(PoolProtocol):
 
     def _install_buffer(self) -> None:
         """
-        Install a buffering logging handler and patch all available loggers
+        Collect the records of the pool, its jobs and their steps in the buffer, and, for as long as the live
+        display runs, also the records that reach the root logger (e.g. warnings from libraries), in place of the
+        root's own handlers, which would print over the display.
         """
-        manager = logging.root.manager
+        self._pool.add_handler(self._buffer)
 
-        # Grab the default logger
-        all_loggers = [logging.getLogger()]
+        root = logging.getLogger()
+        self._root_handlers = list(root.handlers)
+        for handler in self._root_handlers:
+            root.removeHandler(handler)
+        root.addHandler(self._buffer)
 
-        # Also grap every other registered logger
-        for logger in manager.loggerDict.values():
-            if isinstance(logger, logging.Logger):
-                all_loggers.append(logger)
+    def _remove_buffer(self) -> None:
+        """
+        Undo :meth:`_install_buffer`: detach the buffer, and give the root logger back its handlers, in their order.
+        """
+        self._pool.remove_handler(self._buffer)
 
-        # Patch all loggers
-        self._patcher.patch(*all_loggers)
-
-        # Patch the default logger getter to ensure consistency with any loggers
-        #  that will be spawned in the future
-        logging.getLogger = self._patcher.patched_getLogger
+        root = logging.getLogger()
+        root.removeHandler(self._buffer)
+        if self._root_handlers is not None:
+            for handler in self._root_handlers:
+                root.addHandler(handler)
+            self._root_handlers = None
 
     def _replay_logs(self) -> None:
         """
@@ -336,58 +359,34 @@ class LivePool(PoolProtocol):
         self,
         job_cls: Type['Job'],
         configs: Union['JobConfig', None, Iterable[Union['JobConfig', None]]] = None,
-        **kwargs,
+        *,
+        job_ids: Iterable[str | None] | None = None,
     ) -> list['Job']:
         """
         Submit one or more jobs to the pool.
 
         :param job_cls: Job class to submit to.
         :param configs: Job configs to iterate over.
-        :param kwargs: Extra keyword arguments to pass to the underlying pool's `.submit` method.
+        :param job_ids: Optional, the IDs of the submitted jobs, as for the pool's `submit()`.
         """
-        jobs = self._pool.submit(job_cls, configs=configs, **kwargs)
-
-        for job in jobs:
-            self._tasks[job.job_id] = job.__class__.__name__
-
-        # Update progress bar
-        if self._progress:
-            # Count total tasks, not just the jobs currently submitted
-            self._progress.total = len(self._tasks)
-
-        return jobs
+        return self._pool.submit(job_cls, configs=configs, job_ids=job_ids)
 
     async def launch(self, mode: Literal['all', 'stream'] = 'all'):
         """
-        Launch all submitted jobs and track their progress.
+        Launch the jobs submitted since the last launch, as the pool does; the progress bar follows the pool's job
+        status.
 
-        :param mode: Whether to return all results together (`'all'`) or yield them as each job completes (`'stream'`).
+        :param mode: Whether to return all results together, in submission order (`'all'`), or yield them as each job
+            completes (`'stream'`).
         """
         if mode not in ['all', 'stream']:
             raise BadParameter("`mode` must be one of: 'all', 'stream'")
 
         # Start progress bar
         if self._progress:
-            self._progress.total = len(self._tasks)
             self._progress.start()
 
-        if mode == 'stream':
-            return self._launch_stream()
-        return await self._launch_all()
-
-    async def _launch_all(self):
-        # NB: Internally we stream the results, so that we can update the
-        #  progress bar accordingly
-        async for _ in self._launch_stream():
-            pass
-        return self._results
-
-    async def _launch_stream(self):
-        async for result in await self._pool.launch(mode='stream'):
-            if self._progress:
-                self._progress.complete_job(result)
-            self._results.append(result)
-            yield result
+        return await self._pool.launch(mode)
 
     def get_lock(self, name: str | None = None):
         return self._pool.get_lock(name)

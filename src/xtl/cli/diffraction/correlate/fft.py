@@ -75,7 +75,7 @@ def cli_diffraction_correlate_fft(
         selection = RadialValue(value=selection_q, kind=RadialUnits.Q_NM)
 
     # Load CCF data
-    from xtl.exceptions.utils import Catcher
+    from xtl.cli.utils import Catcher
     from xtl.files.npx import NpxFile
 
     with Catcher(echo_func=cli.print, traceback_func=cli.print_traceback) as catcher:

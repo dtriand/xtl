@@ -58,8 +58,6 @@ def pdbapi(ctx: click.core.Context, argopts):
     """
 
     if not argopts:
-        # from xtl.cli.gsas2_commands import cli_gsas
-        # print(cli_gsas.get_help(ctx))
         print(ctx.get_help())
         return
 

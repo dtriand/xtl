@@ -10,7 +10,7 @@ import tempfile
 
 import pytest
 
-from xtl.common.compatibility import OS_POSIX, OS_WINDOWS
+from xtl_core.system.compatibility import OS_POSIX, OS_WINDOWS
 
 CACHE_DIR = Path(__file__).parent / 'cache'
 
@@ -42,6 +42,69 @@ def pytest_configure(config):
 def pytest_unconfigure(config):
     if _SETTINGS_DIR is not None:
         shutil.rmtree(_SETTINGS_DIR, ignore_errors=True)
+
+
+def network_outage(error: BaseException) -> str | None:
+    """
+    Why a test that needs the network is skipped, for an error that is the network's or the server's fault (no
+    connection, a timeout, a 5xx or 429 response), or `None` for an error that is ours (e.g. a 404 or a wrong answer).
+    """
+    import requests
+
+    if isinstance(error, (requests.ConnectionError, requests.Timeout)):
+        return f'Network unavailable: {error}'
+    if isinstance(error, requests.HTTPError) and error.response is not None:
+        if error.response.status_code >= 500 or error.response.status_code == 429:
+            return f'Server unavailable: {error}'
+    return None
+
+
+def _skip_network_outages(item):
+    try:
+        return (yield)
+    except Exception as error:
+        if item.get_closest_marker('requires_network') and (reason := network_outage(error)):
+            pytest.skip(reason)
+        raise
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_setup(item):
+    # Fixtures that download what their tests need
+    return (yield from _skip_network_outages(item))
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item):
+    return (yield from _skip_network_outages(item))
+
+
+@pytest.fixture(autouse=True, scope='session')
+def _temp_dirs(tmp_path_factory):
+    """
+    Temporary directories that the code under test creates and leaves behind (e.g. the
+    default job directory of a batch job config, or the CLIs' job directories) go under
+    one directory for the session, removed at its end. The environment variables are for
+    subprocesses, e.g. the workers of a pool.
+
+    The directory is short and directly in the system's temporary directory, not under
+    pytest's: `multiprocessing` makes its sockets in it, and macOS limits their paths to
+    104 bytes (`/var/folders/<..>/T/` is 49, `xtl-tests-<8>/pymp-<8>/listener-<8>` 44).
+    """
+    # pytest makes its base directory on first use: before the switch, so it stays in the system's (and keeps the
+    # directories of failed tests)
+    tmp_path_factory.getbasetemp()
+    original = tempfile.tempdir
+    directory = tempfile.mkdtemp(prefix='xtl-tests-')
+    tempfile.tempdir = directory
+    try:
+        with pytest.MonkeyPatch.context() as mp:
+            for name in ('TMPDIR', 'TEMP', 'TMP'):
+                mp.setenv(name, directory)
+            yield
+    finally:
+        tempfile.tempdir = original
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 @pytest.fixture(scope='session', params=[f'{random.randint(0, 9999):04d}' for _ in range(0, 3)])

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from xtl.common.options import Option
+from xtl_core.options import Option
 from xtl.jobs import SteppedJob, SteppedJobConfig, StepSpec
 from xtl.math.jobs.clustering import CliqueSearchJob, CliqueSearchJobConfig
 from xtl.scattering.jobs.atsas import DatcmpBatchJob, DatcmpBatchJobConfig
