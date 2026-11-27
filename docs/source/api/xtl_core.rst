@@ -19,4 +19,4 @@ Submodules
    xtl_core.system
    xtl_core.options
    xtl_core.containers
-   xtl_core.version
+   xtl_core.version_info

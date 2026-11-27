@@ -31,8 +31,9 @@ __all__ = [
 ]
 
 
-CPU_CORES: int | None = os.cpu_count()
-"""Number of CPU cores available on the system, used for parallel job execution."""
+CPU_CORES: int = os.cpu_count() or 1
+"""Number of CPU cores available on the system, used for parallel job execution (1 if
+it can't be determined)."""
 
 
 def get_os_name_and_version() -> str:

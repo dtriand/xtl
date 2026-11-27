@@ -7,7 +7,7 @@ as the first argument of ``VersionInfo.from_str()``, in single quotes, in its PE
 form (hatch writes it into the package metadata as is).
 """
 
-from xtl_core.version import VersionInfo
+from xtl_core.version_info import VersionInfo
 
 version = VersionInfo.from_str('0.2.0.dev0', date_str='01/06/2025')  # serial < 16
 """XTL version information"""

@@ -19,7 +19,7 @@ from xtl.jobs.dependencies import DependencyCheck, site_key
 from xtl.jobs.sites import ComputeSite as ComputeSite2
 from xtl.jobs.shells import Shell
 from xtl.jobs.policies import CommandPolicy
-from xtl_core.version import VersionInfo
+from xtl_core.version_info import VersionInfo
 from xtl.shared.environment import XTL_CONFIG
 from xtl_core.system.os import CPU_CORES
 from xtl_core.system.os.permissions import FilePermissions

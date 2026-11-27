@@ -14,7 +14,7 @@ import tomlkit
 
 from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.options.exceptions import OptionsValidationError
-from xtl_core.version import VersionInfo
+from xtl_core.version_info import VersionInfo
 
 
 def versioned_model(current: str | None = '3.0.0', path: str = 'version') -> type[VersionedOptions]:

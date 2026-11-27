@@ -17,7 +17,7 @@ from typing import Any, ClassVar, Callable, TypeVar, overload
 from typing_extensions import Self
 
 from xtl_core.options.base import Options
-from xtl_core.version import VersionInfo
+from xtl_core.version_info import VersionInfo
 from xtl_core.utils.docs import extend_docstring
 
 

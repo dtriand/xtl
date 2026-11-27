@@ -1,4 +1,5 @@
 import getpass
+import importlib
 import os
 import platform
 import sys
@@ -11,8 +12,17 @@ from xtl_core.system import os as xtl_os
 from xtl_core.system.os import CPU_CORES, get_os_name_and_version, get_temp_location, get_username, is_temp
 
 
-def test_cpu_cores():
-    assert CPU_CORES == os.cpu_count()
+class TestCpuCores:
+    def test_count(self):
+        assert CPU_CORES == os.cpu_count()
+
+    def test_one_when_unknown(self, monkeypatch):
+        monkeypatch.setattr(os, 'cpu_count', lambda: None)
+        try:
+            assert importlib.reload(xtl_os).CPU_CORES == 1
+        finally:
+            monkeypatch.undo()
+            importlib.reload(xtl_os)
 
 
 class TestGetOsNameAndVersion:

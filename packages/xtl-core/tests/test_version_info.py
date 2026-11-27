@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from xtl_core.version import ReleaseLevel, VersionInfo
+from xtl_core.version_info import ReleaseLevel, VersionInfo
 
 
 def _v(major=1, minor=2, micro=3, level=ReleaseLevel.FINAL, serial=0, date=None):

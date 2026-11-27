@@ -419,7 +419,7 @@ ordinary field whose default is the current version, so that saved data always c
        last_name: str = Option(default=None)
        level: str = Option(default='junior', choices=['junior', 'senior'], alias='job_level')
 
-Versions are written as ``'X.Y.Z'`` strings (or :class:`VersionInfo <xtl_core.version.VersionInfo>` objects) and are
+Versions are written as ``'X.Y.Z'`` strings (or :class:`VersionInfo <xtl_core.version_info.VersionInfo>` objects) and are
 compared on their major, minor and micro parts only, so ``'2.0.0.dev0'`` counts as ``'2.0.0'``.
 
 Writing upgrade steps

@@ -55,7 +55,9 @@ lint = [
 ]
 
 [tool.hatch.version]
-path = "src/xtl_core/_version.py"
+source = "regex"
+path = "src/xtl_core/__init__.py"
+pattern = '''VersionInfo\.from_str\('(?P<version>[^']+)'''
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xtl_core"]

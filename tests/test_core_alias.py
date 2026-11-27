@@ -16,11 +16,11 @@ def test_core_is_xtl_core():
 
 
 def test_submodules_are_the_same():
-    import xtl.core._version
-    import xtl_core._version
+    import xtl.core.version_info
+    import xtl_core.version_info
 
-    assert xtl.core._version is xtl_core._version
-    assert xtl.core._version.__name__ == 'xtl_core._version'
+    assert xtl.core.version_info is xtl_core.version_info
+    assert xtl.core.version_info.__name__ == 'xtl_core.version_info'
 
 
 def test_from_import():

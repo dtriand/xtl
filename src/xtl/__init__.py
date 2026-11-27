@@ -8,7 +8,7 @@ from .config.version import version
 
 if TYPE_CHECKING:
     from .config.settings import XTLSettings
-    from xtl_core.version import VersionInfo
+    from xtl_core.version_info import VersionInfo
 
 # Libraries only add a `NullHandler`; applications configure handlers, levels and formats
 logger = logging.getLogger(__name__)

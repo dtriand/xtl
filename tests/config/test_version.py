@@ -6,7 +6,7 @@ import pytest
 
 import xtl
 from xtl.config.version import version
-from xtl_core.version import VersionInfo
+from xtl_core.version_info import VersionInfo
 
 ROOT = Path(__file__).parents[2]
 
