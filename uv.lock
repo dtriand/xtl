@@ -335,6 +335,20 @@ wheels = [
 ]
 
 [[package]]
+name = "colorspacious"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/75/e4/aa41ae14c5c061205715006c8834496d86ec7500f1edda5981f0f0190cc6/colorspacious-1.1.2.tar.gz", hash = "sha256:5e9072e8cdca889dac445c35c9362a22ccf758e97b00b79ff0d5a7ba3e11b618", size = 688573, upload-time = "2018-04-08T04:27:30.83Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/a1/318b9aeca7b9856410ededa4f52d6f82174d1a41e64bdd70d951e532675a/colorspacious-1.1.2-py2.py3-none-any.whl", hash = "sha256:c78befa603cea5dccb332464e7dd29e96469eebf6cd5133029153d1e69e3fd6f", size = 37735, upload-time = "2018-04-08T04:27:22.143Z" },
+]
+
+[[package]]
 name = "contourpy"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2972,6 +2986,54 @@ wheels = [
 ]
 
 [[package]]
+name = "numpydantic"
+version = "1.10.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/5c/0cfed22c6483338c73d2faf182d863c47836e5f8f34e65b70aea345e7b72/numpydantic-1.10.0.tar.gz", hash = "sha256:a17d5ccc3b893c4a2e539c81c2f18960d70884ad7fcaa09c9eb56a95e8daf4a3", size = 98771, upload-time = "2026-06-22T22:04:46.251Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/15/0dd8e1ff306f97bee18a3ef024bb694f9043ee57474c57f7330f90804cae/numpydantic-1.10.0-py3-none-any.whl", hash = "sha256:1c62a445d305da69a5fa4510f7e7e1c25218f58fe462e5d59548042f1f769e66", size = 101858, upload-time = "2026-06-22T22:04:44.918Z" },
+]
+
+[[package]]
+name = "numpydantic"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.14' and sys_platform == 'win32'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.11.5' and python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version >= '3.11' and python_full_version < '3.11.5' and sys_platform == 'win32'",
+    "python_full_version >= '3.11' and python_full_version < '3.11.5' and sys_platform == 'emscripten'",
+    "python_full_version >= '3.11' and python_full_version < '3.11.5' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+]
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9e/58/2e793ce9251635a1bef0e710d6d4edc942e8a8fee87101efdc7bce2d2293/numpydantic-2.0.0.tar.gz", hash = "sha256:453f79b6baa99ee7da9c93e5ca8ae3d27ec50f047017cd55837f0756f512165e", size = 121478, upload-time = "2026-11-06T01:35:51.815Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a7/4f/d94494727776a175def405c558b6fbaa1d66f0628df88c4aadaa10abd35f/numpydantic-2.0.0-py3-none-any.whl", hash = "sha256:244453a66fd138e0cceaac123edb6041be6d3b6a50ddcdb3b7b87de333860b03", size = 89063, upload-time = "2026-11-06T01:35:50.473Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -5155,6 +5217,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "click" },
+    { name = "colorspacious" },
     { name = "defusedxml" },
     { name = "distro" },
     { name = "f90nml" },
@@ -5168,6 +5231,8 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "numpydantic", version = "1.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpydantic", version = "2.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pint", version = "0.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -5240,6 +5305,7 @@ test = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0" },
     { name = "click", specifier = ">=8.4.1" },
+    { name = "colorspacious", specifier = ">=1.1.2" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "distro", specifier = ">=1.9.0" },
     { name = "f90nml", specifier = ">=1.5.0" },
@@ -5249,6 +5315,7 @@ requires-dist = [
     { name = "hdf5plugin", specifier = ">=6.0.0" },
     { name = "matplotlib", specifier = ">=3.10.9" },
     { name = "numpy", specifier = ">=2.2.6" },
+    { name = "numpydantic", specifier = ">=1.10.0" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pint", specifier = ">=0.24.4" },
     { name = "platformdirs", specifier = ">=4.0.0" },
