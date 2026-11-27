@@ -45,6 +45,7 @@ from xtl.jobs.steps import StepSpec
 from xtl.jobs.submissions import JobSubmission
 from xtl.jobs.shells import Shell
 from xtl_core.options import Option
+from xtl_core.system.compatibility import PY310_OR_LESS
 
 
 class Records(logging.Handler):
@@ -188,7 +189,13 @@ def run_ctrl_c_script(tmp_path: Path, script: str, *args: str, timeout: float = 
     Run a script that sends itself Ctrl+C, in a console or a session of its own, so that Ctrl+C reaches only the
     script and its processes; `ctrl_c()` is defined for it. A script that hangs prints the stacks of its threads, and
     is ended with its processes after `timeout` seconds, which fails the test with its output.
+
+    Skipped on Python 3.10, where the script may hang: ``asyncio.run()`` lets Ctrl+C raise ``KeyboardInterrupt``
+    anywhere in the event loop, also between a task's steps, which leaves that task waiting forever and cancellation
+    can't end it. A second Ctrl+C gets out. Since 3.11, ``asyncio.run()`` cancels the main task on Ctrl+C instead.
     """
+    if PY310_OR_LESS:
+        pytest.skip('Ctrl+C can leave a task waiting forever with asyncio on Python 3.10')
     ctrl_c = textwrap.dedent(
         f"""
         import ctypes, faulthandler, os, signal
