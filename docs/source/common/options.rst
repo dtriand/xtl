@@ -532,7 +532,8 @@ For a TOML file that people edit by hand, :meth:`upgrade_toml() <xtl_core.option
 keeps its comments and formatting: it takes the text, edits only what the steps changed (renamed or removed keys,
 changed values, which keep their inline comment) and sets the version, and returns the new text. New keys get their
 field's description as a comment. ``clean=True`` writes the upgraded data afresh instead, as
-``to_toml(comments=True)`` does:
+``to_toml(comments=True)`` does, and ``add_missing=True`` also adds the fields that the text doesn't have (fields
+without a TOML value as commented-out lines, ``# key = ...``):
 
 .. code-block:: python
 

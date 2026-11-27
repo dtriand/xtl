@@ -794,6 +794,11 @@ class TestLoadUpgrades:
 class Units(Options):
     length: str = Option(default='A', desc='Unit of length')
     energy: str = Option(default='eV', desc='Unit of energy')
+    note: str | None = Option(default=None, desc='A note')
+
+
+class Meta(Options):
+    author: str | None = Option(default=None, desc='Who measured it')
 
 
 def make_sample() -> type[VersionedOptions]:
@@ -808,6 +813,9 @@ def make_sample() -> type[VersionedOptions]:
         units: Units = Option(default_factory=Units, desc='Units of the values')
         more: Units | None = Option(default=None, desc='More units')
         tags: list[str] = Option(default_factory=list)
+        meta: Meta = Option(default_factory=Meta)
+        secret: str = Option(default='s', exclude=True)
+        note: str | None = Option(default=None, desc='About the sample')
 
     @Sample.upgrade_step(to='2.0.0')
     def step(data: dict) -> dict:
@@ -920,3 +928,64 @@ class TestUpgradeToml:
     def test_without_current_version(self):
         with pytest.raises(TypeError, match='does not define a `_current_version`'):
             versioned_model(None).upgrade_toml('')
+
+
+class TestUpgradeTomlAddMissing:
+    """Settings the text doesn't have are added with their descriptions; unset ones as commented-out lines."""
+
+    def add(self, text: str, **kwargs) -> str:
+        Sample = make_sample()
+        result = Sample.upgrade_toml(text, add_missing=True, **kwargs)
+        assert Sample.from_toml(result) == Sample.from_toml(text)
+        return result
+
+    def test_adds_what_is_missing(self):
+        result = self.add('version = "2.0.0"\nname = "x" # mine\n')
+        assert 'name = "x" # mine\n' in result
+        assert '[units] # Units of the values\n' in result
+        assert 'length = "A" # Unit of length\n' in result
+        assert 'tags = []\n' in result
+
+    def test_unset_as_commented_lines(self):
+        # Before the tables, in the table they belong to
+        result = self.add('version = "2.0.0"\nname = "x" # mine\n')
+        assert 'name = "x" # mine\ntags = []\n# more = ...  # More units\n# note = ...  # About the sample\n' in result
+        assert result.index('# more = ...') < result.index('[units]')
+        units = result[result.index('[units]') :]
+        assert '# note = ...  # A note\n' in units
+
+    def test_in_an_existing_table(self):
+        result = self.add('version = "2.0.0"\n\n[units]\nlength = "nm" # mine\n')
+        assert '[units]\nlength = "nm" # mine\nenergy = "eV" # Unit of energy\n# note = ...  # A note\n' in result
+
+    def test_same_key_in_a_sub_table(self):
+        # Regression: the sub-table's line for `note` counted as the parent's, which then got none
+        result = self.add('version = "2.0.0"\n[units]\nlength = "A"\n# note = ...\n')
+        assert result.count('# note = ...') == 2
+
+    def test_table_without_values(self):
+        # A table whose only setting is unset gets the line as a comment of its own
+        result = self.add('version = "2.0.0"\n')
+        assert '[meta]\n# author = ...  # Who measured it\n' in result
+
+    def test_excluded_fields_stay_out(self):
+        assert 'secret' not in self.add('version = "2.0.0"\n')
+
+    def test_twice_is_once(self):
+        once = self.add('version = "2.0.0"\nname = "x"\n')
+        assert self.add(once) == once
+
+    def test_complete_is_left_alone(self):
+        complete = self.add('version = "2.0.0"\n')
+        assert make_sample().upgrade_toml(complete, add_missing=True) == complete
+
+    def test_with_an_upgrade(self):
+        result = self.add('version = "1.0.0"\n[units]\nunit = "nm" # nano\n')
+        assert 'version = "2.0.0"' in result
+        assert 'length = "nm" # Unit of length\n' in result
+        assert '# note = ...  # A note\n' in result
+
+    def test_with_clean(self):
+        result = self.add('version = "1.0.0"\nname = "x" # mine\n', clean=True)
+        assert '# mine' not in result
+        assert '# more = ...  # More units\n' in result

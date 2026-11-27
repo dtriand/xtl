@@ -17,10 +17,12 @@ import typing
 from typing import Any, ClassVar, Callable, TypeVar, overload
 
 import tomlkit
+from tomlkit.container import Container
+from tomlkit.items import AoT, Table
 from typing_extensions import Self
 
-from xtl_core.options.base import Options
-from xtl_core.options.toml import toml_item, toml_scalar
+from xtl_core.options.base import _TOML_SKIP, Options
+from xtl_core.options.toml import comment_text, toml_item, toml_scalar
 from xtl_core.version_info import VersionInfo
 from xtl_core.utils.docs import extend_docstring
 
@@ -116,6 +118,59 @@ def _update_toml(container: MutableMapping, old: _Data, new: _Data, model: type[
         elif old[key] != value:
             # tomlkit keeps the replaced item's inline comment
             container[key] = toml_item(_plain(value))
+
+
+def _add_placeholder(container: Container | Table, key: str, description: str | None) -> None:
+    """
+    Add a commented-out line for a setting that has no value (``# key = ...  # description``), unless the container
+    has one already. It goes after the container's last value, so that it stays above any of its sub-tables
+    (``tomlkit`` adds comments at the end, after them), as part of that line's trailing text.
+    """
+    text = f'# {key} = ...' + (f'  # {comment_text(description)}' if description else '')
+    body = container.value.body if isinstance(container, Table) else container.body
+    # The container's own lines, before its sub-tables (which may have a line for the same key)
+    values, own = [], ''
+    for k, item in body:
+        if isinstance(item, (Table, AoT)):
+            break
+        if k is not None:
+            values.append(item)
+            own += item.trivia.trail
+        else:
+            own += item.as_string()
+    if own.startswith(f'# {key} = ') or f'\n# {key} = ' in own:
+        return
+    if not values:
+        container.add(tomlkit.comment(text[2:]))
+        return
+    trail = values[-1].trivia.trail
+    values[-1].trivia.trail = (trail if trail.endswith('\n') else trail + '\n') + text + '\n'
+
+
+def _add_missing(container: Container | Table, options: Options) -> None:
+    """
+    Add the fields of ``options`` that ``container`` doesn't have, with their values and descriptions, as
+    ``to_toml(comments=True)`` writes them; fields without a TOML value (``None``, unset) become commented-out lines.
+    Nested tables that are there get the same (not a table split across the file, which ``tomlkit`` gives as a
+    proxy).
+    """
+    model = type(options)
+    placeholders = []
+    for name, field in model.model_fields.items():
+        if field.exclude:
+            continue
+        key = model._toml_key(name, field)
+        value = getattr(options, name)
+        if key not in container:
+            item = model._value_to_toml(value, field=field, keep_comments=True, path=key)
+            if item is _TOML_SKIP:
+                placeholders.append((key, field.description))
+                continue
+            container[key] = item
+        if isinstance(value, Options) and isinstance(table := container[key], Table):
+            _add_missing(table, value)
+    for key, description in placeholders:
+        _add_placeholder(container, key, description)
 
 
 _UPGRADE_NOTE = (
@@ -409,7 +464,7 @@ class VersionedOptions(Options):
         return data
 
     @classmethod
-    def upgrade_toml(cls, s: str, /, *, clean: bool = False) -> str:
+    def upgrade_toml(cls, s: str, /, *, clean: bool = False, add_missing: bool = False) -> str:
         """
         Upgrade TOML text from an older version of this model to the current one, keeping its comments and
         formatting: only what the upgrade steps change is edited, and the version tag is set to the current version
@@ -419,6 +474,9 @@ class VersionedOptions(Options):
         :param s: The TOML text.
         :param clean: Write the upgraded data afresh instead (``to_toml(comments=True)``): the text's own comments,
             formatting and unknown keys are dropped.
+        :param add_missing: Also add the fields that the text doesn't have, with their values (the defaults, so the
+            data stay the same) and descriptions; fields without a TOML value (``None``, unset) become
+            commented-out lines (``# key = ...  # description``). Running it again adds nothing.
         :return: The upgraded TOML text.
         :raises TypeError: If the model doesn't define a ``_current_version``.
         :raises ValueError: If the text isn't valid TOML, or is from a version newer than the current one, which
@@ -443,8 +501,11 @@ class VersionedOptions(Options):
         # Checks the upgraded data, before anything is written
         model = cls.from_dict(upgraded, upgrade=False)
         if clean:
-            return model.to_toml(comments=True)
-        _update_toml(document, data, upgraded, cls)
+            document = tomlkit.parse(model.to_toml(comments=True))
+        else:
+            _update_toml(document, data, upgraded, cls)
+        if add_missing:
+            _add_missing(document, model)
         return document.as_string()
 
     @classmethod
