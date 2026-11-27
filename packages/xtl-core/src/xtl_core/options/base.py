@@ -20,6 +20,7 @@ from typing import Any, Callable, Iterable, Optional, Union, TypeVar, cast, over
 from typing_extensions import Self
 
 from pydantic import (
+    MISSING,
     BaseModel,
     ConfigDict,
     Field,
@@ -265,7 +266,8 @@ def Option(
     from |BaseModel|, then all custom validation and serialization will simply be
     ignored.
 
-    :param default: Default value for the field.
+    :param default: Default value for the field. ``pydantic.MISSING`` leaves the field unset: it is then left out of
+        the output, and its validators and formatter skip it.
     :param default_factory: A callable to generate the default value.
     :param name: Name of the field (equivalent to ``title`` in |Field|).
     :param desc: Description of the field (equivalent to ``description`` in |Field|).
@@ -538,6 +540,10 @@ class Options(BaseModel):
         if errors is None:
             errors = []
         new_errors = []
+
+        # A field left unset has no value to validate
+        if value is MISSING:
+            return value, errors
 
         for validator in validators:
             # Validators of an `Option` take the value only (checked by `Option()`), not pydantic's `info` too
@@ -991,7 +997,8 @@ class Options(BaseModel):
         comment of its value, or of its table's header line. Fields with ``exclude=True`` are left out. Since TOML
         has no null, ``None`` fields are returned as ``_TOML_SKIP``, so that they are left out (they then load as
         the default of the field), while ``None`` inside dictionaries and iterables raises an error, since leaving
-        it out would change the data.
+        it out would change the data. Fields left unset (``MISSING``) are left out the same way, before their
+        formatter runs.
 
         :param value: The value to convert.
         :param field: The field of the value, for its serializer and description, or None for values inside
@@ -1000,8 +1007,17 @@ class Options(BaseModel):
         :param path: Location of the value in the TOML data (e.g. ``table.key[0]``), for error messages; empty for
             the |Options| itself, which then becomes a document.
         :return: A ``tomlkit`` document or item, or ``_TOML_SKIP``.
-        :raises ValueError: If a dictionary or iterable contains ``None``.
+        :raises ValueError: If a dictionary or iterable contains ``None`` or ``MISSING``.
         """
+        # An unset field is left out, as in `to_dict()`; its formatter never sees it
+        if value is MISSING:
+            if field is None:
+                raise ValueError(
+                    f'Cannot serialize MISSING at `{path}` to TOML, since it can only be left out, which would '
+                    f'change the data.'
+                )
+            return _TOML_SKIP
+
         # Apply serialization function
         serializer = _schema_extra(field).get('serializer') if field is not None else None
         if serializer is not None:

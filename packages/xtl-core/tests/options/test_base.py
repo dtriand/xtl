@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 
 from hypothesis import given, strategies as st
-from pydantic import Field, model_validator
+from pydantic import MISSING, Field, model_validator
 import pytest
 from tomlkit.exceptions import ParseError
 
@@ -48,6 +48,7 @@ class Everything(Options):
     real: float = Option(default=0.0)
     flag: bool = Option(default=False)
     maybe: int | None = Option(default=None)
+    absent: int | MISSING = Option(default=MISSING, desc='Left out while unset')
     items: list[int] = Option(default_factory=list, desc='An array')
     mapping: dict[str, int] = Option(default_factory=dict, desc='A table')
     inner: Inner = Option(default_factory=Inner, desc='A nested model,\n  described on two lines')
@@ -74,6 +75,7 @@ def everything() -> st.SearchStrategy[Everything]:
         real=st.floats(allow_nan=False, allow_infinity=False),
         flag=st.booleans(),
         maybe=st.none() | _INT64,
+        absent=st.just(MISSING) | _INT64,
         items=st.lists(_INT64, max_size=5),
         mapping=st.dictionaries(text, _INT64, max_size=3),
         inner=inner,
@@ -656,6 +658,79 @@ class TestToToml:
 
     def test_paths_posix(self):
         assert Everything(path=Path('a', 'b')).to_toml().count('path = "a/b"') == 1
+
+
+class TestMissing:
+    """Fields that may be left unset (pydantic's ``MISSING``): left out of the output, and unset again on loading."""
+
+    class Model(Options):
+        n: int | MISSING = Option(default=MISSING, desc='A number', gt=0)
+        path: Path | MISSING = Option(default=MISSING, path_is_absolute=True)
+        choice: str | MISSING = Option(default=MISSING, choices={'a', 'b'})
+        cast: int | MISSING = Option(default=MISSING, cast_as=int)
+        doubled: int | MISSING = Option(default=MISSING, formatter=lambda v: 2 * v)
+        values: list[int | MISSING] = Option(default_factory=list)
+        mapping: dict[str, int | MISSING] = Option(default_factory=dict)
+
+    unset = ['n', 'path', 'choice', 'cast', 'doubled']
+
+    def test_default(self):
+        m = self.Model()
+        assert all(getattr(m, name) is MISSING for name in self.unset)
+
+    def test_validators_skip_it(self):
+        # Neither the before (`cast_as`) nor the after validators (`path_is_absolute`, `choices`) see it
+        m = self.Model(cast=MISSING, choice=MISSING, path=MISSING)
+        assert (m.cast, m.choice, m.path) == (MISSING, MISSING, MISSING)
+
+    def test_values_are_still_validated(self):
+        m = self.Model(n=1, path=Path.cwd(), choice='a', cast='3', doubled=1)
+        assert (m.n, m.choice, m.cast) == (1, 'a', 3)
+        for values in ({'choice': 'c'}, {'path': Path('relative')}, {'n': 0}, {'cast': 'x'}):
+            with pytest.raises(OptionsValidationError):
+                self.Model(**values)
+
+    @pytest.mark.parametrize('value', ['MISSING', None], ids=['string', 'none'])
+    def test_is_not_an_input(self, value):
+        with pytest.raises(OptionsValidationError):
+            self.Model(n=value)
+
+    def test_assign_unsets(self):
+        m = self.Model(n=1, choice='a', cast=2)
+        m.n = MISSING
+        m.choice = MISSING
+        m.cast = MISSING
+        assert (m.n, m.choice, m.cast) == (MISSING, MISSING, MISSING)
+        assert m.to_dict() == {'values': [], 'mapping': {}}
+
+    def test_left_out(self):
+        m = self.Model()
+        assert m.to_dict() == {'values': [], 'mapping': {}}
+        assert json.loads(m.to_json()) == {'values': [], 'mapping': {}}
+        assert m.to_toml(comments=True) == 'values = []\n\n[mapping]\n'
+
+    def test_formatter_skips_it(self):
+        assert self.Model(doubled=2).to_dict()['doubled'] == 4
+        assert 'doubled = 4' in self.Model(doubled=2).to_toml()
+        assert 'doubled' not in self.Model().to_toml()
+
+    @pytest.mark.parametrize('how', ['dict', 'json', 'toml'])
+    def test_round_trip(self, how):
+        m0 = self.Model(n=2)
+        m1 = getattr(self.Model, f'from_{how}')(getattr(m0, f'to_{how}')())
+        assert m1.n == 2
+        assert all(getattr(m1, name) is MISSING for name in self.unset if name != 'n')
+        assert m1 == m0
+
+    @pytest.mark.parametrize(
+        'values, location',
+        [({'values': [1, MISSING]}, r'values\[1\]'), ({'mapping': {'a': MISSING}}, r'mapping\.a')],
+        ids=['list', 'dict'],
+    )
+    def test_inside_to_toml(self, values, location):
+        # Inside iterables or dicts it can't be left out without changing the data, as for None
+        with pytest.raises(ValueError, match=rf'Cannot serialize MISSING at `{location}`'):
+            self.Model(**values).to_toml()
 
 
 class TestFromToml:

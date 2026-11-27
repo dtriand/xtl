@@ -351,6 +351,38 @@ values.
    [nested]
    a = 20 # This is 10 times the original
 
+Fields left unset
+^^^^^^^^^^^^^^^^^
+
+TOML has no null, so a field set to ``None`` is left out of a TOML file, and loads as its default. For a field that
+should be left out of every output while it isn't set, use `Pydantic`\'s ``MISSING`` sentinel as its default. A field
+holding ``MISSING`` is left out of ``to_dict()``, ``to_json()`` and ``to_toml()``, and is ``MISSING`` again once loaded;
+validators and formatters skip it, and assigning ``MISSING`` unsets the field. ``None`` then remains a value of its own.
+
+.. code-block:: python
+
+   from pydantic import MISSING
+   from xtl_core.options import Option, Options
+
+   class Config(Options):
+       limit: int | None | MISSING = Option(default=MISSING, gt=0,
+                                            desc='Maximum number of items, or None for no limit')
+
+.. code-block:: python
+
+   >>> Config().to_dict()
+   {}
+   >>> Config(limit=None).to_dict()
+   {'limit': None}
+   >>> Config.from_dict({}).limit
+   MISSING
+
+.. note::
+
+   ``MISSING`` is for a field's own value: inside a list or a dictionary it can't be written to JSON or TOML. It is
+   also truthy, so check it with ``value is MISSING``, not ``if value:``. Data can't set it either: ``'MISSING'`` in a
+   file is an ordinary string.
+
 Environment variables
 ---------------------
 
