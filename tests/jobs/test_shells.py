@@ -240,7 +240,9 @@ class TestCommands:
             pytest.skip(f'{shell.executable} not found')
         name = ('cmd' if OS_WINDOWS else 'ls') if exists else 'no-such-program-xtl'
         bits = shell.get_dependency_resolution_command(name, as_list=True)
-        result = subprocess.run(bits, capture_output=True, text=True, timeout=60)
+        # NB: Windows PowerShell's `Get-Command` searches every installed module before it gives up on a name, which
+        #  took over a minute on a GitHub runner
+        result = subprocess.run(bits, capture_output=True, text=True, timeout=300)
         assert result.stdout.strip() == ('0' if exists else '1')
 
     @pytest.mark.parametrize('shell', SHELLS, ids=lambda s: s.name)
