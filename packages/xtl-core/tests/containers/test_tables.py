@@ -713,6 +713,14 @@ class TestTable:
         def test_rows_without_cells(self):
             assert Table(data=[[], []]).to_csv() == '\n\n'
 
+        @pytest.mark.parametrize('new_line', ['\n', '\r\n'], ids=['lf', 'crlf'])
+        @pytest.mark.parametrize('value', ['a\rb', 'a\nb', '\r'], ids=['cr', 'lf', 'only-cr'])
+        def test_line_breaks_in_values(self, value, new_line):
+            # Regression: Python 3.10's writer left a lone '\r' unquoted with '\n' lines, which split the row
+            text = Table(data=[['x', value]], headers=['A', 'B']).to_csv(new_line=new_line)
+            assert f'"{value}"' in text
+            assert Table.from_csv(text, header_line=0).data == [['x', value]]
+
         def test_formatted_keeps_whitespace(self):
             table = Table(data=[[' a ', 1.0]], headers=['A', 'B'], formats={'B': '>6.1f'})
             assert table.to_csv() == 'A,B\n a ,1.0\n'

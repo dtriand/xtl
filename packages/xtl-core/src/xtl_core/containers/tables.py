@@ -754,9 +754,11 @@ class Table:
             return text.strip()
 
         def line(values: list[str]) -> str:
+            # NB: written with '\r\n', then `new_line` put in its place: Python 3.10's writer quotes only values with
+            #  characters of the line terminator, so a lone '\r' with '\n' lines would split the row
             buffer = io.StringIO()
-            csv.writer(buffer, delimiter=delimiter, lineterminator=new_line).writerow(values)
-            return buffer.getvalue()
+            csv.writer(buffer, delimiter=delimiter, lineterminator='\r\n').writerow(values)
+            return buffer.getvalue()[: -len('\r\n')] + new_line
 
         lines = [header_char + line(self._headers)] if self._headers else []
         lines += [line([cell(i, v) for i, v in enumerate(row)]) for row in self._data]
