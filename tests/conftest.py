@@ -44,6 +44,41 @@ def pytest_unconfigure(config):
         shutil.rmtree(_SETTINGS_DIR, ignore_errors=True)
 
 
+def network_outage(error: BaseException) -> str | None:
+    """
+    Why a test that needs the network is skipped, for an error that is the network's or the server's fault (no
+    connection, a timeout, a 5xx or 429 response), or `None` for an error that is ours (e.g. a 404 or a wrong answer).
+    """
+    import requests
+
+    if isinstance(error, (requests.ConnectionError, requests.Timeout)):
+        return f'Network unavailable: {error}'
+    if isinstance(error, requests.HTTPError) and error.response is not None:
+        if error.response.status_code >= 500 or error.response.status_code == 429:
+            return f'Server unavailable: {error}'
+    return None
+
+
+def _skip_network_outages(item):
+    try:
+        return (yield)
+    except Exception as error:
+        if item.get_closest_marker('requires_network') and (reason := network_outage(error)):
+            pytest.skip(reason)
+        raise
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_setup(item):
+    # Fixtures that download what their tests need
+    return (yield from _skip_network_outages(item))
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item):
+    return (yield from _skip_network_outages(item))
+
+
 @pytest.fixture(autouse=True, scope='session')
 def _temp_dirs(tmp_path_factory):
     """
