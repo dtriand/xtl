@@ -18,8 +18,15 @@ def http_error(status: int) -> requests.HTTPError:
 
 @pytest.mark.parametrize(
     'error',
-    [requests.ConnectionError('down'), requests.Timeout('slow'), http_error(502), http_error(503), http_error(429)],
-    ids=['connection', 'timeout', '502', '503', '429'],
+    [
+        requests.ConnectionError('down'),
+        requests.Timeout('slow'),
+        requests.exceptions.ChunkedEncodingError('Connection broken: IncompleteRead'),
+        http_error(502),
+        http_error(503),
+        http_error(429),
+    ],
+    ids=['connection', 'timeout', 'broken', '502', '503', '429'],
 )
 def test_outages(error):
     assert network_outage(error)

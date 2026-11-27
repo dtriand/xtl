@@ -47,11 +47,12 @@ def pytest_unconfigure(config):
 def network_outage(error: BaseException) -> str | None:
     """
     Why a test that needs the network is skipped, for an error that is the network's or the server's fault (no
-    connection, a timeout, a 5xx or 429 response), or `None` for an error that is ours (e.g. a 404 or a wrong answer).
+    connection, a timeout, a connection broken mid-response, a 5xx or 429 response), or `None` for an error that is
+    ours (e.g. a 404 or a wrong answer).
     """
     import requests
 
-    if isinstance(error, (requests.ConnectionError, requests.Timeout)):
+    if isinstance(error, (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError)):
         return f'Network unavailable: {error}'
     if isinstance(error, requests.HTTPError) and error.response is not None:
         if error.response.status_code >= 500 or error.response.status_code == 429:
