@@ -688,7 +688,8 @@ class Table:
         except ModuleNotFoundError:
             raise ImportError(f'pandas is not installed; {_EXTRA_HINT}')
 
-        return pd.DataFrame(self.data, columns=self._headers if self._headers else None)
+        # An `Index`, which pandas 2's annotations accept, unlike a list of names
+        return pd.DataFrame(self.data, columns=pd.Index(self._headers) if self._headers else None)
 
     def to_rich(self, cast_as: Optional[Callable] = None) -> 'rich.table.Table':
         """Convert the table to a rich.Table for pretty console output. Requires rich to
