@@ -6,6 +6,7 @@ handle. The process backend starts a `multiprocessing` manager per test (about 1
 import asyncio
 import signal
 import threading
+import time
 
 import pytest
 
@@ -19,7 +20,16 @@ from xtl.jobs.ipc import (
     ProcessIPCBackend,
     ThreadedIPCBackend,
 )
-from xtl.jobs.ipc.processes import ProxyProcessIPCBackend, ignore_interrupts, shielded_context
+from xtl.jobs.ipc.processes import (
+    ProcessLock,
+    ProcessQueue,
+    ProcessState,
+    ProxyProcessIPCBackend,
+    _DirectCalls,
+    _ThreadCalls,
+    ignore_interrupts,
+    shielded_context,
+)
 from xtl_core.system.compatibility import OS_WINDOWS
 
 BACKENDS = [AsyncIPCBackend, ThreadedIPCBackend, ProcessIPCBackend]
@@ -318,6 +328,135 @@ class TestProcessIPCBackend:
         for method in (worker._raw_lock, worker._raw_queue, worker._raw_state):
             with pytest.raises(NotImplementedError):
                 method('a')
+
+
+class Blocks:
+    """Stands in for a manager proxy whose calls take as long as the test wants, and records where they ran."""
+
+    def __init__(self):
+        self.started = threading.Event()
+        self.go_on = threading.Event()
+        self.threads: list[threading.Thread] = []
+        self.calls: list[str] = []
+
+    def _call(self, name: str, result=None):
+        self.threads.append(threading.current_thread())
+        self.started.set()
+        assert self.go_on.wait(5)
+        self.calls.append(name)
+        return result
+
+    # A dict
+    def __setitem__(self, key, value):
+        self._call(f'set {key}={value}')
+
+    # A lock
+    def acquire(self, blocking=True):
+        return self._call('acquire', True)
+
+    def release(self):
+        self._call('release')
+
+    # A queue
+    def get_nowait(self):
+        return self._call('get', 'item')
+
+    def put_nowait(self, item):
+        self._call(f'put {item}')
+
+
+class TestParentCalls:
+    """
+    The pool's process calls the manager from a thread of its own: Ctrl+C interrupts only the main thread, and a call
+    interrupted there left its reply unread on the connection, for the next call to read.
+    """
+
+    def test_backend_calls_from_a_thread(self):
+        backend = ProcessIPCBackend()
+        backend.start()
+        try:
+            primitives = [backend.get_lock('l'), backend.get_queue('q'), backend.get_state('s')]
+            assert all(isinstance(p._calls, _ThreadCalls) for p in primitives)
+            assert len({id(p._calls) for p in primitives}) == 1
+        finally:
+            backend.stop()
+
+    def test_workers_call_directly(self, worker):
+        # Workers ignore Ctrl+C
+        if isinstance(worker, ProxyProcessIPCBackend):
+            primitives = [worker.get_lock('l'), worker.get_queue('q'), worker.get_state('s')]
+            assert all(isinstance(p._calls, _DirectCalls) for p in primitives)
+
+    def test_calls_run_outside_the_main_thread(self):
+        proxy, calls = Blocks(), _ThreadCalls()
+        proxy.go_on.set()
+        try:
+            ProcessState(proxy, calls)['a'] = 1
+        finally:
+            calls.stop()
+        assert proxy.calls == ['set a=1']
+        assert proxy.threads[0] is not threading.current_thread()
+
+    def test_ctrl_c_leaves_the_call_whole(self):
+        proxy, calls = Blocks(), _ThreadCalls()
+        state = ProcessState(proxy, calls)
+
+        def ctrl_c():
+            assert proxy.started.wait(5)
+            signal.raise_signal(signal.SIGINT)
+            time.sleep(0.2)
+            proxy.go_on.set()
+
+        previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+        thread = threading.Thread(target=ctrl_c)
+        try:
+            thread.start()
+            with pytest.raises(KeyboardInterrupt):
+                state['a'] = 1
+                time.sleep(5)  # Windows: a lock's wait isn't interrupted, so Ctrl+C comes once the call returns
+        finally:
+            thread.join(5)
+            calls.stop()
+            signal.signal(signal.SIGINT, previous)
+        assert proxy.calls == ['set a=1']
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        'make, expected',
+        [
+            (lambda proxy, calls: ProcessLock(proxy, 'l', calls).acquire(), ['acquire', 'release']),
+            (lambda proxy, calls: ProcessQueue(proxy, calls).get(), ['get', 'put item']),
+        ],
+        ids=['acquire', 'get'],
+    )
+    async def test_cancelled_wait_gives_back_what_it_took(self, make, expected):
+        # The try in flight when the wait is cancelled still ends in the thread; what it took is given back
+        proxy, calls = Blocks(), _ThreadCalls()
+        waiting = asyncio.ensure_future(make(proxy, calls))
+        assert await asyncio.to_thread(proxy.started.wait, 5)
+        waiting.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await waiting
+        proxy.go_on.set()
+        await asyncio.to_thread(calls.stop)
+        assert proxy.calls == expected
+        assert all(t is proxy.threads[0] for t in proxy.threads)
+
+    @pytest.mark.asyncio
+    async def test_cancelled_wait_before_its_try_takes_nothing(self):
+        proxy, calls = Blocks(), _ThreadCalls()
+        state = ProcessState(proxy, calls)
+        busy = asyncio.ensure_future(asyncio.to_thread(state.__setitem__, 'a', 1))
+        assert await asyncio.to_thread(proxy.started.wait, 5)
+        waiting = asyncio.ensure_future(ProcessLock(proxy, 'l', calls).acquire())
+        await asyncio.sleep(0.1)
+        waiting.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await waiting
+        proxy.go_on.set()
+        await busy
+        await asyncio.to_thread(calls.stop)
+        assert proxy.calls == ['set a=1']
 
 
 @pytest.mark.parametrize('cls', [AsyncIPCBackend, ThreadedIPCBackend])

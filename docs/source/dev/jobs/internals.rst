@@ -95,6 +95,12 @@ A ``MultiprocessPool``'s locks, queues and states live in the manager process; j
 operation is a call to the manager. Workers can't create new ones (nor can a thread pool's), hence the rule to create
 them before launching.
 
+In the pool's own process, these calls (the log listener's, cancellations, and yours on ``pool.get_state()`` and the
+like) are made one at a time from a thread of their own, while the caller waits. Ctrl+C interrupts only the main
+thread; a call interrupted halfway would leave its reply on the connection to the manager, for the next call to read.
+A wait that is cancelled while its try is under way gives back what the try got: a lock is released, and a queue item
+goes back at the end of the queue. Workers ignore Ctrl+C and call the manager directly.
+
 Waiting for a lock or a queue item in a thread or process pool doesn't block the event loop: the job tries, then
 sleeps and tries again, from 1 ms up to 50 ms between tries (:func:`~xtl.jobs.ipc.base.poll`), so a cancelled wait
 stops cleanly. The cost is up to 50 ms of delay for a job that has waited long. The locks are not reentrant: a job

@@ -1,9 +1,13 @@
+import asyncio
+from concurrent.futures import Future, ThreadPoolExecutor
+import contextlib
 import multiprocessing as mp
 import multiprocessing.context
 from multiprocessing.managers import SyncManager
 import queue
 import signal
-from typing import Any
+import threading
+from typing import Any, Callable
 
 from xtl_core.system.compatibility import OS_WINDOWS
 
@@ -97,6 +101,80 @@ def shielded_context() -> multiprocessing.context.BaseContext:
     return _SHIELDED_CONTEXTS[mp.get_start_method()]()
 
 
+class _DirectCalls:
+    """
+    Calls to the manager, made from the calling thread: for the workers, which ignore Ctrl+C.
+    """
+
+    def call(self, fn: Callable[..., Any], *args: Any) -> Any:
+        """
+        Call the manager through ``fn(*args)`` and return what it returns.
+        """
+        return fn(*args)
+
+    def attempt(self, fn: Callable[[], Any], undo: Callable[[Any], Any] | None = None) -> Any:
+        """
+        A try of :func:`~xtl.jobs.ipc.base.poll`: what ``fn()`` returns, or an awaitable of it.
+
+        :param fn: A non-blocking try, which returns :data:`~xtl.jobs.ipc.base.NOT_YET` when it got nothing.
+        :param undo: Gives back what ``fn()`` got, for a try that ends after its wait was cancelled.
+        """
+        return fn()
+
+    def stop(self) -> None:
+        pass
+
+
+class _ThreadCalls(_DirectCalls):
+    """
+    Calls to the manager, made one at a time from a thread of their own, while the caller waits: for the pool's
+    process. Ctrl+C interrupts only the main thread's waits; a call interrupted there (``KeyboardInterrupt``, or
+    ``InterruptedError`` on Windows with a handler that doesn't raise) left its reply unread on the thread's connection
+    to the manager, for the next call to read. Here it only interrupts the wait, and the call ends in its thread.
+    """
+
+    def __init__(self):
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='xtl-manager', initializer=self._started)
+        self._thread: int | None = None
+
+    def _started(self) -> None:
+        self._thread = threading.get_ident()
+
+    def call(self, fn: Callable[..., Any], *args: Any) -> Any:
+        return self._executor.submit(fn, *args).result()
+
+    async def attempt(self, fn: Callable[[], Any], undo: Callable[[Any], Any] | None = None) -> Any:
+        future = self._executor.submit(fn)
+        try:
+            return await asyncio.wrap_future(future)
+        except asyncio.CancelledError:
+            # A try that hadn't started is dropped; one that had still ends, and gives back what it got
+            if undo is not None:
+                future.add_done_callback(lambda done: self._undo(done, undo))
+            raise
+
+    def _undo(self, done: Future, undo: Callable[[Any], Any]) -> None:
+        """
+        Give back what a try got, from the calls' thread (the callback of a try that is already done runs in the
+        caller's thread).
+        """
+        if threading.get_ident() != self._thread:
+            with contextlib.suppress(RuntimeError):  # stopped meanwhile
+                self._executor.submit(self._undo, done, undo)
+            return
+        if done.cancelled() or done.exception() is not None:
+            return
+        if (result := done.result()) is not NOT_YET:
+            with contextlib.suppress(Exception):
+                undo(result)
+
+    def stop(self) -> None:
+        """
+        Wait for the calls that were started, then end the thread.
+        """
+        self._executor.shutdown(wait=True)
+
+
 class ProcessLock(IPCLock):
     """
     Process context manager for locks
@@ -105,15 +183,19 @@ class ProcessLock(IPCLock):
     manager process.
     """
 
-    def __init__(self, lock, name: str):
+    def __init__(self, lock, name: str, calls: _DirectCalls | None = None):
         super().__init__(name)
         self._lock = lock
+        self._calls = calls or _DirectCalls()
+
+    def _try_acquire(self) -> Any:
+        return True if self._lock.acquire(False) else NOT_YET
 
     async def acquire(self) -> None:
-        await poll(lambda: True if self._lock.acquire(False) else NOT_YET)
+        await poll(lambda: self._calls.attempt(self._try_acquire, undo=lambda _: self._lock.release()))
 
     async def release(self) -> None:
-        self._lock.release()
+        self._calls.call(self._lock.release)
 
 
 class ProcessQueue(IPCQueue):
@@ -124,8 +206,9 @@ class ProcessQueue(IPCQueue):
     to the manager process.
     """
 
-    def __init__(self, queue):
+    def __init__(self, queue, calls: _DirectCalls | None = None):
         self._q = queue
+        self._calls = calls or _DirectCalls()
 
     def _try_put(self, item: Any) -> Any:
         try:
@@ -140,16 +223,17 @@ class ProcessQueue(IPCQueue):
             return NOT_YET
 
     async def put(self, item: Any) -> None:
-        await poll(lambda: self._try_put(item))
+        await poll(lambda: self._calls.attempt(lambda: self._try_put(item)))
 
     async def get(self) -> Any:
-        return await poll(self._try_get)
+        # An item taken by a try whose wait was cancelled goes back at the end of the queue
+        return await poll(lambda: self._calls.attempt(self._try_get, undo=self._q.put_nowait))
 
     def empty(self) -> bool:
-        return self._q.empty()
+        return self._calls.call(self._q.empty)
 
     def qsize(self) -> int:
-        return self._q.qsize()
+        return self._calls.call(self._q.qsize)
 
 
 class ProcessState(IPCState):
@@ -159,32 +243,33 @@ class ProcessState(IPCState):
     Wraps a multiprocessing.Manager().dict() proxy with a dict-like interface.
     """
 
-    def __init__(self, data_):
+    def __init__(self, data_, calls: _DirectCalls | None = None):
         self._data = data_
+        self._calls = calls or _DirectCalls()
 
     def __getitem__(self, key: str) -> Any:
-        return self._data[key]
+        return self._calls.call(self._data.__getitem__, key)
 
     def __setitem__(self, key: str, value: Any) -> None:
-        self._data[key] = value
+        self._calls.call(self._data.__setitem__, key, value)
 
     def __delitem__(self, key: str) -> None:
-        del self._data[key]
+        self._calls.call(self._data.__delitem__, key)
 
     def __contains__(self, key: str) -> bool:
-        return key in self._data
+        return self._calls.call(self._data.__contains__, key)
 
     def __len__(self) -> int:
-        return len(self._data)
+        return self._calls.call(self._data.__len__)
 
     def keys(self) -> list[str]:
-        return list(self._data.keys())
+        return self._calls.call(lambda: list(self._data.keys()))
 
     def values(self) -> list[Any]:
-        return list(self._data.values())
+        return self._calls.call(lambda: list(self._data.values()))
 
     def items(self) -> list[tuple[str, Any]]:
-        return list(self._data.items())
+        return self._calls.call(lambda: list(self._data.items()))
 
 
 class ProcessIPCBackend(IPCBackend):
@@ -197,6 +282,7 @@ class ProcessIPCBackend(IPCBackend):
 
     def __init__(self):
         self._manager: SyncManager | None = None
+        self._calls = _ThreadCalls()  # The pool's calls to the manager, which Ctrl+C mustn't interrupt
         self._locks: dict[str, ProcessLock] = {}
         self._queues: dict[str, ProcessQueue] = {}
         self._states: dict[str, ProcessState] = {}
@@ -210,6 +296,7 @@ class ProcessIPCBackend(IPCBackend):
         # As `mp.Manager()`, but the manager process leaves Ctrl+C to the pool
         self._manager = SyncManager(ctx=shielded_context())
         self._manager.start(initializer=ignore_interrupts)
+        self._calls = _ThreadCalls()
 
     def stop(self) -> None:
         self._locks.clear()
@@ -219,6 +306,7 @@ class ProcessIPCBackend(IPCBackend):
         self._raw_queues.clear()
         self._raw_states.clear()
 
+        self._calls.stop()
         if self._manager is not None:
             self._manager.shutdown()
             self._manager = None
@@ -231,7 +319,7 @@ class ProcessIPCBackend(IPCBackend):
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting locks')
             raw_lock = self._manager.Lock()
             self._raw_locks[name] = raw_lock
-            self._locks[name] = ProcessLock(raw_lock, name=name)
+            self._locks[name] = ProcessLock(raw_lock, name=name, calls=self._calls)
         return self._locks[name]
 
     def get_queue(self, name: str, maxsize: int = 0) -> ProcessQueue:
@@ -240,7 +328,7 @@ class ProcessIPCBackend(IPCBackend):
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting queues')
             raw_queue = self._manager.Queue(maxsize=maxsize)
             self._raw_queues[name] = raw_queue
-            self._queues[name] = ProcessQueue(raw_queue)
+            self._queues[name] = ProcessQueue(raw_queue, calls=self._calls)
         return self._queues[name]
 
     def get_state(self, name: str) -> ProcessState:
@@ -249,7 +337,7 @@ class ProcessIPCBackend(IPCBackend):
                 raise RuntimeError(f'{ProcessIPCBackend.__name__} must be started before getting state')
             raw_state = self._manager.dict()
             self._raw_states[name] = raw_state
-            self._states[name] = ProcessState(raw_state)
+            self._states[name] = ProcessState(raw_state, calls=self._calls)
         return self._states[name]
 
     def _raw_lock(self, name: str) -> Any:

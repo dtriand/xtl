@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 from dataclasses import dataclass, field
+import inspect
 from typing import Any, Callable, Iterator
 
 from xtl_core.system.compatibility.py314 import sentinel
@@ -25,14 +26,19 @@ async def poll(attempt: Callable[[], Any]) -> Any:
     Unlike waiting in an executor thread, which can't be stopped, a cancelled or timed-out wait leaves nothing behind:
     no thread that later takes the lock or an item, and nothing for ``asyncio.run()`` to wait for on exit.
 
-    :param attempt: A non-blocking try, e.g. ``lock.acquire(blocking=False)`` or ``queue.get_nowait()``.
+    :param attempt: A non-blocking try, e.g. ``lock.acquire(blocking=False)`` or ``queue.get_nowait()``; it may return
+        an awaitable of its result instead.
     :return: What the successful attempt returned.
     """
     delay = POLL_FIRST
-    while (result := attempt()) is NOT_YET:
+    while True:
+        result = attempt()
+        if inspect.isawaitable(result):
+            result = await result
+        if result is not NOT_YET:
+            return result
         await asyncio.sleep(delay)
         delay = min(2 * delay, POLL_MAX)
-    return result
 
 
 class IPCLock(abc.ABC):

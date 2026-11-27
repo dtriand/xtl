@@ -1076,6 +1076,21 @@ class TestMultiprocessPool:
             logging.WARNING
         )
 
+    @pytest.mark.asyncio
+    async def test_a_failed_listener_is_logged_on_exit(self):
+        # Its error isn't raised again on exit: with Python 3.10, that was the Ctrl+C that had already reached
+        #  `asyncio.run()`, and it broke the pool's exit
+        pool, records = recorded(MultiprocessPool)
+
+        async def fails():
+            raise InterruptedError('lost')
+
+        pool._listener = asyncio.ensure_future(fails())
+        await asyncio.sleep(0)
+        await pool._stop_listener()
+        assert pool._listener is None
+        assert "Log listener stopped early: InterruptedError('lost')" in records.messages(logging.WARNING)
+
     def test_ctrl_c_is_left_to_the_parent(self, tmp_path):
         # Ctrl+C reaches every process on the console (or in the terminal's process group); a worker waiting for work
         #  and the manager used to die of it, which broke the pool. Here the parent takes it and goes on.

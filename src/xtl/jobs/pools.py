@@ -1319,14 +1319,18 @@ class MultiprocessPool(BasePool):
             # The sentinel goes after the records that are already on the queue
             await self.get_queue(self._log_qname).put(None)
 
-        with contextlib.suppress(asyncio.TimeoutError):
-            await asyncio.wait_for(asyncio.shield(self._listener), timeout=10.0)
+        # NB: The listener's error isn't raised here: with Python 3.10, a Ctrl+C that interrupted it is also raised to
+        #  `asyncio.run()`, which then cancels the task that exits the pool
+        await asyncio.wait({self._listener}, timeout=10.0)
 
         if not self._listener.done():
             self.logger.warning('Log listener did not shut down within timeout')
             self._listener.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._listener
+        elif not self._listener.cancelled() and (error := self._listener.exception()) is not None:
+            level = logging.DEBUG if isinstance(error, KeyboardInterrupt) else logging.WARNING
+            self.logger.log(level, 'Log listener stopped early: %r', error)
 
         self._listener = None
 
