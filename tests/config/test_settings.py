@@ -7,6 +7,8 @@ import sys
 import pytest
 
 from xtl.config.settings import XTLSettings
+from xtl.config.version import version
+from xtl_core.options import VersionedOptions
 
 
 NAMES = ['env', 'local', 'user', 'global']
@@ -239,10 +241,26 @@ class TestCheck:
             ('0.1', 'Invalid settings version'),
         ],
     )
-    def test_version(self, version, message):
-        problems = XTLSettings(version=version).check()
+    @pytest.mark.parametrize('how', ['init', 'toml'])
+    def test_version(self, version, message, how):
+        if how == 'init':
+            s = XTLSettings(version=version)
+        else:
+            s = XTLSettings.from_toml(f'version = "{version}"\n')
+        problems = s.check()
         assert len(problems) == 1
         assert message in problems[0]
+
+    def test_older_points_to_upgrade(self):
+        (problem,) = XTLSettings.from_toml('version = "0.0.1"\n').check()
+        assert 'run `xtl.config upgrade`' in problem
+
+    def test_same_release(self):
+        # Versions are compared on major.minor.micro, so a dev version and its final release match
+        assert XTLSettings(version=version.string_safe).check() == []
+
+    def test_without_version(self):
+        assert XTLSettings.from_toml('[units]\ntemperature = "K"\n').check() == []
 
     def test_unknown_keys(self):
         s = XTLSettings.from_toml('colour = "blue"\n[units]\ncolour = "blue"\n[jobs.resources]\nfoo = 1\nbar = 2\n')
@@ -255,6 +273,51 @@ class TestCheck:
         extra = dict(s.units.model_extra)
         assert s.check() == s.check()
         assert s.units.model_extra == extra
+
+
+class TestVersioning:
+    def test_versioned(self):
+        assert issubclass(XTLSettings, VersionedOptions)
+        assert XTLSettings._current == version
+        # PEP 440, as the upgrade writes it
+        assert XTLSettings().version == version.pep440
+
+    def test_older_file_loads_as_current(self):
+        s = XTLSettings.from_toml('version = "0.0.1"\n[units]\ntemperature = "K"\n')
+        assert s.version == version.pep440
+        assert s.units.temperature == 'K'
+
+    def test_newer_warns_once(self, caplog):
+        # Through `check()`, not `VersionedOptions`' own warning too
+        with caplog.at_level(logging.WARNING):
+            problems = XTLSettings.from_toml('version = "99.0.0"\n').check()
+        assert len(problems) == 1
+        assert caplog.records == []
+
+    def test_invalid_version_still_loads(self):
+        s = XTLSettings.from_toml('version = "0.1"\n[units]\ntemperature = "K"\n')
+        assert s.units.temperature == 'K'
+
+    def test_upgrade_steps_run(self, monkeypatch):
+        # A step registered for the current version, as a layout change would add one
+        monkeypatch.setattr(XTLSettings, '_upgrade_steps', {})
+
+        @XTLSettings.upgrade_step(to=version)
+        def rename(data: dict) -> dict:
+            units = data.get('units', {})
+            if 'temp' in units:
+                units['temperature'] = units.pop('temp')
+            return data
+
+        s = XTLSettings.from_toml('version = "0.0.1"\n[units]\ntemp = "K"\n')
+        assert s.units.temperature == 'K'
+        # The file's version is still reported, so that the file gets upgraded too
+        (problem,) = s.check()
+        assert 'older version' in problem
+
+        result = XTLSettings.upgrade_toml('version = "0.0.1" # mine\n[units]\ntemp = "K" # kelvin\n')
+        assert f'version = "{version.pep440}" # mine\n' in result
+        assert 'temperature = "K"' in result and 'temp =' not in result
 
 
 class TestCheckFile:

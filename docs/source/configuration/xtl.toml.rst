@@ -98,6 +98,20 @@ runs with the default settings instead; the file is left unchanged. Unknown keys
 version mismatch are only reported as warnings. ``xtl.config validate`` checks a file
 and lists all of its problems.
 
+Versions
+--------
+A config file records the version of XTL that wrote it (``version``). A file from an older version still loads: its
+settings are upgraded to the current layout as they are read, and a warning suggests updating the file itself:
+
+.. code-block:: console
+
+   $ xtl.config upgrade
+
+This edits only what changed (and the version), so your comments and formatting stay; ``--clean`` writes the file
+afresh instead. A file from a newer version of XTL loads as it is, with a warning, and can't be upgraded.
+
+Starting over
+-------------
 To start over from the default settings, overwrite the file with a clean one, *e.g.* for
 the ``user`` location (see :doc:`../cli/xtl.config`):
 

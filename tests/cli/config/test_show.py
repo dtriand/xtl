@@ -1,6 +1,6 @@
 import json
 
-from tests.cli.config.conftest import INVALID, VALID, defaults, loads
+from tests.cli.config.conftest import INVALID, VALID, WARNINGS, defaults, loads
 from xtl.config.settings import XTLSettings
 
 
@@ -101,6 +101,14 @@ class TestShow:
         assert 'Warning:' in result.stderr
         assert result.stdout.startswith('# Source: in-memory defaults (local config is invalid)\n')
         assert loads(result.stdout) == defaults()
+
+    def test_warnings(self, cli, locs):
+        # As when XTL loads the file: an older one is shown upgraded, and the warning says so
+        locs.write(locs.local, WARNINGS)
+        result = self._show(cli)
+        assert 'older version of XTL' in result.stderr
+        assert 'units.colour' in result.stderr
+        assert 'Warning' not in result.stdout
 
     def test_json(self, cli, locs):
         locs.write(locs.local, VALID)

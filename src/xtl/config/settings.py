@@ -23,7 +23,7 @@ from xtl_core.version_info import VersionInfo
 from xtl.shared.environment import XTL_CONFIG
 from xtl_core.system.os import CPU_CORES
 from xtl_core.system.os.permissions import FilePermissions
-from xtl_core.options import Option, Options
+from xtl_core.options import Option, Options, VersionedOptions
 from xtl_core.options.serializers import PermissionOctal
 from xtl_core.options.validators import CastAsNoneIfEmpty, CastAsPathOrNone
 from xtl_core.options.exceptions import OptionsValidationError
@@ -503,10 +503,17 @@ class ConfigFileInfo:
         return self.path.is_file()
 
 
-class XTLSettings(Settings):
+class XTLSettings(Settings, VersionedOptions):
     """
-    Settings for XTL
+    Settings for XTL. A file is tagged with the version of XTL that wrote it, and a file from an older version is
+    upgraded when it is loaded (see :class:`~xtl_core.options.VersionedOptions`); :meth:`check` reports files from
+    another version, and ``xtl.config upgrade`` updates them.
     """
+
+    # Versioning: the tag is XTL's version, so that every release is a new layout, with upgrade steps only for
+    #  releases that change it
+    _version_path: ClassVar[str] = 'version'
+    _current_version: ClassVar[VersionInfo] = current_version
 
     # Class variables are ignored by Pydantic validation/serialization
     _toml: ClassVar[str] = 'xtl.toml'
@@ -521,9 +528,11 @@ class XTLSettings(Settings):
     # Private attributes are also ignored by Pydantic
     _parse_env: bool = PrivateAttr(default=False)
     _source: Optional[ConfigFileInfo] = PrivateAttr(default=None)  # source of settings
+    # The version the data were loaded with, before they were upgraded to the current one
+    _source_version: Optional[VersionInfo] = PrivateAttr(default=None)
 
     # Model attributes
-    version: str = Option(default=current_version.string)
+    version: str = Option(default=current_version.pep440, desc='Version of XTL that wrote this file')
     """Version string of the XTL package"""
 
     units: UnitsSettings = Option(default=UnitsSettings())
@@ -549,6 +558,33 @@ class XTLSettings(Settings):
         defaults.
         """
         return self._source
+
+    @classmethod
+    def _get_version(cls, data: Any) -> Optional[VersionInfo]:
+        # An invalid version loads as current, as if there were none; `check()` reports it
+        try:
+            return super()._get_version(data)
+        except (ValueError, TypeError):
+            return None
+
+    @classmethod
+    def _check_version(cls, version: Optional[VersionInfo]) -> None:
+        # Reported by `check()` instead, for older files too
+        pass
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any], /, *, upgrade: bool = True) -> XTLSettings:
+        """
+        Create settings from a dictionary, upgrading data from an older version first (see
+        :meth:`VersionedOptions.from_dict() <xtl_core.options.VersionedOptions.from_dict>`). The version that the
+        data were written with is kept for :meth:`check`.
+
+        :param data: The settings, as loaded from a file.
+        :param upgrade: Upgrade older data first. If ``False``, the data are validated as they are.
+        """
+        settings = super().from_dict(data, upgrade=upgrade)
+        settings._source_version = cls._get_version(data)
+        return settings
 
     @classmethod
     def _load(cls, location: ConfigFileInfo) -> XTLSettings:
@@ -609,22 +645,23 @@ class XTLSettings(Settings):
         """
         problems = []
 
-        # Check settings version
-        try:
-            _v = VersionInfo.from_str(self.version)
-        except ValueError:
-            problems.append(f'Invalid settings version: {self.version!r}')
-        else:
-            if _v.tuple_safe < current_version.tuple_safe:
+        # Check the version of the file (loaded data have been upgraded to the current version already)
+        version = self._source_version
+        if version is None:
+            try:
+                version = VersionInfo.from_str(self.version)
+            except ValueError:
+                problems.append(f'Invalid settings version: {self.version!r}')
+        if version is not None:
+            if version.tuple_safe < current_version.tuple_safe:
                 problems.append(
-                    f'Using settings from an older version of XTL ({_v.string}, current {current_version.string}).'
+                    f'Using settings from an older version of XTL ({version.pep440}, current '
+                    f'{current_version.pep440}); run `xtl.config upgrade` to update the file.'
                 )
-            elif _v.tuple_safe > current_version.tuple_safe:
+            elif version.tuple_safe > current_version.tuple_safe:
                 problems.append(
-                    f'Using settings from a newer version of XTL '
-                    f'({_v.string}, current {current_version.string}). '
-                    'XTL might not behave as intended. '
-                    'Use at your own risk!'
+                    f'Using settings from a newer version of XTL ({version.pep440}, current '
+                    f'{current_version.pep440}). XTL might not behave as intended. Use at your own risk!'
                 )
 
         # Check for extra keys in the nested Options

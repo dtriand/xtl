@@ -39,6 +39,17 @@ Commands
       $ xtl.config validate
       $ xtl.config validate path/to/xtl.toml
 
+``upgrade``
+   Upgrade the active config file (or any other file) written by an older version of XTL to the current one, in
+   place: only the settings that changed are edited, and your comments and formatting stay. ``--clean`` writes the
+   file afresh instead, with XTL's descriptions as comments and without your own. A file from a newer version is
+   left alone.
+
+   .. code-block:: console
+
+      $ xtl.config upgrade
+      $ xtl.config upgrade path/to/xtl.toml --clean
+
 ``deps``
    Check which shells are installed, and whether each dependency (*e.g.* ATSAS) can be found with the compute site
    and shell that a job needing it would use. Exits with code 1 if a dependency is missing; ``-v`` shows what each

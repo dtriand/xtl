@@ -159,8 +159,9 @@ def cli_config_show(
     stderr = Console(stderr=True, highlight=False)
 
     # Load the settings
+    warnings: list[str] = []
     if file is not None:
-        settings, errors, _ = XTLSettings._read(file)
+        settings, errors, warnings = XTLSettings._read(file)
         if settings is None:
             stderr.print(f'[red]Error:[/] invalid config file: {escape("; ".join(errors))}')
             stderr.print('See [b]xtl.config validate[/b] for details.')
@@ -172,7 +173,7 @@ def cli_config_show(
         if active is None:
             source = 'in-memory defaults'
         else:
-            settings, errors, _ = XTLSettings._read(active.path)
+            settings, errors, warnings = XTLSettings._read(active.path)
             if settings is None:
                 stderr.print(
                     f'[yellow]Warning:[/] the active [b]{active.name}[/b] '
@@ -184,6 +185,10 @@ def cli_config_show(
                 source = f'{active.name} ({active.path})'
         if settings is None:
             settings = XTLSettings()
+
+    # As when XTL loads the file (e.g. an older version, which is shown upgraded)
+    for warning in warnings:
+        stderr.print(f'[yellow]Warning:[/] {escape(warning)}')
 
     defaults = XTLSettings()
     data = XTLSettings._value_to_toml(settings, keep_comments=comments and not diff)
