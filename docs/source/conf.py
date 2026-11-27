@@ -186,8 +186,8 @@ def linkcode_resolve(domain, info):
         # Convert to POSIX path for URLs (always uses forward slashes)
         filepath = rel_path.as_posix()
 
-        # Only link to source files within the project
-        if not str(filepath).startswith('src'):
+        # Only link to source files within the project (xtl and xtl-core)
+        if not filepath.startswith(('src/', 'packages/xtl-core/src/')):
             return None
     except ValueError:
         # This happens when the file is not within the project directory

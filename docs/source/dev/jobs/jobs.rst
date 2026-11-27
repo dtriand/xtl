@@ -22,7 +22,7 @@ Two kinds of job need no ``_execute()`` of their own:
 Job and configuration
 ---------------------
 
-A configuration is a subclass of |JobConfig|, which is an |Options| model (see :doc:`../../common/options`). Its
+A configuration is a subclass of |JobConfig|, which is an |Options| model (see :doc:`../../core/options`). Its
 fields are typed and validated when the configuration is created, so a wrong value fails there, with a clear message,
 rather than halfway through the job. A configuration also saves to and loads from a dict, JSON or TOML, so a job can
 be described in a file, or sent to another process.

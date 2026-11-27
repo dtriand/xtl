@@ -16,7 +16,6 @@ Subpackages
    :maxdepth: 3
 
    xtl.shared
-   xtl_core
    xtl.config
    xtl.jobs
 
