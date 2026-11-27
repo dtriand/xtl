@@ -43,11 +43,19 @@ Commands
    Upgrade the active config file (or any other file) written by an older version of XTL to the current one, in
    place: only the settings that changed are edited, and your comments and formatting stay. ``--clean`` writes the
    file afresh instead, with XTL's descriptions as comments and without your own. A file from a newer version is
-   left alone.
+   left alone. The old file is kept next to it as ``xtl.toml.bak`` (``--no-backup`` to skip it).
+
+   ``--add-missing`` also adds the settings that the file doesn't have, with their descriptions (also to a file that
+   is up to date); settings without a value, *e.g.* optional paths, are added as commented-out lines
+   (``# path = ...``) to fill in. ``--diff`` shows the changes without writing them, and ``--check`` writes nothing
+   and exits with code 1 if the file needs upgrading, *e.g.* in a script.
 
    .. code-block:: console
 
       $ xtl.config upgrade
+      $ xtl.config upgrade --diff
+      $ xtl.config upgrade --check
+      $ xtl.config upgrade --add-missing
       $ xtl.config upgrade path/to/xtl.toml --clean
 
 ``deps``

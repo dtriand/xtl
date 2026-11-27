@@ -107,8 +107,16 @@ settings are upgraded to the current layout as they are read, and a warning sugg
 
    $ xtl.config upgrade
 
-This edits only what changed (and the version), so your comments and formatting stay; ``--clean`` writes the file
-afresh instead. A file from a newer version of XTL loads as it is, with a warning, and can't be upgraded.
+This edits only what changed (and the version), so your comments and formatting stay; ``--diff`` shows the changes
+first, and the old file is kept as ``xtl.toml.bak``. ``--clean`` writes the file afresh instead. A file from a newer
+version of XTL loads as it is, with a warning, and can't be upgraded.
+
+A file only needs the settings you change. To see all the others in your file, with their descriptions, add them
+(settings without a value become commented-out lines to fill in):
+
+.. code-block:: console
+
+   $ xtl.config upgrade --add-missing
 
 Starting over
 -------------
