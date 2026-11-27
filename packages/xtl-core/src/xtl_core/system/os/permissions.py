@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 import stat
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from xtl_core.system.compatibility.py310 import StrEnum
 from xtl_core.utils.strings import shorten
@@ -71,10 +71,14 @@ class FilePermissionsBit:
     owner.
     """
 
-    value: int | str | None
+    value: int
     """Permission value in octal format: an int from 0 to 7, once initialized. Created
     from such an int, an octal string (`'0o5'`), canonical (`'r-x'`) or short (`'rx'`)
     permission letters, or `''`, `'-'` or `None` for no permissions."""
+
+    if TYPE_CHECKING:
+        # What the generated `__init__` accepts; `__post_init__` makes it an int
+        def __init__(self, value: int | str | None) -> None: ...
 
     def __post_init__(self):
         self.value = self._parse(self.value)
@@ -229,10 +233,21 @@ class FilePermissions:
     :class:`FilePermissionsBit` passed in doesn't change the permissions.
     """
 
-    owner: int | str | FilePermissionsBit | None = None
-    group: int | str | FilePermissionsBit | None = None
-    other: int | str | FilePermissionsBit | None = None
-    file_type: Optional[str | FileType] = field(default=None, compare=False)
+    owner: FilePermissionsBit = None  # type: ignore  # see `__init__` below
+    group: FilePermissionsBit = None  # type: ignore
+    other: FilePermissionsBit = None  # type: ignore
+    file_type: Optional[FileType] = field(default=None, compare=False)
+
+    if TYPE_CHECKING:
+        # What the generated `__init__` accepts; `__post_init__` makes the parts
+        #  `FilePermissionsBit`s and the file type a `FileType`
+        def __init__(
+            self,
+            owner: 'int | str | FilePermissionsBit | FilePermissions | None' = None,
+            group: int | str | FilePermissionsBit | None = None,
+            other: int | str | FilePermissionsBit | None = None,
+            file_type: str | FileType | None = None,
+        ) -> None: ...
 
     def __post_init__(self):
         if self.group is None and self.other is None:
@@ -267,7 +282,8 @@ class FilePermissions:
                 return cls._split_octal(int(match.group(1), 8)), None
             if match := _MODE_SYMBOLIC.fullmatch(value):
                 file_type = match.group(1)
-                return match.group(2, 3, 4), FileType(file_type) if file_type else None
+                owner, group, other = match.group(2, 3, 4)
+                return (owner, group, other), FileType(file_type) if file_type else None
         return (value, None, None), None
 
     @staticmethod
@@ -464,5 +480,5 @@ def chmod_recursively(
                 p = Path(root) / name
                 if not p.is_symlink():
                     p.chmod(mode)
-    if not top_down:
+    if not top_down and directories_mode is not None:  # never None when bottom-up
         path.chmod(directories_mode)

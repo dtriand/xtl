@@ -7,12 +7,12 @@ Delete this module when dropping support for Python 3.10, and import from the st
    from xtl_core.system.compatibility.py310 import Self, StrEnum
 """
 
-from xtl_core.system.compatibility import PY310_OR_LESS
+import sys
 
 __all__ = ['Self', 'StrEnum']
 
 
-if PY310_OR_LESS:
+if sys.version_info < (3, 11):
     from enum import Enum
 
     from typing_extensions import Self

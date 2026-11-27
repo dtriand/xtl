@@ -19,7 +19,7 @@ class EnvVar(Generic[T]):
     """
 
     name: str
-    parser: Callable[[str], T] = str
+    parser: Callable[[str], T] = str  # type: ignore  # right only for EnvVar[str]; type checkers can't tie a default to T
     default: T | None = None
 
     @property

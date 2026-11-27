@@ -17,7 +17,7 @@ VT = TypeVar('VT')
 
 @runtime_checkable
 class TypedMutable(Protocol):
-    def _validate(self, value: Any) -> bool: ...
+    def _validate(self, value: Any) -> Any: ...
 
     def _serialize(self) -> Any: ...
 
@@ -272,7 +272,7 @@ class TypedDict(TypedMapping[KT, VT], MutableMapping[KT, VT]):
     def __len__(self) -> int:
         return len(self._data)
 
-    def __contains__(self, key: KT) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self._data
 
     def __eq__(self, other):

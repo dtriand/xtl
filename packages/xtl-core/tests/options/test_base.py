@@ -163,6 +163,34 @@ class TestOption:
         with pytest.raises(TypeError, match="'formatter' must be a callable"):
             Option(default=1, formatter='upper')
 
+    @pytest.mark.parametrize('name', ['length', 'choices', 'cast_as', 'validator'])
+    def test_none_is_not_given(self, name):
+        # Regression: a validator was made with None, which then failed for every value
+        o = Option(default='abc', **{name: None})
+        assert not o.json_schema_extra
+
+    def test_extra_none(self):
+        assert Option(default=1, extra=None, length=1).json_schema_extra['validators']
+
+    def test_extra_callable(self):
+        # Pydantic calls it with the schema; an option without validators keeps it
+        def extra(schema):
+            schema['unit'] = 'nm'
+
+        class Model(Options):
+            x: int = Option(default=1, extra=extra)
+            y: int = Field(default=2, json_schema_extra=extra)
+
+        assert Model.model_fields['x'].json_schema_extra is extra
+        assert Model(x=3, y=4).to_dict() == {'x': 3, 'y': 4}
+        assert Model.model_json_schema()['properties']['x']['unit'] == 'nm'
+
+    @pytest.mark.parametrize('kwargs', [{'length': 1}, {'formatter': str}], ids=['validator', 'formatter'])
+    def test_extra_callable_with_validators(self, kwargs):
+        # Regression: an `AttributeError` from `extra.get()`
+        with pytest.raises(TypeError, match="'extra' must be a dict"):
+            Option(default='a', extra=lambda schema: None, **kwargs)
+
 
 class TestInit:
     def test_values(self):

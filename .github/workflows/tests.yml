@@ -34,6 +34,31 @@ jobs:
       - name: Lint with tox
         run: uvx --with tox-uv tox -e lint
 
+  # Type checks of xtl-core, with its extra so that numpy, pandas and rich resolve; on the oldest Python
+  types:
+    name: types
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Install xtl-core with its extra
+        run: uv sync --package xtl-core --extra extra --group lint --locked --python 3.10
+
+      - name: basedpyright
+        working-directory: packages/xtl-core
+        run: uv run --no-sync basedpyright
+
+      # Reports only, until its findings are mostly real
+      - name: ty
+        working-directory: packages/xtl-core
+        continue-on-error: true
+        run: uv run --no-sync ty check
+
   # xtl-core on its own: without xtl and the scientific stack
   core:
     name: core / ubuntu-latest / py${{ matrix.python-version }}

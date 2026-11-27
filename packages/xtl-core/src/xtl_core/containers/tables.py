@@ -7,7 +7,7 @@ import operator
 import os
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Literal, Optional, Union
 
 from xtl_core.system.compatibility.py313 import path_is_file
 from xtl_core.system.compatibility.py314 import sentinel
@@ -68,7 +68,7 @@ class MissingValueConfig:
             return NotImplemented
         return (self.values, self.repr, self.checker) == (other.values, other.repr, other.checker)
 
-    __hash__ = None
+    __hash__ = None  # pyright: ignore[reportAssignmentType]  # mutable, so unhashable
 
     def __contains__(self, value: Any) -> bool:
         """Check if a value is considered missing.
@@ -634,7 +634,9 @@ class Table:
                 self._formats.pop(col_name, None)
         else:
             # Shift index-keyed formats
-            self._formats = {(k - 1 if k > col else k): v for k, v in self._formats.items() if k != col}
+            self._formats = {
+                (k - 1 if k > col else k): v for k, v in self._formats.items() if isinstance(k, int) and k != col
+            }
 
     ###############
     # Conversions #
@@ -688,7 +690,7 @@ class Table:
 
         return pd.DataFrame(self.data, columns=self._headers if self._headers else None)
 
-    def to_rich(self, cast_as: Callable = None) -> 'rich.table.Table':
+    def to_rich(self, cast_as: Optional[Callable] = None) -> 'rich.table.Table':
         """Convert the table to a rich.Table for pretty console output. Requires rich to
         be installed.
 
@@ -700,7 +702,7 @@ class Table:
         except ModuleNotFoundError:
             raise ImportError(f'rich is not installed; {_EXTRA_HINT}')
 
-        justify = {'<': 'left', '>': 'right', '^': 'center'}
+        justify: dict[str, Literal['left', 'right', 'center']] = {'<': 'left', '>': 'right', '^': 'center'}
         table = RichTable()
         if self._headers:
             for i, col in enumerate(self._headers):
@@ -716,7 +718,7 @@ class Table:
 
     def to_csv(
         self,
-        filename: str | Path = None,
+        filename: Optional[str | Path] = None,
         delimiter: str = ',',
         new_line: str = '\n',
         header_char: str = '',
@@ -781,7 +783,7 @@ class Table:
     @classmethod
     def from_dict(
         cls,
-        data: dict[Union[str, int], list[Any]],
+        data: Mapping[str, Iterable[Any]],
         *,
         missing_values: Union[MissingValueConfig, Any] = (),
         missing_value_repr: Any = None,
@@ -886,7 +888,7 @@ class Table:
         s: str | Path,
         *,
         delimiter: str = ',',
-        header_line: int = None,
+        header_line: Optional[int] = None,
         header_char: str = '',
         formats: Optional[dict[Union[str, int], str]] = None,
         encoding: str = 'utf-8',
@@ -1092,7 +1094,7 @@ class Table:
         # Combine formats, preferring the formats of the first table
         formats = other._subset_formats(range(other.no_cols))
         if not other._headers:
-            formats = {k + self.no_cols: v for k, v in formats.items()}
+            formats = {(k + self.no_cols if isinstance(k, int) else k): v for k, v in formats.items()}
         formats.update(self._subset_formats(range(self.no_cols)))
 
         # For missing values, prefer the configuration from the first table
@@ -1149,7 +1151,8 @@ class Table:
         # Append the formats from other table, keeping existing ones
         no_cols = self.no_cols
         for key, fmt in formats.items():
-            self._formats.setdefault(key if headers else key + no_cols, fmt)
+            # Index keys (the other table has no headers) move past this table's columns
+            self._formats.setdefault(key + no_cols if isinstance(key, int) and not headers else key, fmt)
 
         self._headers.extend(headers)
         for row, extra in zip(self._data, rows):

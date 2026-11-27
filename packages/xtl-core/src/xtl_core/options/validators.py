@@ -14,6 +14,7 @@ __all__ = [
     'CastAsPathOrNone',
 ]
 
+from collections.abc import Sized
 from functools import partial
 from pathlib import Path
 import tempfile
@@ -30,7 +31,7 @@ def validate_length(value: Any, length: int) -> Any:
     """
     Check if the length of the value is equal to the provided length.
     """
-    if isinstance(value, Iterable):
+    if isinstance(value, Sized):
         if len(value) != length:
             raise ValueError(f'Expected length {length}, got {len(value)}') from None
     return value

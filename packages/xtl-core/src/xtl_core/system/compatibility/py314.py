@@ -9,13 +9,12 @@ Delete this module when dropping support for Python 3.14, and use the built-ins 
    MISSING = sentinel('MISSING')
 """
 
-from xtl_core.system.compatibility import PY310_OR_LESS, PY314_OR_LESS
+import sys
 
 __all__ = ['sentinel']
 
 
-if PY314_OR_LESS:
-    import sys
+if sys.version_info < (3, 15):
     import typing
 
     class sentinel:
@@ -28,6 +27,9 @@ if PY314_OR_LESS:
         :param name: Name of the sentinel, *i.e.* of the variable it is assigned to.
         :param repr: Text for ``repr()``, if not the name.
         """
+
+        __name__: str
+        _repr: str
 
         def __init__(self, name: str, /, *, repr: str | None = None) -> None:
             object.__setattr__(self, '__name__', name)
@@ -62,7 +64,7 @@ if PY314_OR_LESS:
         def __ror__(self, other: object) -> object:
             return typing.Union[other, self]
 
-        if PY310_OR_LESS:
+        if sys.version_info < (3, 11):
             # NB: Python 3.10's `typing.Union` takes only callables
             def __call__(self, *args, **kwargs):
                 raise TypeError("'sentinel' object is not callable")

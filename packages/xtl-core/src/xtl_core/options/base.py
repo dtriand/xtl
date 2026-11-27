@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import re
 from types import EllipsisType
-from typing import Any, Callable, Iterable, Optional, Union, TypeVar, overload, Literal
+from typing import Any, Callable, Iterable, Optional, Union, TypeVar, cast, overload, Literal
 from typing_extensions import Self
 
 from pydantic import (
@@ -254,7 +254,7 @@ def Option(
     formatter: Callable | None = _Unset,
     # Extra JSON schema
     extra: JsonDict | Callable[[JsonDict], None] | None = _Unset,
-) -> FieldInfo:
+) -> Any:  # a `FieldInfo`, typed as the overloads' field value, as pydantic's `Field()`
     """
     Create a |Field| with custom validation, serialization and more intuitive metadata
     handling.
@@ -302,48 +302,32 @@ def Option(
     :return: A :class:`pydantic.FieldInfo <pydantic.fields.FieldInfo>` object with
         custom validation and metadata handling.
     :raises ValueError: If neither ``default`` nor ``default_factory`` is provided.
+    :raises TypeError: If ``extra`` is a callable, but validators or a formatter are given.
     """
-    if extra is _Unset:
-        extra = {}
-
-    # Store custom validators in the `json_schema_extra`
-    if any(
-        [
-            v is not _Unset
-            for v in (length, choices, path_exists, path_is_file, path_is_dir, path_is_absolute, cast_as, validator)
-        ]
-    ):
-        # Ensure we don't overwrite existing validators
-        if not isinstance(extra.get('validators', None), list):
-            extra['validators'] = []
-    # Before validators
-    if cast_as is not _Unset:
-        extra['validators'].append(CastAsValidator(cast_as))
+    # Before validators (`None` is not given, as for the other arguments)
+    validators: list[_Validator] = []
+    if cast_as is not _Unset and cast_as is not None:
+        validators.append(CastAsValidator(cast_as))
     # After validators
-    if length is not _Unset:
-        extra['validators'].append(LengthValidator(length))
-    if choices is not _Unset:
-        extra['validators'].append(ChoicesValidator(choices))
+    if length is not _Unset and length is not None:
+        validators.append(LengthValidator(length))
+    if choices is not _Unset and choices is not None:
+        validators.append(ChoicesValidator(choices))
     if path_exists is not _Unset and path_exists:
-        extra['validators'].append(PathExistsValidator())
+        validators.append(PathExistsValidator())
     if path_is_file is not _Unset and path_is_file:
-        extra['validators'].append(PathIsFileValidator())
+        validators.append(PathIsFileValidator())
     if path_is_dir is not _Unset and path_is_dir:
-        extra['validators'].append(PathIsDirValidator())
+        validators.append(PathIsDirValidator())
     if path_is_absolute is not _Unset and path_is_absolute:
-        extra['validators'].append(PathIsAbsoluteValidator())
+        validators.append(PathIsAbsoluteValidator())
     # Either before or after validators
-    if validator is not _Unset:
-        validators = []
+    if validator is not _Unset and validator is not None:
         # Flatten the validators if it's an iterable
-        if isinstance(validator, Iterable):
-            for v in validator:
-                validators.append(v)
-        else:
-            validators.append(validator)
+        given: list[_Validator] = list(validator) if isinstance(validator, Iterable) else [validator]
 
         # Type checking
-        for i, v in enumerate(validators):
+        for i, v in enumerate(given):
             if not isinstance(v, _Validator):
                 raise TypeError(f'Validator {i} is not a valid validator, but {type(v)} instead')
 
@@ -356,16 +340,28 @@ def Option(
                 raise TypeError(
                     f'Validator {i} function must take exactly 1 argument, but it takes {len(args)} instead'
                 )
+        validators.extend(given)
 
-        # Add validators to the extra
-        extra['validators'].extend(validators)
+    if formatter is not _Unset and not callable(formatter):
+        raise TypeError("'formatter' must be a callable")
 
-    if formatter is not _Unset:
-        if not callable(formatter):
-            raise TypeError("'formatter' must be a callable")
-        extra['serializer'] = formatter
+    if extra is _Unset or extra is None:
+        extra = {}
+    # Store custom validators and the formatter in the `json_schema_extra`
+    if validators or formatter is not _Unset:
+        if not isinstance(extra, dict):
+            raise TypeError("'extra' must be a dict for an option with validators or a formatter")
+        # Not JSON values, so not a `JsonDict` any more
+        stored: dict[str, Any] = extra
+        if validators:
+            # Ensure we don't overwrite existing validators
+            if not isinstance(stored.get('validators'), list):
+                stored['validators'] = []
+            stored['validators'].extend(validators)
+        if formatter is not _Unset:
+            stored['serializer'] = formatter
 
-    field_kwargs = {
+    field_kwargs: dict[str, Any] = {
         'serialization_alias': alias,
         'title': name,
         'description': desc,
@@ -392,8 +388,17 @@ def Option(
     field_kwargs = {key: value for key, value in field_kwargs.items() if value is not _Unset}
 
     if default_factory is not _Unset:
-        return Field(default_factory=default_factory, **field_kwargs)
-    return Field(default=default, **field_kwargs)
+        field_kwargs['default_factory'] = default_factory
+    else:
+        field_kwargs['default'] = default
+    return Field(**field_kwargs)
+
+
+def _schema_extra(field: FieldInfo | ComputedFieldInfo) -> dict[str, Any]:
+    """The ``json_schema_extra`` of a field, where :func:`Option` keeps its validators and
+    formatter; empty if it is not a dict (pydantic also takes a callable)."""
+    extra = field.json_schema_extra
+    return extra if isinstance(extra, dict) else {}
 
 
 _TOML_SKIP = sentinel('_TOML_SKIP')
@@ -485,11 +490,7 @@ class Options(BaseModel):
         """
         custom_validators = {}
         for name, finfo in cls.__pydantic_fields__.items():
-            # Skip if no validators are defined
-            if not finfo.json_schema_extra:
-                continue
-            validators = finfo.json_schema_extra.get('validators', [])
-            for validator in validators:
+            for validator in _schema_extra(finfo).get('validators', []):
                 if name not in custom_validators:
                     custom_validators[name] = {'before': [], 'after': []}
                 if isinstance(validator, BeforeValidator):
@@ -510,17 +511,17 @@ class Options(BaseModel):
         """
         custom_serializers = {}
         for name, finfo in cls.__pydantic_fields__.items():
-            # Skip if no serializer is defined
-            if not finfo.json_schema_extra:
-                continue
-            serializer = finfo.json_schema_extra.get('serializer', None)
+            serializer = _schema_extra(finfo).get('serializer')
             if serializer:
                 custom_serializers[name] = serializer
         return custom_serializers
 
     @staticmethod
     def _apply_validators(
-        name: str, value: Any, validators: list[AfterValidator | BeforeValidator], errors: list[InitErrorDetails] = None
+        name: str,
+        value: Any,
+        validators: list[AfterValidator | BeforeValidator],
+        errors: list[InitErrorDetails] | None = None,
     ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply validators to the value. This is used to perform a series of validations
@@ -539,8 +540,10 @@ class Options(BaseModel):
         new_errors = []
 
         for validator in validators:
+            # Validators of an `Option` take the value only (checked by `Option()`), not pydantic's `info` too
+            func = cast(Callable[[Any], Any], validator.func)
             try:
-                value = validator.func(value)
+                value = func(value)
             except ValueError as e:
                 new_errors.append(InitErrorDetails(type='value_error', loc=(name,), input=value, ctx={'error': e}))
 
@@ -555,7 +558,7 @@ class Options(BaseModel):
         name: str,
         value: Any,
         validators: dict[str, list[BeforeValidator | AfterValidator]],
-        errors: list[InitErrorDetails] = None,
+        errors: list[InitErrorDetails] | None = None,
     ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply before validators to the value. This is used to validate the value before
@@ -582,7 +585,7 @@ class Options(BaseModel):
         name: str,
         value: Any,
         validators: dict[str, list[BeforeValidator | AfterValidator]],
-        errors: list[InitErrorDetails] = None,
+        errors: list[InitErrorDetails] | None = None,
     ) -> tuple[Any, list[InitErrorDetails]]:
         """
         Apply after validators to the value. This is used to validate the value after
@@ -618,24 +621,11 @@ class Options(BaseModel):
 
         if isinstance(data, dict):
             # During model initialization data is a dict
-            mode = 'dict'
 
             # Check for parsing of environment variables (kept on the instance below)
             parse_env = data.get('_parse_env', False)
-        elif isinstance(data, cls):
-            # During value assignment data is a pydantic model
-            mode = 'pydantic'
 
-            # Check for parsing of environment variables
-            parse_env = data._parse_env
-        else:
-            # Let Pydantic's own pipeline deal with data that are neither a dict nor
-            #  a model instance. This deals properly with custom before validators
-            #  implemented by the models themselves
-            return handler(data)
-
-        # Apply before validators for raw data only
-        if mode == 'dict':
+            # Apply before validators for raw data only
             for name, value in data.items():
                 new_errors = []
 
@@ -656,14 +646,24 @@ class Options(BaseModel):
             # Check and raise validation errors
             if errors:
                 raise ValidationError.from_exception_data(title='before_validators', line_errors=errors)
+        elif isinstance(data, cls):
+            # During value assignment data is a pydantic model
+
+            # Check for parsing of environment variables
+            parse_env = data._parse_env
+        else:
+            # Let Pydantic's own pipeline deal with data that are neither a dict nor
+            #  a model instance. This deals properly with custom before validators
+            #  implemented by the models themselves
+            return handler(data)
 
         # Generate the pydantic model
         validated_self = handler(data)
-        if mode == 'dict':
+        if isinstance(data, dict):
             validated_self._parse_env = parse_env
 
         # Apply after validators
-        for name, value in validated_self.__dict__.items():
+        for name, value in vars(validated_self).items():
             new_errors = []
 
             # Check for environment variables in fields that were instantiated with
@@ -679,7 +679,7 @@ class Options(BaseModel):
             if not new_errors:
                 # Note: Workaround to prevent infinite recursion when using
                 #  setattr()
-                validated_self.__dict__[name] = value
+                vars(validated_self)[name] = value
             errors.extend(new_errors)
         # Check and raise validation errors
         if errors:
@@ -762,7 +762,7 @@ class Options(BaseModel):
         except ValidationError as e:
             raise OptionsValidationError(e, type(self).__name__) from e
         # Take the validated values, including any that the validators changed
-        self.__dict__.update(trial.__dict__)
+        vars(self).update(vars(trial))
         self.__pydantic_fields_set__.add(name)
 
     @classmethod
@@ -1003,8 +1003,9 @@ class Options(BaseModel):
         :raises ValueError: If a dictionary or iterable contains ``None``.
         """
         # Apply serialization function
-        if field is not None and field.json_schema_extra and 'serializer' in field.json_schema_extra:
-            value = field.json_schema_extra['serializer'](value)
+        serializer = _schema_extra(field).get('serializer') if field is not None else None
+        if serializer is not None:
+            value = serializer(value)
 
         if value is None:
             if field is None:

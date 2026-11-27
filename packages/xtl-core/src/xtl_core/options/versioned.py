@@ -29,6 +29,12 @@ _Options = TypeVar('_Options', bound=Options)
 _StepFuncRaw = TypeVar('_StepFuncRaw', bound=Callable[[_Data], _Data])
 
 
+def _func_name(func: Callable) -> str:
+    """The name of a step function for messages: its qualified name, or its ``repr()`` for callables without one
+    (e.g. :func:`functools.partial`)."""
+    return getattr(func, '__qualname__', None) or repr(func)
+
+
 @dataclass(frozen=True)
 class UpgradeStep:
     """
@@ -216,7 +222,7 @@ class VersionedOptions(Options):
     @classmethod
     def upgrade_step(
         cls, *, to: VersionInfo | str, model: type[Options] | None = None
-    ) -> Callable[[Callable[[Any], _Data]], Callable[[Any], _Data]]:
+    ) -> Callable[[Any], Any]:  # the decorator, typed by the overloads
         """
         Decorator to register an upgrade step on this model. The step takes the data in the layout before ``to`` and
         returns it in the layout of ``to``; the function itself is returned unchanged.
@@ -262,13 +268,13 @@ class VersionedOptions(Options):
                 inspect.signature(func).bind(None)
             except TypeError:
                 raise TypeError(
-                    f'Upgrade step function {func.__qualname__} must accept a single positional argument, '
+                    f'Upgrade step function {_func_name(func)} must accept a single positional argument, '
                     'the data to upgrade.'
                 ) from None
 
             if (existing := cls._upgrade_steps.get(to.tuple_safe)) is not None:
                 raise ValueError(
-                    f'{cls.__name__} already has an upgrade step to version {to.pep440}: {existing.func.__qualname__}.'
+                    f'{cls.__name__} already has an upgrade step to version {to.pep440}: {_func_name(existing.func)}.'
                 )
             cls._upgrade_steps[to.tuple_safe] = UpgradeStep(to=to, func=func, model=model)
             return func
@@ -316,7 +322,7 @@ class VersionedOptions(Options):
 
             logger.debug(
                 'Running upgrade step from version %(from)s to %(to)s: %(func)s',
-                {'from': at.pep440, 'to': step.to.pep440, 'func': step.func.__qualname__},
+                {'from': at.pep440, 'to': step.to.pep440, 'func': _func_name(step.func)},
             )
 
             # Typed steps get the data validated as their frozen model, which only sees the keys it

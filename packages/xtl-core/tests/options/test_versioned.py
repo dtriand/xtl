@@ -1,3 +1,4 @@
+import functools
 import importlib
 import inspect
 import json
@@ -188,6 +189,19 @@ class TestUpgradeStep:
     def test_wrong_arity(self, func):
         with pytest.raises(TypeError, match='must accept a single positional argument'):
             versioned_model().upgrade_step(to='2.0.0')(func)
+
+    def test_callables_without_a_name(self, caplog):
+        # Regression: messages read `__qualname__`, which a partial or a callable object lacks
+        Model = versioned_model()
+        with pytest.raises(TypeError, match='functools.partial.* must accept a single positional argument'):
+            Model.upgrade_step(to='2.0.0')(functools.partial(lambda a, b: a))
+        step = functools.partial(lambda data, extra: data, extra=None)
+        Model.upgrade_step(to='2.0.0')(step)
+        with pytest.raises(ValueError, match='already has an upgrade step to version 2.0.0: functools.partial'):
+            Model.upgrade_step(to='2.0.0')(noop)
+        with caplog.at_level(logging.DEBUG, logger='xtl_core.options.versioned'):
+            Model.from_dict({'version': '1.0.0'})
+        assert 'functools.partial' in caplog.text
 
 
 class TestUpgradeSteps:
