@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import pickle
+import signal
 import subprocess
 import sys
 import textwrap
@@ -182,14 +183,15 @@ ECHO = {Shell.BASH: 'echo "[$1] [$2]"', Shell.CMD: 'echo [%~1] [%~2]'}
 pool_types = pytest.mark.parametrize('pool_cls', POOLS, ids=lambda c: c.__name__)
 
 
-def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.CompletedProcess:
+def run_ctrl_c_script(tmp_path: Path, script: str, *args: str, timeout: float = 120) -> subprocess.CompletedProcess:
     """
     Run a script that sends itself Ctrl+C, in a console or a session of its own, so that Ctrl+C reaches only the
-    script and its processes; `ctrl_c()` is defined for it.
+    script and its processes; `ctrl_c()` is defined for it. A script that hangs prints the stacks of its threads, and
+    is ended with its processes after `timeout` seconds, which fails the test with its output.
     """
     ctrl_c = textwrap.dedent(
-        """
-        import ctypes, os, signal
+        f"""
+        import ctypes, faulthandler, os, signal
 
 
         def ctrl_c():
@@ -199,10 +201,12 @@ def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.Com
                 os.killpg(0, signal.SIGINT)
 
 
-        # Ctrl+C may be off for children; not here in the pool's processes, which import this script again, and
-        #  ignore Ctrl+C from their start
-        if os.name == 'nt' and __name__ == '__main__':
-            ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)
+        if __name__ == '__main__':
+            # Ctrl+C may be off for children; not here in the pool's processes, which import this script again, and
+            #  ignore Ctrl+C from their start
+            if os.name == 'nt':
+                ctypes.windll.kernel32.SetConsoleCtrlHandler(None, False)
+            faulthandler.dump_traceback_later({max(timeout - 20, timeout / 2)})
         """
     )
     path = tmp_path / 'script.py'
@@ -214,14 +218,29 @@ def run_ctrl_c_script(tmp_path: Path, script: str, *args: str) -> subprocess.Com
     else:
         options = {'start_new_session': True}
     root = str(Path(__file__).parents[2])
-    return subprocess.run(
-        [sys.executable, str(path), *args],
-        capture_output=True,
+    cmd = [sys.executable, str(path), *args]
+    with subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=120,
         env={**os.environ, 'PYTHONPATH': os.pathsep.join(filter(None, [root, os.environ.get('PYTHONPATH')]))},
         **options,
-    )
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # Ending only the script leaves its pipes open in the pool's processes, and reading them hangs too
+            if os.name == 'nt':
+                subprocess.run(['taskkill', '/T', '/F', '/PID', str(process.pid)], capture_output=True)
+            else:
+                os.killpg(process.pid, signal.SIGKILL)
+            try:
+                stdout, stderr = process.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                stdout, stderr = '', '(no output: processes of the script still run)'
+            pytest.fail(f'The script hung for {timeout} s\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}')
+    return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
 
 
 class TestJobPool:
