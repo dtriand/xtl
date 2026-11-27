@@ -789,3 +789,134 @@ class TestLoadUpgrades:
             with pytest.raises(ModuleNotFoundError):
                 Model.upgrade({'version': '1.0.0'})
         assert Model._upgrades_loaded is False
+
+
+class Units(Options):
+    length: str = Option(default='A', desc='Unit of length')
+    energy: str = Option(default='eV', desc='Unit of energy')
+
+
+def make_sample() -> type[VersionedOptions]:
+    """A 2.0.0 model whose step renamed ``units.unit`` to ``units.length``, spells out ``angstrom`` as ``A`` and
+    drops ``obsolete``."""
+
+    class Sample(VersionedOptions):
+        _version_path = 'version'
+        _current_version = '2.0.0'
+        version: str = Option(default='2.0.0')
+        name: str = Option(default='', desc='Name of the sample')
+        units: Units = Option(default_factory=Units, desc='Units of the values')
+        more: Units | None = Option(default=None, desc='More units')
+        tags: list[str] = Option(default_factory=list)
+
+    @Sample.upgrade_step(to='2.0.0')
+    def step(data: dict) -> dict:
+        for table in ('units', 'more'):
+            units = data.get(table, {})
+            if 'unit' in units:
+                units['length'] = units.pop('unit')
+            if units.get('length') == 'angstrom':
+                units['length'] = 'A'
+        data.pop('obsolete', None)
+        if data.get('tags') == ['old']:
+            data['tags'] = ['new', 'tags']
+        if 'legacy' in data:
+            data['legacy']['added'] = {'deep': 1}
+        return data
+
+    return Sample
+
+
+class TestUpgradeToml:
+    """Upgrading TOML text in place: what the steps changed, with the comments and formatting of everything else."""
+
+    def upgrade(self, text: str, **kwargs) -> tuple[type[VersionedOptions], str]:
+        Sample = make_sample()
+        result = Sample.upgrade_toml(text, **kwargs)
+        # Always the same settings as loading the text through the steps
+        assert Sample.from_toml(result) == Sample.from_toml(text)
+        return Sample, result
+
+    def test_keeps_comments_and_formatting(self):
+        text = (
+            '# My sample\n'
+            'version = "1.0.0"  # written by hand\n'
+            'name   =  "x" # mine\n'
+            '\n'
+            '[units]\n'
+            '# lengths\n'
+            'length = "nm"\n'
+        )
+        _, result = self.upgrade(text)
+        assert result == text.replace('"1.0.0"', '"2.0.0"')
+
+    def test_changed_value_keeps_its_comment(self):
+        _, result = self.upgrade('version = "1.0.0"\n[units]\nlength = "angstrom" # my unit\n')
+        assert 'length = "A" # my unit\n' in result
+
+    def test_renamed_key(self):
+        # The new key gets the field's description, as `to_toml(comments=True)` writes it
+        _, result = self.upgrade('version = "1.0.0"\n[units]\nunit = "nm" # nano\nenergy = "keV"\n')
+        assert 'unit =' not in result
+        assert 'length = "nm" # Unit of length\n' in result
+        assert 'energy = "keV"\n' in result
+
+    def test_renamed_key_in_an_optional_table(self):
+        # The nested model is found inside the union (`Units | None`)
+        _, result = self.upgrade('version = "1.0.0"\n[more]\nunit = "nm"\n')
+        assert 'length = "nm" # Unit of length\n' in result
+
+    def test_changed_list(self):
+        _, result = self.upgrade('version = "1.0.0"\ntags = ["old"] # mine\n')
+        assert 'tags = ["new", "tags"] # mine\n' in result
+
+    def test_new_table_in_an_unknown_table(self):
+        # No model, so no description; the new dict becomes a table
+        _, result = self.upgrade('version = "1.0.0"\n[legacy]\nx = 1 # mine\n')
+        assert tomlkit.parse(result)['legacy'] == {'x': 1, 'added': {'deep': 1}}
+        assert 'x = 1 # mine\n' in result
+
+    def test_removed_key(self):
+        _, result = self.upgrade('version = "1.0.0"\nobsolete = 1 # gone\nname = "x" # kept\n')
+        assert 'obsolete' not in result
+        assert 'name = "x" # kept\n' in result
+
+    def test_current_is_left_alone(self):
+        text = '# mine\nversion = "2.0.0"\nname = "x"  # mine\n'
+        assert self.upgrade(text)[1] == text
+
+    def test_version_added(self):
+        # Data without a version loads as current, and gets the tag
+        Sample, result = self.upgrade('name = "x" # mine\n\n[units]\nlength = "nm"\n')
+        assert tomlkit.parse(result)['version'] == '2.0.0'
+        assert 'name = "x" # mine\n' in result
+        # Before the tables, where a top-level key must be
+        assert result.index('version') < result.index('[units]')
+
+    def test_unknown_keys_stay(self):
+        _, result = self.upgrade('version = "1.0.0"\ncolour = "blue" # mine\n')
+        assert 'colour = "blue" # mine\n' in result
+
+    def test_clean(self):
+        Sample = make_sample()
+        text = '# My sample\nversion = "1.0.0"\nname = "x" # mine\n[units]\nunit = "nm"\n'
+        result = Sample.upgrade_toml(text, clean=True)
+        assert result == Sample.from_toml(text).to_toml(comments=True)
+        assert 'My sample' not in result and '# mine' not in result
+        assert 'name = "x" # Name of the sample\n' in result
+
+    def test_newer_is_refused(self):
+        with pytest.raises(ValueError, match=r'version 3\.0\.0, newer than the current version 2\.0\.0'):
+            make_sample().upgrade_toml('version = "3.0.0"\n')
+
+    def test_invalid_result(self):
+        with pytest.raises(OptionsValidationError):
+            make_sample().upgrade_toml('version = "1.0.0"\ntags = 1\n')
+
+    def test_invalid_toml(self):
+        with pytest.raises(ValueError):
+            make_sample().upgrade_toml('[units\n')
+
+    def test_without_current_version(self):
+        with pytest.raises(TypeError, match='does not define a `_current_version`'):
+            versioned_model(None).upgrade_toml('')

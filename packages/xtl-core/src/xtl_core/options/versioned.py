@@ -6,17 +6,21 @@
 
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 import copy
 import importlib
 import inspect
 from dataclasses import dataclass
 import logging
 from pathlib import Path
+import typing
 from typing import Any, ClassVar, Callable, TypeVar, overload
 
+import tomlkit
 from typing_extensions import Self
 
 from xtl_core.options.base import Options
+from xtl_core.options.toml import toml_item, toml_scalar
 from xtl_core.version_info import VersionInfo
 from xtl_core.utils.docs import extend_docstring
 
@@ -63,6 +67,55 @@ def _field_keys(model: type[Options]) -> set[str]:
             if isinstance(alias, str):
                 keys.add(alias)
     return keys
+
+
+def _field_of(model: type[Options] | None, key: str) -> tuple[type[Options] | None, str | None]:
+    """
+    The model of a key's value, if it is a nested |Options|, and the description of its field, for a key of a
+    model's data (a field name or its serialization alias).
+    """
+    if model is None:
+        return None, None
+    for name, field in model.model_fields.items():
+        if key in (name, field.serialization_alias):
+            # The model itself, or one in a union (e.g. `Inner | None`)
+            candidates = (field.annotation, *typing.get_args(field.annotation))
+            nested = next((c for c in candidates if isinstance(c, type) and issubclass(c, Options)), None)
+            return nested, field.description
+    return None, None
+
+
+def _plain(value: Any) -> Any:
+    """A value of upgraded data that ``tomlkit`` can write, inside dicts and lists too."""
+    if isinstance(value, dict):
+        return {str(k): _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    return toml_scalar(value)
+
+
+def _update_toml(container: MutableMapping, old: _Data, new: _Data, model: type[Options] | None) -> None:
+    """
+    Turn the ``tomlkit`` container of ``old`` into ``new``, in place: keys that are gone are removed, changed values
+    are replaced where they were (keeping their inline comment), nested tables are updated key by key, and new keys
+    are added with the description of their field as a comment. Everything else keeps its comments and formatting.
+
+    :param container: The parsed TOML that holds ``old``.
+    :param old: The data before the upgrade.
+    :param new: The data after it.
+    :param model: The model of the data, for the descriptions of new keys and the models of nested tables.
+    """
+    for key in [key for key in old if key not in new]:
+        del container[key]
+    for key, value in new.items():
+        nested, description = _field_of(model, key)
+        if key not in old:
+            container[key] = toml_item(_plain(value), description)
+        elif isinstance(value, dict) and isinstance(old[key], dict) and isinstance(container[key], MutableMapping):
+            _update_toml(container[key], old[key], value, nested)
+        elif old[key] != value:
+            # tomlkit keeps the replaced item's inline comment
+            container[key] = toml_item(_plain(value))
 
 
 _UPGRADE_NOTE = (
@@ -354,6 +407,45 @@ class VersionedOptions(Options):
             {'model': cls.__name__, 'from': version.pep440, 'to': current.pep440},
         )
         return data
+
+    @classmethod
+    def upgrade_toml(cls, s: str, /, *, clean: bool = False) -> str:
+        """
+        Upgrade TOML text from an older version of this model to the current one, keeping its comments and
+        formatting: only what the upgrade steps change is edited, and the version tag is set to the current version
+        (also when the text has none). New keys get their field's description as a comment; comments on the lines
+        above a removed key stay where they were. Text from the current version comes back unchanged.
+
+        :param s: The TOML text.
+        :param clean: Write the upgraded data afresh instead (``to_toml(comments=True)``): the text's own comments,
+            formatting and unknown keys are dropped.
+        :return: The upgraded TOML text.
+        :raises TypeError: If the model doesn't define a ``_current_version``.
+        :raises ValueError: If the text isn't valid TOML, or is from a version newer than the current one, which
+            can't be downgraded.
+        :raises OptionsValidationError: If the upgraded data isn't valid for the model.
+        """
+        current = cls._current
+        if current is None:
+            raise TypeError(f'{cls.__name__} does not define a `_current_version`, so its data cannot be upgraded.')
+
+        document = tomlkit.parse(s)
+        data = document.unwrap()
+        version = cls._get_version(data)
+        if version is not None and version.tuple_safe > current.tuple_safe:
+            raise ValueError(
+                f'{cls.__name__} data is from version {version.pep440}, newer than the current version '
+                f'{current.pep440}; it cannot be downgraded.'
+            )
+
+        upgraded = cls.upgrade(data)
+        cls._set_version(upgraded, current)
+        # Checks the upgraded data, before anything is written
+        model = cls.from_dict(upgraded, upgrade=False)
+        if clean:
+            return model.to_toml(comments=True)
+        _update_toml(document, data, upgraded, cls)
+        return document.as_string()
 
     @classmethod
     @extend_docstring(Options.from_dict, note=_UPGRADE_NOTE, params=_UPGRADE_PARAM)

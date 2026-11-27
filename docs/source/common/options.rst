@@ -528,6 +528,18 @@ The file itself is not changed. To save it in the new layout, write it back:
 
    >>> Employee.from_json('john.json').to_json('john.json', overwrite=True)
 
+For a TOML file that people edit by hand, :meth:`upgrade_toml() <xtl_core.options.versioned.VersionedOptions.upgrade_toml>`
+keeps its comments and formatting: it takes the text, edits only what the steps changed (renamed or removed keys,
+changed values, which keep their inline comment) and sets the version, and returns the new text. New keys get their
+field's description as a comment. ``clean=True`` writes the upgraded data afresh instead, as
+``to_toml(comments=True)`` does:
+
+.. code-block:: python
+
+   >>> from pathlib import Path
+   >>> path = Path('john.toml')
+   >>> path.write_text(Employee.upgrade_toml(path.read_text()))
+
 If you only need the upgraded data, :meth:`upgrade() <xtl_core.options.versioned.VersionedOptions.upgrade>` returns
 it as a dictionary, without validating it (the input is left unchanged):
 
